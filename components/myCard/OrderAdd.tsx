@@ -63,11 +63,10 @@ const MyCart = () => {
   // Modal state
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
-  const slideAnim = useState(new Animated.Value(300))[0];
+  const slideAnim = useRef(new Animated.Value(300)).current;
 
   const [pickupModalVisible, setPickupModalVisible] = useState(false);
   const pickupSlideAnim = useRef(new Animated.Value(300)).current;
-
 
   // Calculate totals
   const totalMRP = cartItems.reduce((sum, item) => sum + (item.mrp * item.quantity), 0);
@@ -76,7 +75,7 @@ const MyCart = () => {
   const deliveryCharges = 50;
   const finalAmount = totalPrice + deliveryCharges - couponDiscount;
 
-  // PanResponder for smooth drag to close
+  // PanResponder for delivery modal
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onPanResponderMove: (evt, gestureState) => {
@@ -89,6 +88,26 @@ const MyCart = () => {
         closeModal();
       } else {
         Animated.spring(slideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      }
+    },
+  });
+
+  // PanResponder for pickup modal
+  const pickupPanResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderMove: (evt, gestureState) => {
+      if (gestureState.dy > 0) {
+        pickupSlideAnim.setValue(gestureState.dy);
+      }
+    },
+    onPanResponderRelease: (evt, gestureState) => {
+      if (gestureState.dy > 100) {
+        closePickupModal();
+      } else {
+        Animated.spring(pickupSlideAnim, {
           toValue: 0,
           useNativeDriver: true,
         }).start();
@@ -117,30 +136,24 @@ const MyCart = () => {
 
   const handleOptionSelect = (option) => {
     setSelectedOption(option);
-    // You can add logic here to handle the selection
     setTimeout(() => {
       closeModal();
     }, 500);
   };
 
-
-  // const openPickupModal = () => {
-  //   console.log("Sanjay")
-  //   setPickupModalVisible(true);
-  //   Animated.timing(pickupSlideAnim, {
-  //     toValue: 0,
-  //     duration: 300,
-  //     useNativeDriver: true,
-  //   }).start();
-  // };
-
   const openPickupModal = () => {
-    setModalVisible(true);
-    Animated.timing(slideAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+    // पहले delivery modal को बंद करें
+    closeModal();
+    
+    // थोड़ी देर बाद pickup modal खोलें
+    setTimeout(() => {
+      setPickupModalVisible(true);
+      Animated.timing(pickupSlideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }, 350);
   };
 
   const closePickupModal = () => {
@@ -148,7 +161,9 @@ const MyCart = () => {
       toValue: 300,
       duration: 300,
       useNativeDriver: true,
-    }).start(() => setPickupModalVisible(false));
+    }).start(() => {
+      setPickupModalVisible(false);
+    });
   };
 
   const updateQuantity = (itemId, newQuantity) => {
@@ -267,58 +282,54 @@ const MyCart = () => {
         </TouchableOpacity>
       </View>
 
-
-
-<Modal
-  visible={pickupModalVisible}
-  transparent={true}
-  animationType="none"
-  onRequestClose={closePickupModal}
->
-  <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-    {/* Background overlay */}
-    <TouchableOpacity 
-      style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' }}
-      activeOpacity={1}
-      onPress={closePickupModal}
-    />
-
-    {/* Bottom Sheet */}
-    <Animated.View
-      style={{
-        backgroundColor: '#fff',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 20,
-        maxHeight: '50%',
-        transform: [{ translateY: pickupSlideAnim }],
-      }}
-    >
-      {/* Drag handle */}
-      <View style={{ width: 40, height: 4, backgroundColor: '#ddd', borderRadius: 2, alignSelf: 'center', marginBottom: 10 }} />
-
-      {/* Modal content */}
-      <Text style={{ fontSize: 18, fontWeight: '600', textAlign: 'center', marginBottom: 20 }}>Pickup Details</Text>
-      <Text style={{ fontSize: 16, marginBottom: 20 }}>Select your pickup location or details here.</Text>
-
-      <TouchableOpacity
-        style={{
-          padding: 12,
-          backgroundColor: 'rgba(76, 175, 80, 1)',
-          borderRadius: 10,
-          alignItems: 'center',
-        }}
-        onPress={closePickupModal}
+      {/* Pickup Modal */}
+      <Modal
+        visible={pickupModalVisible}
+        transparent={true}
+        animationType="none"
+        onRequestClose={closePickupModal}
       >
-        <Text style={{ color: '#fff', fontWeight: '600' }}>Confirm Pickup</Text>
-      </TouchableOpacity>
-    </Animated.View>
-  </View>
-</Modal>
+        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+          {/* Background overlay */}
+          <TouchableOpacity 
+            style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' }}
+            activeOpacity={1}
+            onPress={closePickupModal}
+          />
 
-    
+          {/* Bottom Sheet */}
+          <Animated.View
+            style={{
+              backgroundColor: '#fff',
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              padding: 20,
+              maxHeight: '50%',
+              transform: [{ translateY: pickupSlideAnim }],
+            }}
+            {...pickupPanResponder.panHandlers}
+          >
+            {/* Drag handle */}
+            <View style={styles.dragHandle} />
 
+            {/* Modal content */}
+            <Text style={{ fontSize: 18, fontWeight: '600', textAlign: 'center', marginBottom: 20 }}>Pickup Details</Text>
+            <Text style={{ fontSize: 16, marginBottom: 20, textAlign: 'center' }}>Select your pickup location or details here.</Text>
 
+            <TouchableOpacity
+              style={{
+                padding: 12,
+                backgroundColor: 'rgba(76, 175, 80, 1)',
+                borderRadius: 10,
+                alignItems: 'center',
+              }}
+              onPress={closePickupModal}
+            >
+              <Text style={{ color: '#fff', fontWeight: '600' }}>Confirm Pickup</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </Modal>
 
       {/* Delivery Option Modal */}
       <Modal
@@ -353,25 +364,30 @@ const MyCart = () => {
             {/* Options */}
             <View style={styles.optionsContainer}>
               {/* Pickup Option */}
-              <View style={styles.optionCard} >
+              <TouchableOpacity 
+                style={styles.optionCard} 
+                onPress={openPickupModal}
+              >
                 <View style={styles.optionContent}>
                   <Text style={styles.optionTitle}>Pickup your package from vendor's location</Text>
-                  <TouchableOpacity style={styles.optionSubtitle} onPress={openPickupModal}>
+                  <View style={styles.optionSubtitle}>
                     <Text style={styles.text}>Pickup</Text>
-                  </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
+              </TouchableOpacity>
 
               {/* Delivery Option */}
-              <View style={styles.optionCard}
+              <TouchableOpacity 
+                style={styles.optionCard}
+                onPress={() => handleOptionSelect('delivery')}
               >
                 <View style={styles.optionContent}>
                   <Text style={styles.optionTitle}>Get your package delivered to your doorstep</Text>
-                  <TouchableOpacity style={styles.optionSubtitle}>
-                    <Text style={styles.text} >Delivery</Text>
-                  </TouchableOpacity>
+                  <View style={styles.optionSubtitle}>
+                    <Text style={styles.text}>Delivery</Text>
+                  </View>
                 </View>
-              </View>
+              </TouchableOpacity>
             </View>
           </Animated.View>
         </View>
@@ -380,7 +396,9 @@ const MyCart = () => {
   );
 };
 
+// Styles remain the same as in your original code
 const styles = StyleSheet.create({
+  // ... आपके सभी स्टाइल्स यहाँ रहेंगे (वही जो आपके पास पहले से हैं)
   container: {
     flex: 1,
     backgroundColor: '#fff',
