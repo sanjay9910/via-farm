@@ -1,3 +1,4 @@
+import { useNavigation } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
   Animated,
@@ -9,13 +10,15 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import SuggestionCard from './SuggestionCard';
 
 const { width, height } = Dimensions.get('window');
 
 const MyCart = () => {
+
+  const navigation = useNavigation();
   // API data - Replace this with your actual API call
   const [cartItems, setCartItems] = useState([
     {
@@ -144,7 +147,7 @@ const MyCart = () => {
   const openPickupModal = () => {
     // पहले delivery modal को बंद करें
     closeModal();
-    
+
     // थोड़ी देर बाद pickup modal खोलें
     setTimeout(() => {
       setPickupModalVisible(true);
@@ -165,6 +168,10 @@ const MyCart = () => {
       setPickupModalVisible(false);
     });
   };
+
+  const goReviewPage = () => {
+    navigation.navigate("ReviewOrder")
+  }
 
   const updateQuantity = (itemId, newQuantity) => {
     if (newQuantity === 0) {
@@ -291,7 +298,7 @@ const MyCart = () => {
       >
         <View style={{ flex: 1, justifyContent: 'flex-end' }}>
           {/* Background overlay */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' }}
             activeOpacity={1}
             onPress={closePickupModal}
@@ -303,8 +310,10 @@ const MyCart = () => {
               backgroundColor: '#fff',
               borderTopLeftRadius: 20,
               borderTopRightRadius: 20,
-              padding: 20,
-              maxHeight: '50%',
+              padding: 25,
+              borderWidth: 2,
+              borderColor: 'rgba(255, 202, 40, 1)',
+              maxHeight: '80%',
               transform: [{ translateY: pickupSlideAnim }],
             }}
             {...pickupPanResponder.panHandlers}
@@ -312,21 +321,89 @@ const MyCart = () => {
             {/* Drag handle */}
             <View style={styles.dragHandle} />
 
-            {/* Modal content */}
-            <Text style={{ fontSize: 18, fontWeight: '600', textAlign: 'center', marginBottom: 20 }}>Pickup Details</Text>
-            <Text style={{ fontSize: 16, marginBottom: 20, textAlign: 'center' }}>Select your pickup location or details here.</Text>
+            {/* Modal content Start*/}
+            <View style={styles.modalContainer}>
+              {/* Header */}
+              <View style={styles.modalHeader}>
+                <TouchableOpacity style={styles.backButton}>
+                  <Image source={require('../../assets/via-farm-img/icons/groupArrow.png')} />
+                </TouchableOpacity>
+                <Text style={styles.modalHeaderTitle}>Pickup Location</Text>
+              </View>
 
-            <TouchableOpacity
-              style={{
-                padding: 12,
-                backgroundColor: 'rgba(76, 175, 80, 1)',
-                borderRadius: 10,
-                alignItems: 'center',
-              }}
-              onPress={closePickupModal}
-            >
-              <Text style={{ color: '#fff', fontWeight: '600' }}>Confirm Pickup</Text>
-            </TouchableOpacity>
+              {/* Location Info */}
+              <View style={styles.locationInfo}>
+                <View style={styles.locationIcon}>
+                  <Image source={require('../../assets/via-farm-img/icons/loca.png')} />
+                </View>
+                <View style={styles.locationDetails}>
+                  <Text style={styles.locationAddress}>182/3, Vinod Nagar, Delhi</Text>
+                  <Text style={styles.locationDistance}>(1.2 kms away)</Text>
+                </View>
+                <TouchableOpacity style={styles.locationButton}>
+                  <Image source={require('../../assets/via-farm-img/icons/directionLocation.png')} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Pick a slot section */}
+              <View style={styles.slotSection}>
+                <Text style={styles.slotTitle}>Pick a slot</Text>
+
+                {/* Date picker */}
+                <View style={styles.dateRow}>
+                  <Text style={styles.dateLabel}>Date</Text>
+                  <TouchableOpacity style={styles.datePicker}>
+                    <Text style={styles.dateText}>29/09/2025</Text>
+                    <Text style={styles.dateIcon}>📅</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Time slot */}
+                <View style={styles.timeRow}>
+                  <Text style={styles.timeLabel}>Between</Text>
+                  <View style={styles.timeContainer}>
+                    <View style={styles.timeInput}>
+                      <Text style={styles.timeText}>10:30</Text>
+                    </View>
+                    <Text style={styles.timeUnit}>AM</Text>
+                    <Text style={styles.timeTo}>to</Text>
+                    <View style={styles.timeInput}>
+                      <Text style={styles.timeText}>12:30</Text>
+                    </View>
+                    <Text style={styles.timeUnit}>PM</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Vendor Details */}
+              <Text style={styles.vendorTitle}>Vendor's Details</Text>
+
+              <View style={styles.vendorInfo}>
+                {/* <View style={styles.vendorImage}> */}
+                  <Image borderRadius={10} width={30} height={30} source={require("../../assets/via-farm-img/category/category.png")} />
+                {/* </View> */}
+                <View style={styles.vendorDetails}>
+                  <Text style={styles.vendorName}>Ashok Sharma</Text>
+                  <Text style={styles.vendorLocation}>Location - 182/3, Vinod Nagar,Delhi</Text>
+                  <Text style={styles.vendorPhone}>Phone No. - 9999999999</Text>
+                </View>
+              </View>
+            </View>
+            {/* Model Content End */}
+
+            {/* Fixed Proceed Button */}
+            <View style={styles.bottomProceed}>
+              <TouchableOpacity
+                style={styles.proceedButtonStyle}
+                onPress={() => {
+                  closePickupModal(); 
+                  goReviewPage();
+                }}
+              >
+                <Text style={styles.proceedButtonText}>Proceed</Text>
+              </TouchableOpacity>
+            </View>
+
           </Animated.View>
         </View>
       </Modal>
@@ -346,7 +423,7 @@ const MyCart = () => {
           />
           <Animated.View
             style={[
-              styles.modalContainer,
+              styles.deliveryModalContainer,
               {
                 transform: [{ translateY: slideAnim }]
               }
@@ -357,15 +434,15 @@ const MyCart = () => {
             <View style={styles.dragHandle} />
 
             {/* Modal Header */}
-            <View style={styles.modalHeader}>
+            <View style={styles.deliveryModalHeader}>
               <Text style={styles.modalTitle}>Select One</Text>
             </View>
 
             {/* Options */}
             <View style={styles.optionsContainer}>
               {/* Pickup Option */}
-              <TouchableOpacity 
-                style={styles.optionCard} 
+              <TouchableOpacity
+                style={styles.optionCard}
                 onPress={openPickupModal}
               >
                 <View style={styles.optionContent}>
@@ -377,7 +454,7 @@ const MyCart = () => {
               </TouchableOpacity>
 
               {/* Delivery Option */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.optionCard}
                 onPress={() => handleOptionSelect('delivery')}
               >
@@ -396,9 +473,7 @@ const MyCart = () => {
   );
 };
 
-// Styles remain the same as in your original code
 const styles = StyleSheet.create({
-  // ... आपके सभी स्टाइल्स यहाँ रहेंगे (वही जो आपके पास पहले से हैं)
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -413,9 +488,6 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
-  },
-  backButton: {
-    padding: 4,
   },
   headerTitle: {
     fontSize: 18,
@@ -604,11 +676,11 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  modalContainer: {
+  deliveryModalContainer: {
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '50%',
+    maxHeight: '70%',
     borderWidth: 2,
     borderColor: 'rgba(255, 202, 40, 1)',
   },
@@ -619,8 +691,9 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     alignSelf: 'center',
     marginVertical: 8,
+    borderWidth: 2,
   },
-  modalHeader: {
+  deliveryModalHeader: {
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
@@ -691,9 +764,185 @@ const styles = StyleSheet.create({
   },
   text: {
     color: 'rgba(76, 175, 80, 1)',
-    fontWeight: 600,
+    fontWeight: '600',
     fontSize: 16,
-  }
+  },
+
+  // Pickup Modal Styles
+  modalContainer: {
+    backgroundColor: 'transparent',
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  backButton: {
+    marginRight: 15,
+  },
+  modalHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
+  },
+  locationInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 25,
+    paddingHorizontal: 10,
+  },
+  locationIcon: {
+    marginRight: 10,
+  },
+  locationDetails: {
+    flex: 1,
+  },
+  locationAddress: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  locationDistance: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2,
+  },
+  locationButton: {
+    marginLeft: 50,
+  },
+  slotSection: {
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 25,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  slotTitle: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 15,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  dateLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  datePicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  dateText: {
+    fontSize: 14,
+    marginRight: 8,
+  },
+  dateIcon: {
+    fontSize: 12,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  timeLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timeInput: {
+    backgroundColor: 'white',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  timeText: {
+    fontSize: 14,
+  },
+  timeUnit: {
+    fontSize: 12,
+    marginHorizontal: 8,
+    color: '#666',
+  },
+  timeTo: {
+    fontSize: 14,
+    marginHorizontal: 8,
+    color: '#666',
+  },
+  vendorTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 15,
+  },
+  vendorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 25,
+    gap:10,
+  },
+  vendorImage: {
+    width:30,
+    height:30,
+    borderRadius: 25,
+    backgroundColor: '#ddd',
+    marginRight: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  vendorDetails: {
+    flex: 1,
+  },
+  vendorName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  vendorLocation: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 1,
+  },
+  vendorPhone: {
+    fontSize: 12,
+    color: '#666',
+  },
+  bottomProceed: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    marginTop: 20,
+  },
+  proceedButtonStyle: {
+    padding: 10,
+    backgroundColor: 'rgba(76, 175, 80, 1)',
+    borderRadius: 10,
+    alignItems: 'center',
+    width: '60%',
+  },
+  proceedButtonText: {
+    color: '#fff', 
+    fontWeight: '600',
+  },
 });
 
 export default MyCart;

@@ -33,7 +33,7 @@ export default function SetPasswordScreen(): JSX.Element {
           {
             text: 'OK',
             onPress: (): void => {
-              router.push(`/(auth)/userProfile?mobile=${mobile}`);
+              router.push(`/(auth)/profile?mobile=${mobile}`);
             }
           }
         ]);
