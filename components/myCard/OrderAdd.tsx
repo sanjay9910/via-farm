@@ -138,10 +138,11 @@ const MyCart = () => {
   };
 
   const handleOptionSelect = (option) => {
+    navigation.navigate("ReviewOrder")
     setSelectedOption(option);
-    setTimeout(() => {
+    // setTimeout(() => {
       closeModal();
-    }, 500);
+    // }, 500);
   };
 
   const openPickupModal = () => {

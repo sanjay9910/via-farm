@@ -131,11 +131,29 @@ const VerifyOtpWithLogin = () => {
             console.log('Token saved:', data.data.token);
             console.log('User data saved:', data.data.user);
             
-            // Navigate directly to tabs (main app)
-            navigation.reset({
-              index: 0,
-              routes: [{ name: '(tabs)' }], // Use '(tabs)' for Expo Router
-            });
+            // Check user role and navigate accordingly
+            const userRole = data.data.user?.role;
+            
+            if (userRole === 'Vendor') {
+              // Navigate to vendor tabs
+              navigation.reset({
+                index: 0,
+                routes: [{ name: '(vendors)' }],
+              });
+            } else if (userRole === 'Buyer') {
+              // Navigate to buyer tabs
+              navigation.reset({
+                index: 0,
+                routes: [{ name: '(tabs)' }],
+              });
+            } else {
+              // Fallback to buyer tabs if role is not specified
+              console.warn('User role not specified, defaulting to buyer tabs');
+              navigation.reset({
+                index: 0,
+                routes: [{ name: '(tabs)' }],
+              });
+            }
           } else {
             Alert.alert('Error', 'Failed to save login data');
           }

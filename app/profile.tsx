@@ -38,10 +38,20 @@ const ProfileScreen = () => {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editImage, setEditImage] = useState(null);
   const [slideAnim] = useState(new Animated.Value(SCREEN_HEIGHT));
+  const [locationSlideAnim] = useState(new Animated.Value(SCREEN_HEIGHT));
+
+  // Location form states
+  const [pinCode, setPinCode] = useState('');
+  const [houseNumber, setHouseNumber] = useState('');
+  const [locality, setLocality] = useState('');
+  const [city, setCity] = useState('');
+  const [district, setDistrict] = useState('');
+  const [updatingLocation, setUpdatingLocation] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -60,7 +70,7 @@ const ProfileScreen = () => {
         setUserInfo({
           name: userData.name || '',
           phone: userData.mobileNumber || userData.phone || '',
-          image: userData.profileImage || userData.image || null,
+          image: userData.profilePicture|| userData.image || null,
           role: userData.role || ''
         });
       }
@@ -70,7 +80,7 @@ const ProfileScreen = () => {
         setUserInfo({
           name: user.name || '',
           phone: user.mobileNumber || user.phone || '',
-          image: user.profileImage || user.image || null,
+          image: user.profilePicture || user.image || null,
           role: user.role || ''
         });
       }
@@ -128,54 +138,127 @@ const ProfileScreen = () => {
   };
 
   const handleUpdateDetails = async () => {
-  try {
-    if (!editName || !editName.trim()) {
-      Alert.alert('Error', 'Name is required');
-      return;
-    }
-
-    setUpdating(true);
-
-    const token = await AsyncStorage.getItem('userToken');
-    const updateData = {
-      name: editName.trim(),
-      mobileNumber: editPhone.trim(),
-      profileImage: editImage
-    };
-
-    const res = await axios.put(
-      'https://393rb0pp-5000.inc1.devtunnels.ms/api/buyer/profile',
-      updateData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+    try {
+      if (!editName || !editName.trim()) {
+        Alert.alert('Error', 'Name is required');
+        return;
       }
-    );
 
-    if (res.data.success) {
-      setUserInfo({
-        name: editName,
-        phone: editPhone,
-        image: editImage,
-        role: userInfo.role
-      });
-      
-      handleCloseModal();
-      Alert.alert('Success', 'Profile updated successfully!');
-      await loadProfile();
+      setUpdating(true);
+
+      const token = await AsyncStorage.getItem('userToken');
+      const updateData = {
+        name: editName.trim(),
+        mobileNumber: editPhone.trim(),
+        profilePicture: editImage
+      };
+
+      const res = await axios.put(
+        'https://393rb0pp-5000.inc1.devtunnels.ms/api/buyer/profile',
+        updateData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (res.data.success) {
+        setUserInfo({
+          name: editName,
+          phone: editPhone,
+          image: editImage,
+          role: userInfo.role
+        });
+        
+        handleCloseModal();
+        Alert.alert('Success', 'Profile updated successfully!');
+        await loadProfile();
+      }
+    } catch (error) {
+      console.error('Update error:', error);
+      Alert.alert('Error', 'Failed to update profile');
+    } finally {
+      setUpdating(false);
     }
-  } catch (error) {
-    console.error('Update error:', error);
-    Alert.alert('Error', 'Failed to update profile');
-  } finally {
-    setUpdating(false);
-  }
-};
+  };
 
   const handleLocationPress = () => {
-    // Navigate to location management screen
+    setPinCode('');
+    setHouseNumber('');
+    setLocality('');
+    setCity('');
+    setDistrict('');
+    setLocationModalVisible(true);
+
+    Animated.timing(locationSlideAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleCloseLocationModal = () => {
+    Animated.timing(locationSlideAnim, {
+      toValue: SCREEN_HEIGHT,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setLocationModalVisible(false);
+    });
+  };
+
+  const handleUseCurrentLocation = () => {
+    Alert.alert('Feature Coming Soon', 'Current location feature will be available soon!');
+  };
+
+  const handleSearchLocation = () => {
+    Alert.alert('Feature Coming Soon', 'Search location feature will be available soon!');
+  };
+
+  const handleUpdateLocation = async () => {
+    try {
+      if (!pinCode || !houseNumber || !locality || !city || !district) {
+        Alert.alert('Error', 'Please fill all required fields');
+        return;
+      }
+
+      setUpdatingLocation(true);
+
+      // Replace with your actual API endpoint
+      const token = await AsyncStorage.getItem('userToken');
+      const locationData = {
+        pinCode: pinCode.trim(),
+        houseNumber: houseNumber.trim(),
+        locality: locality.trim(),
+        city: city.trim(),
+        district: district.trim()
+      };
+
+      // Uncomment when API is ready
+      // const res = await axios.put(
+      //   'YOUR_API_ENDPOINT/location',
+      //   locationData,
+      //   {
+      //     headers: {
+      //       Authorization: `Bearer ${token}`,
+      //       'Content-Type': 'application/json',
+      //     },
+      //   }
+      // );
+
+      // if (res.data.success) {
+        handleCloseLocationModal();
+        Alert.alert('Success', 'Location updated successfully!');
+      // }
+
+    } catch (error) {
+      console.error('Location update error:', error);
+      Alert.alert('Error', 'Failed to update location');
+    } finally {
+      setUpdatingLocation(false);
+    }
   };
 
   const handleWishlistPress = () => {
@@ -187,44 +270,42 @@ const ProfileScreen = () => {
   };
 
   const handleSupportPress = () => {
-    // Navigate to customer support screen
+   navigation.navigate("CustomerSupport");
   };
 
   const handlePrivacyPress = () => {
-    // Navigate to privacy policy screen
+    navigation.navigate("Privacy&Policy");
   };
 
   const handleAboutPress = () => {
-    // Navigate to about us screen
+    navigation.navigate("AboutUs");
   };
 
   const handleRatePress = () => {
-    // Open app store for rating
+    navigation.navigate("RateUs");
   };
 
-
-const handleLogout = () => {
-  Alert.alert(
-    'Logout',
-    'Are you sure you want to logout?',
-    [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: async () => {
-          await logout();
-          // Root navigator tak pahunchne ke liye
-          const rootNavigation = navigation.getParent() || navigation;
-          rootNavigation.reset({
-            index: 0,
-            routes: [{ name: 'login' }],
-          });
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            const rootNavigation = navigation.getParent() || navigation;
+            rootNavigation.reset({
+              index: 0,
+              routes: [{ name: 'login' }],
+            });
+          }
         }
-      }
-    ]
-  );
-};
+      ]
+    );
+  };
 
   const ProfileMenuItem = ({ icon, title, subtitle, onPress, showArrow = true }) => (
     <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
@@ -349,6 +430,7 @@ const handleLogout = () => {
         </View>
       </ScrollView>
 
+      {/* Edit Profile Modal */}
       <Modal
         visible={editModalVisible}
         transparent={true}
@@ -422,6 +504,7 @@ const handleLogout = () => {
                 />
               </View>
 
+             <View style={styles.locationBtn}>
               <TouchableOpacity 
                 style={[styles.updateButton, updating && styles.updateButtonDisabled]} 
                 onPress={handleUpdateDetails}
@@ -432,11 +515,139 @@ const handleLogout = () => {
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <>
-                    <Ionicons name="checkmark-circle-outline" size={20} color="#fff" style={styles.updateIcon} />
+                    <Image source={require('../assets/via-farm-img/icons/updateDetails.png')} />
                     <Text style={styles.updateButtonText}>Update Details</Text>
                   </>
                 )}
               </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      {/* Location Modal */}
+      <Modal
+        visible={locationModalVisible}
+        transparent={true}
+        animationType="none"
+        onRequestClose={handleCloseLocationModal}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={styles.modalBackground}
+            activeOpacity={1}
+            onPress={handleCloseLocationModal}
+          />
+          <Animated.View
+            style={[
+              styles.modalContainer,
+              {
+                transform: [{ translateY: locationSlideAnim }]
+              }
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={handleCloseLocationModal} style={styles.backButton}>
+                <Ionicons name="arrow-back" size={24} color="#333" />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Edit Location</Text>
+              <View style={styles.placeholder} />
+            </View>
+
+            <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+              <Text style={styles.addressHeading}>Address</Text>
+
+              <TouchableOpacity 
+                style={styles.locationActionButton}
+                onPress={handleUseCurrentLocation}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="locate" size={20} color="#00BCD4" />
+                <Text style={styles.locationActionText}>Use my current location</Text>
+                <Ionicons name="chevron-forward" size={18} color="#00BCD4" />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.locationActionButton}
+                onPress={handleSearchLocation}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="search" size={20} color="#00BCD4" />
+                <Text style={styles.locationActionText}>Search Location</Text>
+                <Ionicons name="chevron-forward" size={18} color="#00BCD4" />
+              </TouchableOpacity>
+
+              <View style={styles.fieldContainer}>
+                <TextInput
+                  style={styles.textInput}
+                  value={pinCode}
+                  onChangeText={setPinCode}
+                  placeholder="Pin Code *"
+                  keyboardType="numeric"
+                  maxLength={6}
+                  editable={!updatingLocation}
+                />
+              </View>
+
+              <View style={styles.fieldContainer}>
+                <TextInput
+                  style={styles.textInput}
+                  value={houseNumber}
+                  onChangeText={setHouseNumber}
+                  placeholder="House number/Block/Street *"
+                  editable={!updatingLocation}
+                />
+              </View>
+
+              <View style={styles.fieldContainer}>
+                <TextInput
+                  style={styles.textInput}
+                  value={locality}
+                  onChangeText={setLocality}
+                  placeholder="Locality/Town *"
+                  editable={!updatingLocation}
+                />
+              </View>
+
+              <View style={styles.fieldRowContainer}>
+                <View style={styles.fieldHalf}>
+                  <TextInput
+                    style={styles.textInput}
+                    value={city}
+                    onChangeText={setCity}
+                    placeholder="City *"
+                    editable={!updatingLocation}
+                  />
+                </View>
+                <View style={styles.fieldHalf}>
+                  <TextInput
+                    style={styles.textInput}
+                    value={district}
+                    onChangeText={setDistrict}
+                    placeholder="District *"
+                    editable={!updatingLocation}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.locationBtn}>
+              <TouchableOpacity 
+                style={[styles.updateButton, updatingLocation && styles.updateButtonDisabled]} 
+                onPress={handleUpdateLocation}
+                disabled={updatingLocation}
+                activeOpacity={0.7}
+              >
+                {updatingLocation ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                      <Image source={require('../assets/via-farm-img/icons/updateDetails.png')} />
+                    <Text style={styles.updateButtonText}>Update Details</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              </View>
             </ScrollView>
           </Animated.View>
         </View>
@@ -575,13 +786,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 20,
     marginBottom: 20,
+    flexDirection:'row',
+    justifyContent:'center',
+    alignItems:'center',
+    marginTop:20,
   },
   logoutButton: {
     backgroundColor: '#4CAF50',
     flexDirection: 'row',
+    width:'70%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical:20,
     borderRadius: 12,
     elevation: 2,
     shadowColor: '#000',
@@ -647,7 +863,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   fieldContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   fieldLabel: {
     fontSize: 16,
@@ -685,7 +901,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   updateButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: 'rgba(76, 175, 80, 1)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -693,6 +909,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 20,
     marginBottom: 30,
+    width:'70%',
   },
   updateButtonDisabled: {
     backgroundColor: '#a5d6a7',
@@ -704,6 +921,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  addressHeading: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 16,
+  },
+  locationActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    marginBottom: 12,
+  },
+  locationBtn:{
+   flexDirection:'row',
+   justifyContent:'center',
+   alignItems:'center',
+  },
+  locationActionText: {
+    fontSize: 16,
+    color: 'rgba(1, 151, 218, 1)',
+    marginLeft: 10,
+    flex: 1,
+  },
+  fieldRowContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  fieldHalf: {
+    width: '48%',
   },
 });
 

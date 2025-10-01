@@ -1,15 +1,9 @@
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
+export default function VendorLayout() {
   return (
     <Tabs
       screenOptions={{
@@ -20,7 +14,6 @@ export default function TabLayout() {
         headerShown: false,
         tabBarShowLabel: true,
         tabBarItemStyle: styles.tabItem,
-        tabBarButton: HapticTab,
       }}
     >
       <Tabs.Screen
@@ -29,9 +22,9 @@ export default function TabLayout() {
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && styles.activeIconContainer]}>
-              <IconSymbol 
+              <Ionicons 
+                name="home" 
                 size={30} 
-                name="house.fill" 
                 color={focused ? '#fff' : '#666'} 
               />
             </View>
@@ -40,9 +33,25 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="category"
+        name="orders"
         options={{
-          title: 'Category',
+          title: 'Orders',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconContainer, focused && styles.activeIconContainer]}>
+              <Ionicons 
+                name="cube" 
+                size={30} 
+                color={focused ? '#fff' : '#666'} 
+              />
+            </View>
+          ),
+          tabBarLabel: 'Orders',
+        }}
+      />
+      <Tabs.Screen
+        name="products"
+        options={{
+          title: 'Products',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && styles.activeIconContainer]}>
               <Ionicons 
@@ -52,39 +61,23 @@ export default function TabLayout() {
               />
             </View>
           ),
-          tabBarLabel: 'Category',
+          tabBarLabel: 'Products',
         }}
       />
       <Tabs.Screen
-        name="map"
+        name="profile"
         options={{
-          title: 'Map',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.activeIconContainer]}>
-              <MaterialCommunityIcons
-                name="map-marker-radius"
-                size={30}
-                color={focused ? '#fff' : '#666'}
-              />
-            </View>
-          ),
-          tabBarLabel: 'Map',
-        }}
-      />
-      <Tabs.Screen
-        name="myCard"
-        options={{
-          title: 'My Card',
+          title: 'My Profile',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && styles.activeIconContainer]}>
               <Ionicons 
-                name="card" 
+                name="person" 
                 size={30} 
                 color={focused ? '#fff' : '#666'} 
               />
             </View>
           ),
-          tabBarLabel: 'My Card',
+          tabBarLabel: 'My Profile',
         }}
       />
     </Tabs>
@@ -111,7 +104,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     marginTop: 4,
-
   },
   tabItem: {
     paddingTop: 5,

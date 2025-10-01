@@ -10,7 +10,7 @@ export default function ProfileScreen() {
   const router = useRouter();
 
   const [name, setName] = useState('');
-  const [role, setRole] = useState('buyer');
+  const [role, setRole] = useState('Buyer'); // Backend enum: 'Buyer' or 'Vendor'
 
   const saveProfile = async () => {
     if (!name.trim()) {
@@ -19,20 +19,25 @@ export default function ProfileScreen() {
     }
     
     try {
-      // Proper data structure
       const profileData = {
-        mobileNumber: mobile,  // ✅ Pass mobile number
-        name: name.trim(),     // ✅ Clean name
-        role: role,            // ✅ Selected role
+        mobileNumber: mobile, 
+        name: name.trim(),    
+        role: role, // Will send 'Buyer' or 'Vendor' to backend
       };
       
-      console.log('Sending profile data:', profileData); // Debug
+      console.log('Sending profile data:', profileData);
       
       const res = await completeProfile(profileData);
       
       if (res.status === 'success' || res.data) {
         Alert.alert('Success', 'Profile completed successfully!');
-        router.replace('login'); 
+        
+        // ROLE KE BASIS PE NAVIGATE KARO
+        if (role === 'Buyer') {
+          router.replace('/(tabs)'); // Buyer tabs pe jayega
+        } else if (role === 'Vendor') {
+          router.replace('/(vendors)'); // Vendor tabs pe jayega
+        }
       }
     } catch (err) {
       console.error('Profile save error:', err);
@@ -63,22 +68,23 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Role</Text>
+              <Text style={styles.label}>Select Your Role</Text>
               <View style={styles.roleContainer}>
                 <TouchableOpacity 
-                  style={[styles.roleButton, role === 'buyer' && styles.roleButtonActive]}
+                  style={[styles.roleButton, role === 'Buyer' && styles.roleButtonActive]}
                   onPress={() => setRole('Buyer')}
                 >
-                  <Text style={[styles.roleText, role === 'buyer' && styles.roleTextActive]}>
-                    Buyer
+                  <Text style={[styles.roleText, role === 'Buyer' && styles.roleTextActive]}>
+                   Buyer
                   </Text>
                 </TouchableOpacity>
+                
                 <TouchableOpacity 
-                  style={[styles.roleButton, role === 'seller' && styles.roleButtonActive]}
-                  onPress={() => setRole('seller')}
+                  style={[styles.roleButton, role === 'Vendor' && styles.roleButtonActive]}
+                  onPress={() => setRole('Vendor')}
                 >
-                  <Text style={[styles.roleText, role === 'seller' && styles.roleTextActive]}>
-                    Seller
+                  <Text style={[styles.roleText, role === 'Vendor' && styles.roleTextActive]}>
+                     Vendor
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -168,10 +174,10 @@ const styles = StyleSheet.create({
   roleButton: {
     flex: 1,
     backgroundColor: '#fff',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#e0e0e0',
     borderRadius: 12,
-    paddingVertical: 16,
+    paddingVertical: 20,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {

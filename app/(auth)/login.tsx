@@ -14,49 +14,64 @@ import { AuthContext } from "../context/AuthContext";
 
 export default function LoginScreen() {
     const navigation = useNavigation();
-    const [mobile, setMobile] = useState("3232323232");
-    const [password, setPassword] = useState("123456");
-    const { login } = useContext(AuthContext);
-const handleLogin = async () => {
-  if (!mobile.trim()) {
-    Alert.alert("Error", "Please enter mobile number");
-    return;
-  }
-  if (!password.trim()) {
-    Alert.alert("Error", "Please enter password");
-    return;
-  }
-  if (mobile.length !== 10) {
-    Alert.alert("Error", "Please enter valid 10-digit mobile number");
-    return;
-  }
+    const [mobile, setMobile] = useState("8888888888");
+    const [password, setPassword] = useState("888888");
+    const { login, user } = useContext(AuthContext);
 
-  try {
-    const success = await login(mobile, password); 
-    if (success) {
-     navigation.reset({
-      index: 0,
-      routes: [{ name: "(tabs)" }], 
-    });
-    } else {
-      Alert.alert("Error", "Invalid credentials");
-    }
-  } catch (err) {
-    Alert.alert("Error", "Something went wrong, try again later");
-  }
-};
+    const handleLogin = async () => {
+        if (!mobile.trim()) {
+            Alert.alert("Error", "Please enter mobile number");
+            return;
+        }
+        if (!password.trim()) {
+            Alert.alert("Error", "Please enter password");
+            return;
+        }
+        if (mobile.length !== 10) {
+            Alert.alert("Error", "Please enter valid 10-digit mobile number");
+            return;
+        }
 
+        try {
+            const response = await login(mobile, password);
+            
+            if (response.status === 'success') {
+                // Get user role from response
+                const userRole = response.data?.user?.role;
+                
+                if (userRole === "Vendor") {
+                    navigation.reset({
+                        index: 0,
+                        routes: [{ name: "(vendors)" }],
+                    });
+                } else if (userRole === "Buyer") {
+                    navigation.reset({
+                        index: 0,
+                        routes: [{ name: "(tabs)" }],
+                    });
+                } else {
+                    Alert.alert("Error", "Invalid user role");
+                }
+            } else {
+                Alert.alert("Error", response.message || "Invalid credentials");
+            }
+        } catch (err) {
+            console.error("Login error:", err);
+            Alert.alert("Error", err.response?.data?.message || "Something went wrong, try again later");
+        }
+    };
 
-  const handleOtpLogin = () => {
-    navigation.navigate("loginWithOtp");
-  };
-  const ForgetPassword = () => {
-    navigation.navigate("forget-password");
-  };
+    const handleOtpLogin = () => {
+        navigation.navigate("loginWithOtp");
+    };
 
-  const registerNew = () =>{
-    navigation.navigate("register")
-  }
+    const ForgetPassword = () => {
+        navigation.navigate("forget-password");
+    };
+
+    const registerNew = () => {
+        navigation.navigate("register");
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -230,5 +245,3 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
 });
-
-

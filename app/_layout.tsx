@@ -33,6 +33,7 @@ export default function RootLayout() {
     <AuthProvider>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(vendors)" options={{ headerShown: false }} />
       </Stack>
     </AuthProvider>
   );

@@ -1,9 +1,11 @@
+import { AuthContext } from '@/app/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
   Animated,
   Dimensions,
+  Image,
   Modal,
   StatusBar,
   StyleSheet,
@@ -51,6 +53,20 @@ export default function HeaderDesign() {
     });
   };
 
+  // AuthContext se user data
+  const { user } = useContext(AuthContext);
+  
+  // Profile picture URL
+  const profilePicture = user?.profilePicture || user?.profileImage || null;
+  
+  // First letter for fallback
+  const getInitial = () => {
+    if (user?.name && user.name.length > 0) {
+      return user.name.charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#fff" barStyle="dark-content" />
@@ -68,16 +84,24 @@ export default function HeaderDesign() {
 
           {/* Language and Profile Section */}
           <View style={styles.rightSection}>
-
+            <TouchableOpacity>
+              <Image source={require('../../assets/via-farm-img/icons/notification.png')} />
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.profileContainer}
               onPress={() => navigation.navigate('profile')}
             >
               <View style={styles.profileCircle}>
-                <Text style={styles.profileText}>A</Text>
+                {profilePicture ? (
+                  <Image 
+                    source={{ uri: profilePicture }} 
+                    style={styles.profileImage}
+                  />
+                ) : (
+                  <Text style={styles.profileText}>{getInitial()}</Text>
+                )}
               </View>
             </TouchableOpacity>
-
           </View>
         </View>
 
@@ -204,6 +228,7 @@ const styles = StyleSheet.create({
   rightSection: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 5,
   },
   languageContainer: {
     flexDirection: 'row',
@@ -225,6 +250,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF9800',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  profileImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   profileText: {
     color: '#fff',
@@ -323,6 +354,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f5f5f5',
+  },
+  notification: {
+    backgroundColor: 'rgba(240, 240, 240, 1)',
+    padding: 10,
+    borderRadius: 50,
   },
   filterOptionText: {
     fontSize: 16,
