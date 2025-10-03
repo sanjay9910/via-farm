@@ -1,22 +1,25 @@
 import Banner from '@/components/common/BannerCard'
 import Chart from '@/components/vendors/chart'
+import Header from '@/components/vendors/Header'
 import MyRecentListing from '@/components/vendors/MyRecentListing'
-import OrderDetails from '@/components/vendors/OrderDetails'
 import Revenue from '@/components/vendors/Revenue'
+import OrderDetails from '@/components/vendors/TodayOrder'
 import React from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 const Index = () => {
   return (
-    <View style={styles.container}>
-      <ScrollView>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <Header/>
+      <ScrollView showsVerticalScrollIndicator={false}>
         <Banner/>
         <Revenue/>
         <Chart/>
         <OrderDetails/>
         <MyRecentListing/>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   )
 }
 

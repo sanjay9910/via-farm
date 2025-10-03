@@ -1,22 +1,31 @@
+import OrderFilter from '@/components/vendors/filter/OrderFilter'
+import Header from '@/components/vendors/Header'
 import React from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { ScrollView, StyleSheet } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import OrderAllVendors from '../../components/vendors/OrderAllVendors'
+
 
 const Order = () => {
   return (
-    <View style={styles.container}>
-      <Text>Order</Text>
-    </View>
+    <SafeAreaView>
+      <Header />
+      <OrderFilter />
+      <ScrollView>
+        <OrderAllVendors />
+      </ScrollView>
+    </SafeAreaView>
   )
 }
 
 export default Order
 
 const styles = StyleSheet.create({
-    container:{
-      flex:1,
-     flexDirection:'row',
-     justifyContent:'center',
-     alignItems:'center',
-     backgroundColor:'#fff',
-    },
+  container: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
 })

@@ -65,7 +65,7 @@ export default function VendorLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="vendorprofile"
         options={{
           title: 'My Profile',
           tabBarIcon: ({ color, focused }) => (

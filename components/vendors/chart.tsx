@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { BarChart } from "react-native-gifted-charts";
 
@@ -132,18 +132,16 @@ export default Chart;
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#fff",
-    borderRadius: 12,
     padding: 16,
-    marginHorizontal: 16,
-    marginVertical: 10,
-    shadowColor: "#000",
+    marginVertical: 15,
+    shadowColor: "rgba(255, 202, 40, 1)",
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 6,
-    elevation: 3,
+    elevation: 7,
   },
   header: {
     flexDirection: "row",

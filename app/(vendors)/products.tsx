@@ -1,11 +1,21 @@
+import AddProduct from '@/components/vendors/AddProduct'
+import ProductFilter from '@/components/vendors/filter/ProductFilter'
+import Header from '@/components/vendors/Header'
 import React from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { ScrollView, StyleSheet } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import ProductCard from '../../components/vendors/ProductCard'
 
 const Products = () => {
   return (
-    <View style={styles.container}>
-      <Text>Products</Text>
-    </View>
+    <SafeAreaView style={styles.container}>
+      <Header/>
+      <AddProduct/>
+      <ProductFilter/>
+      <ScrollView>
+        <ProductCard/>
+      </ScrollView>
+    </SafeAreaView>
   )
 }
 
@@ -14,9 +24,6 @@ export default Products
 const styles = StyleSheet.create({
     container:{
       flex:1,
-     flexDirection:'row',
-     justifyContent:'center',
-     alignItems:'center',
-     backgroundColor:'#fff',
+      backgroundColor:'#fff',
     },
 })
