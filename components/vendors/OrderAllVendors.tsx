@@ -2,11 +2,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
-import OrderCard from "./OrderCard";
+import OrderCard from "./OrderCard"; // Make sure path is correct
 
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
 
-export default function OrdersScreen() {
+export default function AllOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,32 +20,28 @@ export default function OrdersScreen() {
       }
 
       const res = await axios.get(`${API_BASE}/api/vendor/orders`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.data.success && Array.isArray(res.data.data)) {
-        // Transform API response to match OrderCard props
         const formattedOrders = res.data.data.map((o) => {
+          const products = o.products && o.products.length > 0 ? o.products : [];
+          const itemNames =
+            products.length > 0
+              ? products.map((p) => `${p.product?.name || "Unknown"} (${p.product?.variety || ""})`).join(", ")
+              : "N/A";
+          const quantities =
+            products.length > 0 ? products.map((p) => p.quantity).join(", ") : "N/A";
+          const prices = o.totalPrice ? `₹${o.totalPrice}` : "N/A";
+
           return {
-            _id: o._id,
-            id: o.orderId,
+            id: o._id || o.orderId || "N/A",
             buyer: o.buyer?.name || "N/A",
-            contact: o.shippingAddress?.mobileNumber || "N/A",
-            item:
-              o.products && o.products.length > 0
-                ? o.products.map((p) => p.product?.name).join(", ")
-                : "N/A",
-            quantity:
-              o.products && o.products.length > 0
-                ? o.products.map((p) => p.quantity).join(", ")
-                : "N/A",
-            price:
-              o.products && o.products.length > 0
-                ? o.products.map((p) => `₹${p.price}`).join(", ")
-                : `₹${o.totalPrice || 0}`,
-            deliveredAt: o.date ? new Date(o.date).toLocaleString() : "N/A",
+            contact: o.buyer?.mobileNumber || o.shippingAddress?.mobileNumber || "N/A",
+            item: itemNames,
+            quantity: quantities,
+            price: prices,
+            deliveredAt: o.pickupSlot ? new Date(o.pickupSlot).toLocaleString() : o.date ? new Date(o.date).toLocaleString() : "N/A",
             status: o.orderStatus || o.status || "N/A",
           };
         });
@@ -84,23 +80,14 @@ export default function OrdersScreen() {
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       {orders.map((order) => (
-        <OrderCard key={order._id} order={order} />
+        <OrderCard key={order.id} order={order} />
       ))}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    backgroundColor: "#fff",
-  },
-  container: {
-    padding: 12,
-    paddingBottom: 16,
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  scroll: { backgroundColor: "#fff" },
+  container: { padding: 12, paddingBottom:1 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
 });

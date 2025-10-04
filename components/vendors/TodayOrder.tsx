@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import OrderCard from "./OrderCard"; // Make sure path is correct
+import OrderCard from "./OrderCard"; // path correct hona chahiye
 
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
 
@@ -21,24 +21,30 @@ export default function OrdersScreen() {
       }
 
       const res = await axios.get(`${API_BASE}/api/vendor/orders/today`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.data.success) {
-        const formattedOrders = res.data.data.map((o) => ({
-          id: o.orderId,
-          buyer: o.buyer.name,
-          contact: o.buyer.mobileNumber || "N/A",
-          item: o.products
-            .map((p) => `${p.product.name} (${p.product.variety})`)
-            .join(", "),
-          quantity: o.products.map((p) => p.quantity).join(", "),
-          price: `$${o.totalPrice}`,
-          deliveredAt: o.pickupSlot ? new Date(o.pickupSlot).toLocaleString() : "N/A",
-          status: o.orderStatus,
-        }));
+        const formattedOrders = res.data.data.map((o) => {
+          const products = o.products || [];
+          const itemNames = products.length
+            ? products.map((p, idx) => (p.product ? `${p.product.name} (${p.product.variety || "N/A"})` : `Product-${idx + 1}`)).join(", ")
+            : "No products";
+          const quantities = products.length
+            ? products.map((p) => p.quantity).join(", ")
+            : "N/A";
+
+          return {
+            id: o.orderId || o._id,
+            buyer: o.buyer?.name || "Unknown Buyer",
+            contact: o.buyer?.mobileNumber || "N/A",
+            item: itemNames,
+            quantity: quantities,
+            price: `₹${o.totalPrice || 0}`,
+            deliveredAt: o.pickupSlot ? new Date(o.pickupSlot).toLocaleString() : "N/A",
+            status: o.orderStatus || "Pending",
+          };
+        });
 
         setOrders(formattedOrders);
       } else {
@@ -58,6 +64,7 @@ export default function OrdersScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
+      {/* Header */}
       <View style={styles.headerRow}>
         <Text style={styles.headerTitle}>Today’s Orders</Text>
         <TouchableOpacity>
@@ -74,7 +81,9 @@ export default function OrdersScreen() {
           {orders.length > 0 ? (
             orders.map((o) => <OrderCard key={o.id} order={o} />)
           ) : (
-            <Text style={{ textAlign: "center", marginTop: 20, color: "#666" }}>No orders today</Text>
+            <Text style={{ textAlign: "center", marginTop: 20, color: "#666" }}>
+              No orders today
+            </Text>
           )}
         </ScrollView>
       )}
@@ -83,7 +92,14 @@ export default function OrdersScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingTop: 14, marginBottom: 10 },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    marginBottom: 10,
+  },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#333" },
   seeAll: { color: "#0AA1FF", fontSize: 13 },
   container: { paddingHorizontal: 12, paddingBottom: 30 },
