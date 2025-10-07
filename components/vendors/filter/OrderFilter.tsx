@@ -4,7 +4,6 @@ import {
   Dimensions,
   Image,
   Modal,
-  PanResponder,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,22 +14,16 @@ import {
 
 const { width } = Dimensions.get('window');
 
-const OrderFilter = () => {
-  const [searchText, setSearchText] = useState('');
+const OrderFilter = ({ onSearchChange, onFilterApply, searchText }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [sortBy, setSortBy] = useState('');
-  const [priceRange, setPriceRange] = useState(5000);
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [expandedSections, setExpandedSections] = useState({
     sortBy: false,
-    priceRange: false,
     status: false,
     date: false,
   });
-
-  const [sliderWidth, setSliderWidth] = useState(0);
-  const [sliderLeft, setSliderLeft] = useState(0);
 
   const slideAnim = useRef(new Animated.Value(width)).current;
 
@@ -53,7 +46,7 @@ const OrderFilter = () => {
 
   const sortOptions = ['Price - high to low', 'Newest Arrivals', 'Price - low to high', 'Freshness'];
   const dateOptions = ['Today', 'Last 7 days', 'Last 30 days', 'Last 3 months', 'Last 6 months', 'All time'];
-  const statusOptions = ['Complete', 'Cancelled', 'In Progress'];
+  const statusOptions = ['Complete', 'Cancelled', 'In-process'];
 
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
@@ -62,32 +55,39 @@ const OrderFilter = () => {
     }));
   };
 
-  // PanResponder for price slider
-  const STEP = 100; // Price increment step
-  const MIN_PRICE = 100;
-  const MAX_PRICE = 5000;
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderMove: (evt, gestureState) => {
-        if (sliderWidth > 0) {
-          let relativeX = gestureState.moveX - sliderLeft;
-          relativeX = Math.max(0, Math.min(sliderWidth, relativeX));
-
-          const price = MIN_PRICE + ((relativeX / sliderWidth) * (MAX_PRICE - MIN_PRICE));
-          const newPrice = Math.round(price / STEP) * STEP;
-
-          setPriceRange(newPrice);
-        }
-      },
-    })
-  ).current;
-
   const applyFilters = () => {
-    console.log('Filters applied:', { sortBy, priceRange, statusFilter, dateFilter });
+    const filters = {
+      sortBy,
+      statusFilter,
+      dateFilter
+    };
+    
+    if (onFilterApply) {
+      onFilterApply(filters);
+    }
+    
+    console.log('Filters applied:', filters);
     setIsModalVisible(false);
+  };
+
+  const clearFilters = () => {
+    setSortBy('');
+    setStatusFilter('');
+    setDateFilter('');
+    
+    if (onFilterApply) {
+      onFilterApply({
+        sortBy: '',
+        statusFilter: '',
+        dateFilter: ''
+      });
+    }
+  };
+
+  const handleSearchChange = (text) => {
+    if (onSearchChange) {
+      onSearchChange(text);
+    }
   };
 
   return (
@@ -99,10 +99,10 @@ const OrderFilter = () => {
           <Image style={styles.searchIcon} source={require('../../../assets/via-farm-img/icons/search.png')} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search"
+            placeholder="Search by buyer name, mobile, or items..."
             placeholderTextColor="#9ca3af"
             value={searchText}
-            onChangeText={setSearchText}
+            onChangeText={handleSearchChange}
           />
           <TouchableOpacity style={styles.filterButton} onPress={() => setIsModalVisible(true)}>
             <Image source={require('../../../assets/via-farm-img/icons/filter.png')} />
@@ -172,46 +172,6 @@ const OrderFilter = () => {
                 )}
               </View>
 
-              {/* Price Range */}
-              <View style={styles.filterSection}>
-                <TouchableOpacity style={styles.filterHeader} onPress={() => toggleSection('priceRange')} activeOpacity={0.7}>
-                  <Text style={styles.filterTitle}>Price Range</Text>
-                  <Text style={[styles.chevron, expandedSections.priceRange && styles.chevronRotated]}>›</Text>
-                </TouchableOpacity>
-                {expandedSections.priceRange && (
-                  <View style={styles.filterOptions}>
-                    <View style={styles.priceDisplay}>
-                      <View style={styles.priceBox}>
-                        <Text style={styles.priceLabel}>Min</Text>
-                        <Text style={styles.priceValue}>₹{MIN_PRICE}</Text>
-                      </View>
-                      <View style={styles.priceDivider} />
-                      <View style={styles.priceBox}>
-                        <Text style={styles.priceLabel}>Max</Text>
-                        <Text style={styles.priceValue}>₹{priceRange}</Text>
-                      </View>
-                    </View>
-
-                    <View
-                      style={styles.sliderContainer}
-                      onLayout={(e) => {
-                        setSliderWidth(e.nativeEvent.layout.width);
-                        setSliderLeft(e.nativeEvent.layout.x);
-                      }}
-                    >
-                      <View style={styles.sliderTrack} {...panResponder.panHandlers}>
-                        <View style={[styles.sliderFill, { width: `${((priceRange - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100}%` }]} />
-                        <View style={[styles.sliderThumb, { left: `${((priceRange - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100}%` }]} />
-                      </View>
-                    </View>
-                    <View style={styles.sliderValues}>
-                      <Text style={styles.sliderLabel}>₹{MIN_PRICE}</Text>
-                      <Text style={styles.sliderLabel}>₹{MAX_PRICE}</Text>
-                    </View>
-                  </View>
-                )}
-              </View>
-
               {/* Status */}
               <View style={styles.filterSection}>
                 <TouchableOpacity style={styles.filterHeader} onPress={() => toggleSection('status')} activeOpacity={0.7}>
@@ -234,6 +194,9 @@ const OrderFilter = () => {
             </ScrollView>
 
             <View style={styles.modalFooter}>
+              <TouchableOpacity style={styles.clearButton} onPress={clearFilters} activeOpacity={0.8}>
+                <Text style={styles.clearButtonText}>Clear All</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={styles.applyButton} onPress={applyFilters} activeOpacity={0.8}>
                 <Text style={styles.applyButtonText}>Apply Filters</Text>
               </TouchableOpacity>
@@ -245,50 +208,211 @@ const OrderFilter = () => {
   );
 };
 
-export default OrderFilter;
-
-// Styles remain mostly same
+// Updated Styles
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#ffffff' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
-  title: { fontSize: 20, fontWeight: '700', color: '#1f2937' },
-  searchContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9f9f9', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.1)' },
-  searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 15, color: '#1f2937', padding: 0 },
-  filterButton: { marginLeft: 8, padding: 6, borderRadius: 8, backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' },
-  modalContent: { position: 'absolute', right: 0, top: 120, bottom: 80, width: 250, backgroundColor: '#fff', borderTopLeftRadius: 20, borderBottomLeftRadius: 20, borderWidth: 2, borderColor: 'rgba(255, 202, 40, 1)', elevation: 10, shadowColor: '#000', shadowOffset: { width: -2, height: 0 }, shadowOpacity: 0.25, shadowRadius: 5 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  filterIconContainer: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
-  modalTitle: { fontSize: 18, fontWeight: '600', color: '#333' },
-  closeButtonContainer: { padding: 0 },
-  closeButton: { fontSize: 24, color: '#333', fontWeight: '400' },
-  modalBody: { flex: 1, backgroundColor: '#ffffff', padding: 20 },
-  filterSection: { borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
-  filterHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, backgroundColor: '#ffffff' },
-  filterTitle: { fontSize: 16, fontWeight: '400', color: '#333' },
-  chevron: { fontSize: 16, color: '#666', fontWeight: '300', transform: [{ rotate: '0deg' }] },
-  chevronRotated: { transform: [{ rotate: '180deg' }] },
-  filterOptions: { paddingBottom: 16, backgroundColor: '#ffffff' },
-  radioOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
-  radioCircle: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#d1d5db', marginRight: 14, alignItems: 'center', justifyContent: 'center' },
-  radioCircleSelected: { borderColor: '#22c55e' },
-  radioSelected: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#22c55e' },
-  optionText: { fontSize: 14, color: '#6b7280', fontWeight: '500' },
-  optionTextSelected: { color: '#1f2937', fontWeight: '600' },
-  priceDisplay: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 10, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#e5e7eb' },
-  priceBox: { flex: 1, alignItems: 'center' },
-  priceLabel: { fontSize: 12, color: '#9ca3af', marginBottom: 4, fontWeight: '500' },
-  priceValue: { fontSize: 18, fontWeight: '700', color: '#22c55e' },
-  priceDivider: { width: 1, height: 30, backgroundColor: '#e5e7eb', marginHorizontal: 16 },
-  sliderContainer: { marginBottom: 12, paddingVertical: 10 },
-  sliderTrack: { height: 6, backgroundColor: '#e5e7eb', borderRadius: 3, position: 'relative' },
-  sliderFill: { height: 6, backgroundColor: '#22c55e', borderRadius: 3 },
-  sliderThumb: { position: 'absolute', top: -5, width: 16, height: 16, borderRadius: 8, backgroundColor: '#22c55e', borderWidth: 3, borderColor: '#ffffff' },
-  sliderValues: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  sliderLabel: { fontSize: 12, color: '#9ca3af', fontWeight: '500' },
-  modalFooter: { padding: 20, backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#f0f0f0', borderBottomLeftRadius: 20 },
-  applyButton: { backgroundColor: '#4CAF50', paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
-  applyButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  container: { 
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    paddingBottom: 8
+  },
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingHorizontal: 16, 
+    paddingVertical: 12, 
+    gap: 12 
+  },
+  title: { 
+    fontSize: 20, 
+    fontWeight: '700', 
+    color: '#1f2937' 
+  },
+  searchContainer: { 
+    flex: 1, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#f9f9f9', 
+    borderRadius: 10, 
+    paddingHorizontal: 8, 
+    paddingVertical: 7, 
+    borderWidth: 1, 
+    borderColor: 'rgba(0, 0, 0, 0.1)' 
+  },
+  searchIcon: { 
+    marginRight: 8 
+  },
+  searchInput: { 
+    flex: 1, 
+    fontSize: 15, 
+    color: '#1f2937', 
+    padding: 0 
+  },
+  filterButton: { 
+    marginLeft: 8, 
+    padding: 6, 
+    borderRadius: 8, 
+    backgroundColor: '#f9fafb', 
+    borderWidth: 1, 
+    borderColor: '#e5e7eb' 
+  },
+  modalOverlay: { 
+    flex: 1, 
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+    justifyContent: 'flex-end' 
+  },
+  modalContent: { 
+    position: 'absolute', 
+    right: 0, 
+    top: 120, 
+    bottom: 80, 
+    width: 250, 
+    backgroundColor: '#fff', 
+    borderTopLeftRadius: 20, 
+    borderBottomLeftRadius: 20, 
+    borderWidth: 2, 
+    borderColor: 'rgba(255, 202, 40, 1)', 
+    elevation: 10, 
+    shadowColor: '#000', 
+    shadowOffset: { width: -2, height: 0 }, 
+    shadowOpacity: 0.25, 
+    shadowRadius: 5 
+  },
+  modalHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    padding: 20, 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#f0f0f0' 
+  },
+  headerLeft: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 8 
+  },
+  filterIconContainer: { 
+    width: 20, 
+    height: 20, 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+  modalTitle: { 
+    fontSize: 18, 
+    fontWeight: '600', 
+    color: '#333' 
+  },
+  closeButtonContainer: { 
+    padding: 0 
+  },
+  closeButton: { 
+    fontSize: 24, 
+    color: '#333', 
+    fontWeight: '400' 
+  },
+  modalBody: { 
+    flex: 1, 
+    backgroundColor: '#ffffff', 
+    padding: 20 
+  },
+  filterSection: { 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#f5f5f5' 
+  },
+  filterHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    paddingVertical: 16, 
+    backgroundColor: '#ffffff' 
+  },
+  filterTitle: { 
+    fontSize: 16, 
+    fontWeight: '400', 
+    color: '#333' 
+  },
+  chevron: { 
+    fontSize: 16, 
+    color: '#666', 
+    fontWeight: '300', 
+    transform: [{ rotate: '0deg' }] 
+  },
+  chevronRotated: { 
+    transform: [{ rotate: '180deg' }] 
+  },
+  filterOptions: { 
+    paddingBottom: 16, 
+    backgroundColor: '#ffffff' 
+  },
+  radioOption: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingVertical: 12 
+  },
+  radioCircle: { 
+    width: 22, 
+    height: 22, 
+    borderRadius: 11, 
+    borderWidth: 2, 
+    borderColor: '#d1d5db', 
+    marginRight: 14, 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+  radioCircleSelected: { 
+    borderColor: '#22c55e' 
+  },
+  radioSelected: { 
+    width: 12, 
+    height: 12, 
+    borderRadius: 6, 
+    backgroundColor: '#22c55e' 
+  },
+  optionText: { 
+    fontSize: 14, 
+    color: '#6b7280', 
+    fontWeight: '500' 
+  },
+  optionTextSelected: { 
+    color: '#1f2937', 
+    fontWeight: '600' 
+  },
+  modalFooter: { 
+    flexDirection: 'row',
+    padding:10, 
+    backgroundColor: '#ffffff', 
+    borderTopWidth: 1, 
+    borderTopColor: '#f0f0f0', 
+    borderBottomLeftRadius: 20,
+    gap: 12
+  },
+  clearButton: {
+    flex: 1,
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e5e7eb'
+  },
+  clearButtonText: {
+    color: '#6b7280',
+    fontSize: 16,
+    fontWeight: '600'
+  },
+  applyButton: { 
+    flex: 1,
+    backgroundColor: 'rgba(76, 175, 80, 1)', 
+    paddingVertical: 14,
+    paddingHorizontal:2, 
+    borderRadius:5, 
+    alignItems: 'center' 
+  },
+  applyButtonText: { 
+    color: '#fff', 
+    fontSize:15, 
+    fontWeight: '600' 
+  },
 });
+
+export default OrderFilter;

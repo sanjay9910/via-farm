@@ -1,190 +1,172 @@
-import React, { useEffect, useRef, useState } from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
+  FlatList,
   Image,
-  ScrollView,
+  Linking,
   StyleSheet,
   TouchableOpacity,
-  View
-} from 'react-native'
+  View,
+} from 'react-native';
 
-const { width } = Dimensions.get('window')
+const { width } = Dimensions.get('window');
 
-const Banner = () => {
-  const [images, setImages] = useState([])
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const scrollViewRef = useRef(null)
+// Define constants for clean and readable spacing
+const SCREEN_PADDING = 10; 
+const ITEM_GAP = 10;       
+// Width calculation: width - (2 * 10) = width - 20
+const VISIBLE_ITEM_WIDTH = width - (2 * SCREEN_PADDING); 
 
-  // Sample API data - Replace with your actual API call
+const BASE_URL = 'https://393rb0pp-5000.inc1.devtunnels.ms';
+const ENDPOINT = '/api/admin/public/manage-app/banners';
+
+const BannerCard = () => {
+  const [banners, setBanners] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const flatListRef = useRef(null);
+
   useEffect(() => {
-    fetchBannerImages()
-  }, [])
+    const fetchBanners = async () => {
+      try {
+        const token = await AsyncStorage.getItem('userToken');
 
-  const fetchBannerImages = async () => {
-    try {
-      // Replace this with your actual API call
-      const response = await fetch('YOUR_API_ENDPOINT')
-      const data = await response.json()
-      
-      // For demo purpose, using sample data
-      const sampleImages = [
-        { id: 1, url: 'https://picsum.photos/400/200?random=1' },
-        { id: 2, url: 'https://picsum.photos/400/200?random=2' },
-        { id: 3, url: 'https://picsum.photos/400/200?random=3' },
-        { id: 4, url: 'https://picsum.photos/400/200?random=4' },
-      ]
-      
-      setImages(sampleImages)
-    } catch (error) {
-      console.log('Error fetching images:', error)
-      
-      // Fallback to local images if API fails
-      const localImages = [
-        { id: 1, local: require('../../assets/via-farm-img/banner.png') },
-        // Add more local images if available
-      ]
-      setImages(localImages)
-    }
-  }
+        const res = await axios.get(`${BASE_URL}${ENDPOINT}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-  // Auto slide every 3 seconds
+        if (res.data.success && Array.isArray(res.data.data)) {
+          const formatted = res.data.data.map(item => ({
+            id: item._id,
+            imageUrl: item.imageUrl,
+            link: item.link || null,
+          }));
+          setBanners(formatted);
+        } else {
+          console.warn('Invalid response format:', res.data);
+          setBanners([]);
+        }
+      } catch (err) {
+        console.log('Error fetching banners:', err.message);
+        setBanners([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBanners();
+  }, []);
+
+  // Auto slide every 3 seconds (सुधार यहां किया गया है)
   useEffect(() => {
-    if (images.length > 1) {
+    if (banners.length > 1) {
       const interval = setInterval(() => {
-        setCurrentIndex((prevIndex) => {
-          const nextIndex = (prevIndex + 1) % images.length
-          scrollToIndex(nextIndex)
-          return nextIndex
-        })
-      }, 3000)
+        let nextIndex = currentIndex + 1;
+        
+        // Loop Logic: If the index is past the last banner, go back to index 0 (the first banner)
+        if (nextIndex >= banners.length) {
+            nextIndex = 0; // index 0 पर रीसेट करें
+        }
+        
+        flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+        setCurrentIndex(nextIndex);
+      }, 3000);
 
-      return () => clearInterval(interval)
+      return () => clearInterval(interval);
     }
-  }, [images.length])
-
-  const scrollToIndex = (index) => {
-    if (scrollViewRef.current) {
-      scrollViewRef.current.scrollTo({
-        x: index * width * 0.92,
-        animated: true
-      })
-    }
-  }
+  }, [banners, currentIndex]);
 
   const onMomentumScrollEnd = (event) => {
-    const slideSize = width * 0.92
-    const index = Math.round(event.nativeEvent.contentOffset.x / slideSize)
-    setCurrentIndex(index)
-  }
+    // Total snap width is the banner width PLUS the gap between banners (10 + 10 = 20)
+    const totalSnapWidth = VISIBLE_ITEM_WIDTH + (ITEM_GAP * 2); 
+    const index = Math.round(event.nativeEvent.contentOffset.x / totalSnapWidth);
+    setCurrentIndex(index);
+  };
 
-  const renderDots = () => {
+  if (loading) {
     return (
-      <View style={styles.dotsContainer}>
-        {images.map((_, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[
-              styles.dot,
-              currentIndex === index ? styles.activeDot : styles.inactiveDot
-            ]}
-            onPress={() => {
-              setCurrentIndex(index)
-              scrollToIndex(index)
-            }}
-          />
-        ))}
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
       </View>
-    )
+    );
   }
 
-  if (images.length === 0) {
+  if (banners.length === 0) {
     return (
-      <View style={styles.container}>
-        <Image 
+      <View style={styles.loaderContainer}>
+        <Image
           source={require('../../assets/via-farm-img/banner.png')}
-          style={styles.banner}
+          style={{ width: '100%', height: '100%' }}
           resizeMode="stretch"
         />
       </View>
-    )
+    );
   }
 
   return (
     <View style={styles.mainContainer}>
-      <ScrollView
-        ref={scrollViewRef}
+      <FlatList
+        ref={flatListRef}
+        data={banners}
+        keyExtractor={(item) => item.id.toString()}
         horizontal
-        pagingEnabled
         showsHorizontalScrollIndicator={false}
+        pagingEnabled
+        // Snap to the width of the banner + gap (width - 20 + 20 = width)
+        snapToInterval={VISIBLE_ITEM_WIDTH + (ITEM_GAP * 2)}
+        decelerationRate="fast"
         onMomentumScrollEnd={onMomentumScrollEnd}
-        style={styles.scrollView}
-      >
-        {images.map((image, index) => (
-          <View key={image.id || index} style={styles.container}>
-            <Image 
-              source={image.url ? { uri: image.url } : image.local}
-              style={styles.banner}
-              resizeMode="stretch"
+        renderItem={({ item, index }) => (
+          <TouchableOpacity
+            style={[
+              styles.container,
+              {
+                // First item gets the screen padding (10)
+                marginLeft: index === 0 ? SCREEN_PADDING : ITEM_GAP,
+                // All items get the item gap (10) on the right
+                marginRight: ITEM_GAP,
+                // Last item adjustment: The right margin of the last item needs to match SCREEN_PADDING (10) 
+                // Currently, marginRight is 10. To make it 10 total, we add 0 padding. 
+                // The gap between the last banner and screen edge is 10 (from marginRight)
+                paddingRight: index === banners.length - 1 ? 0 : 0, 
+              }
+            ]}
+            activeOpacity={0.9}
+            onPress={() => {
+              if (item.link) Linking.openURL(item.link).catch((err) => console.log('Link error:', err));
+            }}
+          >
+            <Image
+              source={{ uri: item.imageUrl }}
+              style={styles.bannerImage}
+              resizeMode="cover"
             />
-          </View>
-        ))}
-      </ScrollView>
-      
-      {images.length > 1 && renderDots()}
+          </TouchableOpacity>
+        )}
+      />
     </View>
-  )
-}
+  );
+};
 
-export default Banner
+export default BannerCard;
 
 const styles = StyleSheet.create({
-  mainContainer: {
-    position: 'relative',
-  },
-  scrollView: {
-    height: 155 + 46, // Banner height + margin
-  },
+  mainContainer: { position: 'relative', marginVertical: 15 },
+  loaderContainer: { height: 180, justifyContent: 'center', alignItems: 'center' },
   container: {
-    width: width * 0.92,
-    height: 165,
-    marginTop:13,
-    marginHorizontal: width * 0.04, // Center alignment
+    // Banner width: screen width - 20 (10 left padding + 10 right padding)
+    width: VISIBLE_ITEM_WIDTH, 
+    height: 170,
     borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    overflow: 'hidden',
   },
-  banner: {
-    width: '100%',
-    height: '100%',
-  },
-  dotsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 15,
-    marginBottom: 10,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginHorizontal: 4,
-  },
-  activeDot: {
-    backgroundColor: '#007AFF',
-    width: 20,
-    borderRadius: 10,
-  },
-  inactiveDot: {
-    backgroundColor: '#C4C4C4',
-  }
-})
+  bannerImage: { width: '100%', height: '100%', borderRadius: 15 },
+});

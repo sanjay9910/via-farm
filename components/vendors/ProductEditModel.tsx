@@ -1,8 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 import Checkbox from "expo-checkbox";
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   Modal,
   Pressable,
@@ -11,8 +15,10 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
+
+const BASE_URL = "https://393rb0pp-5000.inc1.devtunnels.ms";
 
 const ProductModal = ({ visible, onClose, onSubmit, product }) => {
   const [name, setName] = useState("");
@@ -24,6 +30,7 @@ const ProductModal = ({ visible, onClose, onSubmit, product }) => {
   const [description, setDescription] = useState("");
   const [allIndiaDelivery, setAllIndiaDelivery] = useState(false);
   const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -39,6 +46,7 @@ const ProductModal = ({ visible, onClose, onSubmit, product }) => {
     }
   }, [product]);
 
+  // Pick images from gallery (local URIs)
   const pickImages = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -64,20 +72,63 @@ const ProductModal = ({ visible, onClose, onSubmit, product }) => {
     }
   };
 
-  const handleSubmit = () => {
-    const updatedProduct = {
-      ...product,
-      name,
-      category,
-      unit,
-      variety,
-      price,
-      quantity,
-      description,
-      allIndiaDelivery,
-      images,
-    };
-    onSubmit(updatedProduct);
+  // Update product API call
+  const handleUpdateProduct = async () => {
+    if (!product || !product._id) {
+      alert("Product ID missing. Cannot update.");
+      return;
+    }
+
+    if (!name || !category || !unit || !variety || !price || !quantity) {
+      alert("Please fill all mandatory fields!");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Get token saved after login
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) {
+        alert("User not authorized. Please login again.");
+        return;
+      }
+
+      const updatedProduct = {
+        name,
+        category,
+        unit,
+        variety,
+        price: Number(price),
+        quantity: Number(quantity),
+        description,
+        allIndiaDelivery,
+        images, // Make sure these are valid URLs; for local files, you need to upload first
+      };
+
+      const response = await axios.put(
+        `${BASE_URL}/api/vendor/products/${product._id}`,
+        updatedProduct,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        Alert.alert("Success", "Product updated successfully");
+        onSubmit(response.data.data); // send updated product back
+        onClose();
+      } else {
+        Alert.alert("Error", response.data.message || "Failed to update product");
+      }
+    } catch (error) {
+      console.log("Update product error:", error.response || error.message);
+      Alert.alert("Error", "Something went wrong while updating the product.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -136,7 +187,6 @@ const ProductModal = ({ visible, onClose, onSubmit, product }) => {
               </View>
             </View>
 
-            {/* Image Upload */}
             <Text style={styles.label}>Add Images *</Text>
             <TouchableOpacity style={styles.imageUpload} onPress={pickImages}>
               <Ionicons name="folder-outline" size={32} color="#777" />
@@ -162,11 +212,13 @@ const ProductModal = ({ visible, onClose, onSubmit, product }) => {
               <Checkbox value={allIndiaDelivery} onValueChange={setAllIndiaDelivery} />
               <Text style={{ marginLeft: 8 }}>All India Delivery</Text>
             </View>
+
             <View style={styles.updateDetails}>
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
+              <TouchableOpacity style={styles.submitBtn} onPress={handleUpdateProduct} disabled={loading}>
+                {loading && <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />}
                 <Image source={require('../../assets/via-farm-img/icons/updateDetails.png')} />
-              <Text style={styles.submitText}>Update Details</Text>
-            </TouchableOpacity>
+                <Text style={styles.submitText}>Update Details</Text>
+              </TouchableOpacity>
             </View>
           </ScrollView>
         </View>

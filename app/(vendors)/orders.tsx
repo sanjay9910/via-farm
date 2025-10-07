@@ -1,4 +1,4 @@
-import OrderFilter from '@/components/vendors/filter/OrderFilter'
+
 import Header from '@/components/vendors/Header'
 import React from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
@@ -10,7 +10,6 @@ const Order = () => {
   return (
     <SafeAreaView>
       <Header />
-      <OrderFilter />
       <ScrollView>
         <OrderAllVendors />
       </ScrollView>

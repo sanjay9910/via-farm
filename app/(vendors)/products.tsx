@@ -1,5 +1,5 @@
 import AddProduct from '@/components/vendors/AddProduct'
-import ProductFilter from '@/components/vendors/filter/ProductFilter'
+// import ProductFilter from '@/components/vendors/filter/ProductFilter'
 import Header from '@/components/vendors/Header'
 import React from 'react'
 import { StyleSheet } from 'react-native'
@@ -11,7 +11,7 @@ const Products = () => {
     <SafeAreaView style={styles.container}>
       <Header/>
       <AddProduct/>
-      <ProductFilter/>
+      {/* <ProductFilter/> */}
         <ProductCard/>
     </SafeAreaView>
   )

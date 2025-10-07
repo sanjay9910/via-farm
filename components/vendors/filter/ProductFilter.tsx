@@ -34,7 +34,7 @@ const ProductFilter = () => {
   const slideAnim = useRef(new Animated.Value(width)).current;
   const dropdownButtonRef = useRef(null);
 
-  const categories = ['All', 'Fruits', 'Vegetables'];
+  const categories = ['All', 'Fruits', 'Vegetables','Seeds','Plants','Handicrafts'];
   const stockOptions = ['Out of Stock', 'In Stock'];
   const dateOptions = ['Today', 'Last 7 Days', 'Last 30 Days', 'All Time'];
   const amountOptions = ['Low to High', 'High to Low'];
