@@ -1,9 +1,9 @@
-import { Feather, Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import { Feather, Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 import Checkbox from "expo-checkbox";
-import * as ImagePicker from 'expo-image-picker';
-import React, { useState } from 'react';
+import * as ImagePicker from "expo-image-picker";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,12 +15,12 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
+  View,
+} from "react-native";
 
-const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms/api/vendor';
+const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms/api/vendor";
 
-const AddProduct = () => {
+const AddProduct = ({ refreshprops }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
@@ -28,6 +28,7 @@ const AddProduct = () => {
   const [variety, setVariety] = useState("");
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
+  3;
   const [description, setDescription] = useState("");
   const [allIndiaDelivery, setAllIndiaDelivery] = useState(false);
   const [images, setImages] = useState([]);
@@ -35,9 +36,13 @@ const AddProduct = () => {
 
   const pickImages = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Permission to access gallery is required!');
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Denied",
+          "Permission to access gallery is required!"
+        );
         return;
       }
 
@@ -50,46 +55,46 @@ const AddProduct = () => {
 
       if (!result.canceled) {
         let selected = result.assets || [];
-        setImages(prev => [...prev, ...selected]);
+        setImages((prev) => [...prev, ...selected]);
       }
     } catch (err) {
-      console.log('Image picker error:', err);
-      Alert.alert('Error', 'Failed to select images.');
+      console.log("Image picker error:", err);
+      Alert.alert("Error", "Failed to select images.");
     }
   };
 
   const removeImage = (index) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
+    setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
     // Validation
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter product name');
+      Alert.alert("Error", "Please enter product name");
       return;
     }
     if (!category.trim()) {
-      Alert.alert('Error', 'Please enter category');
+      Alert.alert("Error", "Please enter category");
       return;
     }
     if (!variety.trim()) {
-      Alert.alert('Error', 'Please enter variety');
+      Alert.alert("Error", "Please enter variety");
       return;
     }
     if (!price.trim() || isNaN(price)) {
-      Alert.alert('Error', 'Please enter valid price');
+      Alert.alert("Error", "Please enter valid price");
       return;
     }
     if (!quantity.trim() || isNaN(quantity)) {
-      Alert.alert('Error', 'Please enter valid quantity');
+      Alert.alert("Error", "Please enter valid quantity");
       return;
     }
     if (!unit.trim()) {
-      Alert.alert('Error', 'Please enter unit');
+      Alert.alert("Error", "Please enter unit");
       return;
     }
     if (images.length === 0) {
-      Alert.alert('Error', 'Please add at least one image');
+      Alert.alert("Error", "Please add at least one image");
       return;
     }
 
@@ -97,103 +102,99 @@ const AddProduct = () => {
 
     try {
       // Get token from AsyncStorage
-      const token = await AsyncStorage.getItem('userToken');
-      
-      console.log('Token:', token ? 'Found' : 'Not found');
-      
+      const token = await AsyncStorage.getItem("userToken");
+
+      // console.log("Tokenjkhgfgdukghfdgh:", refreshprops);
+
       if (!token) {
-        Alert.alert('Error', 'Please login first');
+        Alert.alert("Error", "Please login first");
         setLoading(false);
         return;
       }
 
       // Create FormData
       const formData = new FormData();
-      formData.append('name', name.trim());
-      formData.append('category', category.trim());
-      formData.append('variety', variety.trim());
-      formData.append('price', price.trim());
-      formData.append('quantity', quantity.trim());
-      formData.append('unit', unit.trim());
-      formData.append('description', description.trim() || '');
-      formData.append('allIndiaDelivery', allIndiaDelivery.toString());
+      formData.append("name", name.trim());
+      formData.append("category", category.trim());
+      formData.append("variety", variety.trim());
+      formData.append("price", price.trim());
+      formData.append("quantity", quantity.trim());
+      formData.append("unit", unit.trim());
+      formData.append("description", description.trim() || "");
+      formData.append("allIndiaDelivery", allIndiaDelivery.toString());
 
       // Append images with correct format
       images.forEach((image, index) => {
         const uri = image.uri;
-        const uriParts = uri.split('/');
+        const uriParts = uri.split("/");
         const fileName = uriParts[uriParts.length - 1];
-        const fileType = fileName.split('.').pop().toLowerCase();
-        
+        const fileType = fileName.split(".").pop().toLowerCase();
+
         // Create proper file object
         const file = {
           uri: uri,
-          type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
+          type: `image/${fileType === "jpg" ? "jpeg" : fileType}`,
           name: fileName || `photo_${index}.${fileType}`,
         };
-        
-        formData.append('images', file);
+
+        formData.append("images", file);
       });
 
-      console.log('Sending request to:', `${API_BASE}/products/add`);
-      console.log('Image count:', images.length);
-
       // API call
-      const response = await axios.post(
-        `${API_BASE}/products/add`,
-        formData,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-          timeout: 30000, // 30 seconds timeout
-        }
-      );
+      const response = await axios.post(`${API_BASE}/products/add`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+        timeout: 30000, // 30 seconds timeout
+      });
 
-      console.log('Response:', response.data);
+      console.log("Response:", response.data);
 
       if (response.data.success) {
-        Alert.alert('Success', 'Product added successfully!', [
+        Alert.alert("Success", "Product added successfully!", [
           {
-            text: 'OK',
+            text: "OK",
             onPress: () => {
               setModalVisible(false);
               resetForm();
-            }
-          }
+            },
+          },
         ]);
+        refreshprops();
       } else {
-        Alert.alert('Error', response.data.message || 'Failed to add product');
+        Alert.alert("Error", response.data.message || "Failed to add product");
       }
-
     } catch (error) {
-      console.error('Full error:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      
-      let errorMessage = 'Failed to add product. Please try again.';
-      
+      console.error("Full error:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+
+      let errorMessage = "Failed to add product. Please try again.";
+
       if (error.response) {
         // Server responded with error
-        console.log('Server error data:', error.response.data);
-        errorMessage = error.response.data?.message || error.response.data?.error || errorMessage;
-        
+        console.log("Server error data:", error.response.data);
+        errorMessage =
+          error.response.data?.message ||
+          error.response.data?.error ||
+          errorMessage;
+
         if (error.response.status === 401) {
-          errorMessage = 'Session expired. Please login again.';
+          errorMessage = "Session expired. Please login again.";
         } else if (error.response.status === 413) {
-          errorMessage = 'Images are too large. Please select smaller images.';
+          errorMessage = "Images are too large. Please select smaller images.";
         } else if (error.response.status === 500) {
-          errorMessage = 'Server error. Please check all fields and try again.';
+          errorMessage = "Server error. Please check all fields and try again.";
         }
       } else if (error.request) {
         // Request made but no response
-        errorMessage = 'Network error. Please check your connection.';
-      } else if (error.code === 'ECONNABORTED') {
-        errorMessage = 'Request timeout. Please try again.';
+        errorMessage = "Network error. Please check your connection.";
+      } else if (error.code === "ECONNABORTED") {
+        errorMessage = "Request timeout. Please try again.";
       }
-      
-      Alert.alert('Error', errorMessage);
+
+      Alert.alert("Error", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -213,8 +214,8 @@ const AddProduct = () => {
 
   return (
     <>
-      <TouchableOpacity 
-        style={styles.container} 
+      <TouchableOpacity
+        style={styles.container}
         activeOpacity={0.7}
         onPress={() => setModalVisible(true)}
       >
@@ -224,7 +225,7 @@ const AddProduct = () => {
             Showcase your fresh produce or handmade items to more buyers
           </Text>
         </View>
-        
+
         <View style={styles.iconContainer}>
           <Feather name="plus" size={28} color="#fff" />
         </View>
@@ -232,12 +233,12 @@ const AddProduct = () => {
 
       {/* Product Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.overlay}
           activeOpacity={1}
           onPress={() => !loading && setModalVisible(false)}
         >
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.modalContainer}
             activeOpacity={1}
             onPress={(e) => e.stopPropagation()}
@@ -254,10 +255,10 @@ const AddProduct = () => {
               <Text style={styles.smallNote}>* marks important fields</Text>
 
               <Text style={styles.label}>Product Name *</Text>
-              <TextInput 
-                style={styles.input} 
-                value={name} 
-                onChangeText={setName} 
+              <TextInput
+                style={styles.input}
+                value={name}
+                onChangeText={setName}
                 placeholder="e.g., Organic Apples"
                 editable={!loading}
               />
@@ -265,20 +266,20 @@ const AddProduct = () => {
               <View style={styles.row}>
                 <View style={styles.flex1}>
                   <Text style={styles.label}>Category *</Text>
-                  <TextInput 
-                    style={styles.input} 
-                    value={category} 
-                    onChangeText={setCategory} 
+                  <TextInput
+                    style={styles.input}
+                    value={category}
+                    onChangeText={setCategory}
                     placeholder="e.g., Fruits"
                     editable={!loading}
                   />
                 </View>
                 <View style={styles.flex1}>
                   <Text style={styles.label}>Variety *</Text>
-                  <TextInput 
-                    style={styles.input} 
-                    value={variety} 
-                    onChangeText={setVariety} 
+                  <TextInput
+                    style={styles.input}
+                    value={variety}
+                    onChangeText={setVariety}
                     placeholder="e.g., Alphonso"
                     editable={!loading}
                   />
@@ -310,10 +311,10 @@ const AddProduct = () => {
                 </View>
                 <View style={styles.flex1}>
                   <Text style={styles.label}>Unit *</Text>
-                  <TextInput 
-                    style={styles.input} 
-                    value={unit} 
-                    onChangeText={setUnit} 
+                  <TextInput
+                    style={styles.input}
+                    value={unit}
+                    onChangeText={setUnit}
                     placeholder="kg"
                     editable={!loading}
                   />
@@ -322,18 +323,18 @@ const AddProduct = () => {
 
               {/* Image Upload */}
               <Text style={styles.label}>Add Images *</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
                   styles.imageUpload,
-                  (loading || images.length >= 5) && styles.imageUploadDisabled
-                ]} 
+                  (loading || images.length >= 5) && styles.imageUploadDisabled,
+                ]}
                 onPress={pickImages}
                 disabled={loading || images.length >= 5}
               >
                 <Ionicons name="folder-outline" size={32} color="#777" />
                 <Text style={styles.imageUploadText}>
-                  {images.length >= 5 
-                    ? 'Maximum 5 images reached' 
+                  {images.length >= 5
+                    ? "Maximum 5 images reached"
                     : `Add photos of your product (${images.length}/5)`}
                 </Text>
               </TouchableOpacity>
@@ -342,13 +343,20 @@ const AddProduct = () => {
                 <ScrollView horizontal style={{ marginVertical: 8 }}>
                   {images.map((img, idx) => (
                     <View key={idx} style={styles.imagePreviewContainer}>
-                      <Image source={{ uri: img.uri }} style={styles.previewImage} />
+                      <Image
+                        source={{ uri: img.uri }}
+                        style={styles.previewImage}
+                      />
                       {!loading && (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           style={styles.removeImageBtn}
                           onPress={() => removeImage(idx)}
                         >
-                          <Ionicons name="close-circle" size={24} color="#ef4444" />
+                          <Ionicons
+                            name="close-circle"
+                            size={24}
+                            color="#ef4444"
+                          />
                         </TouchableOpacity>
                       )}
                     </View>
@@ -358,7 +366,7 @@ const AddProduct = () => {
 
               <Text style={styles.label}>Description</Text>
               <TextInput
-                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                style={[styles.input, { height: 80, textAlignVertical: "top" }]}
                 value={description}
                 onChangeText={setDescription}
                 placeholder="Write product details here (optional)"
@@ -367,8 +375,8 @@ const AddProduct = () => {
               />
 
               <View style={styles.checkboxRow}>
-                <Checkbox 
-                  value={allIndiaDelivery} 
+                <Checkbox
+                  value={allIndiaDelivery}
                   onValueChange={setAllIndiaDelivery}
                   disabled={loading}
                 />
@@ -376,8 +384,8 @@ const AddProduct = () => {
               </View>
 
               <View style={styles.submitContainer}>
-                <TouchableOpacity 
-                  style={styles.submitBtn} 
+                <TouchableOpacity
+                  style={styles.submitBtn}
                   onPress={handleSubmit}
                   disabled={loading}
                   activeOpacity={loading ? 1 : 0.7}
@@ -404,16 +412,16 @@ export default AddProduct;
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
     borderWidth: 2,
-    borderColor: '#22c55e',
+    borderColor: "#22c55e",
     borderRadius: 16,
     padding: 16,
     margin: 16,
-    shadowColor: '#22c55e',
+    shadowColor: "#22c55e",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -425,142 +433,142 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontWeight: "700",
+    color: "#1f2937",
     marginBottom: 6,
   },
   subtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
     lineHeight: 20,
   },
   iconContainer: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#22c55e',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#22c55e',
+    backgroundColor: "#22c55e",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#22c55e",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
   },
-  overlay: { 
+  overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'flex-end'
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "flex-end",
   },
-  modalContainer: { 
-    maxHeight: '90%',
-    backgroundColor: '#fff',
+  modalContainer: {
+    maxHeight: "90%",
+    backgroundColor: "#fff",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    padding: 16
+    padding: 16,
   },
-  header: { 
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
   },
-  headerText: { 
+  headerText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#000'
+    fontWeight: "600",
+    color: "#000",
   },
-  smallNote: { 
+  smallNote: {
     fontSize: 12,
-    color: '#777',
-    marginBottom: 10
+    color: "#777",
+    marginBottom: 10,
   },
-  label: { 
+  label: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     marginTop: 10,
     marginBottom: 4,
-    color: '#333'
+    color: "#333",
   },
-  input: { 
+  input: {
     borderWidth: 1,
-    borderColor: '#f0c96a',
+    borderColor: "#f0c96a",
     borderRadius: 10,
     padding: 12,
-    backgroundColor: '#fff',
-    marginBottom: 8
+    backgroundColor: "#fff",
+    marginBottom: 8,
   },
-  row: { 
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
   },
-  flex1: { 
+  flex1: {
     flex: 1,
-    marginRight: 8
+    marginRight: 8,
   },
-  checkboxRow: { 
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12
+  checkboxRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
   },
   submitContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignContent: "center",
   },
-  submitBtn: { 
-    backgroundColor: '#22c55e',
-    width: '70%',
+  submitBtn: {
+    backgroundColor: "#22c55e",
+    width: "70%",
     borderRadius: 10,
     paddingVertical: 14,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignContent: "center",
     gap: 8,
     marginTop: 20,
     marginBottom: 10,
-    alignItems: 'center'
+    alignItems: "center",
   },
-  submitText: { 
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16
+  submitText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 16,
   },
-  imageUpload: { 
+  imageUpload: {
     borderWidth: 1,
-    borderColor: '#f0c96a',
+    borderColor: "#f0c96a",
     borderRadius: 10,
     padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 4,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   imageUploadDisabled: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: "#f3f4f6",
     opacity: 0.6,
   },
-  imageUploadText: { 
+  imageUploadText: {
     fontSize: 12,
-    color: '#777',
+    color: "#777",
     marginTop: 4,
-    textAlign: 'center'
+    textAlign: "center",
   },
   imagePreviewContainer: {
-    position: 'relative',
+    position: "relative",
     marginRight: 8,
   },
-  previewImage: { 
+  previewImage: {
     width: 80,
     height: 80,
     borderRadius: 8,
   },
   removeImageBtn: {
-    position: 'absolute',
+    position: "absolute",
     top: -8,
     right: -8,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
   },
 });

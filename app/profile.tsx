@@ -1,9 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
-import axios from 'axios';
-import * as ImagePicker from 'expo-image-picker';
-import React, { useContext, useEffect, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
+import * as ImagePicker from "expo-image-picker";
+import React, { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,40 +17,40 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { AuthContext } from './context/AuthContext';
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { AuthContext } from "./context/AuthContext";
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const { user, fetchBuyerProfile, logout } = useContext(AuthContext);
 
   const [userInfo, setUserInfo] = useState({
-    name: '',
-    phone: '',
+    name: "",
+    phone: "",
     image: null,
-    role: ''
+    role: "",
   });
 
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [locationModalVisible, setLocationModalVisible] = useState(false);
-  const [editName, setEditName] = useState('');
-  const [editPhone, setEditPhone] = useState('');
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
   const [editImage, setEditImage] = useState(null);
   const [slideAnim] = useState(new Animated.Value(SCREEN_HEIGHT));
   const [locationSlideAnim] = useState(new Animated.Value(SCREEN_HEIGHT));
 
   // Location form states
-  const [pinCode, setPinCode] = useState('');
-  const [houseNumber, setHouseNumber] = useState('');
-  const [locality, setLocality] = useState('');
-  const [city, setCity] = useState('');
-  const [district, setDistrict] = useState('');
+  const [pinCode, setPinCode] = useState("");
+  const [houseNumber, setHouseNumber] = useState("");
+  const [locality, setLocality] = useState("");
+  const [city, setCity] = useState("");
+  const [district, setDistrict] = useState("");
   const [updatingLocation, setUpdatingLocation] = useState(false);
 
   useEffect(() => {
@@ -61,27 +61,27 @@ const ProfileScreen = () => {
     try {
       setLoading(true);
       const profileData = await fetchBuyerProfile();
-      
+
       console.log("Profile Data Received:", profileData);
-      
+
       if (profileData) {
         const userData = profileData.user || profileData;
-        
+
         setUserInfo({
-          name: userData.name || '',
-          phone: userData.mobileNumber || userData.phone || '',
-          image: userData.profilePicture|| userData.image || null,
-          role: userData.role || ''
+          name: userData.name || "",
+          phone: userData.mobileNumber || userData.phone || "",
+          image: userData.profilePicture || userData.image || null,
+          role: userData.role || "",
         });
       }
     } catch (error) {
       console.error("Error loading profile:", error);
       if (user) {
         setUserInfo({
-          name: user.name || '',
-          phone: user.mobileNumber || user.phone || '',
+          name: user.name || "",
+          phone: user.mobileNumber || user.phone || "",
           image: user.profilePicture || user.image || null,
-          role: user.role || ''
+          role: user.role || "",
         });
       }
     } finally {
@@ -91,10 +91,14 @@ const ProfileScreen = () => {
 
   const pickImage = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow access to your photos');
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Required",
+          "Please allow access to your photos"
+        );
         return;
       }
 
@@ -109,8 +113,8 @@ const ProfileScreen = () => {
         setEditImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image');
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Failed to pick image");
     }
   };
 
@@ -140,26 +144,26 @@ const ProfileScreen = () => {
   const handleUpdateDetails = async () => {
     try {
       if (!editName || !editName.trim()) {
-        Alert.alert('Error', 'Name is required');
+        Alert.alert("Error", "Name is required");
         return;
       }
 
       setUpdating(true);
 
-      const token = await AsyncStorage.getItem('userToken');
+      const token = await AsyncStorage.getItem("userToken");
       const updateData = {
         name: editName.trim(),
         mobileNumber: editPhone.trim(),
-        profilePicture: editImage
+        profilePicture: editImage,
       };
 
       const res = await axios.put(
-        'https://393rb0pp-5000.inc1.devtunnels.ms/api/buyer/profile',
+        "https://393rb0pp-5000.inc1.devtunnels.ms/api/buyer/profile",
         updateData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         }
       );
@@ -169,27 +173,27 @@ const ProfileScreen = () => {
           name: editName,
           phone: editPhone,
           image: editImage,
-          role: userInfo.role
+          role: userInfo.role,
         });
-        
+
         handleCloseModal();
-        Alert.alert('Success', 'Profile updated successfully!');
+        Alert.alert("Success", "Profile updated successfully!");
         await loadProfile();
       }
     } catch (error) {
-      console.error('Update error:', error);
-      Alert.alert('Error', 'Failed to update profile');
+      console.error("Update error:", error);
+      Alert.alert("Error", "Failed to update profile");
     } finally {
       setUpdating(false);
     }
   };
 
   const handleLocationPress = () => {
-    setPinCode('');
-    setHouseNumber('');
-    setLocality('');
-    setCity('');
-    setDistrict('');
+    setPinCode("");
+    setHouseNumber("");
+    setLocality("");
+    setCity("");
+    setDistrict("");
     setLocationModalVisible(true);
 
     Animated.timing(locationSlideAnim, {
@@ -210,30 +214,36 @@ const ProfileScreen = () => {
   };
 
   const handleUseCurrentLocation = () => {
-    Alert.alert('Feature Coming Soon', 'Current location feature will be available soon!');
+    Alert.alert(
+      "Feature Coming Soon",
+      "Current location feature will be available soon!"
+    );
   };
 
   const handleSearchLocation = () => {
-    Alert.alert('Feature Coming Soon', 'Search location feature will be available soon!');
+    Alert.alert(
+      "Feature Coming Soon",
+      "Search location feature will be available soon!"
+    );
   };
 
   const handleUpdateLocation = async () => {
     try {
       if (!pinCode || !houseNumber || !locality || !city || !district) {
-        Alert.alert('Error', 'Please fill all required fields');
+        Alert.alert("Error", "Please fill all required fields");
         return;
       }
 
       setUpdatingLocation(true);
 
       // Replace with your actual API endpoint
-      const token = await AsyncStorage.getItem('userToken');
+      const token = await AsyncStorage.getItem("userToken");
       const locationData = {
         pinCode: pinCode.trim(),
         houseNumber: houseNumber.trim(),
         locality: locality.trim(),
         city: city.trim(),
-        district: district.trim()
+        district: district.trim(),
       };
 
       // Uncomment when API is ready
@@ -249,13 +259,12 @@ const ProfileScreen = () => {
       // );
 
       // if (res.data.success) {
-        handleCloseLocationModal();
-        Alert.alert('Success', 'Location updated successfully!');
+      handleCloseLocationModal();
+      Alert.alert("Success", "Location updated successfully!");
       // }
-
     } catch (error) {
-      console.error('Location update error:', error);
-      Alert.alert('Error', 'Failed to update location');
+      console.error("Location update error:", error);
+      Alert.alert("Error", "Failed to update location");
     } finally {
       setUpdatingLocation(false);
     }
@@ -270,7 +279,7 @@ const ProfileScreen = () => {
   };
 
   const handleSupportPress = () => {
-   navigation.navigate("CustomerSupport");
+    navigation.navigate("CustomerSupport");
   };
 
   const handlePrivacyPress = () => {
@@ -286,29 +295,35 @@ const ProfileScreen = () => {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            const rootNavigation = navigation.getParent() || navigation;
-            rootNavigation.reset({
-              index: 0,
-              routes: [{ name: 'login' }],
-            });
-          }
-        }
-      ]
-    );
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          await logout();
+          const rootNavigation = navigation.getParent() || navigation;
+          rootNavigation.reset({
+            index: 0,
+            routes: [{ name: "login" }],
+          });
+        },
+      },
+    ]);
   };
 
-  const ProfileMenuItem = ({ icon, title, subtitle, onPress, showArrow = true }) => (
-    <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
+  const ProfileMenuItem = ({
+    icon,
+    title,
+    subtitle,
+    onPress,
+    showArrow = true,
+  }) => (
+    <TouchableOpacity
+      style={styles.menuItem}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <View style={styles.menuItemLeft}>
         <View style={styles.iconContainer}>
           <Ionicons name={icon} size={20} color="#666" />
@@ -318,9 +333,7 @@ const ProfileScreen = () => {
           <Text style={styles.menuItemSubtitle}>{subtitle}</Text>
         </View>
       </View>
-      {showArrow && (
-        <Ionicons name="chevron-forward" size={18} color="#ccc" />
-      )}
+      {showArrow && <Ionicons name="chevron-forward" size={18} color="#ccc" />}
     </TouchableOpacity>
   );
 
@@ -328,7 +341,7 @@ const ProfileScreen = () => {
     if (userInfo.name && userInfo.name.length > 0) {
       return userInfo.name.charAt(0).toUpperCase();
     }
-    return 'U';
+    return "U";
   };
 
   if (loading) {
@@ -344,28 +357,38 @@ const ProfileScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.profileSection}>
           <View style={styles.profileInfo}>
             <View style={styles.avatarContainer}>
               {userInfo.image ? (
-                <Image 
-                  source={{ uri: userInfo.image }} 
+                <Image
+                  source={{ uri: userInfo.image }}
                   style={styles.avatarImage}
-                  onError={(e) => console.log("Image load error:", e.nativeEvent.error)}
+                  onError={(e) =>
+                    console.log("Image load error:", e.nativeEvent.error)
+                  }
                 />
               ) : (
                 <Text style={styles.avatarText}>{getAvatarLetter()}</Text>
               )}
             </View>
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>{userInfo.name || 'User'}</Text>
-              <Text style={styles.userPhone}>+91 {userInfo.phone || 'N/A'}</Text>
+              <Text style={styles.userName}>{userInfo.name || "User"}</Text>
+              <Text style={styles.userPhone}>
+                +91 {userInfo.phone || "N/A"}
+              </Text>
               {userInfo.role && (
                 <Text style={styles.userRole}>{userInfo.role}</Text>
               )}
             </View>
-            <TouchableOpacity onPress={handleEditProfile} style={styles.editButtonContainer}>
+            <TouchableOpacity
+              onPress={handleEditProfile}
+              style={styles.editButtonContainer}
+            >
               <Ionicons name="create-outline" size={24} color="#4CAF50" />
             </TouchableOpacity>
           </View>
@@ -424,7 +447,12 @@ const ProfileScreen = () => {
 
         <View style={styles.logoutSection}>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={20} color="#fff" style={styles.logoutIcon} />
+            <Ionicons
+              name="log-out-outline"
+              size={20}
+              color="#fff"
+              style={styles.logoutIcon}
+            />
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </View>
@@ -447,34 +475,49 @@ const ProfileScreen = () => {
             style={[
               styles.modalContainer,
               {
-                transform: [{ translateY: slideAnim }]
-              }
+                transform: [{ translateY: slideAnim }],
+              },
             ]}
           >
             <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={handleCloseModal} style={styles.backButton}>
+              <TouchableOpacity
+                onPress={handleCloseModal}
+                style={styles.backButton}
+              >
                 <Ionicons name="arrow-back" size={24} color="#333" />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>Edit Details</Text>
               <View style={styles.placeholder} />
             </View>
 
-            <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.modalContent}
+              showsVerticalScrollIndicator={false}
+            >
               <Text style={styles.fieldNote}>* marks important fields</Text>
 
               <View style={styles.fieldContainer}>
                 <Text style={styles.fieldLabel}>Profile Picture</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.imagePickerContainer}
                   onPress={pickImage}
                   activeOpacity={0.7}
                 >
                   {editImage ? (
-                    <Image source={{ uri: editImage }} style={styles.profilePreview} />
+                    <Image
+                      source={{ uri: editImage }}
+                      style={styles.profilePreview}
+                    />
                   ) : (
                     <>
-                      <Ionicons name="camera-outline" size={40} color="#4CAF50" />
-                      <Text style={styles.imagePickerText}>Tap to choose photo</Text>
+                      <Ionicons
+                        name="camera-outline"
+                        size={40}
+                        color="#4CAF50"
+                      />
+                      <Text style={styles.imagePickerText}>
+                        Tap to choose photo
+                      </Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -504,22 +547,29 @@ const ProfileScreen = () => {
                 />
               </View>
 
-             <View style={styles.locationBtn}>
-              <TouchableOpacity 
-                style={[styles.updateButton, updating && styles.updateButtonDisabled]} 
-                onPress={handleUpdateDetails}
-                disabled={updating}
-                activeOpacity={0.7}
-              >
-                {updating ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Image source={require('../assets/via-farm-img/icons/updateDetails.png')} />
-                    <Text style={styles.updateButtonText}>Update Details</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+              <View style={styles.locationBtn}>
+                <TouchableOpacity
+                  style={[
+                    styles.updateButton,
+                    updating && styles.updateButtonDisabled,
+                  ]}
+                  onPress={handleUpdateDetails}
+                  disabled={updating}
+                  activeOpacity={0.7}
+                >
+                  {updating ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <Image
+                        source={require("../assets/via-farm-img/icons/updateDetails.png")}
+                      />
+                      <Text style={styles.updateButtonText}>
+                        Update Details
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
               </View>
             </ScrollView>
           </Animated.View>
@@ -543,32 +593,40 @@ const ProfileScreen = () => {
             style={[
               styles.modalContainer,
               {
-                transform: [{ translateY: locationSlideAnim }]
-              }
+                transform: [{ translateY: locationSlideAnim }],
+              },
             ]}
           >
             <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={handleCloseLocationModal} style={styles.backButton}>
+              <TouchableOpacity
+                onPress={handleCloseLocationModal}
+                style={styles.backButton}
+              >
                 <Ionicons name="arrow-back" size={24} color="#333" />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>Edit Location</Text>
               <View style={styles.placeholder} />
             </View>
 
-            <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.modalContent}
+              showsVerticalScrollIndicator={false}
+            >
               <Text style={styles.addressHeading}>Address</Text>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.locationActionButton}
                 onPress={handleUseCurrentLocation}
                 activeOpacity={0.7}
               >
                 <Ionicons name="locate" size={20} color="#00BCD4" />
-                <Text style={styles.locationActionText}>Use my current location</Text>
+                <Text style={styles.locationActionText}>
+                  Use my current location
+                </Text>
                 <Ionicons name="chevron-forward" size={18} color="#00BCD4" />
               </TouchableOpacity>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.locationActionButton}
                 onPress={handleSearchLocation}
                 activeOpacity={0.7}
@@ -632,21 +690,28 @@ const ProfileScreen = () => {
               </View>
 
               <View style={styles.locationBtn}>
-              <TouchableOpacity 
-                style={[styles.updateButton, updatingLocation && styles.updateButtonDisabled]} 
-                onPress={handleUpdateLocation}
-                disabled={updatingLocation}
-                activeOpacity={0.7}
-              >
-                {updatingLocation ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                      <Image source={require('../assets/via-farm-img/icons/updateDetails.png')} />
-                    <Text style={styles.updateButtonText}>Update Details</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.updateButton,
+                    updatingLocation && styles.updateButtonDisabled,
+                  ]}
+                  onPress={handleUpdateLocation}
+                  disabled={updatingLocation}
+                  activeOpacity={0.7}
+                >
+                  {updatingLocation ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <Image
+                        source={require("../assets/via-farm-img/icons/updateDetails.png")}
+                      />
+                      <Text style={styles.updateButtonText}>
+                        Update Details
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
               </View>
             </ScrollView>
           </Animated.View>
@@ -659,25 +724,25 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   scrollView: {
     flex: 1,
   },
   profileSection: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     marginHorizontal: 16,
     marginTop: 20,
     marginBottom: 10,
     borderRadius: 12,
     padding: 20,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 1,
@@ -686,18 +751,18 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   profileInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
   },
   avatarContainer: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#FFB4A2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
+    backgroundColor: "#FFB4A2",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
   },
   avatarImage: {
     width: 60,
@@ -706,8 +771,8 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 24,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
   userInfo: {
     flex: 1,
@@ -715,58 +780,58 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
     marginBottom: 4,
   },
   userPhone: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
     marginBottom: 2,
   },
   userRole: {
     fontSize: 12,
-    color: '#4CAF50',
-    fontWeight: '500',
+    color: "#4CAF50",
+    fontWeight: "500",
     marginTop: 2,
-    textTransform: 'capitalize',
+    textTransform: "capitalize",
   },
   editButtonContainer: {
     padding: 8,
   },
   menuSection: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     marginHorizontal: 16,
     marginVertical: 5,
     borderRadius: 12,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 1,
     },
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: "#f0f0f0",
   },
   menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   iconContainer: {
     width: 35,
     height: 35,
     borderRadius: 8,
-    backgroundColor: '#f8f9fa',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#f8f9fa",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 15,
   },
   menuItemText: {
@@ -774,33 +839,33 @@ const styles = StyleSheet.create({
   },
   menuItemTitle: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: "500",
+    color: "#333",
     marginBottom: 2,
   },
   menuItemSubtitle: {
     fontSize: 13,
-    color: '#666',
+    color: "#666",
   },
   logoutSection: {
     paddingHorizontal: 16,
     paddingVertical: 20,
     marginBottom: 20,
-    flexDirection:'row',
-    justifyContent:'center',
-    alignItems:'center',
-    marginTop:20,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
   },
   logoutButton: {
-    backgroundColor: '#4CAF50',
-    flexDirection: 'row',
-    width:'70%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical:20,
+    backgroundColor: "#4CAF50",
+    flexDirection: "row",
+    width: "70%",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20,
     borderRadius: 12,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -813,41 +878,41 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalBackground: {
     flex: 1,
     marginBottom: 100,
   },
   modalContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     height: 600,
     borderWidth: 2,
-    borderColor: '#4CAF50',
+    borderColor: "#4CAF50",
   },
   modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: "#f0f0f0",
   },
   backButton: {
     padding: 5,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
   },
   placeholder: {
     width: 34,
@@ -859,7 +924,7 @@ const styles = StyleSheet.create({
   },
   fieldNote: {
     fontSize: 12,
-    color: '#999',
+    color: "#999",
     marginBottom: 20,
   },
   fieldContainer: {
@@ -867,19 +932,19 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: "500",
+    color: "#333",
     marginBottom: 8,
   },
   imagePickerContainer: {
     borderWidth: 2,
-    borderColor: '#4CAF50',
-    borderStyle: 'dashed',
+    borderColor: "#4CAF50",
+    borderStyle: "dashed",
     borderRadius: 12,
     paddingVertical: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f8f9fa',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f8f9fa",
   },
   profilePreview: {
     width: 120,
@@ -888,71 +953,71 @@ const styles = StyleSheet.create({
   },
   imagePickerText: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
     marginTop: 8,
   },
   textInput: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 8,
     paddingHorizontal: 15,
     paddingVertical: 12,
     fontSize: 16,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   updateButton: {
-    backgroundColor: 'rgba(76, 175, 80, 1)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(76, 175, 80, 1)",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 16,
     borderRadius: 8,
     marginTop: 20,
     marginBottom: 30,
-    width:'70%',
+    width: "70%",
   },
   updateButtonDisabled: {
-    backgroundColor: '#a5d6a7',
+    backgroundColor: "#a5d6a7",
   },
   updateIcon: {
     marginRight: 8,
   },
   updateButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
   addressHeading: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
     marginBottom: 16,
   },
   locationActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 4,
     marginBottom: 12,
   },
-  locationBtn:{
-   flexDirection:'row',
-   justifyContent:'center',
-   alignItems:'center',
+  locationBtn: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   locationActionText: {
     fontSize: 16,
-    color: 'rgba(1, 151, 218, 1)',
+    color: "rgba(1, 151, 218, 1)",
     marginLeft: 10,
     flex: 1,
   },
   fieldRowContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 16,
   },
   fieldHalf: {
-    width: '48%',
+    width: "48%",
   },
 });
 

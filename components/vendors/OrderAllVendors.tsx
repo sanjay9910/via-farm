@@ -238,12 +238,13 @@ const styles = StyleSheet.create({
     paddingTop: 8, // Add some top padding
   },
   center: { 
-    flex: 1, 
+    flexDirection:'row', 
     justifyContent: "center", 
-    alignItems: "center" 
+    alignItems: "center", 
+    backgroundColor:'#ffff',
   },
   noOrdersText: {
-    fontSize: 16,
+    fontSize:20,
     color: "#666",
     textAlign: "center"
   }

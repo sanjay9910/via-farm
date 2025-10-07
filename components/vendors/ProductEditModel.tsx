@@ -1,8 +1,8 @@
+import { getToken } from "@/app/utility/Storage";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import Checkbox from "expo-checkbox";
-import * as ImagePicker from 'expo-image-picker';
+import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -15,7 +15,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
 const BASE_URL = "https://393rb0pp-5000.inc1.devtunnels.ms";
@@ -34,6 +34,7 @@ const ProductModal = ({ visible, onClose, onSubmit, product }) => {
 
   useEffect(() => {
     if (product) {
+      console.log("sanjay yadav", product);
       setName(product.name || "");
       setPrice(product.price?.toString() || "");
       setQuantity(product.quantity?.toString() || "");
@@ -49,9 +50,10 @@ const ProductModal = ({ visible, onClose, onSubmit, product }) => {
   // Pick images from gallery (local URIs)
   const pickImages = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        alert('Permission denied to access gallery!');
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        alert("Permission denied to access gallery!");
         return;
       }
 
@@ -64,17 +66,17 @@ const ProductModal = ({ visible, onClose, onSubmit, product }) => {
 
       if (!result.canceled) {
         let selected = result.assets || [];
-        setImages(prev => [...prev, ...selected.map(img => img.uri)]);
+        setImages((prev) => [...prev, ...selected.map((img) => img.uri)]);
       }
     } catch (err) {
       console.log(err);
-      alert('Failed to select images.');
+      alert("Failed to select images.");
     }
   };
 
   // Update product API call
   const handleUpdateProduct = async () => {
-    if (!product || !product._id) {
+    if (!product || !product.id) {
       alert("Product ID missing. Cannot update.");
       return;
     }
@@ -87,7 +89,8 @@ const ProductModal = ({ visible, onClose, onSubmit, product }) => {
     setLoading(true);
     try {
       // Get token saved after login
-      const token = await AsyncStorage.getItem("userToken");
+      const token = await getToken();
+      console.log(token);
       if (!token) {
         alert("User not authorized. Please login again.");
         return;
@@ -106,7 +109,7 @@ const ProductModal = ({ visible, onClose, onSubmit, product }) => {
       };
 
       const response = await axios.put(
-        `${BASE_URL}/api/vendor/products/${product._id}`,
+        `${BASE_URL}/api/vendor/products/${product.id}`,
         updatedProduct,
         {
           headers: {
@@ -121,7 +124,10 @@ const ProductModal = ({ visible, onClose, onSubmit, product }) => {
         onSubmit(response.data.data); // send updated product back
         onClose();
       } else {
-        Alert.alert("Error", response.data.message || "Failed to update product");
+        Alert.alert(
+          "Error",
+          response.data.message || "Failed to update product"
+        );
       }
     } catch (error) {
       console.log("Update product error:", error.response || error.message);
@@ -147,16 +153,31 @@ const ProductModal = ({ visible, onClose, onSubmit, product }) => {
             <Text style={styles.smallNote}>* marks important fields</Text>
 
             <Text style={styles.label}>Product Name *</Text>
-            <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Product Name" />
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="Product Name"
+            />
 
             <View style={styles.row}>
               <View style={styles.flex1}>
                 <Text style={styles.label}>Category *</Text>
-                <TextInput style={styles.input} value={category} onChangeText={setCategory} placeholder="Fruit / Vegetable" />
+                <TextInput
+                  style={styles.input}
+                  value={category}
+                  onChangeText={setCategory}
+                  placeholder="Fruit / Vegetable"
+                />
               </View>
               <View style={styles.flex1}>
                 <Text style={styles.label}>Variety *</Text>
-                <TextInput style={styles.input} value={variety} onChangeText={setVariety} placeholder="Variety name" />
+                <TextInput
+                  style={styles.input}
+                  value={variety}
+                  onChangeText={setVariety}
+                  placeholder="Variety name"
+                />
               </View>
             </View>
 
@@ -183,25 +204,36 @@ const ProductModal = ({ visible, onClose, onSubmit, product }) => {
               </View>
               <View style={styles.flex1}>
                 <Text style={styles.label}>Unit *</Text>
-                <TextInput style={styles.input} value={unit} onChangeText={setUnit} placeholder="piece / kg / dozen" />
+                <TextInput
+                  style={styles.input}
+                  value={unit}
+                  onChangeText={setUnit}
+                  placeholder="piece / kg / dozen"
+                />
               </View>
             </View>
 
             <Text style={styles.label}>Add Images *</Text>
             <TouchableOpacity style={styles.imageUpload} onPress={pickImages}>
               <Ionicons name="folder-outline" size={32} color="#777" />
-              <Text style={styles.imageUploadText}>Add photos of your product (max 5)</Text>
+              <Text style={styles.imageUploadText}>
+                Add photos of your product (max 5)
+              </Text>
             </TouchableOpacity>
 
             <ScrollView horizontal style={{ marginVertical: 8 }}>
               {images.map((img, idx) => (
-                <Image key={idx} source={{ uri: img }} style={styles.previewImage} />
+                <Image
+                  key={idx}
+                  source={{ uri: img }}
+                  style={styles.previewImage}
+                />
               ))}
             </ScrollView>
 
             <Text style={styles.label}>Description</Text>
             <TextInput
-              style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+              style={[styles.input, { height: 80, textAlignVertical: "top" }]}
               value={description}
               onChangeText={setDescription}
               placeholder="Write product details here"
@@ -209,14 +241,25 @@ const ProductModal = ({ visible, onClose, onSubmit, product }) => {
             />
 
             <View style={styles.checkboxRow}>
-              <Checkbox value={allIndiaDelivery} onValueChange={setAllIndiaDelivery} />
+              <Checkbox
+                value={allIndiaDelivery}
+                onValueChange={setAllIndiaDelivery}
+              />
               <Text style={{ marginLeft: 8 }}>All India Delivery</Text>
             </View>
 
             <View style={styles.updateDetails}>
-              <TouchableOpacity style={styles.submitBtn} onPress={handleUpdateProduct} disabled={loading}>
-                {loading && <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />}
-                <Image source={require('../../assets/via-farm-img/icons/updateDetails.png')} />
+              <TouchableOpacity
+                style={styles.submitBtn}
+                onPress={handleUpdateProduct}
+                disabled={loading}
+              >
+                {loading && (
+                  <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />
+                )}
+                <Image
+                  source={require("../../assets/via-farm-img/icons/updateDetails.png")}
+                />
                 <Text style={styles.submitText}>Update Details</Text>
               </TouchableOpacity>
             </View>
@@ -230,104 +273,104 @@ const ProductModal = ({ visible, onClose, onSubmit, product }) => {
 export default ProductModal;
 
 const styles = StyleSheet.create({
-  overlay: { 
+  overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'flex-end'
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "flex-end",
   },
-  modalContainer: { 
-    maxHeight: '90%',
-    backgroundColor: '#fff',
+  modalContainer: {
+    maxHeight: "90%",
+    backgroundColor: "#fff",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    padding: 16
+    padding: 16,
   },
-  header: { 
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
   },
-  headerText: { 
+  headerText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#000'
+    fontWeight: "600",
+    color: "#000",
   },
-  smallNote: { 
+  smallNote: {
     fontSize: 12,
-    color: '#777',
-    marginBottom: 10
+    color: "#777",
+    marginBottom: 10,
   },
-  label: { 
+  label: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     marginTop: 10,
     marginBottom: 4,
-    color: '#333'
+    color: "#333",
   },
-  input: { 
+  input: {
     borderWidth: 1,
-    borderColor: '#f0c96a',
+    borderColor: "#f0c96a",
     borderRadius: 10,
     padding: 12,
-    backgroundColor: '#fff',
-    marginBottom: 8
+    backgroundColor: "#fff",
+    marginBottom: 8,
   },
-  row: { 
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
   },
-  flex1: { 
+  flex1: {
     flex: 1,
-    marginRight: 8
+    marginRight: 8,
   },
-  checkboxRow: { 
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12
+  checkboxRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
   },
-  updateDetails:{
-   flexDirection:'row',
-   justifyContent:'center',
-   alignContent:'center',
+  updateDetails: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignContent: "center",
   },
-  submitBtn: { 
-    backgroundColor: 'rgba(76, 175, 80, 1)',
-    width:'70%',
-    borderRadius:10,
+  submitBtn: {
+    backgroundColor: "rgba(76, 175, 80, 1)",
+    width: "70%",
+    borderRadius: 10,
     paddingVertical: 14,
-    flexDirection:'row',
-    justifyContent:'center',
-    alignContent:'center',
-    gap:5,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignContent: "center",
+    gap: 5,
     marginTop: 20,
-    alignItems: 'center'
+    alignItems: "center",
   },
-  submitText: { 
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16
+  submitText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 16,
   },
-  imageUpload: { 
+  imageUpload: {
     borderWidth: 1,
-    borderColor: '#f0c96a',
+    borderColor: "#f0c96a",
     borderRadius: 10,
     padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4
-  },
-  imageUploadText: { 
-    fontSize: 12,
-    color: '#777',
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 4,
-    textAlign: 'center'
   },
-  previewImage: { 
+  imageUploadText: {
+    fontSize: 12,
+    color: "#777",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  previewImage: {
     width: 80,
     height: 80,
     borderRadius: 8,
-    marginRight: 8
+    marginRight: 8,
   },
 });
