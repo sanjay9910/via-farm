@@ -377,15 +377,13 @@ const AddProduct = () => {
 
               <View style={styles.submitContainer}>
                 <TouchableOpacity 
-                  style={[styles.submitBtn, loading && styles.submitBtnDisabled]} 
+                  style={styles.submitBtn} 
                   onPress={handleSubmit}
                   disabled={loading}
+                  activeOpacity={loading ? 1 : 0.7}
                 >
                   {loading ? (
-                    <>
-                      <ActivityIndicator color="#fff" />
-                      <Text style={styles.submitText}>Adding...</Text>
-                    </>
+                    <ActivityIndicator color="#fff" size="small" />
                   ) : (
                     <>
                       <Feather name="check-circle" size={20} color="#fff" />
@@ -523,9 +521,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 10,
     alignItems: 'center'
-  },
-  submitBtnDisabled: {
-    backgroundColor: '#9ca3af',
   },
   submitText: { 
     color: '#fff',

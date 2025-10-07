@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+
 const SUPPORT_EMAIL = 'abcd@gmail.com';
 const SUPPORT_PHONE = '+91 9999999999';
 const SUPPORT_HOURS = '10:00 AM - 8:00 PM';

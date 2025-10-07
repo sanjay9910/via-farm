@@ -3,14 +3,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import React, { useRef, useState } from 'react';
 import {
-    Alert,
-    FlatList,
-    Image,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  FlatList,
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
@@ -237,7 +237,20 @@ const styles = StyleSheet.create({
   inStockText: { color: '#22c55e' },
   outOfStockText: { color: '#ef4444' },
   modalOverlayTransparent: { flex: 1, backgroundColor: 'transparent' },
-  menuPopup: { backgroundColor: '#fff', borderRadius: 6, minWidth: 100, paddingVertical: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 10, borderWidth: 1, borderColor: 'rgba(255, 202, 40, 1)' },
+  menuPopup: { 
+  backgroundColor: '#fff',
+  borderRadius: 6,
+  minWidth: 100, 
+ paddingVertical: 8,
+ shadowColor: '#000',
+ shadowOffset: { width: 0, height: 4 },
+ shadowOpacity: 0.2, shadowRadius: 12,
+ elevation: 10,
+ borderWidth: 1,
+ borderColor: 'rgba(255, 202, 40, 1)',
+ marginLeft:60,
+ marginTop:-26,
+},
   menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 6, gap: 12 },
   menuItemText: { fontSize: 13, color: '#374151', fontWeight: '500' },
   deleteText: { color: '#ef4444' },

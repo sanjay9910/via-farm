@@ -26,7 +26,7 @@ const Chart = () => {
         const data = res.data.data;
         setStats([
           { label: "All Orders", value: data.totalOrders },
-          { label: "All Revenue", value: `$${data.totalRevenueCompleted}` },
+          { label: "All Revenue", value: `${data.totalRevenueCompleted}` },
           { label: "Today Orders", value: data.todayOrders },
         ]);
       }
