@@ -46,6 +46,15 @@ const formatDateToDisplay = (date) => {
     return `${day}/${month}/${year}`;
 };
 
+// Helper to format date to YYYY-MM-DD for API
+const formatDateForAPI = (date) => {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 // --- Dropdown Component for Discount Percentage ---
 const DiscountDropdown = ({ visible, onSelect, value, onClose }) => {
     const percentages = [5, 10, 15, 20, 25, 50];
@@ -130,8 +139,24 @@ const CouponForm = ({
     const initialDiscount = initialData?.discount ? parseInt(initialData.discount.replace('%', '')) : 10;
     const [discount, setDiscount] = useState(initialDiscount);
     const [minimumOrder, setMinimumOrder] = useState(initialData?.minimumOrder || ''); 
-    const [startDate, setStartDate] = useState(initialData?.startDate ? new Date(initialData.startDate) : new Date());
-    const [expiryDate, setExpiryDate] = useState(initialData?.validTill ? new Date(initialData.validTill) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+    
+    // Parse dates properly from DD/MM/YYYY format
+    const parseDisplayDate = (dateStr) => {
+        if (!dateStr || dateStr === 'N/A') return new Date();
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+            // DD/MM/YYYY format
+            return new Date(parts[2], parts[1] - 1, parts[0]);
+        }
+        return new Date(dateStr);
+    };
+    
+    const [startDate, setStartDate] = useState(
+        initialData?.startDate ? parseDisplayDate(initialData.startDate) : new Date()
+    );
+    const [expiryDate, setExpiryDate] = useState(
+        initialData?.validTill ? parseDisplayDate(initialData.validTill) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    );
     const [appliesTo, setAppliesTo] = useState(initialData?.appliesTo || 'All Products');
     const [discountDropdownVisible, setDiscountDropdownVisible] = useState(false);
     const [categoryDropdownVisible, setCategoryDropdownVisible] = useState(false);
@@ -164,6 +189,7 @@ const CouponForm = ({
             return;
         }
 
+        // FIXED: Backend expects startDate and expiryDate in YYYY-MM-DD format
         const couponData = {
             code: couponCode.trim(),
             discount: {
@@ -171,12 +197,11 @@ const CouponForm = ({
                 type: "Percentage"
             },
             appliesTo: appliesTo,
-            validFrom: startDate.toISOString(),
-            validTill: expiryDate.toISOString(),
-            minimumOrder: parseInt(minimumOrder),
+            startDate: formatDateForAPI(startDate),  // Changed from validFrom and using YYYY-MM-DD format
+            expiryDate: formatDateForAPI(expiryDate), // Changed from validTill and using YYYY-MM-DD format
             applicableId: null,
             appliesToRef: null,
-            category: null
+            status: "Active"
         };
 
         // Include ID for edit mode
@@ -262,7 +287,7 @@ const CouponForm = ({
                                 value={couponCode}
                                 onChangeText={setCouponCode}
                                 maxLength={20}
-                                editable={!initialData?.id}
+                                editable={true}
                             />
                             <Text style={createModalStyles.starIcon}>✨</Text>
                         </View>
@@ -559,9 +584,12 @@ const MyCoupons = () => {
         try {
             const token = await getAuthToken();
 
+            // Prepare update data - remove id from body
+            const { id, ...updatePayload } = couponData;
+
             const response = await axios.put(
-                `${API_BASE_URL}${API_ENDPOINTS.UPDATE_COUPON}${couponData.id}`,
-                couponData,
+                `${API_BASE_URL}${API_ENDPOINTS.UPDATE_COUPON}${id}`,
+                updatePayload,
                 {
                     headers: { 
                         'Authorization': `Bearer ${token}`,
