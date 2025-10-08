@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import React, { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -26,6 +27,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
+  const router = useRouter();
   const { user, fetchBuyerProfile, logout } = useContext(AuthContext);
 
   const [userInfo, setUserInfo] = useState({
@@ -246,17 +248,7 @@ const ProfileScreen = () => {
         district: district.trim(),
       };
 
-      // Uncomment when API is ready
-      // const res = await axios.put(
-      //   'YOUR_API_ENDPOINT/location',
-      //   locationData,
-      //   {
-      //     headers: {
-      //       Authorization: `Bearer ${token}`,
-      //       'Content-Type': 'application/json',
-      //     },
-      //   }
-      // );
+
 
       // if (res.data.success) {
       handleCloseLocationModal();
@@ -294,23 +286,30 @@ const ProfileScreen = () => {
     navigation.navigate("RateUs");
   };
 
-  const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: async () => {
+const handleLogout = () => {
+  Alert.alert("Logout", "Are you sure you want to logout?", [
+    { text: "Cancel", style: "cancel" },
+    {
+      text: "Logout",
+      style: "destructive",
+      onPress: async () => {
+        try {
+          // Remove token and context
+          await AsyncStorage.removeItem("userToken");
           await logout();
-          const rootNavigation = navigation.getParent() || navigation;
-          rootNavigation.reset({
-            index: 0,
-            routes: [{ name: "login" }],
-          });
-        },
+
+          // ✅ Use router to replace stack to login
+          router.replace("/login");
+
+          console.log("✅ Successfully logged out and navigated to login");
+        } catch (error) {
+          console.error("Logout error:", error);
+          Alert.alert("Error", "Failed to logout. Please try again.");
+        }
       },
-    ]);
-  };
+    },
+  ]);
+};
 
   const ProfileMenuItem = ({
     icon,

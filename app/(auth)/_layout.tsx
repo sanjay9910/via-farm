@@ -23,6 +23,8 @@ export default function RootLayout() {
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="loginWithOtp" options={{ headerShown: false }} />
         <Stack.Screen name="VerifyOtpWithLogin" options={{ headerShown: false }} />
+        <Stack.Screen name="forgetOtpVerify" options={{ headerShown: false }} />
+        <Stack.Screen name="setPasswordAfterForget" options={{ headerShown: false }} />
         <Stack.Screen name="profile" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />

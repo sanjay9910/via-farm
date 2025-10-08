@@ -1,20 +1,23 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
   FlatList,
   Image,
+  Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import ProductModal from "../../components/vendors/ProductEditModel";
 
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
+const { width } = Dimensions.get("window");
 
 const MyRecentListing = () => {
   const [listingsData, setListingsData] = useState([]);
@@ -22,8 +25,14 @@ const MyRecentListing = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  // Fetch products from API
+  const [isStockDropdownOpen, setIsStockDropdownOpen] = useState(false);
+  const [stockDropdownPosition, setStockDropdownPosition] = useState({ x: 0, y: 0 });
+  const [currentProductId, setCurrentProductId] = useState(null);
+  const stockButtonRefs = useRef({});
+
+  // Fetch products
   const fetchProducts = async () => {
+    setLoading(true);
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) {
@@ -81,29 +90,97 @@ const MyRecentListing = () => {
     closeModal();
   };
 
+  // Stock Dropdown - Fixed version
+  const openStockDropdown = (productId) => {
+    const ref = stockButtonRefs.current[productId];
+    console.log("Opening dropdown for product:", productId, "Ref:", ref);
+    
+    if (ref) {
+      ref.measureInWindow((x, y, width, height) => {
+        console.log("Button position:", { x, y, width, height });
+        setStockDropdownPosition({ 
+          x: x - 60, 
+          y: y + height + 5 
+        });
+        setCurrentProductId(productId);
+        setIsStockDropdownOpen(true);
+      });
+    } else {
+      console.log("Ref not found for product:", productId);
+    }
+  };
+
+  const handleStockChange = async (newStatus) => {
+    if (!currentProductId) {
+      Alert.alert("Error", "No product selected");
+      return;
+    }
+
+    try {
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) {
+        Alert.alert("Error", "User not logged in!");
+        return;
+      }
+
+      console.log("Updating stock for:", currentProductId, "to:", newStatus);
+      console.log("API Endpoint:", `${API_BASE}/api/vendor/products/${currentProductId}/status`);
+
+      const res = await axios.patch(
+        `${API_BASE}/api/vendor/products/${currentProductId}/status`,
+        { status: newStatus },
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        }
+      );
+
+      console.log("API Response:", res.data);
+
+      if (res.data.success) {
+        const updatedList = listingsData.map((item) =>
+          item.id === currentProductId ? { ...item, status: newStatus } : item
+        );
+        setListingsData(updatedList);
+        Alert.alert("Success", "Stock status updated successfully!");
+      } else {
+        Alert.alert("Error", res.data.message || "Failed to update stock status");
+      }
+    } catch (error) {
+      console.log("Stock update error:", error);
+      console.log("Error response:", error.response?.data);
+      
+      if (error.response?.status === 404) {
+        Alert.alert("Error", "API endpoint not found. Please check the server.");
+      } else if (error.response?.status === 401) {
+        Alert.alert("Error", "Authentication failed. Please login again.");
+      } else {
+        Alert.alert("Error", "Something went wrong while updating stock");
+      }
+    } finally {
+      setIsStockDropdownOpen(false);
+      setCurrentProductId(null);
+    }
+  };
+
   const renderItem = ({ item }) => {
-    const circleColor =
-      item.status.toLowerCase() === "in stock" ? "#2E7D32" : "#FFD700";
+    const circleColor = item.status.toLowerCase() === "in stock" ? "#22c55e" : "#ef4444";
 
     return (
       <View style={styles.listingCard}>
         <View style={styles.cardContent}>
           <View style={styles.imageContainer}>
-            <Image
-              source={{ uri: item.image }}
-              style={styles.itemImage}
-              resizeMode="cover"
-            />
+            <Image source={{ uri: item.image }} style={styles.itemImage} resizeMode="cover" />
           </View>
 
           <View style={styles.textContainer}>
             <View style={styles.headerRow}>
-              <Text style={styles.itemName} numberOfLines={1}>
-                {item.name}
-              </Text>
+              <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
               <View style={styles.priceQuantityContainer}>
                 <Text style={styles.priceText}>₹{item.price}</Text>
-                <Text style={styles.quantity}>{item.quantity}units</Text>
+                <Text style={styles.quantity}>{item.quantity} units</Text>
               </View>
             </View>
 
@@ -113,29 +190,27 @@ const MyRecentListing = () => {
             </View>
 
             <View style={styles.startAllIndia}>
-              <Image
-                source={require("../../assets/via-farm-img/icons/satar.png")}
-              />
+              <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
               <Text style={styles.txetAll}>All India Delivery</Text>
             </View>
 
             <View style={styles.editBtn}>
-              <TouchableOpacity style={styles.dropdownBtn}>
+              {/* Stock dropdown */}
+              <TouchableOpacity
+                ref={(ref) => {
+                  stockButtonRefs.current[item.id] = ref;
+                }}
+                style={styles.dropdownBtn}
+                onPress={() => openStockDropdown(item.id)}
+              >
                 <View style={styles.statusRow}>
-                  <View
-                    style={[
-                      styles.statusCircle,
-                      { backgroundColor: circleColor },
-                    ]}
-                  />
-                  <Text style={styles.statusText}>{item.status}</Text>
+                  <View style={[styles.statusCircle, { backgroundColor: circleColor }]} />
+                  <Text style={[styles.statusText, { color: circleColor }]}>{item.status}</Text>
                 </View>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.editButton}
-                onPress={() => openModal(item)}
-              >
+              {/* Edit button */}
+              <TouchableOpacity style={styles.editButton} onPress={() => openModal(item)}>
                 <Image
                   source={require("../../assets/via-farm-img/icons/editicon.png")}
                   style={styles.editIcon}
@@ -148,14 +223,15 @@ const MyRecentListing = () => {
     );
   };
 
-  if (loading)
+  if (loading) {
     return (
-      <ActivityIndicator
-        size="large"
-        color="rgba(255,202,40,1)"
-        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+      <ActivityIndicator 
+        size="large" 
+        color="rgba(255,202,40,1)" 
+        style={{ flex: 1, justifyContent: "center", alignItems: "center" }} 
       />
     );
+  }
 
   return (
     <View style={styles.container}>
@@ -175,6 +251,48 @@ const MyRecentListing = () => {
         contentContainerStyle={styles.flatListContent}
       />
 
+      {/* Stock Dropdown Modal - Fixed */}
+      <Modal
+        visible={isStockDropdownOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsStockDropdownOpen(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setIsStockDropdownOpen(false)}>
+          <View style={styles.modalOverlay}>
+            <View
+              style={[
+                styles.stockDropdown,
+                { 
+                  position: 'absolute',
+                  top: stockDropdownPosition.y, 
+                  left: stockDropdownPosition.x 
+                },
+              ]}
+            >
+              <TouchableOpacity 
+                style={styles.stockOption} 
+                onPress={() => handleStockChange("In Stock")}
+              >
+                <View style={[styles.stockDot, { backgroundColor: "#22c55e" }]} />
+                <Text style={styles.stockOptionText}>In Stock</Text>
+              </TouchableOpacity>
+              
+              <View style={styles.stockDivider} />
+              
+              <TouchableOpacity 
+                style={styles.stockOption} 
+                onPress={() => handleStockChange("Out of Stock")}
+              >
+                <View style={[styles.stockDot, { backgroundColor: "#ef4444" }]} />
+                <Text style={styles.stockOptionText}>Out of Stock</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Product Edit Modal */}
       {selectedProduct && (
         <ProductModal
           visible={modalVisible}
@@ -190,85 +308,180 @@ const MyRecentListing = () => {
 export default MyRecentListing;
 
 const styles = StyleSheet.create({
-  container: { paddingVertical: 16, backgroundColor: "#fff", flex: 1 },
-  headerRowContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    marginBottom: 12,
+  container: { 
+    paddingVertical: 16, 
+    backgroundColor: "#fff", 
+    flex: 1 
   },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: "#333" },
-  seeAll: { fontSize: 13, color: "#0AA1FF" },
-  flatListContent: { paddingHorizontal: 16 },
-  listingCard: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    marginRight: 15,
-    borderWidth: 1,
-    borderColor: "rgba(255, 202, 40, 1)",
-    width: Dimensions.get("window").width * 0.8,
+  headerRowContainer: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    alignItems: "center", 
+    paddingHorizontal: 16, 
+    marginBottom: 12 
   },
-  cardContent: { flexDirection: "row", alignItems: "center", gap: 12 },
-  imageContainer: { width: 120, height: 140 },
-  itemImage: {
-    width: "100%",
-    height: "100%",
-    borderTopRightRadius: 0,
-    borderBottomRightRadius: 0,
-    borderTopLeftRadius: 6,
-    borderBottomLeftRadius: 6,
+  headerTitle: { 
+    fontSize: 18, 
+    fontWeight: "700", 
+    color: "#333" 
   },
-  textContainer: { flex: 1, paddingRight: 12, paddingVertical: 8 },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 8,
+  seeAll: { 
+    fontSize: 13, 
+    color: "#0AA1FF" 
   },
-  itemName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "rgba(66, 66, 66, 1)",
+  flatListContent: { 
+    paddingHorizontal: 16 
+  },
+  listingCard: { 
+    backgroundColor: "#fff", 
+    borderRadius: 8, 
+    marginRight: 15, 
+    borderWidth: 1, 
+    borderColor: "rgba(255, 202, 40, 1)", 
+    width: width * 0.8 
+  },
+  cardContent: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    gap: 12 
+  },
+  imageContainer: { 
+    width: 120, 
+    height: 140 
+  },
+  itemImage: { 
+    width: "100%", 
+    height: "100%", 
+    borderTopLeftRadius: 6, 
+    borderBottomLeftRadius: 6 
+  },
+  textContainer: { 
+    flex: 1, 
+    paddingRight: 12, 
+    paddingVertical: 8 
+  },
+  headerRow: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    alignItems: "flex-start", 
+    marginBottom: 8 
+  },
+  itemName: { 
+    fontSize: 16, 
+    fontWeight: "600", 
+    color: "#424242", 
+    flex: 1, 
+    marginRight: 8 
+  },
+  priceQuantityContainer: { 
+    alignItems: "flex-end" 
+  },
+  priceText: { 
+    fontSize: 16, 
+    fontWeight: "bold", 
+    color: "#2E7D32" 
+  },
+  quantity: { 
+    fontSize: 12, 
+    color: "#666", 
+    marginTop: 2 
+  },
+  detailsContainer: { 
+    flexDirection: "row", 
+    gap: 4, 
+    marginBottom: 4 
+  },
+  uploadLabel: { 
+    fontSize: 12, 
+    color: "#666" 
+  },
+  uploadValue: { 
+    fontSize: 12, 
+    color: "#000", 
+    fontWeight: "500" 
+  },
+  startAllIndia: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    gap: 5, 
+    marginVertical: 4 
+  },
+  txetAll: { 
+    fontSize: 13 
+  },
+  editBtn: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    alignItems: "center", 
+    marginTop: 8 
+  },
+  dropdownBtn: { 
+    padding: 6, 
+    borderRadius: 6, 
+    borderWidth: 1, 
+    borderColor: "rgba(0, 0, 0, 0.3)" 
+  },
+  statusRow: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    gap: 6 
+  },
+  statusCircle: { 
+    width: 10, 
+    height: 10, 
+    borderRadius: 5 
+  },
+  statusText: { 
+    fontSize: 14, 
+    fontWeight: "500" 
+  },
+  editButton: { 
+    padding: 6, 
+    borderRadius: 4 
+  },
+  editIcon: { 
+    width: 20, 
+    height: 20 
+  },
+
+  // Stock dropdown styles - Fixed
+  modalOverlay: {
     flex: 1,
-    marginRight: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
-  priceQuantityContainer: {
-    alignItems: "flex-end",
-    position: "absolute",
-    marginLeft: 145,
+  stockDropdown: { 
+    backgroundColor: "#fff", 
+    borderRadius: 8, 
+    minWidth: 150, 
+    paddingVertical: 8, 
+    shadowColor: "#000", 
+    shadowOffset: { width: 0, height: 4 }, 
+    shadowOpacity: 0.3, 
+    shadowRadius: 12, 
+    elevation: 10, 
+    borderWidth: 1, 
+    borderColor: "rgba(255, 202, 40, 1)",
+    zIndex: 1000,
   },
-  priceText: { fontSize: 16, fontWeight: "bold", color: "#2E7D32" },
-  quantity: { fontSize: 12, color: "#666", marginTop: 2 },
-  detailsContainer: { flexDirection: "row", gap: 4, marginBottom: 4 },
-  uploadLabel: { fontSize: 12, color: "#666" },
-  uploadValue: { fontSize: 12, color: "#000", fontWeight: "500" },
-  startAllIndia: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginVertical: 4,
+  stockOption: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    paddingVertical: 8, 
+    paddingHorizontal: 12, 
+    gap: 8 
   },
-  txetAll: { fontSize: 13 },
-  editBtn: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 8,
+  stockOptionText: { 
+    fontSize: 14, 
+    fontWeight: "500" 
   },
-  dropdownBtn: {
-    padding: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.3)",
+  stockDivider: { 
+    height: 1, 
+    backgroundColor: "#f3f4f6", 
+    marginHorizontal: 8 
   },
-  statusRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  statusCircle: { width: 10, height: 10, borderRadius: 5 },
-  statusText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "rgba(255, 202, 40, 1)",
+  stockDot: { 
+    width: 8, 
+    height: 8, 
+    borderRadius: 4 
   },
-  editButton: { padding: 6, borderRadius: 4 },
-  editIcon: { width: 20, height: 20 },
 });

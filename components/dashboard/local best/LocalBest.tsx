@@ -1,7 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-import { useNavigation } from 'expo-router';
-import { useEffect, useState } from 'react';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import { useNavigation } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -10,56 +10,62 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
+} from "react-native";
 
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
 
-// Custom Card Component with image inside and name below
+// ✅ Custom Product Card (same as Fresh & Popular)
 const ProductCard = ({ name, image }) => {
   return (
     <View style={cardStyles.container}>
-      {/* Card - Sirf Image */}
       <View style={cardStyles.card}>
-        <Image 
-          source={{ uri: image }} 
+        <Image
+          source={{
+            uri:
+              image ||
+              "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
+          }}
           style={cardStyles.image}
           resizeMode="cover"
         />
       </View>
-      
-      {/* Name - Card ke niche */}
-      <Text style={cardStyles.name} numberOfLines={2}>{name}</Text>
+      <Text style={cardStyles.name} numberOfLines={2}>
+        {name}
+      </Text>
     </View>
   );
 };
 
-const FressPopular = () => {
+const NewSeason = () => {
   const navigation = useNavigation();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchFreshPopular = async () => {
+  const fetchLocalBest = async () => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('userToken');
-      
+      const token = await AsyncStorage.getItem("userToken");
+
       if (!token) {
         setError("Please login first");
         setLoading(false);
         return;
       }
 
-      const response = await axios.get(`${API_BASE}/api/buyer/fresh-and-popular`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      const response = await axios.get(
+        `${API_BASE}/api/buyer/local-best?lat=28.6139&lng=77.2090&maxDistance=5000`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
         }
-      });
+      );
 
       if (response.data.success) {
-        const formattedData = response.data.data.map(item => ({
+        const formattedData = response.data.data.map((item) => ({
           name: item.name,
-          image: item.images[0] || 'https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image'
+          image:
+            item.images?.[0] ||
+            "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
         }));
         setData(formattedData);
       } else {
@@ -69,7 +75,7 @@ const FressPopular = () => {
       if (err.response?.status === 401) {
         setError("Please login to view products");
       } else {
-        setError("Failed to fetch products");
+        setError("Failed to fetch local best products");
       }
     } finally {
       setLoading(false);
@@ -77,58 +83,60 @@ const FressPopular = () => {
   };
 
   useEffect(() => {
-    fetchFreshPopular();
+    fetchLocalBest();
   }, []);
 
   const handleRetry = () => {
     setError(null);
-    fetchFreshPopular();
+    fetchLocalBest();
   };
 
   const handleLogin = () => {
-    navigation.navigate('login');
+    navigation.navigate("login");
   };
 
-  // Loading state
+  // ⏳ Loading State
   if (loading) {
     return (
-      <View style={{ marginVertical: 20, alignItems: 'center' }}>
+      <View style={{ marginVertical: 20, alignItems: "center" }}>
         <View style={styles.headerRow}>
-          <Text style={styles.heading}>Fresh & Popular</Text>
+          <Text style={styles.heading}>Local Best</Text>
           <TouchableOpacity onPress={() => navigation.navigate("AllCategory")}>
             <Text style={styles.link}>View All</Text>
           </TouchableOpacity>
         </View>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text style={{ marginTop: 10, color: '#666' }}>Loading fresh products...</Text>
+        <ActivityIndicator size="large" color="green" />
+        <Text style={{ marginTop: 10, color: "#666" }}>
+          Loading local products...
+        </Text>
       </View>
     );
   }
 
-  // Error state
+  // ⚠️ Error State
   if (error) {
     return (
-      <View style={{ marginVertical: 20, alignItems: 'center' }}>
+      <View style={{ marginVertical: 20, alignItems: "center" }}>
         <View style={styles.headerRow}>
-          <Text style={styles.heading}>Fresh & Popular</Text>
+          <Text style={styles.heading}>Local Best</Text>
           <TouchableOpacity onPress={() => navigation.navigate("AllCategory")}>
             <Text style={styles.link}>View All</Text>
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
-          
+
           <View style={styles.buttonContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.retryButton}
               onPress={handleRetry}
             >
               <Text style={styles.buttonText}>Try Again</Text>
             </TouchableOpacity>
-            
-            {error.includes('login') && (
-              <TouchableOpacity 
+
+            {error.includes("login") && (
+              <TouchableOpacity
                 style={styles.loginButton}
                 onPress={handleLogin}
               >
@@ -141,45 +149,44 @@ const FressPopular = () => {
     );
   }
 
+  // ✅ Render Data
   return (
     <View style={{ marginVertical: 20 }}>
       <View style={styles.headerRow}>
-        <Text style={styles.heading}>Fresh & Popular</Text>
+        <Text style={styles.heading}>Local Best</Text>
         <TouchableOpacity onPress={() => navigation.navigate("AllCategory")}>
           <Text style={styles.link}>View All</Text>
         </TouchableOpacity>
       </View>
-      
+
       {data.length > 0 ? (
         <FlatList
           data={data}
-          keyExtractor={(item, index) => index.toString()}
+          keyExtractor={(_, index) => index.toString()}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 10 }}
           renderItem={({ item }) => (
-            <ProductCard 
-              name={item.name} 
-              image={item.image} 
-            />
+            <ProductCard name={item.name} image={item.image} />
           )}
         />
       ) : (
         <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>No products available</Text>
+          <Text style={styles.noDataText}>No local best products found</Text>
         </View>
       )}
     </View>
   );
-}
+};
 
-export default FressPopular;
+export default NewSeason;
 
+// ✅ Header + State Styles
 const styles = StyleSheet.create({
   heading: {
     fontSize: 20,
     marginLeft: 20,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   headerRow: {
     flexDirection: "row",
@@ -189,90 +196,90 @@ const styles = StyleSheet.create({
     paddingRight: 20,
   },
   link: {
-    color: 'blue',
+    color: "blue",
     flex: 1,
-    justifyContent: 'center',
-    textAlign: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    textAlign: "center",
+    alignItems: "center",
   },
   errorContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 20,
-    backgroundColor: '#ffebee',
+    backgroundColor: "#ffebee",
     borderRadius: 8,
     marginHorizontal: 20,
   },
   errorText: {
-    color: '#d32f2f',
-    textAlign: 'center',
+    color: "#d32f2f",
+    textAlign: "center",
     marginBottom: 15,
     fontSize: 16,
   },
   buttonContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 10,
   },
   retryButton: {
-    backgroundColor: '#1976d2',
+    backgroundColor: "#1976d2",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,
   },
   loginButton: {
-    backgroundColor: '#388e3c',
+    backgroundColor: "#388e3c",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,
   },
   buttonText: {
-    color: 'white',
-    fontWeight: '600',
+    color: "white",
+    fontWeight: "600",
   },
   noDataContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 20,
   },
   noDataText: {
-    color: '#666',
+    color: "#666",
     fontSize: 16,
   },
 });
 
-// New Card Styles - Image inside card, name below card
+// ✅ Card design (same as Fresh & Popular)
 const cardStyles = StyleSheet.create({
   container: {
-    alignItems: 'center',
+    alignItems: "center",
     marginHorizontal: 8,
     width: 120,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: "#e0e0e0",
     width: 120,
     height: 120,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    marginBottom:5,
+    marginBottom: 5,
   },
   image: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     borderRadius: 8,
   },
   name: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#333',
-    textAlign: 'center',
+    fontWeight: "500",
+    color: "#333",
+    textAlign: "center",
     marginTop: 4,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
     width: 100,
   },
 });

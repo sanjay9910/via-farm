@@ -21,12 +21,15 @@ import {
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
 const { width } = Dimensions.get("window");
 
-// --- ProductCard Component (No change needed here) ---
+// --- ProductCard Component (Updated with stock dropdown) ---
 
-const ProductCard = ({ item, onDelete }) => {
+const ProductCard = ({ item, onDelete, onStockUpdate }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const [isStockDropdownOpen, setIsStockDropdownOpen] = useState(false);
+  const [stockDropdownPosition, setStockDropdownPosition] = useState({ x: 0, y: 0 });
   const menuButtonRef = useRef(null);
+  const stockButtonRef = useRef(null);
 
   const handleMenuPress = () => {
     if (menuButtonRef.current) {
@@ -36,6 +39,18 @@ const ProductCard = ({ item, onDelete }) => {
           y: y + height + 4,
         });
         setIsMenuOpen(true);
+      });
+    }
+  };
+
+  const handleStockPress = () => {
+    if (stockButtonRef.current) {
+      stockButtonRef.current.measureInWindow((x, y, width, height) => {
+        setStockDropdownPosition({
+          x: x - 80,
+          y: y + height + 4,
+        });
+        setIsStockDropdownOpen(true);
       });
     }
   };
@@ -60,6 +75,30 @@ const ProductCard = ({ item, onDelete }) => {
       Alert.alert("Error", "Something went wrong while deleting");
     } finally {
       setIsMenuOpen(false);
+    }
+  };
+
+  const handleStockChange = async (newStatus) => {
+    try {
+      const token = await getToken();
+      const res = await axios.patch(
+        `${API_BASE}/api/vendor/products/${item._id}`,
+        { status: newStatus },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (res.data.success) {
+        Alert.alert("Success", `Product marked as ${newStatus}`);
+        onStockUpdate(item._id, newStatus);
+      } else {
+        Alert.alert("Error", "Failed to update stock status");
+      }
+    } catch (error) {
+      console.log("Stock update error:", error);
+      Alert.alert("Error", "Something went wrong while updating stock");
+    } finally {
+      setIsStockDropdownOpen(false);
     }
   };
 
@@ -101,13 +140,15 @@ const ProductCard = ({ item, onDelete }) => {
         </Text>
 
         <View style={cardStyles.stockContainer}>
-          <View
+          <TouchableOpacity
+            ref={stockButtonRef}
             style={[
               cardStyles.stockBadge,
               item.status === "In Stock"
                 ? cardStyles.inStock
                 : cardStyles.outOfStock,
             ]}
+            onPress={handleStockPress}
           >
             <View
               style={[
@@ -132,10 +173,11 @@ const ProductCard = ({ item, onDelete }) => {
               size={16}
               color={item.status === "In Stock" ? "#22c55e" : "#ef4444"}
             />
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
 
+      {/* Menu Modal (Edit, Hide, Delete) */}
       <Modal
         visible={isMenuOpen}
         transparent
@@ -195,11 +237,64 @@ const ProductCard = ({ item, onDelete }) => {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Stock Dropdown Modal */}
+      <Modal
+        visible={isStockDropdownOpen}
+        transparent
+        animationType="none"
+        onRequestClose={() => setIsStockDropdownOpen(false)}
+      >
+        <TouchableOpacity
+          style={cardStyles.modalOverlayTransparent}
+          activeOpacity={1}
+          onPress={() => setIsStockDropdownOpen(false)}
+        >
+          <View
+            style={[
+              cardStyles.stockDropdown,
+              {
+                position: "absolute",
+                top: stockDropdownPosition.y,
+                left: stockDropdownPosition.x,
+              },
+            ]}
+          >
+            <TouchableOpacity
+              style={[
+                cardStyles.stockOption,
+                item.status === "In Stock" && cardStyles.stockOptionActive,
+              ]}
+              onPress={() => handleStockChange("In Stock")}
+            >
+              <View style={[cardStyles.stockDot, cardStyles.inStockDot]} />
+              <Text style={[cardStyles.stockOptionText, cardStyles.inStockText]}>
+                In Stock
+              </Text>
+            </TouchableOpacity>
+
+            <View style={cardStyles.stockDivider} />
+
+            <TouchableOpacity
+              style={[
+                cardStyles.stockOption,
+                item.status === "Out of Stock" && cardStyles.stockOptionActive,
+              ]}
+              onPress={() => handleStockChange("Out of Stock")}
+            >
+              <View style={[cardStyles.stockDot, cardStyles.outOfStockDot]} />
+              <Text style={[cardStyles.stockOptionText, cardStyles.outOfStockText]}>
+                Out of Stock
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
 
-// --- ProductFilter Component ---
+// --- ProductFilter Component (No changes needed here) ---
 
 const categories = [
   "All",
@@ -306,7 +401,6 @@ const ProductFilter = ({
           onPress={() => setIsFilterOpen(true)}
           activeOpacity={0.7}
         >
-          {/* Path को अपने प्रोजेक्ट के अनुसार बदलें। मैंने यहाँ एक Default स्टाइल जोड़ी है ताकि इमेज दिखे। */}
           <Image
             source={require("../../assets/via-farm-img/icons/filter.png")}
             style={{ width: 20, height: 20 }}
@@ -619,6 +713,17 @@ const ProductList = ({ refreshbut }) => {
     }));
   };
 
+  // Handle stock status update
+  const handleStockUpdate = (productId, newStatus) => {
+    setProducts(prevProducts => 
+      prevProducts.map(product => 
+        product._id === productId 
+          ? { ...product, status: newStatus }
+          : product
+      )
+    );
+  };
+
   // --- FILTERING LOGIC ---
 
   const filteredProducts = useMemo(() => {
@@ -690,7 +795,11 @@ const ProductList = ({ refreshbut }) => {
           data={filteredProducts}
           keyExtractor={(item) => item._id}
           renderItem={({ item }) => (
-            <ProductCard item={item} onDelete={handleDeleteFromList} />
+            <ProductCard 
+              item={item} 
+              onDelete={handleDeleteFromList} 
+              onStockUpdate={handleStockUpdate}
+            />
           )}
           contentContainerStyle={cardStyles.listContainer}
           showsVerticalScrollIndicator={false}
@@ -793,6 +902,40 @@ const cardStyles = StyleSheet.create({
   menuItemText: { fontSize: 13, color: "#374151", fontWeight: "500" },
   deleteText: { color: "#ef4444" },
   menuDivider: { height: 1, backgroundColor: "#f3f4f6", marginHorizontal: 8 },
+  
+  // New styles for stock dropdown
+  stockDropdown: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    minWidth: 140,
+    paddingVertical: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255, 202, 40, 1)",
+  },
+  stockOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  stockOptionActive: {
+    backgroundColor: "#f3f4f6",
+  },
+  stockOptionText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  stockDivider: {
+    height: 1,
+    backgroundColor: "#f3f4f6",
+    marginHorizontal: 8,
+  },
 });
 
 // ---- STYLES for ProductFilter (filterStyles) ----

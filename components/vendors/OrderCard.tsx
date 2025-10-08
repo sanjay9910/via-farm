@@ -53,7 +53,7 @@ const OrderCard = ({ order }) => {
           <Text style={styles.label}>Status</Text>
           <Text style={styles.colon}>:</Text>
           <TouchableOpacity style={styles.dropdown}>
-            <Text style={styles.dropdownText}>{order.status} ▾</Text>
+            <Text style={styles.dropdownText}>{order.status}</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -1,9 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Dimensions, StyleSheet, Text, View } from "react-native";
 
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
+const { width } = Dimensions.get('window');
 
 const Chart = () => {
   const [stats, setStats] = useState([]);
@@ -43,20 +44,22 @@ const Chart = () => {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: "center", alignItems: "center", flex:1 }]}>
+      <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color="#4CAF50" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {stats.map((item, index) => (
-        <View key={index} style={styles.card}>
-          <Text style={styles.label}>{item.label}</Text>
-          <Text style={styles.value}>{item.value}</Text>
-        </View>
-      ))}
+    <View style={styles.mainContainer}>
+      <View style={styles.cardsContainer}>
+        {stats.map((item, index) => (
+          <View key={index} style={styles.card}>
+            <Text style={styles.label}>{item.label}</Text>
+            <Text style={styles.value}>{item.value}</Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 };
@@ -64,34 +67,48 @@ const Chart = () => {
 export default Chart;
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
+  mainContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 10,
     marginTop: 20,
+  },
+  cardsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: '100%',
+    maxWidth: 400, 
   },
   card: {
     backgroundColor: "#f9f8f3",
     paddingVertical: 20,
-    paddingHorizontal: 25,
+    paddingHorizontal: 10,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#5c3d2e",
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 100,
+    flex: 1, 
     marginHorizontal: 5,
-    marginBottom: 10,
+    minHeight: 80, 
   },
   label: {
-    fontSize: 14,
+    fontSize: width < 375 ? 12 : 14, 
     color: "#333",
     marginBottom: 5,
+    textAlign: 'center',
   },
   value: {
-    fontSize: 18,
+    fontSize: width < 375 ? 16 : 18, 
     fontWeight: "bold",
     color: "#000",
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    justifyContent: "center", 
+    alignItems: "center", 
+    flex: 1
   },
 });

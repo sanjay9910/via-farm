@@ -254,12 +254,12 @@ const AddProduct = ({ refreshprops }) => {
 
               <Text style={styles.smallNote}>* marks important fields</Text>
 
-              <Text style={styles.label}>Product Name *</Text>
+              <Text style={styles.label}>Product *</Text>
               <TextInput
                 style={styles.input}
                 value={name}
                 onChangeText={setName}
-                placeholder="e.g., Organic Apples"
+                placeholder="e.g., Kashamiri Apples"
                 editable={!loading}
               />
 
@@ -280,7 +280,7 @@ const AddProduct = ({ refreshprops }) => {
                     style={styles.input}
                     value={variety}
                     onChangeText={setVariety}
-                    placeholder="e.g., Alphonso"
+                    placeholder="e.g., Apple/Banana"
                     editable={!loading}
                   />
                 </View>
@@ -315,7 +315,7 @@ const AddProduct = ({ refreshprops }) => {
                     style={styles.input}
                     value={unit}
                     onChangeText={setUnit}
-                    placeholder="kg"
+                    placeholder="piece/kg"
                     editable={!loading}
                   />
                 </View>

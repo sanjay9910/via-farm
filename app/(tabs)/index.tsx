@@ -1,7 +1,7 @@
 import CannactNow from '@/components/dashboard/connactNow/CannactNow';
 import ExploreNow from '@/components/dashboard/exploreNow/ExploreNow';
 import BannerGet from '@/components/dashboard/getNow/bannerGet';
-import NewSeason from '@/components/dashboard/newSeason/NewSeason';
+import NewSeason from '@/components/dashboard/local best/LocalBest';
 import SmartPicks from '@/components/dashboard/smartPicks/SmartPicks';
 import VendorsNearYou from '@/components/dashboard/vendorsNearYou/VendorsNearYou';
 import React from 'react';

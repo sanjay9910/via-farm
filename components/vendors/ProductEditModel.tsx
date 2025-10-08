@@ -34,7 +34,7 @@ const ProductModal = ({ visible, onClose, onSubmit, product }) => {
 
   useEffect(() => {
     if (product) {
-      console.log("sanjay yadav", product);
+      console.log("sanjay chauhan", product);
       setName(product.name || "");
       setPrice(product.price?.toString() || "");
       setQuantity(product.quantity?.toString() || "");
