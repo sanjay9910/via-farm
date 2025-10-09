@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from 'expo-location';
 import { useRouter } from "expo-router";
 import React, { useContext, useEffect, useState } from "react";
 import {
@@ -55,18 +56,22 @@ const ProfileScreen = () => {
   const [locality, setLocality] = useState("");
   const [city, setCity] = useState("");
   const [district, setDistrict] = useState("");
+  const [state, setState] = useState("");
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
   const [updatingLocation, setUpdatingLocation] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
+  const [savedLocation, setSavedLocation] = useState(null);
 
   useEffect(() => {
     loadProfile();
+    loadSavedLocation();
   }, []);
 
   const loadProfile = async () => {
     try {
       setLoading(true);
       const profileData = await fetchBuyerProfile();
-
-      console.log("Profile Data Received:", profileData);
 
       if (profileData) {
         const userData = profileData.user || profileData;
@@ -90,6 +95,36 @@ const ProfileScreen = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load saved location from API
+  const loadSavedLocation = async () => {
+    try {
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) return;
+
+      const response = await axios.put(`${API_BASE}/api/buyer/location`, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+        }
+      });
+
+      if (response.data.success && response.data.data) {
+        const locationData = response.data.data;
+        setSavedLocation(locationData);
+        
+        setPinCode(locationData.pinCode || "");
+        setHouseNumber(locationData.houseNumber || "");
+        setLocality(locationData.locality || "");
+        setCity(locationData.city || "");
+        setDistrict(locationData.district || "");
+        setState(locationData.state || "");
+        setLatitude(locationData.latitude || null);
+        setLongitude(locationData.longitude || null);
+      }
+    } catch (error) {
+      console.error("Error loading saved location:", error);
     }
   };
 
@@ -213,12 +248,63 @@ const ProfileScreen = () => {
     }
   };
 
+  const getCurrentLocation = async () => {
+    try {
+      setGettingLocation(true);
+      
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Permission to access location was denied');
+        setGettingLocation(false);
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      const { latitude, longitude } = location.coords;
+      setLatitude(latitude);
+      setLongitude(longitude);
+
+      let geocode = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude
+      });
+
+      if (geocode.length > 0) {
+        const address = geocode[0];
+        setCity(address.city || "");
+        setDistrict(address.district || address.subregion || "");
+        setState(address.region || "");
+        setPinCode(address.postalCode || "");
+        setLocality(address.street || address.name || "");
+        
+        Alert.alert("Success", "Location fetched successfully!");
+      }
+
+    } catch (error) {
+      console.error("Location error:", error);
+      Alert.alert("Error", "Failed to get current location. Please try again.");
+    } finally {
+      setGettingLocation(false);
+    }
+  };
+
   const handleLocationPress = () => {
-    setPinCode("");
-    setHouseNumber("");
-    setLocality("");
-    setCity("");
-    setDistrict("");
+    // Don't reset form fields - keep existing data for editing
+    // Only reset if no saved location exists
+    if (!savedLocation) {
+      setPinCode("");
+      setHouseNumber("");
+      setLocality("");
+      setCity("");
+      setDistrict("");
+      setState("");
+      setLatitude(null);
+      setLongitude(null);
+    }
+    
     setLocationModalVisible(true);
 
     Animated.timing(locationSlideAnim, {
@@ -238,48 +324,69 @@ const ProfileScreen = () => {
     });
   };
 
-  const handleUseCurrentLocation = () => {
-    Alert.alert(
-      "Feature Coming Soon",
-      "Current location feature will be available soon!"
-    );
-  };
-
-  const handleSearchLocation = () => {
-    Alert.alert(
-      "Feature Coming Soon",
-      "Search location feature will be available soon!"
-    );
-  };
-
   const handleUpdateLocation = async () => {
     try {
-      if (!pinCode || !houseNumber || !locality || !city || !district) {
+      if (!pinCode || !houseNumber || !locality || !city || !district || !state) {
         Alert.alert("Error", "Please fill all required fields");
         return;
       }
 
+
+
       setUpdatingLocation(true);
 
       const token = await AsyncStorage.getItem("userToken");
+      if (!token) {
+        Alert.alert("Error", "User not authenticated");
+        setUpdatingLocation(false);
+        return;
+      }
+
       const locationData = {
         pinCode: pinCode.trim(),
         houseNumber: houseNumber.trim(),
         locality: locality.trim(),
         city: city.trim(),
         district: district.trim(),
+        state: state.trim(),
+        latitude: latitude || 0, 
+        longitude: longitude || 0 
       };
 
-      // Add your location update API call here when ready
-      // const response = await axios.put(`${API_BASE}/api/buyer/location`, locationData, {
-      //   headers: { Authorization: `Bearer ${token}` }
-      // });
+      console.log("Sending location data:", locationData);
 
-      handleCloseLocationModal();
-      Alert.alert("Success", "Location updated successfully!");
+      const response = await axios.put(`${API_BASE}/api/buyer/location`, locationData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      });
+
+      if (response.data.success) {
+        // Update saved location state
+        setSavedLocation(locationData);
+        
+        handleCloseLocationModal();
+        Alert.alert("Success", "Location updated successfully!");
+      } else {
+        Alert.alert("Error", response.data.message || "Failed to update location");
+      }
     } catch (error) {
       console.error("Location update error:", error);
-      Alert.alert("Error", "Failed to update location");
+      
+      if (error.code === 'ECONNABORTED' || error.response?.status === 408) {
+        Alert.alert("Timeout", "Request took too long. Please check your internet connection and try again.");
+      } else if (error.response?.status === 401) {
+        Alert.alert("Authentication Error", "Please login again.");
+        await logout();
+        router.replace("/login");
+      } else {
+        Alert.alert(
+          "Error", 
+          error.response?.data?.message || "Failed to update location. Please try again."
+        );
+      }
     } finally {
       setUpdatingLocation(false);
     }
@@ -320,7 +427,6 @@ const ProfileScreen = () => {
             await AsyncStorage.removeItem("userToken");
             await logout();
             router.replace("/login");
-            console.log("✅ Successfully logged out and navigated to login");
           } catch (error) {
             console.error("Logout error:", error);
             Alert.alert("Error", "Failed to logout. Please try again.");
@@ -386,9 +492,6 @@ const ProfileScreen = () => {
                 <Image
                   source={{ uri: userInfo.image }}
                   style={styles.avatarImage}
-                  onError={(e) =>
-                    console.log("Image load error:", e.nativeEvent.error)
-                  }
                 />
               ) : (
                 <Text style={styles.avatarText}>{getAvatarLetter()}</Text>
@@ -416,7 +519,7 @@ const ProfileScreen = () => {
           <ProfileMenuItem
             icon="location-outline"
             title="My Location"
-            subtitle="Add/Edit your location"
+            subtitle={savedLocation ? "Edit your saved location" : "Add your location"}
             onPress={handleLocationPress}
           />
 
@@ -488,10 +591,7 @@ const ProfileScreen = () => {
           activeOpacity={1} 
           onPress={handleCloseModal}
         >
-          <View 
-            style={styles.modalBackground}
-            onStartShouldSetResponder={() => false}
-          >
+          <View style={styles.modalBackground}>
             <Animated.View
               style={[
                 styles.modalContainer,
@@ -608,10 +708,7 @@ const ProfileScreen = () => {
           activeOpacity={1} 
           onPress={handleCloseLocationModal}
         >
-          <View 
-            style={styles.modalBackground}
-            onStartShouldSetResponder={() => true}
-          >
+          <View style={styles.modalBackground}>
             <Animated.View
               style={[
                 styles.modalContainer,
@@ -627,32 +724,53 @@ const ProfileScreen = () => {
                 >
                   <Text style={styles.backButtonText}>←</Text>
                 </TouchableOpacity>
-                <Text style={styles.modalTitle}>Edit Location</Text>
+                <Text style={styles.modalTitle}>
+                  {savedLocation ? "Edit Location" : "Add Location"}
+                </Text>
                 <View style={styles.placeholder} />
               </View>
 
               <ScrollView
                 style={styles.modalContent}
                 showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.locationModalContent}
               >
-                <Text style={styles.addressHeading}>Address</Text>
+                <Text style={styles.addressHeading}>
+                  {savedLocation ? "Edit your saved address" : "Enter your address details"}
+                </Text>
 
                 <View style={styles.addressActionRow}>
                   <TouchableOpacity
-                    style={styles.addressAction}
-                    onPress={handleUseCurrentLocation}
+                    style={[
+                      styles.addressAction,
+                      gettingLocation && styles.addressActionDisabled
+                    ]}
+                    onPress={getCurrentLocation}
+                    disabled={gettingLocation}
                   >
-                    <Ionicons name="locate-outline" size={18} color="#007AFF" />
-                    <Text style={styles.addressActionText}>Use my current location</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.addressAction}
-                    onPress={handleSearchLocation}
-                  >
-                    <Ionicons name="search-outline" size={18} color="#007AFF" />
-                    <Text style={styles.addressActionText}>Search Location</Text>
+                    {gettingLocation ? (
+                      <ActivityIndicator size="small" color="#007AFF" />
+                    ) : (
+                      <Ionicons name="locate-outline" size={18} color="#007AFF" />
+                    )}
+                    <Text style={styles.addressActionText}>
+                      {gettingLocation ? 'Getting Location...' : 'Use my current location'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
+
+                {latitude && longitude && (
+                  <View style={styles.coordinatesContainer}>
+                    <Text style={styles.coordinatesText}>
+                      Coordinates: {latitude.toFixed(4)}, {longitude.toFixed(4)}
+                    </Text>
+                  </View>
+                )}
+
+                {savedLocation && (
+                  <View style={styles.savedLocationNote}>
+                  </View>
+                )}
 
                 <View style={styles.fieldContainer}>
                   <Text style={styles.fieldLabel}>Pin Code *</Text>
@@ -717,6 +835,18 @@ const ProfileScreen = () => {
                   </View>
                 </View>
 
+                <View style={styles.fieldContainer}>
+                  <Text style={styles.fieldLabel}>State *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={state}
+                    onChangeText={setState}
+                    placeholder="State *"
+                    placeholderTextColor="#999"
+                    editable={!updatingLocation}
+                  />
+                </View>
+
                 <View style={styles.locationBtn}>
                   <TouchableOpacity
                     style={[
@@ -730,10 +860,10 @@ const ProfileScreen = () => {
                     {updatingLocation ? (
                       <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
                     ) : (
-                      <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+                      <Ionicons name="save-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
                     )}
                     <Text style={styles.updateButtonText}>
-                      {updatingLocation ? 'Updating...' : 'Update Details'}
+                      {updatingLocation ? 'Saving...' : 'Save Location'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -901,17 +1031,16 @@ const styles = StyleSheet.create({
   },
   modalBackground: {
     flex: 1,
+    justifyContent: "flex-end",
   },
   modalContainer: {
     width: '100%',
     backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    bottom:0,
     borderWidth: 2,
     borderColor: 'rgba(255, 202, 40, 0.2)',
-    maxHeight: SCREEN_HEIGHT - 80,
-    paddingBottom: 15,
+    maxHeight: SCREEN_HEIGHT * 0.9,
   },
   modalHeader: {
     flexDirection: "row",
@@ -944,10 +1073,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
   },
-  fieldNote: {
-    fontSize: 12,
-    color: "#999",
-    marginBottom: 10,
+  locationModalContent: {
+    paddingBottom: 30,
   },
   fieldContainer: {
     marginBottom: 15,
@@ -980,7 +1107,7 @@ const styles = StyleSheet.create({
   textInput: {
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 12,
+    borderRadius:8,
     paddingHorizontal: 12,
     paddingVertical: 12,
     color: "#333",
@@ -1022,11 +1149,28 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 12,
     flex: 0.48,
+    justifyContent: 'center',
+  },
+  addressActionDisabled: {
+    opacity: 0.6,
   },
   addressActionText: {
     fontSize: 12,
     color: '#007AFF',
     marginLeft: 6,
+  },
+  coordinatesContainer: {
+    backgroundColor: '#f0f8ff',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 15,
+    borderLeftWidth: 3,
+    borderLeftColor: '#007AFF',
+  },
+  coordinatesText: {
+    fontSize: 12,
+    color: '#007AFF',
+    fontWeight: '500',
   },
   locationBtn: {
     flexDirection: "row",
