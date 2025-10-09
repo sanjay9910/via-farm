@@ -12,6 +12,7 @@ import {
   Dimensions,
   Image,
   Modal,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -24,6 +25,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "./context/AuthContext";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
@@ -93,14 +95,10 @@ const ProfileScreen = () => {
 
   const pickImage = async () => {
     try {
-      const { status } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Required",
-          "Please allow access to your photos"
-        );
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Required', 'Permission to access gallery is required!');
         return;
       }
 
@@ -108,7 +106,7 @@ const ProfileScreen = () => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: 0.7,
       });
 
       if (!result.canceled && result.assets[0]) {
@@ -146,45 +144,70 @@ const ProfileScreen = () => {
   const handleUpdateDetails = async () => {
     try {
       if (!editName || !editName.trim()) {
-        Alert.alert("Error", "Name is required");
+        Alert.alert('Error', 'Name is required');
+        return;
+      }
+
+      if (!editPhone || editPhone.trim().length !== 10) {
+        Alert.alert('Error', 'Please enter a valid 10-digit mobile number');
         return;
       }
 
       setUpdating(true);
 
-      const token = await AsyncStorage.getItem("userToken");
-      const updateData = {
-        name: editName.trim(),
-        mobileNumber: editPhone.trim(),
-        profilePicture: editImage,
-      };
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        Alert.alert('Error', 'User not authenticated.');
+        setUpdating(false);
+        return;
+      }
 
-      const res = await axios.put(
-        "https://393rb0pp-5000.inc1.devtunnels.ms/api/buyer/profile",
-        updateData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const formData = new FormData();
+      formData.append('name', editName.trim());
+      formData.append('mobileNumber', editPhone.trim());
 
-      if (res.data.success) {
+      // Add profile picture if selected
+      if (editImage && editImage.startsWith('file://')) {
+        const filename = editImage.split('/').pop();
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image`;
+        
+        formData.append('profilePicture', {
+          uri: Platform.OS === 'android' ? editImage : editImage.replace('file://', ''),
+          name: filename,
+          type,
+        });
+      }
+
+      const response = await axios.put(`${API_BASE}/api/buyer/profile`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.success && response.data.data) {
+        const updatedUser = response.data.data;
+
         setUserInfo({
-          name: editName,
-          phone: editPhone,
-          image: editImage,
+          name: updatedUser.name,
+          phone: updatedUser.mobileNumber,
+          image: updatedUser.profilePicture,
           role: userInfo.role,
         });
 
         handleCloseModal();
-        Alert.alert("Success", "Profile updated successfully!");
+        Alert.alert('Success', 'Profile updated successfully!');
         await loadProfile();
+      } else {
+        Alert.alert('Error', response.data.message || 'Something went wrong!');
       }
     } catch (error) {
-      console.error("Update error:", error);
-      Alert.alert("Error", "Failed to update profile");
+      console.error('Update error:', error.response?.data || error.message);
+      Alert.alert(
+        'Error',
+        error.response?.data?.message || 'Failed to update profile. Please try again.'
+      );
     } finally {
       setUpdating(false);
     }
@@ -238,7 +261,6 @@ const ProfileScreen = () => {
 
       setUpdatingLocation(true);
 
-      // Replace with your actual API endpoint
       const token = await AsyncStorage.getItem("userToken");
       const locationData = {
         pinCode: pinCode.trim(),
@@ -248,12 +270,13 @@ const ProfileScreen = () => {
         district: district.trim(),
       };
 
+      // Add your location update API call here when ready
+      // const response = await axios.put(`${API_BASE}/api/buyer/location`, locationData, {
+      //   headers: { Authorization: `Bearer ${token}` }
+      // });
 
-
-      // if (res.data.success) {
       handleCloseLocationModal();
       Alert.alert("Success", "Location updated successfully!");
-      // }
     } catch (error) {
       console.error("Location update error:", error);
       Alert.alert("Error", "Failed to update location");
@@ -286,30 +309,26 @@ const ProfileScreen = () => {
     navigation.navigate("RateUs");
   };
 
-const handleLogout = () => {
-  Alert.alert("Logout", "Are you sure you want to logout?", [
-    { text: "Cancel", style: "cancel" },
-    {
-      text: "Logout",
-      style: "destructive",
-      onPress: async () => {
-        try {
-          // Remove token and context
-          await AsyncStorage.removeItem("userToken");
-          await logout();
-
-          // ✅ Use router to replace stack to login
-          router.replace("/login");
-
-          console.log("✅ Successfully logged out and navigated to login");
-        } catch (error) {
-          console.error("Logout error:", error);
-          Alert.alert("Error", "Failed to logout. Please try again.");
-        }
+  const handleLogout = () => {
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await AsyncStorage.removeItem("userToken");
+            await logout();
+            router.replace("/login");
+            console.log("✅ Successfully logged out and navigated to login");
+          } catch (error) {
+            console.error("Logout error:", error);
+            Alert.alert("Error", "Failed to logout. Please try again.");
+          }
+        },
       },
-    },
-  ]);
-};
+    ]);
+  };
 
   const ProfileMenuItem = ({
     icon,
@@ -388,7 +407,7 @@ const handleLogout = () => {
               onPress={handleEditProfile}
               style={styles.editButtonContainer}
             >
-              <Ionicons name="create-outline" size={24} color="#4CAF50" />
+              <Image source={require("../assets/via-farm-img/icons/editicon.png")} />
             </TouchableOpacity>
           </View>
         </View>
@@ -464,115 +483,117 @@ const handleLogout = () => {
         animationType="none"
         onRequestClose={handleCloseModal}
       >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={handleCloseModal}
+        >
+          <View 
             style={styles.modalBackground}
-            activeOpacity={1}
-            onPress={handleCloseModal}
-          />
-          <Animated.View
-            style={[
-              styles.modalContainer,
-              {
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
+            onStartShouldSetResponder={() => false}
           >
-            <View style={styles.modalHeader}>
-              <TouchableOpacity
-                onPress={handleCloseModal}
-                style={styles.backButton}
-              >
-                <Ionicons name="arrow-back" size={24} color="#333" />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>Edit Details</Text>
-              <View style={styles.placeholder} />
-            </View>
-
-            <ScrollView
-              style={styles.modalContent}
-              showsVerticalScrollIndicator={false}
+            <Animated.View
+              style={[
+                styles.modalContainer,
+                {
+                  transform: [{ translateY: slideAnim }],
+                },
+              ]}
             >
-              <Text style={styles.fieldNote}>* marks important fields</Text>
-
-              <View style={styles.fieldContainer}>
-                <Text style={styles.fieldLabel}>Profile Picture</Text>
+              <View style={styles.modalHeader}>
                 <TouchableOpacity
-                  style={styles.imagePickerContainer}
-                  onPress={pickImage}
-                  activeOpacity={0.7}
+                  onPress={handleCloseModal}
+                  style={styles.backButton}
                 >
-                  {editImage ? (
-                    <Image
-                      source={{ uri: editImage }}
-                      style={styles.profilePreview}
-                    />
-                  ) : (
-                    <>
-                      <Ionicons
-                        name="camera-outline"
-                        size={40}
-                        color="#4CAF50"
-                      />
-                      <Text style={styles.imagePickerText}>
-                        Tap to choose photo
-                      </Text>
-                    </>
-                  )}
+                  <Text style={styles.backButtonText}>←</Text>
                 </TouchableOpacity>
+                <Text style={styles.modalTitle}>Edit Details</Text>
+                <View style={styles.placeholder} />
               </View>
 
-              <View style={styles.fieldContainer}>
-                <Text style={styles.fieldLabel}>Name *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={editName}
-                  onChangeText={setEditName}
-                  placeholder="Enter your name"
-                  editable={!updating}
-                />
-              </View>
+              <ScrollView
+                style={styles.modalContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <Text style={styles.fieldNote}>* marks important fields</Text>
 
-              <View style={styles.fieldContainer}>
-                <Text style={styles.fieldLabel}>Mobile No. *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={editPhone}
-                  onChangeText={setEditPhone}
-                  placeholder="Enter mobile number"
-                  keyboardType="numeric"
-                  maxLength={10}
-                  editable={!updating}
-                />
-              </View>
-
-              <View style={styles.locationBtn}>
-                <TouchableOpacity
-                  style={[
-                    styles.updateButton,
-                    updating && styles.updateButtonDisabled,
-                  ]}
-                  onPress={handleUpdateDetails}
-                  disabled={updating}
-                  activeOpacity={0.7}
-                >
-                  {updating ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <>
+                <View style={styles.fieldContainer}>
+                  <Text style={styles.fieldLabel}>Profile Picture</Text>
+                  <TouchableOpacity
+                    style={styles.imagePickerContainer}
+                    onPress={pickImage}
+                    activeOpacity={0.7}
+                  >
+                    {editImage ? (
                       <Image
-                        source={require("../assets/via-farm-img/icons/updateDetails.png")}
+                        source={{ uri: editImage }}
+                        style={styles.profilePreview}
                       />
-                      <Text style={styles.updateButtonText}>
-                        Update Details
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </Animated.View>
-        </View>
+                    ) : (
+                      <>
+                        <Ionicons
+                          name="cloud-upload-outline"
+                          size={40}
+                          color="#ccc"
+                        />
+                        <Text style={styles.imagePickerText}>
+                          Choose a file
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.fieldContainer}>
+                  <Text style={styles.fieldLabel}>Name *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={editName}
+                    onChangeText={setEditName}
+                    placeholder="Your Name"
+                    placeholderTextColor="#999"
+                    editable={!updating}
+                  />
+                </View>
+
+                <View style={styles.fieldContainer}>
+                  <Text style={styles.fieldLabel}>Mobile No. *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={editPhone}
+                    onChangeText={setEditPhone}
+                    placeholder="9999999999"
+                    placeholderTextColor="#999"
+                    keyboardType="phone-pad"
+                    maxLength={10}
+                    editable={!updating}
+                  />
+                </View>
+
+                <View style={styles.locationBtn}>
+                  <TouchableOpacity
+                    style={[
+                      styles.updateButton,
+                      updating && styles.updateButtonDisabled,
+                    ]}
+                    onPress={handleUpdateDetails}
+                    disabled={updating}
+                    activeOpacity={0.7}
+                  >
+                    {updating ? (
+                      <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+                    ) : (
+                      <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+                    )}
+                    <Text style={styles.updateButtonText}>
+                      {updating ? 'Updating...' : 'Update Details'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </Animated.View>
+          </View>
+        </TouchableOpacity>
       </Modal>
 
       {/* Location Modal */}
@@ -582,139 +603,144 @@ const handleLogout = () => {
         animationType="none"
         onRequestClose={handleCloseLocationModal}
       >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={handleCloseLocationModal}
+        >
+          <View 
             style={styles.modalBackground}
-            activeOpacity={1}
-            onPress={handleCloseLocationModal}
-          />
-          <Animated.View
-            style={[
-              styles.modalContainer,
-              {
-                transform: [{ translateY: locationSlideAnim }],
-              },
-            ]}
+            onStartShouldSetResponder={() => true}
           >
-            <View style={styles.modalHeader}>
-              <TouchableOpacity
-                onPress={handleCloseLocationModal}
-                style={styles.backButton}
-              >
-                <Ionicons name="arrow-back" size={24} color="#333" />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>Edit Location</Text>
-              <View style={styles.placeholder} />
-            </View>
-
-            <ScrollView
-              style={styles.modalContent}
-              showsVerticalScrollIndicator={false}
+            <Animated.View
+              style={[
+                styles.modalContainer,
+                {
+                  transform: [{ translateY: locationSlideAnim }],
+                },
+              ]}
             >
-              <Text style={styles.addressHeading}>Address</Text>
-
-              <TouchableOpacity
-                style={styles.locationActionButton}
-                onPress={handleUseCurrentLocation}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="locate" size={20} color="#00BCD4" />
-                <Text style={styles.locationActionText}>
-                  Use my current location
-                </Text>
-                <Ionicons name="chevron-forward" size={18} color="#00BCD4" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.locationActionButton}
-                onPress={handleSearchLocation}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="search" size={20} color="#00BCD4" />
-                <Text style={styles.locationActionText}>Search Location</Text>
-                <Ionicons name="chevron-forward" size={18} color="#00BCD4" />
-              </TouchableOpacity>
-
-              <View style={styles.fieldContainer}>
-                <TextInput
-                  style={styles.textInput}
-                  value={pinCode}
-                  onChangeText={setPinCode}
-                  placeholder="Pin Code *"
-                  keyboardType="numeric"
-                  maxLength={6}
-                  editable={!updatingLocation}
-                />
-              </View>
-
-              <View style={styles.fieldContainer}>
-                <TextInput
-                  style={styles.textInput}
-                  value={houseNumber}
-                  onChangeText={setHouseNumber}
-                  placeholder="House number/Block/Street *"
-                  editable={!updatingLocation}
-                />
-              </View>
-
-              <View style={styles.fieldContainer}>
-                <TextInput
-                  style={styles.textInput}
-                  value={locality}
-                  onChangeText={setLocality}
-                  placeholder="Locality/Town *"
-                  editable={!updatingLocation}
-                />
-              </View>
-
-              <View style={styles.fieldRowContainer}>
-                <View style={styles.fieldHalf}>
-                  <TextInput
-                    style={styles.textInput}
-                    value={city}
-                    onChangeText={setCity}
-                    placeholder="City *"
-                    editable={!updatingLocation}
-                  />
-                </View>
-                <View style={styles.fieldHalf}>
-                  <TextInput
-                    style={styles.textInput}
-                    value={district}
-                    onChangeText={setDistrict}
-                    placeholder="District *"
-                    editable={!updatingLocation}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.locationBtn}>
+              <View style={styles.modalHeader}>
                 <TouchableOpacity
-                  style={[
-                    styles.updateButton,
-                    updatingLocation && styles.updateButtonDisabled,
-                  ]}
-                  onPress={handleUpdateLocation}
-                  disabled={updatingLocation}
-                  activeOpacity={0.7}
+                  onPress={handleCloseLocationModal}
+                  style={styles.backButton}
                 >
-                  {updatingLocation ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <>
-                      <Image
-                        source={require("../assets/via-farm-img/icons/updateDetails.png")}
-                      />
-                      <Text style={styles.updateButtonText}>
-                        Update Details
-                      </Text>
-                    </>
-                  )}
+                  <Text style={styles.backButtonText}>←</Text>
                 </TouchableOpacity>
+                <Text style={styles.modalTitle}>Edit Location</Text>
+                <View style={styles.placeholder} />
               </View>
-            </ScrollView>
-          </Animated.View>
-        </View>
+
+              <ScrollView
+                style={styles.modalContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <Text style={styles.addressHeading}>Address</Text>
+
+                <View style={styles.addressActionRow}>
+                  <TouchableOpacity
+                    style={styles.addressAction}
+                    onPress={handleUseCurrentLocation}
+                  >
+                    <Ionicons name="locate-outline" size={18} color="#007AFF" />
+                    <Text style={styles.addressActionText}>Use my current location</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.addressAction}
+                    onPress={handleSearchLocation}
+                  >
+                    <Ionicons name="search-outline" size={18} color="#007AFF" />
+                    <Text style={styles.addressActionText}>Search Location</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.fieldContainer}>
+                  <Text style={styles.fieldLabel}>Pin Code *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={pinCode}
+                    onChangeText={setPinCode}
+                    placeholder="Pin Code *"
+                    placeholderTextColor="#999"
+                    keyboardType="numeric"
+                    maxLength={6}
+                    editable={!updatingLocation}
+                  />
+                </View>
+
+                <View style={styles.fieldContainer}>
+                  <Text style={styles.fieldLabel}>House number/Block/Street *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={houseNumber}
+                    onChangeText={setHouseNumber}
+                    placeholder="House number/Block/Street *"
+                    placeholderTextColor="#999"
+                    editable={!updatingLocation}
+                  />
+                </View>
+
+                <View style={styles.fieldContainer}>
+                  <Text style={styles.fieldLabel}>Locality/Town *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={locality}
+                    onChangeText={setLocality}
+                    placeholder="Locality/Town *"
+                    placeholderTextColor="#999"
+                    editable={!updatingLocation}
+                  />
+                </View>
+
+                <View style={styles.fieldRowContainer}>
+                  <View style={styles.fieldHalf}>
+                    <Text style={styles.fieldLabel}>City *</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      value={city}
+                      onChangeText={setCity}
+                      placeholder="City *"
+                      placeholderTextColor="#999"
+                      editable={!updatingLocation}
+                    />
+                  </View>
+                  <View style={styles.fieldHalf}>
+                    <Text style={styles.fieldLabel}>District *</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      value={district}
+                      onChangeText={setDistrict}
+                      placeholder="District *"
+                      placeholderTextColor="#999"
+                      editable={!updatingLocation}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.locationBtn}>
+                  <TouchableOpacity
+                    style={[
+                      styles.updateButton,
+                      updatingLocation && styles.updateButtonDisabled,
+                    ]}
+                    onPress={handleUpdateLocation}
+                    disabled={updatingLocation}
+                    activeOpacity={0.7}
+                  >
+                    {updatingLocation ? (
+                      <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+                    ) : (
+                      <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+                    )}
+                    <Text style={styles.updateButtonText}>
+                      {updatingLocation ? 'Updating...' : 'Update Details'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </Animated.View>
+          </View>
+        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );
@@ -742,17 +768,13 @@ const styles = StyleSheet.create({
     padding: 20,
     elevation: 2,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
   profileInfo: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
   },
   avatarContainer: {
     width: 60,
@@ -781,19 +803,16 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: "#333",
-    marginBottom: 4,
   },
   userPhone: {
     fontSize: 14,
     color: "#666",
-    marginBottom: 2,
   },
   userRole: {
     fontSize: 12,
     color: "#4CAF50",
     fontWeight: "500",
     marginTop: 2,
-    textTransform: "capitalize",
   },
   editButtonContainer: {
     padding: 8,
@@ -805,10 +824,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     elevation: 2,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 1 },
   },
   menuItem: {
     flexDirection: "row",
@@ -825,13 +841,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   iconContainer: {
-    width: 35,
-    height: 35,
-    borderRadius: 8,
-    backgroundColor: "#f8f9fa",
+    width: 45,
+    height: 45,
+    borderRadius: 50,
+    backgroundColor: 'rgba(141, 110, 99, 0.1)',
     justifyContent: "center",
     alignItems: "center",
     marginRight: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(141, 110, 99, 0.2)',
   },
   menuItemText: {
     flex: 1,
@@ -840,7 +858,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     color: "#333",
-    marginBottom: 2,
   },
   menuItemSubtitle: {
     fontSize: 13,
@@ -865,10 +882,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     elevation: 2,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 3,
   },
@@ -882,19 +896,22 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(162, 153, 153, 0.7)",
+    justifyContent: "flex-end",
   },
   modalBackground: {
     flex: 1,
-    marginBottom: 100,
   },
   modalContainer: {
+    width: '100%',
     backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    height: 600,
+    bottom:0,
     borderWidth: 2,
-    borderColor: "#4CAF50",
+    borderColor: 'rgba(255, 202, 40, 0.2)',
+    maxHeight: SCREEN_HEIGHT - 80,
+    paddingBottom: 15,
   },
   modalHeader: {
     flexDirection: "row",
@@ -903,10 +920,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: "#ddd",
   },
   backButton: {
-    padding: 5,
+    width: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  backButtonText: {
+    fontSize: 22,
+    color: "#4CAF50",
+    fontWeight: "600",
   },
   modalTitle: {
     fontSize: 18,
@@ -914,72 +938,67 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   placeholder: {
-    width: 34,
+    width: 40,
   },
   modalContent: {
-    flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingVertical: 15,
   },
   fieldNote: {
     fontSize: 12,
     color: "#999",
-    marginBottom: 20,
+    marginBottom: 10,
   },
   fieldContainer: {
-    marginBottom: 16,
+    marginBottom: 15,
   },
   fieldLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "500",
     color: "#333",
-    marginBottom: 8,
+    marginBottom: 5,
   },
   imagePickerContainer: {
-    borderWidth: 2,
-    borderColor: "#4CAF50",
-    borderStyle: "dashed",
+    borderWidth: 1,
+    borderColor: "#ccc",
     borderRadius: 12,
-    paddingVertical: 40,
-    alignItems: "center",
+    height: 150,
     justifyContent: "center",
-    backgroundColor: "#f8f9fa",
+    alignItems: "center",
+    overflow: "hidden",
   },
   profilePreview: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
   },
   imagePickerText: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 12,
+    color: "#999",
     marginTop: 8,
   },
   textInput: {
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    paddingHorizontal: 15,
+    borderColor: "#ccc",
+    borderRadius: 12,
+    paddingHorizontal: 12,
     paddingVertical: 12,
-    fontSize: 16,
-    backgroundColor: "#fff",
+    color: "#333",
+    fontSize: 14,
+    backgroundColor: '#f9f9f9',
   },
   updateButton: {
-    backgroundColor: "rgba(76, 175, 80, 1)",
+    backgroundColor: "#4CAF50",
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 8,
-    marginTop: 20,
-    marginBottom: 30,
+    alignItems: "center",
+    paddingVertical: 15,
+    borderRadius: 12,
+    marginTop: 10,
     width: "70%",
   },
   updateButtonDisabled: {
     backgroundColor: "#a5d6a7",
-  },
-  updateIcon: {
-    marginRight: 8,
   },
   updateButtonText: {
     fontSize: 16,
@@ -987,33 +1006,38 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   addressHeading: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 16,
+    fontSize: 12,
+    color: "#999",
+    marginBottom: 15,
   },
-  locationActionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-    marginBottom: 12,
+  addressActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  addressAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e6f0ff',
+    padding: 10,
+    borderRadius: 12,
+    flex: 0.48,
+  },
+  addressActionText: {
+    fontSize: 12,
+    color: '#007AFF',
+    marginLeft: 6,
   },
   locationBtn: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-  },
-  locationActionText: {
-    fontSize: 16,
-    color: "rgba(1, 151, 218, 1)",
-    marginLeft: 10,
-    flex: 1,
+    marginTop: 20,
   },
   fieldRowContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: 15,
   },
   fieldHalf: {
     width: "48%",
