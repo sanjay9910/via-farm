@@ -179,29 +179,73 @@ const EditProfileModal = ({ visible, onClose, initialData, onUpdate }) => {
 };
 
 // ---------------- EditLocationModal ----------------
-const EditLocationModal = ({ visible, onClose, onSubmit }) => {
+const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
   const [pinCode, setPinCode] = useState('');
   const [houseNumber, setHouseNumber] = useState('');
   const [locality, setLocality] = useState('');
   const [city, setCity] = useState('');
   const [district, setDistrict] = useState('');
+  const [state, setState] = useState('');
+  const [street, setStreet] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
+  // 🧠 Pre-fill existing address data when modal opens
+  useEffect(() => {
+    if (visible && initialData) {
+      setPinCode(initialData.pinCode || '');
+      setHouseNumber(initialData.houseNumber || '');
+      setLocality(initialData.locality || '');
+      setCity(initialData.city || '');
+      setDistrict(initialData.district || '');
+      setState(initialData.state || '');
+      setStreet(initialData.street || '');
+    }
+  }, [visible, initialData]);
+
+  const handleSubmit = async () => {
     if (!pinCode || !houseNumber || !locality || !city || !district) {
       Alert.alert('Error', 'Please fill all required fields.');
       return;
     }
     setLoading(true);
-    // Simulate async submission
-    setTimeout(() => {
-      onSubmit({ pinCode, houseNumber, locality, city, district });
-      setLoading(false);
-      onClose();
-      Alert.alert('Success', 'Location updated successfully!');
-    }, 1200);
-  };
 
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        Alert.alert('Error', 'User not authenticated.');
+        setLoading(false);
+        return;
+      }
+
+      const body = {
+        street: street || houseNumber,
+        city,
+        state,
+        zip: pinCode,
+        pinCode,
+        houseNumber,
+        locality,
+        district,
+      };
+
+      const response = await axios.put(`${API_BASE}/api/vendor/update-location`, body, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.data.success) {
+        Alert.alert('Success', 'Location updated successfully!');
+        onSubmit(response.data.address);
+        onClose();
+      } else {
+        Alert.alert('Error', response.data.message || 'Something went wrong!');
+      }
+    } catch (error) {
+      console.log('Location update error:', error);
+      Alert.alert('Error', 'Failed to update location. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
 <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
@@ -229,24 +273,16 @@ const EditLocationModal = ({ visible, onClose, onSubmit }) => {
                 <Ionicons name="locate-outline" size={18} color="#007AFF" />
                 <Text style={modalStyles.addressActionText}>Use my current location</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={modalStyles.addressAction}
-                onPress={() => Alert.alert('Location', 'Opening search screen...')}
-              >
-                <Ionicons name="search-outline" size={18} color="#007AFF" />
-                <Text style={modalStyles.addressActionText}>Search Location</Text>
-              </TouchableOpacity>
             </View>
 
-            {/* Pin Code */}
-            <Text style={modalStyles.label}>Pin Code *</Text>
+            {/* Street */}
+            <Text style={modalStyles.label}>Street</Text>
             <TextInput
               style={[modalStyles.textInput, { marginBottom: 15, marginTop: 0 }]}
-              placeholder="Pin Code *"
+              placeholder="Street (optional)"
               placeholderTextColor="#999"
-              keyboardType="numeric"
-              value={pinCode}
-              onChangeText={setPinCode}
+              value={street}
+              onChangeText={setStreet}
             />
 
             {/* House number/Block/Street */}
@@ -269,37 +305,58 @@ const EditLocationModal = ({ visible, onClose, onSubmit }) => {
               onChangeText={setLocality}
             />
 
-            {/* City & District (Row) */}
-            <View style={modalStyles.row}>
-              <View style={modalStyles.halfInput}>
-                <Text style={modalStyles.label}>City *</Text>
-                <TextInput
-                  style={modalStyles.textInput}
-                  placeholder="City *"
-                  placeholderTextColor="#999"
-                  value={city}
-                  onChangeText={setCity}
-                />
-              </View>
-              <View style={modalStyles.halfInput}>
-                <Text style={modalStyles.label}>District *</Text>
-                <TextInput
-                  style={modalStyles.textInput}
-                  placeholder="District *"
-                  placeholderTextColor="#999"
-                  value={district}
-                  onChangeText={setDistrict}
-                />
-              </View>
-            </View>
+            {/* City */}
+            <Text style={modalStyles.label}>City *</Text>
+            <TextInput
+              style={[modalStyles.textInput, { marginBottom: 15, marginTop: 0 }]}
+              placeholder="City *"
+              placeholderTextColor="#999"
+              value={city}
+              onChangeText={setCity}
+            />
 
-            <View style={{ height: 30 }} />
+            {/* District */}
+            <Text style={modalStyles.label}>District *</Text>
+            <TextInput
+              style={[modalStyles.textInput, { marginBottom: 15, marginTop: 0 }]}
+              placeholder="District *"
+              placeholderTextColor="#999"
+              value={district}
+              onChangeText={setDistrict}
+            />
+
+            {/* State */}
+            <Text style={modalStyles.label}>State</Text>
+            <TextInput
+              style={[modalStyles.textInput, { marginBottom: 15, marginTop: 0 }]}
+              placeholder="State"
+              placeholderTextColor="#999"
+              value={state}
+              onChangeText={setState}
+            />
+
+            {/* Pin Code */}
+            <Text style={modalStyles.label}>Pin Code *</Text>
+            <TextInput
+              style={[modalStyles.textInput, { marginBottom: 20, marginTop: 0 }]}
+              placeholder="Pin Code *"
+              placeholderTextColor="#999"
+              keyboardType="numeric"
+              value={pinCode}
+              onChangeText={setPinCode}
+            />
           </ScrollView>
 
           {/* Submit Button */}
           <TouchableOpacity style={modalStyles.updateButton} onPress={handleSubmit} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" style={{ marginRight: 8 }} /> : <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight: 8 }} />}
-            <Text style={modalStyles.updateButtonText}>{loading ? 'Updating...' : 'Update Details'}</Text>
+            {loading ? (
+              <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />
+            ) : (
+              <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+            )}
+            <Text style={modalStyles.updateButtonText}>
+              {loading ? 'Updating...' : 'Update Details'}
+            </Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -438,10 +495,14 @@ const VendorProfile = () => {
       )}
 
       <EditLocationModal
-        visible={editLocationModalVisible}
-        onClose={() => setEditLocationModalVisible(false)}
-        onSubmit={(location) => Alert.alert('Success', `Location updated: ${location}`)}
-      />
+  visible={editLocationModalVisible}
+  onClose={() => setEditLocationModalVisible(false)}
+  initialData={userInfo?.address} // <-- pass saved address
+  onSubmit={(updatedAddress) => {
+    console.log('Updated address:', updatedAddress);
+    Alert.alert('Success', 'Address updated successfully!');
+  }}
+/>
     </SafeAreaView>
   );
 };
@@ -474,25 +535,6 @@ const styles = StyleSheet.create({
   logoutIcon: { marginRight: 8 },
   logoutText: { fontSize: 16, fontWeight: '600', color: '#fff' },
 });
-
-// const modalStyles = StyleSheet.create({
-//   modalOverlay: { flex: 1, backgroundColor: 'rgba(162, 153, 153, 0.7)', justifyContent: 'flex-end' },
-//   modalContainer: { width: '100%', backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 2, borderColor: 'rgba(255, 202, 40, 0.2)', maxHeight: height - 80 },
-//   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#ddd' },
-//   headerIcon: { width: 40, justifyContent: 'center', alignItems: 'center' },
-//   iconText: { fontSize: 22, color: '#4CAF50', fontWeight: '600' },
-//   headerTitle: { fontSize: 18, fontWeight: '600', color: '#333' },
-//   scrollViewContent: { paddingVertical: 15 },
-//   smallText: { fontSize: 12, color: '#999', marginBottom: 10 },
-//   labelContainer: { marginVertical: 10 },
-//   label: { fontSize: 14, fontWeight: '500', color: '#333', marginBottom: 5 },
-//   textInput: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, color: '#333' },
-//   profileUploadBox: { borderWidth: 1, borderColor: '#ccc', borderRadius: 12, height: 150, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-//   uploadedImage: { width: '100%', height: '100%', borderRadius: 8 },
-//   chooseFileText: { fontSize: 12, color: '#999', marginTop: 8 },
-//   updateButton: { backgroundColor: '#4CAF50', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 15, borderRadius: 12, marginTop: 10 },
-//   updateButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-// });
 
 const modalStyles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(162, 153, 153, 0.7)', justifyContent: 'flex-end' },

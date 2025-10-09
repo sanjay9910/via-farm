@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Image,
   StyleSheet,
@@ -8,26 +8,7 @@ import {
   View,
 } from 'react-native';
 
-interface ProductCardProps {
-  id: string;
-  title: string;
-  subtitle: string;
-  price: number;
-  rating: number;
-  image: string;
-  isFavorite?: boolean;
-  onPress?: (id: string) => void;
-  onFavoritePress?: (id: string) => void;
-  onAddToCart?: (id: string) => void;
-  width?: number;
-  showRating?: boolean;
-  showFavorite?: boolean;
-  showAddToCart?: boolean;
-  cardStyle?: object;
-  imageHeight?: number;
-}
-
-const ProductCard: React.FC<ProductCardProps> = ({
+const ProductCard = ({
   id,
   title,
   subtitle,
@@ -45,72 +26,78 @@ const ProductCard: React.FC<ProductCardProps> = ({
   cardStyle = {},
   imageHeight = 120,
 }) => {
-  const handleCardPress = () => {
-    if (onPress) {
-      onPress(id);
-    }
-  };
-
-  const handleFavoritePress = () => {
-    if (onFavoritePress) {
-      onFavoritePress(id);
-    }
-  };
+  const [quantity, setQuantity] = useState(0);
 
   const handleAddToCart = () => {
-    if (onAddToCart) {
-      onAddToCart(id);
-    }
+    setQuantity(1);
+    onAddToCart?.(id);
   };
 
+  const increment = () => setQuantity(q => q + 1);
+  const decrement = () => setQuantity(q => (q > 1 ? q - 1 : 0));
+
   return (
-    <TouchableOpacity 
-      style={[styles.card, { width }, cardStyle]}
-      activeOpacity={0.8}
-      onPress={handleCardPress}
-    >
-      <View style={[styles.imageContainer, { height: imageHeight }]}>
-        <Image source={{ uri: image }} style={styles.productImage} />
-        
-        {showFavorite && (
-          <TouchableOpacity
-            style={styles.favoriteButton}
-            onPress={handleFavoritePress}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={isFavorite ? 'heart' : 'heart-outline'}
-              size={25}
-              color={isFavorite ? '#ff4757' : '#666'}
-            />
-          </TouchableOpacity>
-        )}
-        
-        {showRating && (
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={12} color="#FFD700" />
-            <Text style={styles.ratingText}>{rating}</Text>
+    <View style={[{ width }, cardStyle]}>
+      <TouchableOpacity 
+        style={styles.card}
+        activeOpacity={0.8}
+        onPress={() => onPress?.(id)}
+      >
+        <View style={[styles.imageContainer, { height: imageHeight }]}>
+          <Image source={{ uri: image }} style={styles.productImage} />
+          
+          {showFavorite && (
+            <TouchableOpacity
+              style={styles.favoriteButton}
+              onPress={() => onFavoritePress?.(id)}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={isFavorite ? 'heart' : 'heart-outline'}
+                size={25}
+                color={isFavorite ? '#ff4757' : '#666'}
+              />
+            </TouchableOpacity>
+          )}
+          
+          {showRating && (
+            <View style={styles.ratingContainer}>
+              <Ionicons name="star" size={12} color="#FFD700" />
+              <Text style={styles.ratingText}>{rating}</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.cardContent}>
+          <Text style={styles.productTitle} numberOfLines={1}>{title}</Text>
+          <Text style={styles.productSubtitle} numberOfLines={1}>{subtitle}</Text>
+          <Text style={styles.productPrice}>₹{price}</Text>
+
+          {/* Reserve fixed height for button area */}
+          <View style={styles.buttonContainer}>
+            {quantity === 0 ? (
+              <TouchableOpacity
+                style={styles.addToCartButton}
+                onPress={handleAddToCart}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.addToCartText}>Add to Cart</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.quantityContainer}>
+                <TouchableOpacity onPress={decrement} style={styles.quantityButton}>
+                  <Text style={styles.quantityText}>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.quantityCount}>{quantity}</Text>
+                <TouchableOpacity onPress={increment} style={styles.quantityButton}>
+                  <Text style={styles.quantityText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
-        )}
-      </View>
-     
-      <View style={styles.cardContent}>
-        <Text style={styles.productTitle} numberOfLines={1}>{title}</Text>
-        <Text style={styles.productSubtitle} numberOfLines={1}>{subtitle}</Text>
-        <Text style={styles.productPrice}>₹{price}</Text>
-        
-        {showAddToCart && (
-          <TouchableOpacity
-            style={styles.addToCartButton}
-            onPress={handleAddToCart}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="add-circle-outline" size={16} color="#fff" />
-            <Text style={styles.addToCartText}>Add to Cart</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </View>
   );
 };
 
@@ -118,13 +105,15 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
     borderRadius: 8,
+    marginLeft:5,
+    marginTop:10,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 4,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: 'rgba(108, 59, 28, 1)',
     marginBottom: 5,
-    elevation: 3, // For Android shadow
+    elevation: 3,
   },
   imageContainer: {
     position: 'relative',
@@ -168,7 +157,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   cardContent: {
-    padding:8,
+    padding: 8,
   },
   productTitle: {
     fontSize: 15,
@@ -189,21 +178,47 @@ const styles = StyleSheet.create({
     color: '#000',
     marginBottom: 8,
   },
+  buttonContainer: {
+    minHeight: 36, // reserve height so card doesn't resize
+    justifyContent: 'center',
+  },
   addToCartButton: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderRadius: 6,
-    marginTop: 4,
   },
   addToCartText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize:17,
     fontWeight: '600',
-    marginLeft: 4,
+  },
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(76, 175, 80, 1)',
+    borderRadius: 6,
+    paddingHorizontal: 4,
+    height: 36,
+  },
+  quantityButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  quantityText: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  quantityCount: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '600',
+    marginHorizontal: 6,
   },
 });
 

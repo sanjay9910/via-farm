@@ -1,6 +1,9 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from 'expo-router';
+import { goBack } from "expo-router/build/global-state/routing";
 import React, { useEffect, useRef, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Animated,
     FlatList,
@@ -13,133 +16,79 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const MyWishlist = () => {
-    const [selectedOption, setSelectedOption] = useState('FILTER');
+    const [selectedOption, setSelectedOption] = useState('All');
     const animation = useRef(new Animated.Value(0)).current;
     const navigation = useNavigation();
 
-    const [mangoData, setMangoData] = useState([
-        {
-            id: 1,
-            image: "https://images.unsplash.com/photo-1574226516831-e1dff420e43e",
-            name: "Mango",
-            variety: "Chausa",
-            price: "₹1200",
-            unit: "/10kg",
-            rating: "4.5",
-            inCart: false
-        },
-        {
-            id: 2,
-            image: "https://images.unsplash.com/photo-1574226516831-e1dff420e43e",
-            name: "Mango",
-            variety: "Chausa",
-            price: "₹1200",
-            unit: "/10kg",
-            rating: "4.5",
-            inCart: false
-        },
-        {
-            id: 3,
-            image: "https://images.unsplash.com/photo-1574226516831-e1dff420e43e",
-            name: "Mango",
-            variety: "Chausa",
-            price: "₹1200",
-            unit: "/10kg",
-            rating: "4.5",
-            inCart: false
-        },
-        {
-            id: 4,
-            image: "https://images.unsplash.com/photo-1574226516831-e1dff420e43e",
-            name: "Mango",
-            variety: "Chausa",
-            price: "₹1200",
-            unit: "/10kg",
-            rating: "4.5",
-            inCart: false
-        },
-        {
-            id: 5,
-            image: "https://images.unsplash.com/photo-1574226516831-e1dff420e43e",
-            name: "Apple",
-            variety: "Chausa",
-            price: "₹1200",
-            unit: "/10kg",
-            rating: "4.5",
-            inCart: false
-        },
-        {
-            id: 6,
-            image: "https://images.unsplash.com/photo-1574226516831-e1dff420e43e",
-            name: "Mango",
-            variety: "Chausa",
-            price: "₹1200",
-            unit: "/10kg",
-            rating: "4.5",
-            inCart: false
-        }
-    ]);
+    const [wishlistData, setWishlistData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [filteredData, setFilteredData] = useState([]);
+
+    const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
+    const API_ENDPOINT = "/api/buyer/wishlist";
 
     // Function to fetch data from your API
     const fetchWishlistData = async () => {
         try {
             setLoading(true);
             setError(null);
-            
-            // Replace 'YOUR_API_ENDPOINT_HERE' with your actual API endpoint
-            const response = await fetch('YOUR_API_ENDPOINT_HERE');
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+
+            // Get token from AsyncStorage
+            const token = await AsyncStorage.getItem("userToken");
+            console.log("📦 Retrieved Token:", token);
+
+            if (!token) {
+                throw new Error("No token found. Please login again.");
             }
-            
-            const data = await response.json();
-            
-            // Map the API data to include inCart property if not present
-            const mappedData = data.map(item => ({
-                ...item,
-                inCart: item.inCart || false // Default to false if not provided
-            }));
-            
+
+            // Fetch wishlist data from API
+            const response = await fetch(`${API_BASE}${API_ENDPOINT}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            const json = await response.json();
+            console.log("🧾 FULL Wishlist API Response:", json);
+            console.log("📦 Wishlist Items:", json?.data?.items);
+
+            if (!response.ok || !json.success) {
+                throw new Error(json.message || `HTTP error! status: ${response.status}`);
+            }
+
+            const items = json?.data?.items || [];
+
+            // Map the API data to match your screenshot card structure
+            const mappedData = items.map((item, index) => {
+                console.log(`Item ${index}:`, item);
+                return {
+                    id: item.id || item._id || item.productId,
+                    productId: item.productId || item.id, // Add productId specifically
+                    image: item.image,
+                    name: item.name,
+                    variety: item.variety,
+                    vendorName: item.vendor?.name || "Ashok Sharma",
+                    distance: item.vendor?.distance || "12 kms away",
+                    price: `₹${item.price}`,
+                    unit: `/${item.unit}`,
+                    pricePerUnit: item.pricePerUnit || `${item.price} /kg`,
+                    rating: item.rating || "4.5",
+                    inCart: item.inCart || false,
+                    category: item.category || 'Fruits'
+                };
+            });
+
+            console.log("🔄 Mapped Data:", mappedData);
             setWishlistData(mappedData);
+            setFilteredData(mappedData);
         } catch (error) {
             console.error('Error fetching wishlist data:', error);
             setError(error.message);
-            
-            // Fallback data for development/testing
-            const fallbackData = [
-                {
-                    id: 1,
-                    image: 'https://via.placeholder.com/150',
-                    name: "Mango",
-                    variety: "Chausa",
-                    price: "₹1200",
-                    unit: "/10kg",
-                    rating: "4.5",
-                    inCart: false
-                },
-                {
-                    id: 2,
-                    image: "https://images.unsplash.com/photo-1574226516831-e1dff420e43e",
-                    name: "Apple",
-                    variety: "Red Delicious",
-                    price: "₹800",
-                    unit: "/5kg",
-                    rating: "4.2",
-                    inCart: false
-                },
-                {
-                    id: 3,
-                    image: "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e",
-                    name: "Orange",
-                    variety: "Nagpur",
-                    price: "₹600",
-                    unit: "/8kg",
-                    rating: "4.0",
-                    inCart: false
-                }
-            ];
-            setWishlistData(fallbackData);
+            setWishlistData([]);
+            setFilteredData([]);
         } finally {
             setLoading(false);
         }
@@ -149,6 +98,53 @@ const MyWishlist = () => {
         fetchWishlistData();
     }, []);
 
+    // Function to remove item from wishlist via API - FIXED
+    const handleRemoveFromWishlist = async (item) => {
+        try {
+            const token = await AsyncStorage.getItem("userToken");
+
+            if (!token) {
+                throw new Error("No token found. Please login again.");
+            }
+
+            // Use productId instead of id for removal
+            const itemId = item.productId || item.id;
+            console.log("🗑️ Removing wishlist item:", item);
+            console.log("🗑️ Using ID for removal:", itemId);
+
+            const response = await fetch(`${API_BASE}/api/buyer/wishlist/${itemId}`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            const json = await response.json();
+            console.log("🗑️ Remove Wishlist Response:", json);
+
+            if (!response.ok || !json.success) {
+                throw new Error(json.message || `Failed to remove item`);
+            }
+
+            // Remove item from local state
+            const updatedData = wishlistData.filter(wishlistItem =>
+                wishlistItem.id !== item.id
+            );
+            const updatedFilteredData = filteredData.filter(wishlistItem =>
+                wishlistItem.id !== item.id
+            );
+
+            setWishlistData(updatedData);
+            setFilteredData(updatedFilteredData);
+
+            Alert.alert('Success', 'Item removed from wishlist successfully');
+        } catch (error) {
+            console.error('❌ Error removing from wishlist:', error);
+            Alert.alert('Error', error.message || 'Failed to remove item from wishlist');
+        }
+    };
+
     // Function to handle add to cart
     const handleAddToCart = (id) => {
         const updatedData = wishlistData.map(item => {
@@ -157,40 +153,21 @@ const MyWishlist = () => {
             }
             return item;
         });
+        const updatedFilteredData = filteredData.map(item => {
+            if (item.id === id) {
+                return { ...item, inCart: true };
+            }
+            return item;
+        });
+
         setWishlistData(updatedData);
+        setFilteredData(updatedFilteredData);
         Alert.alert('Added to Cart', 'Item has been added to your cart');
     };
-
-
-    const backProfile =()=>{
-        navigation.navigate("profile")
-    }
 
     // Function to handle move to cart (for items already in cart)
     const handleMoveToCart = (id) => {
         Alert.alert('Move to Cart', 'Item is already in your cart');
-    };
-
-    // Function to remove item from wishlist
-    const handleRemoveFromWishlist = (id) => {
-        Alert.alert(
-            'Remove from Wishlist',
-            'Are you sure you want to remove this item from your wishlist?',
-            [
-                {
-                    text: 'Cancel',
-                    style: 'cancel',
-                },
-                {
-                    text: 'Remove',
-                    style: 'destructive',
-                    onPress: () => {
-                        const updatedData = wishlistData.filter(item => item.id !== id);
-                        setWishlistData(updatedData);
-                    },
-                },
-            ]
-        );
     };
 
     const toggleDropdown = () => {
@@ -203,7 +180,7 @@ const MyWishlist = () => {
 
     const dropdownHeight = animation.interpolate({
         inputRange: [0, 1],
-        outputRange: [0, 120],
+        outputRange: [0, 180], // Increased height for more options
     });
 
     const borderWidth = animation.interpolate({
@@ -211,31 +188,54 @@ const MyWishlist = () => {
         outputRange: [0, 1],
     });
 
-    const options = ['Fruits', 'Vegetable', 'Seeds'];
+    const options = ['All', 'Fruits', 'Vegetable', 'Seeds', 'Plants', 'Handicrafts'];
 
     const handleSelect = (option) => {
         setSelectedOption(option);
+
+        // Apply filter based on selected option
+        if (option === 'All') {
+            setFilteredData(wishlistData); // Show all items
+        } else {
+            const filtered = wishlistData.filter(item =>
+                item.category?.toLowerCase().includes(option.toLowerCase()) ||
+                item.name?.toLowerCase().includes(option.toLowerCase())
+            );
+            setFilteredData(filtered);
+        }
+
         toggleDropdown();
+    };
+
+    // Confirm remove from wishlist
+    const confirmRemove = (item) => {
+        Alert.alert(
+            'Remove from Wishlist',
+            'Are you sure you want to remove this item from your wishlist?',
+            [
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Remove',
+                    style: 'destructive',
+                    onPress: () => handleRemoveFromWishlist(item),
+                },
+            ]
+        );
     };
 
     // Render each card item
     const renderCard = ({ item, index }) => (
         <View style={styles.card}>
             {/* Close button */}
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={styles.closeButton}
-                onPress={() => handleRemoveFromWishlist(item.id)}
+                onPress={() => confirmRemove(item)}
             >
                 <Text style={styles.closeButtonText}>×</Text>
             </TouchableOpacity>
-
-            {/* Rating */}
-            {item.rating && (
-                <View style={styles.ratingContainer}>
-                    <Text style={styles.starIcon}>⭐</Text>
-                    <Text style={styles.ratingText}>{item.rating}</Text>
-                </View>
-            )}
 
             {/* Product Image */}
             {item.image ? (
@@ -252,13 +252,20 @@ const MyWishlist = () => {
 
             {/* Product Details */}
             <View style={styles.productInfo}>
-                <Text style={styles.productName}>{item.name || 'Unknown Product'}</Text>
-                {item.variety && (
-                    <Text style={styles.productVariety}>Variety : {item.variety}</Text>
-                )}
-                <Text style={styles.productPrice}>
-                    {item.price || '₹0'} 
-                    {item.unit && <Text style={styles.productUnit}>{item.unit}</Text>}
+                <Text style={styles.productName}>
+                    {item.name} {item.variety}
+                </Text>
+
+                <Text style={styles.vendorText}>
+                    by {item.vendorName}
+                </Text>
+
+                <Text style={styles.distanceText}>
+                    {item.distance}
+                </Text>
+
+                <Text style={styles.pricePerUnit}>
+                    {item.pricePerUnit}
                 </Text>
             </View>
 
@@ -271,7 +278,7 @@ const MyWishlist = () => {
                 onPress={() => item.inCart ? handleMoveToCart(item.id) : handleAddToCart(item.id)}
             >
                 <Text style={styles.cartButtonText}>
-                    {item.inCart ? 'Move to Cart' : 'Move to Cart'}
+                    {item.inCart ? 'Move to Cart' : 'Add to Cart'}
                 </Text>
             </TouchableOpacity>
         </View>
@@ -280,6 +287,7 @@ const MyWishlist = () => {
     // Loading component
     const renderLoading = () => (
         <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color="#4CAF50" />
             <Text style={styles.loadingText}>Loading wishlist...</Text>
         </View>
     );
@@ -288,8 +296,8 @@ const MyWishlist = () => {
     const renderError = () => (
         <View style={styles.centerContainer}>
             <Text style={styles.errorText}>Error: {error}</Text>
-            <TouchableOpacity 
-                style={styles.retryButton} 
+            <TouchableOpacity
+                style={styles.retryButton}
                 onPress={fetchWishlistData}
             >
                 <Text style={styles.retryButtonText}>Retry</Text>
@@ -300,6 +308,12 @@ const MyWishlist = () => {
     // Empty wishlist component
     const renderEmptyWishlist = () => (
         <View style={styles.centerContainer}>
+            <Image
+                source={{
+                    uri: "https://cdn-icons-png.flaticon.com/512/4076/4076549.png",
+                }}
+                style={styles.emptyImage}
+            />
             <Text style={styles.emptyText}>Your wishlist is empty</Text>
             <Text style={styles.emptySubText}>Add items to see them here</Text>
         </View>
@@ -309,7 +323,7 @@ const MyWishlist = () => {
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <View style={styles.backArrow}>
-                    <TouchableOpacity onPress={backProfile}>
+                    <TouchableOpacity onPress={goBack}>
                         <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
                     </TouchableOpacity>
                     <Text style={styles.text}>My Wishlist</Text>
@@ -347,15 +361,38 @@ const MyWishlist = () => {
                 </View>
             </View>
 
-            {/* FlatList with 2 cards per row */}
-            <FlatList
-                data={mangoData}
-                renderItem={renderCard}
-                keyExtractor={(item) => item.id.toString()}
-                numColumns={2}
-                contentContainerStyle={styles.flatListContent}
-                showsVerticalScrollIndicator={false}
-            />
+            {/* Conditional rendering based on state */}
+            {loading ? (
+                renderLoading()
+            ) : error ? (
+                renderError()
+            ) : filteredData.length === 0 ? (
+                selectedOption === 'All' ? (
+                    renderEmptyWishlist()
+                ) : (
+                    <View style={styles.centerContainer}>
+                        <Text style={styles.emptyText}>No items found for {selectedOption}</Text>
+                        <TouchableOpacity
+                            style={styles.retryButton}
+                            onPress={() => handleSelect('All')}
+                        >
+                            <Text style={styles.retryButtonText}>Show All</Text>
+                        </TouchableOpacity>
+                    </View>
+                )
+            ) : (
+                /* FlatList with 2 cards per row */
+                <FlatList
+                    data={filteredData}
+                    renderItem={renderCard}
+                    keyExtractor={(item) => item.id.toString()}
+                    numColumns={2}
+                    contentContainerStyle={styles.flatListContent}
+                    showsVerticalScrollIndicator={false}
+                    refreshing={loading}
+                    onRefresh={fetchWishlistData} // ✅ Yeh line add karein
+                />
+            )}
         </SafeAreaView>
     );
 };
@@ -417,7 +454,7 @@ const styles = StyleSheet.create({
         zIndex: 1000,
     },
     dropdownItem: {
-        padding: 12,
+        padding: 6,
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(66, 66, 66, 0.7)',
     },
@@ -430,9 +467,9 @@ const styles = StyleSheet.create({
     },
     card: {
         backgroundColor: 'white',
-        borderRadius:10,
-        borderWidth:1,
-        borderColor:'rgba(0, 0, 0, 0.2)',
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.2)',
         margin: 6,
         flex: 1,
         maxWidth: '47%',
@@ -473,39 +510,18 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         lineHeight: 18,
     },
-    ratingContainer: {
-        position: 'absolute',
-        top:95,
-        left: 8,
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 8,
-        zIndex: 10,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        shadowOpacity: 0.2,
-        shadowRadius: 2,
-        elevation: 2,
-    },
-    starIcon: {
-        fontSize: 12,
-        marginRight: 2,
-    },
-    ratingText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#333',
-    },
     cardImage: {
         width: '100%',
         height: 120,
         backgroundColor: '#f0f0f0',
+    },
+    placeholderImage: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    placeholderText: {
+        color: '#666',
+        fontSize: 12,
     },
     productInfo: {
         padding: 12,
@@ -515,22 +531,23 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#333',
-        marginBottom: 2,
-    },
-    productVariety: {
-        fontSize: 12,
-        color: '#666',
         marginBottom: 4,
     },
-    productPrice: {
+    vendorText: {
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 2,
+    },
+    distanceText: {
+        fontSize: 12,
+        color: '#666',
+        marginBottom: 6,
+    },
+    pricePerUnit: {
         fontSize: 16,
         fontWeight: 'bold',
         color: '#333',
-    },
-    productUnit: {
-        fontSize: 12,
-        fontWeight: 'normal',
-        color: '#666',
+        marginBottom: 8,
     },
     cartButton: {
         marginHorizontal: 12,
@@ -549,6 +566,50 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 14,
         fontWeight: '600',
+    },
+    centerContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    loadingText: {
+        marginTop: 12,
+        fontSize: 16,
+        color: '#666',
+    },
+    errorText: {
+        fontSize: 16,
+        color: 'red',
+        textAlign: 'center',
+        marginBottom: 16,
+    },
+    retryButton: {
+        backgroundColor: '#4CAF50',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+    },
+    retryButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    emptyText: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#333',
+        marginTop: 16,
+    },
+    emptySubText: {
+        fontSize: 14,
+        color: '#666',
+        marginTop: 8,
+    },
+    emptyImage: {
+        width: 100,
+        height: 100,
+        opacity: 0.6,
     },
 });
 

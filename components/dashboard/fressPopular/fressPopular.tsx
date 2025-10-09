@@ -267,7 +267,7 @@ const cardStyles = StyleSheet.create({
     borderRadius: 8,
   },
   name: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '500',
     color: '#333',
     textAlign: 'center',

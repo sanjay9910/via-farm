@@ -6,7 +6,6 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 interface ProfileCardProps {
   image: string;
   name: string;
-  rating: number;
   distance: string;
   category: string;
 }
@@ -20,15 +19,8 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ image, name, rating, distance
 
       {/* Content Section */}
       <View style={styles.contentSection}>
-        {/* Header with name and rating */}
         <View style={styles.header}>
           <Text style={styles.name} numberOfLines={1}>{name}</Text>
-          {/* <Text style={styles.name}>Sanjay Chauhan</Text> */}
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={16} color="#FFD700" />
-            <Text style={styles.rating}>{rating}</Text>
-            {/* <Text style={styles.rating}>9.0</Text> */}
-          </View>
         </View>
 
         {/* Distance */}

@@ -1,8 +1,14 @@
+// SmartPicks.js
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Animated,
   FlatList,
+  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -10,138 +16,302 @@ import {
 } from 'react-native';
 import ProductCard from '../../../components/common/ProductCard';
 
-interface Product {
-  id: string;
-  title: string;
-  subtitle: string;
-  price: number;
-  rating: number;
-  image: string;
-  isFavorite: boolean;
-}
+const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
+const ENDPOINT = '/api/buyer/smart-picks';
+const WISHLIST_ADD_ENDPOINT = '/api/buyer/wishlist/add';
+const WISHLIST_REMOVE_ENDPOINT = '/api/buyer/wishlist';
 
-interface SmartPicksProps {
-  category?: string;
-}
-
-const SmartPicks: React.FC<SmartPicksProps> = ({ category = 'Handicrafts' }) => {
-  const [products, setProducts] = useState<Product[]>([]);
+const SmartPicks = () => {
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [refreshing, setRefreshing] = useState(false);
+  const [favorites, setFavorites] = useState(new Set());
+  const [showDropdown, setShowDropdown] = useState(false);
 
-  // Dummy API data - replace with your actual API call
-  const fetchProducts = async () => {
+  const animation = useRef(new Animated.Value(0)).current;
+
+  const categories = ['All', 'Fruits', 'Vegetables', 'Plants', 'Seeds', 'Handicrafts'];
+
+  // Filter products based on selected category
+  const filterProductsByCategory = useCallback((productsList, category) => {
+    if (category === 'All') {
+      return productsList;
+    }
+    return productsList.filter(product => 
+      product.category?.toLowerCase() === category.toLowerCase() ||
+      product.raw?.category?.toLowerCase() === category.toLowerCase() ||
+      product.title?.toLowerCase().includes(category.toLowerCase())
+    );
+  }, []);
+
+  // Update filtered products when category or products change
+  useEffect(() => {
+    const filtered = filterProductsByCategory(products, selectedCategory);
+    setFilteredProducts(filtered);
+  }, [products, selectedCategory, filterProductsByCategory]);
+
+  const mapApiItemToProduct = useCallback((item) => {
+    return {
+      id: item.id || item._id || String(Math.random()),
+      title: item.name || item.title || 'Product',
+      subtitle: item.vendor?.name || '',
+      price: item.price ?? 0,
+      rating: item.rating ?? 0,
+      ratingCount: item.ratingCount ?? 0,
+      image: item.image || null,
+      isFavorite: false,
+      raw: item, // keep original API data for filtering
+      productId: item.productId || item.id,
+      category: item.category || 'General',
+    };
+  }, []);
+
+  const fetchProducts = async (isRefresh = false) => {
     try {
-      setLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const dummyData: Product[] = [
-        {
-          id: '1',
-          title: 'Plate',
-          subtitle: 'Hand Painted',
-          price: 200,
-          rating: 4.5,
-          image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=300&h=300&fit=crop',
-          isFavorite: false,
-        },
-        {
-          id: '2',
-          title: 'Mugs (set of 3)',
-          subtitle: 'Hand Painted',
-          price: 200,
-          rating: 4.5,
-          image: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=300&h=300&fit=crop',
-          isFavorite: false,
-        },
-        {
-          id: '3',
-          title: 'Plate',
-          subtitle: 'Hand Painted',
-          price: 200,
-          rating: 4.5,
-          image: 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=300&h=300&fit=crop',
-          isFavorite: false,
-        },
-        {
-          id: '4',
-          title: 'Vase Set',
-          subtitle: 'Hand Crafted',
-          price: 350,
-          rating: 4.8,
-          image: 'https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=300&h=300&fit=crop',
-          isFavorite: false,
-        },
-        {
-          id: '5',
-          title: 'Decorative Bowl',
-          subtitle: 'Ceramic Art',
-          price: 150,
-          rating: 4.3,
-          image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=300&fit=crop',
-          isFavorite: false,
-        },
-        {
-          id: '6',
-          title: 'Tea Set',
-          subtitle: 'Traditional',
-          price: 450,
-          rating: 4.7,
-          image: 'https://images.unsplash.com/photo-1563822249548-ad74765e8ddf?w=300&h=300&fit=crop',
-          isFavorite: false,
-        },
-      ];
-      
-      setProducts(dummyData);
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+
+      const token = await AsyncStorage.getItem('userToken');
+
+      const res = await axios.get(`${API_BASE}${ENDPOINT}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        timeout: 10000,
+      });
+
+      if (res?.data?.success && Array.isArray(res.data.data)) {
+        const mapped = res.data.data.map(mapApiItemToProduct);
+        setProducts(mapped);
+        console.log('📦 Loaded products:', mapped.length);
+        console.log('🏷️ Product categories:', [...new Set(mapped.map(p => p.category))]);
+      } else {
+        if (res?.data?.data) {
+          try {
+            const mapped = Object.values(res.data.data).map(mapApiItemToProduct);
+            setProducts(mapped);
+          } catch (e) {
+            setProducts([]);
+          }
+        } else {
+          setProducts([]);
+        }
+      }
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('Error fetching smart picks:', error);
+      setProducts([]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Fetch wishlist to sync favorites
+  const fetchWishlist = async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
+
+      const response = await axios.get(`${API_BASE}/api/buyer/wishlist`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.data.success) {
+        const wishlistItems = response.data.data?.items || [];
+        const favoriteIds = new Set(wishlistItems.map(item => item.productId || item.id));
+        setFavorites(favoriteIds);
+      }
+    } catch (error) {
+      console.error('Error fetching wishlist:', error);
     }
   };
 
   useEffect(() => {
     fetchProducts();
+    fetchWishlist();
   }, []);
 
-  const handleCardPress = (productId: string) => {
-    console.log('Product card pressed:', productId);
-    // Navigate to product detail screen
+  // Listen for wishlist updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchWishlist();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Dropdown animation
+  const toggleDropdown = () => {
+    const toValue = showDropdown ? 0 : 1;
+    setShowDropdown(!showDropdown);
+    
+    Animated.timing(animation, {
+      toValue,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
   };
 
-  const handleFavoritePress = (productId: string) => {
-    setFavorites(prev => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(productId)) {
-        newFavorites.delete(productId);
-      } else {
-        newFavorites.add(productId);
+  const dropdownHeight = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 240], // Height for 6 items
+  });
+
+  const borderWidth = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
+  // Add to Wishlist Function
+  const addToWishlist = async (product) => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      
+      if (!token) {
+        Alert.alert('Login Required', 'Please login to add items to wishlist');
+        return false;
       }
-      return newFavorites;
-    });
+
+      const wishlistData = {
+        productId: product.productId || product.id,
+        name: product.title,
+        image: product.image,
+        price: product.price,
+        category: product.category,
+        variety: product.subtitle || 'Standard',
+        unit: 'piece'
+      };
+
+      const response = await axios.post(
+        `${API_BASE}${WISHLIST_ADD_ENDPOINT}`,
+        wishlistData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          timeout: 10000,
+        }
+      );
+
+      if (response.data.success) {
+        Alert.alert('Success', 'Product added to wishlist!');
+        setFavorites(prev => new Set(prev).add(product.id));
+        return true;
+      } else {
+        throw new Error(response.data.message || 'Failed to add to wishlist');
+      }
+    } catch (error) {
+      console.error('❌ Error adding to wishlist:', error);
+      
+      if (error.response?.status === 400) {
+        Alert.alert('Info', 'Product is already in your wishlist');
+        setFavorites(prev => new Set(prev).add(product.id));
+      } else if (error.response?.status === 401) {
+        Alert.alert('Login Required', 'Please login to add items to wishlist');
+      } else {
+        Alert.alert('Error', error.response?.data?.message || 'Failed to add to wishlist');
+      }
+      return false;
+    }
   };
 
-  const renderProductCard = ({ item }: { item: Product }) => (
-    <ProductCard
-      id={item.id}
-      title={item.title}
-      subtitle={item.subtitle}
-      price={item.price}
-      rating={item.rating}
-      image={item.image}
-      isFavorite={favorites.has(item.id)}
-      onPress={handleCardPress}
-      onFavoritePress={handleFavoritePress}
-      width={130}
-      showRating={true}
-      showFavorite={true}
-      imageHeight={120}
-      cardStyle={styles.cardMargin}
-    />
-  );
+  // Remove from Wishlist Function
+  const removeFromWishlist = async (product) => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      
+      if (!token) {
+        Alert.alert('Login Required', 'Please login to manage wishlist');
+        return false;
+      }
 
-  if (loading) {
+      const productId = product.productId || product.id;
+
+      const response = await axios.delete(
+        `${API_BASE}${WISHLIST_REMOVE_ENDPOINT}/${productId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          timeout: 10000,
+        }
+      );
+
+      if (response.data.success) {
+        setFavorites(prev => {
+          const next = new Set(prev);
+          next.delete(product.id);
+          return next;
+        });
+        return true;
+      } else {
+        throw new Error(response.data.message || 'Failed to remove from wishlist');
+      }
+    } catch (error) {
+      console.error('❌ Error removing from wishlist:', error);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to remove from wishlist');
+      return false;
+    }
+  };
+
+  const handleCardPress = (productId) => {
+    console.log('Product pressed:', productId);
+  };
+
+  const handleFavoritePress = async (productId) => {
+    try {
+      const product = filteredProducts.find(p => p.id === productId);
+      if (!product) return;
+
+      if (favorites.has(productId)) {
+        const success = await removeFromWishlist(product);
+        if (success) {
+          Alert.alert('Removed', 'Product removed from wishlist');
+        }
+      } else {
+        await addToWishlist(product);
+      }
+    } catch (error) {
+      console.error('Error in favorite press:', error);
+    }
+  };
+
+  const handleCategorySelect = (category) => {
+    setSelectedCategory(category);
+    toggleDropdown();
+    console.log('🎯 Selected category:', category);
+  };
+
+  const renderProductCard = useCallback(({ item }) => (
+    <View style={styles.cardWrapper}>
+      <ProductCard
+        id={item.id}
+        title={item.title}
+        subtitle={item.subtitle}
+        price={item.price}
+        rating={item.rating}
+        image={item.image}
+        isFavorite={favorites.has(item.id)}
+        onPress={handleCardPress}
+        onFavoritePress={handleFavoritePress}
+        width={135}
+        showRating
+        showFavorite
+        imageHeight={120}
+      />
+    </View>
+  ), [favorites, filteredProducts]);
+
+  const getItemLayout = useCallback((data, index) => ({
+    length: 138,
+    offset: 138 * index,
+    index,
+  }), []);
+
+  if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
@@ -154,21 +324,87 @@ const SmartPicks: React.FC<SmartPicksProps> = ({ category = 'Handicrafts' }) => 
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Smart Picks</Text>
-        <TouchableOpacity style={styles.categoryContainer}>
-          <Text style={styles.categoryText}>{category}</Text>
-          <Ionicons name="chevron-down" size={16} color="#666" />
-        </TouchableOpacity>
+        
+        {/* Dropdown Container */}
+        <View style={styles.filterWrapper}>
+          <TouchableOpacity
+            style={styles.filterBtn}
+            onPress={toggleDropdown}
+          >
+            <View style={styles.filterExpand}>
+              <Text style={styles.filterText}>{selectedCategory}</Text>
+              <Ionicons name="chevron-down" size={16} color="#666" />
+            </View>
+          </TouchableOpacity>
+
+          <Animated.View
+            style={[
+              styles.dropdown,
+              {
+                height: dropdownHeight,
+                borderWidth: borderWidth,
+              },
+            ]}
+          >
+            {categories.map((category) => (
+              <TouchableOpacity
+                key={category}
+                style={[
+                  styles.dropdownItem,
+                  selectedCategory === category && styles.selectedDropdownItem
+                ]}
+                onPress={() => handleCategorySelect(category)}
+              >
+                <Text style={[
+                  styles.dropdownText,
+                  selectedCategory === category && styles.selectedDropdownText
+                ]}>
+                  {category}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </Animated.View>
+        </View>
       </View>
-      
+
       <FlatList
-        data={products}
+        data={filteredProducts}
         renderItem={renderProductCard}
         keyExtractor={(item) => item.id}
         horizontal
         contentContainerStyle={styles.listContainer}
         showsHorizontalScrollIndicator={false}
-        ItemSeparatorComponent={() => <View style={{ width:1 }} />}
         style={styles.flatListStyle}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={() => fetchProducts(true)} 
+          />
+        }
+        ListEmptyComponent={
+          !loading && (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                {selectedCategory === 'All' 
+                  ? 'No products available right now.' 
+                  : `No ${selectedCategory} products available.`
+                }
+              </Text>
+              <TouchableOpacity 
+                style={styles.showAllButton}
+                onPress={() => handleCategorySelect('All')}
+              >
+                <Text style={styles.showAllButtonText}>Show All Products</Text>
+              </TouchableOpacity>
+            </View>
+          )
+        }
+        removeClippedSubviews={true}
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        windowSize={5}
+        getItemLayout={getItemLayout}
+        decelerationRate="fast"
       />
     </View>
   );
@@ -180,54 +416,107 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   loadingContainer: {
-    flex: 1,
+    paddingVertical: 30,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f8f9fa',
   },
   loadingText: {
     marginTop: 10,
-    fontSize: 16,
+    fontSize: 14,
     color: '#666',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 6,
     paddingTop: 10,
-    padding: 10,
-    paddingLeft: 13,
+    paddingHorizontal: 13,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '600',
     color: '#333',
   },
-  categoryContainer: {
+  filterWrapper: {
+    position: 'relative',
+    minWidth: 120,
+  },
+  filterBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(66, 66, 66, 0.7)',
+  },
+  filterExpand: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    borderRadius: 5,
-    padding: 5,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    gap: 10,
+    justifyContent: 'space-around',
   },
-  categoryText: {
-    fontSize: 14,
-    color: '#666',
-    marginRight: 5,
+  filterText: {
+    color: 'rgba(66, 66, 66, 0.7)',
+    textAlign: 'center',
+    fontSize: 13,
+  },
+  dropdown: {
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    borderColor: 'rgba(66, 66, 66, 0.7)',
+    borderRadius: 6,
+    position: 'absolute',
+    top: 35,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+  },
+  dropdownItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(66, 66, 66, 0.7)',
+  },
+  selectedDropdownItem: {
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+  },
+  dropdownText: {
+    color: 'rgba(66, 66, 66, 0.7)',
+    fontSize: 13,
+  },
+  selectedDropdownText: {
+    color: '#4CAF50',
+    fontWeight: '600',
   },
   listContainer: {
-    paddingRight: 10,
-    width:190,
+    paddingHorizontal:10,
   },
   flatListStyle: {
-    paddingBottom:10,
+    paddingBottom: 10,
   },
-  cardMargin: {
-    marginLeft:11,
+  cardWrapper: {
+    marginHorizontal: 4,
+  },
+  emptyContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: '#666',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  showAllButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  showAllButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

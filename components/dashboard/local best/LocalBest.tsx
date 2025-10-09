@@ -14,16 +14,14 @@ import {
 
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
 
-// ✅ Custom Product Card (same as Fresh & Popular)
-const ProductCard = ({ name, image }) => {
+// ✅ Custom Product Card
+const ProductCard = ({ name, image, vendorName }) => {
   return (
     <View style={cardStyles.container}>
       <View style={cardStyles.card}>
         <Image
           source={{
-            uri:
-              image ||
-              "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
+            uri: image || "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
           }}
           style={cardStyles.image}
           resizeMode="cover"
@@ -45,6 +43,8 @@ const NewSeason = () => {
   const fetchLocalBest = async () => {
     try {
       setLoading(true);
+      setError(null);
+      
       const token = await AsyncStorage.getItem("userToken");
 
       if (!token) {
@@ -54,28 +54,44 @@ const NewSeason = () => {
       }
 
       const response = await axios.get(
-        `${API_BASE}/api/buyer/local-best?lat=28.6139&lng=77.2090&maxDistance=5000`,
+        `${API_BASE}/api/buyer/local-best?lat=19.0760&lng=72.8777&maxDistance=50000`,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          timeout: 10000,
         }
       );
 
-      if (response.data.success) {
-        const formattedData = response.data.data.map((item) => ({
+      console.log("📦 Local Best API Response:", response.data);
+
+      if (response.data && response.data.success) {
+        // ✅ Direct mapping from API response
+        const formattedData = response.data.data.map((item, index) => ({
+          id: `local-best-${index}`,
           name: item.name,
-          image:
-            item.images?.[0] ||
-            "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
+          image: item.image,
         }));
+        
         setData(formattedData);
+        console.log(`✅ Loaded ${formattedData.length} local products`);
       } else {
-        setError("Failed to load data");
+        setError("No local products found in your area");
       }
     } catch (err) {
+      console.error("❌ Error fetching local best:", err);
+      
       if (err.response?.status === 401) {
-        setError("Please login to view products");
+        setError("Please login to view local products");
+      } else if (err.code === 'ECONNABORTED') {
+        setError("Request timeout. Please try again.");
+      } else if (err.response?.status === 404) {
+        setError("Local products not found in your area");
+      } else if (!err.response) {
+        setError("Network error. Please check your connection.");
       } else {
-        setError("Failed to fetch local best products");
+        setError("Failed to load local products. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -98,17 +114,17 @@ const NewSeason = () => {
   // ⏳ Loading State
   if (loading) {
     return (
-      <View style={{ marginVertical: 20, alignItems: "center" }}>
+      <View style={{ marginVertical: 20 }}>
         <View style={styles.headerRow}>
           <Text style={styles.heading}>Local Best</Text>
           <TouchableOpacity onPress={() => navigation.navigate("AllCategory")}>
             <Text style={styles.link}>View All</Text>
           </TouchableOpacity>
         </View>
-        <ActivityIndicator size="large" color="green" />
-        <Text style={{ marginTop: 10, color: "#666" }}>
-          Loading local products...
-        </Text>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4CAF50" />
+          <Text style={styles.loadingText}>Discovering local products...</Text>
+        </View>
       </View>
     );
   }
@@ -116,7 +132,7 @@ const NewSeason = () => {
   // ⚠️ Error State
   if (error) {
     return (
-      <View style={{ marginVertical: 20, alignItems: "center" }}>
+      <View style={{ marginVertical: 20 }}>
         <View style={styles.headerRow}>
           <Text style={styles.heading}>Local Best</Text>
           <TouchableOpacity onPress={() => navigation.navigate("AllCategory")}>
@@ -162,17 +178,23 @@ const NewSeason = () => {
       {data.length > 0 ? (
         <FlatList
           data={data}
-          keyExtractor={(_, index) => index.toString()}
+          keyExtractor={(item) => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 10 }}
+         contentContainerStyle={{ paddingHorizontal: 10 }}
           renderItem={({ item }) => (
-            <ProductCard name={item.name} image={item.image} />
+            <ProductCard 
+              name={item.name} 
+              image={item.image} 
+            />
           )}
         />
       ) : (
         <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>No local best products found</Text>
+          <Text style={styles.noDataText}>No local products found near you</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+            <Text style={styles.buttonText}>Try Again</Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -186,7 +208,7 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 20,
     marginLeft: 20,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   headerRow: {
     flexDirection: "row",
@@ -196,90 +218,90 @@ const styles = StyleSheet.create({
     paddingRight: 20,
   },
   link: {
-    color: "blue",
+    color: 'blue',
     flex: 1,
-    justifyContent: "center",
-    textAlign: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    textAlign: 'center',
+    alignItems: 'center',
   },
   errorContainer: {
-    alignItems: "center",
+    alignItems: 'center',
     padding: 20,
-    backgroundColor: "#ffebee",
+    backgroundColor: '#ffebee',
     borderRadius: 8,
     marginHorizontal: 20,
   },
   errorText: {
-    color: "#d32f2f",
-    textAlign: "center",
+    color: '#d32f2f',
+    textAlign: 'center',
     marginBottom: 15,
     fontSize: 16,
   },
   buttonContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 10,
   },
   retryButton: {
-    backgroundColor: "#1976d2",
+    backgroundColor: '#1976d2',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,
   },
   loginButton: {
-    backgroundColor: "#388e3c",
+    backgroundColor: '#388e3c',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,
   },
   buttonText: {
-    color: "white",
-    fontWeight: "600",
+    color: 'white',
+    fontWeight: '600',
   },
   noDataContainer: {
-    alignItems: "center",
+    alignItems: 'center',
     padding: 20,
   },
   noDataText: {
-    color: "#666",
+    color: '#666',
     fontSize: 16,
   },
 });
 
-// ✅ Card design (same as Fresh & Popular)
+// New Card Styles - Image inside card, name below card
 const cardStyles = StyleSheet.create({
   container: {
-    alignItems: "center",
+    alignItems: 'center',
     marginHorizontal: 8,
     width: 120,
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: '#e0e0e0',
     width: 120,
     height: 120,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    marginBottom: 5,
+    marginBottom:5,
   },
   image: {
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
     borderRadius: 8,
   },
   name: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#333",
-    textAlign: "center",
+    fontSize:14,
+    fontWeight: '500',
+    color: '#333',
+    textAlign: 'center',
     marginTop: 4,
-    flexWrap: "wrap",
+    flexWrap: 'wrap',
     width: 100,
   },
 });
