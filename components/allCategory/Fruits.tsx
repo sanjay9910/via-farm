@@ -132,7 +132,7 @@ const Fruits = () => {
   // ⚠️ Error
   if (error) {
     return (
-      <View style={{ marginVertical: 20 }}>
+      <View >
         <View style={styles.headerRow}>
           <Text style={styles.heading}>Fruits</Text>
           <TouchableOpacity onPress={() => navigation.navigate("AllFruits")}>
@@ -164,7 +164,7 @@ const Fruits = () => {
 
   // ✅ Success
   return (
-    <View style={{ marginVertical: 20 }}>
+    <View >
       <View style={styles.headerRow}>
         <Text style={styles.heading}>Fruits</Text>
         <TouchableOpacity onPress={() => navigation.navigate("AllFruits")}>
@@ -286,7 +286,6 @@ const cardStyles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    marginBottom: 5,
   },
   image: {
     width: "100%",

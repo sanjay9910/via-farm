@@ -1,76 +1,289 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import React from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Card from '../common/card';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-const Fruits = () => {
-  const navigation = useNavigation(); // Navigation hook add kiya
+const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
 
-  const data = [
-    { name: 'Seeds', image: 'https://via.placeholder.com/150' }, 
-    { name: 'Seeds', image: 'https://via.placeholder.com/150' }, 
-    { name: 'Seeds', image: 'https://via.placeholder.com/150' }, 
-    { name: 'Seeds', image: 'https://via.placeholder.com/150' }, 
-    { name: 'Seeds', image: 'https://via.placeholder.com/150' }, 
-    { name: 'Seeds', image: 'https://via.placeholder.com/150' }, 
-    { name: 'Seeds', image: 'https://via.placeholder.com/150' }, 
-    { name: 'Seeds', image: 'https://via.placeholder.com/150' }, 
-    { name: 'Seeds', image: 'https://via.placeholder.com/150' }, 
-   
-  ];
-
+// ✅ Reusable Product Card (same as Fruits/Vegetables/Handicrafts)
+const ProductCard = ({ name, image }) => {
   return (
-    <View style={{ marginVertical:10 }}>
-      <View style={styles.headerRow}>
-        <Text style={styles.heading}>Seeds</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("")}>
-          <View style={styles.linkContainer}>
-            <Text style={styles.link}>See All</Text>
-            <Ionicons name="arrow-forward" size={13} color="#007AFF" style={styles.icon} />
-          </View>
-        </TouchableOpacity>
+    <View style={cardStyles.container}>
+      <View style={cardStyles.card}>
+        <Image
+          source={{
+            uri: image || "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
+          }}
+          style={cardStyles.image}
+          resizeMode="cover"
+        />
       </View>
-
-      <FlatList
-        data={data}
-        keyExtractor={(item, index) => index.toString()}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 10 }}
-        renderItem={({ item }) => (
-          <Card name={item.name} image={item.image} stylek={{}} />
-        )}
-      />
+      <Text style={cardStyles.name} numberOfLines={2}>
+        {name}
+      </Text>
     </View>
   );
 };
 
-export default Fruits;
+const Seeds = () => {
+  const navigation = useNavigation();
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  const fetchSeeds = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const token = await AsyncStorage.getItem("userToken");
+
+      const response = await axios.get(
+        `${API_BASE}/api/buyer/products/by-category?category=Seeds`,
+        {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+            "Content-Type": "application/json",
+          },
+          timeout: 10000,
+        }
+      );
+
+      console.log("🌱 Seeds API Response:", response.data);
+
+      if (response.data && response.data.success) {
+        const formattedData = response.data.data.map((item, index) => ({
+          id: item._id || `seed-${index}`,
+          name: item.name,
+          image:
+            item.images && item.images.length > 0
+              ? item.images[0]
+              : "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
+        }));
+        setData(formattedData);
+      } else {
+        setError("No seeds found");
+        setData([]);
+      }
+    } catch (err) {
+      console.error("❌ Error fetching seeds:", err);
+      if (err.response?.status === 401) {
+        setError("Unauthorized. Please login to view seeds");
+      } else if (err.code === "ECONNABORTED") {
+        setError("Request timeout. Please try again.");
+      } else if (!err.response) {
+        setError("Network error. Please check your connection.");
+      } else {
+        setError("Failed to load seeds. Please try again.");
+      }
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSeeds();
+  }, []);
+
+  const handleRetry = () => {
+    setError(null);
+    fetchSeeds();
+  };
+
+  const handleLogin = () => {
+    navigation.navigate("login");
+  };
+
+  // ⏳ Loading
+  if (loading) {
+    return (
+      <View style={{ marginVertical: 10 }}>
+        <View style={styles.headerRow}>
+          <Text style={styles.heading}>Seeds</Text>
+          <TouchableOpacity onPress={() => navigation.navigate("AllSeeds")}>
+            <Text style={styles.link}>View All</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4CAF50" />
+          <Text style={styles.loadingText}>Fetching seeds...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // ⚠️ Error
+  if (error) {
+    return (
+      <View style={{ marginVertical: 10 }}>
+        <View style={styles.headerRow}>
+          <Text style={styles.heading}>Seeds</Text>
+          <TouchableOpacity onPress={() => navigation.navigate("AllSeeds")}>
+            <Text style={styles.link}>View All</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+              <Text style={styles.buttonText}>Try Again</Text>
+            </TouchableOpacity>
+
+            {error.includes("login") && (
+              <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+                <Text style={styles.buttonText}>Go to Login</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ✅ Success
+  return (
+    <View style={{ marginVertical: 10 }}>
+      <View style={styles.headerRow}>
+        <Text style={styles.heading}>Seeds</Text>
+        <TouchableOpacity onPress={() => navigation.navigate("AllSeeds")}>
+          <Text style={styles.link}>View All</Text>
+        </TouchableOpacity>
+      </View>
+
+      {data.length > 0 ? (
+        <FlatList
+          data={data}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 5 }}
+          renderItem={({ item }) => <ProductCard name={item.name} image={item.image} />}
+        />
+      ) : (
+        <View style={[styles.noDataContainer, { paddingBottom: 5 }]}>
+          <Text style={styles.noDataText}>No seeds available right now</Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
+export default Seeds;
+
+// ✅ Styles same as Fruits/Vegetables/Plants/Handicrafts
 const styles = StyleSheet.create({
   heading: {
     fontSize: 20,
     marginLeft: 20,
-    fontWeight: '600', 
+    fontWeight: "600",
   },
   headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 10,
     paddingRight: 20,
   },
-  linkContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   link: {
-    color: '#007AFF',
-    fontSize:12,
-    fontWeight:600,
+    color: "blue",
+    fontWeight: "600",
   },
-  icon:{
+  loadingContainer: {
+    alignItems: "center",
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: "#777",
+  },
+  errorContainer: {
+    alignItems: "center",
+    padding: 20,
+    backgroundColor: "#ffebee",
+    borderRadius: 8,
+    marginHorizontal: 20,
+  },
+  errorText: {
+    color: "#d32f2f",
+    textAlign: "center",
+    marginBottom: 15,
+    fontSize: 16,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  retryButton: {
+    backgroundColor: "#1976d2",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  loginButton: {
+    backgroundColor: "#388e3c",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  buttonText: {
+    color: "white",
+    fontWeight: "600",
+  },
+  noDataContainer: {
+    alignItems: "center",
+    padding: 20,
+  },
+  noDataText: {
+    color: "#666",
+    fontSize: 16,
+  },
+});
 
-  }
+// ✅ Card styles same as other categories
+const cardStyles = StyleSheet.create({
+  container: {
+    alignItems: "center",
+    marginHorizontal: 8,
+    width: 120,
+  },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    width: 120,
+    height: 120,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 8,
+  },
+  name: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
+    textAlign: "center",
+    marginTop: 4,
+    flexWrap: "wrap",
+    width: 100,
+  },
 });

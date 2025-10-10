@@ -1,6 +1,6 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
-import OrderAdd from '../../components/myCard/OrderAdd'
+import OrderAdd from '../../components/myCard/AddToCard'
 
 const MyCard = () => {
   return (

@@ -1,6 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from 'expo-router';
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   Dimensions,
   Image,
@@ -9,6 +11,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -16,52 +19,25 @@ import SuggestionCard from './SuggestionCard';
 
 const { width, height } = Dimensions.get('window');
 
-const MyCart = () => {
+const BASE_URL = 'https://393rb0pp-5000.inc1.devtunnels.ms';
+const GET_CART_ENDPOINT = '/api/buyer/cart';
+const ADD_UPDATE_CART_ENDPOINT = '/api/buyer/cart/add';
+const DELETE_CART_ITEM_ENDPOINT = '/api/buyer/cart/';
 
+const MyCart = () => {
   const navigation = useNavigation();
-  // API data - Replace this with your actual API call
-  const [cartItems, setCartItems] = useState([
-    {
-      id: '1',
-      title: 'Ceramic Bowl',
-      subtitle: 'Hand Crafted',
-      price: 350,
-      mrp: 450,
-      image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=300&h=300&fit=crop',
-      quantity: 1,
-      deliveryDate: 'Sep 25',
-    },
-    {
-      id: '3',
-      title: 'Wooden Spoon Set',
-      subtitle: 'Natural Wood',
-      price: 200,
-      mrp: 280,
-      image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=300&fit=crop',
-      quantity: 3,
-      deliveryDate: 'Sep 27',
-    },
-    {
-      id: '78',
-      title: 'Glass Jar',
-      subtitle: 'Storage Container',
-      price: 150,
-      mrp: 200,
-      image: 'https://images.unsplash.com/photo-1544967882-6abaa82dfea2?w=300&h=300&fit=crop',
-      quantity: 2,
-      deliveryDate: 'Sep 30',
-    },
-    {
-      id: '5',
-      title: 'Jade',
-      subtitle: 'Money Plant with Pot',
-      price: 100,
-      mrp: 150,
-      image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=300&h=300&fit=crop',
-      quantity: 1,
-      deliveryDate: 'Sep 30',
-    },
-  ]);
+
+  const [authToken, setAuthToken] = useState(null);
+  const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Price summary from API
+  const [priceDetails, setPriceDetails] = useState({
+    totalMRP: 0,
+    couponDiscount: 0,
+    deliveryCharge: 0,
+    totalAmount: 0,
+  });
 
   // Modal state
   const [modalVisible, setModalVisible] = useState(false);
@@ -71,14 +47,203 @@ const MyCart = () => {
   const [pickupModalVisible, setPickupModalVisible] = useState(false);
   const pickupSlideAnim = useRef(new Animated.Value(300)).current;
 
-  // Calculate totals
-  const totalMRP = cartItems.reduce((sum, item) => sum + (item.mrp * item.quantity), 0);
-  const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const couponDiscount = 0;
-  const deliveryCharges = 50;
-  const finalAmount = totalPrice + deliveryCharges - couponDiscount;
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
 
-  // PanResponder for delivery modal
+  // Available coupons
+  const availableCoupons = [
+    { code: 'SAVE10', discount: 10, type: 'percentage' },
+    { code: 'SAVE20', discount: 20, type: 'percentage' },
+    { code: 'FREESHIP', discount: 50, type: 'fixed' },
+  ];
+
+  // Calculate coupon discount
+  const calculateCouponDiscount = () => {
+    if (!appliedCoupon) return 0;
+    
+    if (appliedCoupon.type === 'percentage') {
+      return (priceDetails.totalAmount * appliedCoupon.discount) / 100;
+    } else {
+      return Math.min(appliedCoupon.discount, priceDetails.totalAmount);
+    }
+  };
+
+  const couponDiscount = calculateCouponDiscount();
+  const finalAmount = priceDetails.totalAmount + priceDetails.deliveryCharge - couponDiscount;
+
+  // --- Fetch Token ---
+  const getAuthToken = async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (token) setAuthToken(token);
+      return token;
+    } catch (e) {
+      console.error('Failed to load token:', e);
+      return null;
+    }
+  };
+
+  // --- Fetch Cart ---
+  const fetchCartItems = useCallback(async (token) => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`${BASE_URL}${GET_CART_ENDPOINT}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        const items = json.data.items || [];
+        const transformed = items.map(item => ({
+          id: item.id,
+          title: item.name,
+          subtitle: item.subtitle,
+          mrp: item.mrp,
+          price: item.mrp, 
+          image: item.imageUrl,
+          quantity: item.quantity,
+          deliveryDate: item.deliveryText || 'Sep 27', 
+        }));
+        setCartItems(transformed);
+
+        const summary = json.data.priceDetails || {};
+        setPriceDetails({
+          totalMRP: summary.totalMRP || 0,
+          couponDiscount: summary.couponDiscount || 0,
+          deliveryCharge: summary.deliveryCharge || 0,
+          totalAmount: summary.totalAmount || 0,
+        });
+      } else {
+        setCartItems([]);
+        setPriceDetails({ totalMRP: 0, couponDiscount: 0, deliveryCharge: 0, totalAmount: 0 });
+        console.warn('Failed to fetch cart:', json.message);
+      }
+    } catch (error) {
+      console.error('Fetch Cart Error:', error);
+      Alert.alert('Error', 'Could not fetch cart.');
+      setCartItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const init = async () => {
+      const token = await getAuthToken();
+      if (token) fetchCartItems(token);
+      else {
+        setLoading(false);
+        Alert.alert('Login Required', 'Please log in to view your cart.');
+      }
+    };
+    init();
+  }, [fetchCartItems]);
+
+  // --- Update Quantity ---
+  const updateQuantity = async (itemId, newQty) => {
+  if (!authToken) {
+    Alert.alert('Error', 'Token not found.');
+    return;
+  }
+  
+  if (newQty < 1) return removeItem(itemId);
+
+  const prevItem = cartItems.find(i => i.id === itemId);
+
+  // Optimistic UI
+  setCartItems(prev =>
+    prev.map(i => (i.id === itemId ? { ...i, quantity: newQty } : i))
+  );
+
+  try {
+    // Correct API endpoint with itemId in URL
+    const res = await fetch(`${BASE_URL}/api/buyer/cart/${itemId}/quantity`, {
+      method: 'PUT',
+      headers: { 
+        'Content-Type': 'application/json', 
+        Authorization: `Bearer ${authToken}` 
+      },
+      body: JSON.stringify({ quantity: newQty }), // Only send quantity in body
+    });
+    
+    const json = await res.json();
+    
+    if (!res.ok || !json.success) {
+      Alert.alert('Update Failed', json.message || 'Could not update quantity.');
+      // Revert optimistic update
+      setCartItems(prev =>
+        prev.map(i => (i.id === itemId ? prevItem : i))
+      );
+    } else {
+      // Refresh cart data to get updated prices
+      fetchCartItems(authToken);
+    }
+  } catch (e) {
+    console.error('Update Error:', e);
+    Alert.alert('Error', 'Network error.');
+    // Revert optimistic update
+    setCartItems(prev =>
+      prev.map(i => (i.id === itemId ? prevItem : i))
+    );
+  }
+};
+
+  // --- Remove Item ---
+  const removeItem = async (itemId) => {
+    if (!authToken) return Alert.alert('Error', 'Token not found.');
+    const prevCart = [...cartItems];
+    
+    // Optimistic UI update
+    setCartItems(prev => prev.filter(i => i.id !== itemId));
+
+    try {
+      const res = await fetch(`${BASE_URL}${DELETE_CART_ITEM_ENDPOINT}${itemId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        Alert.alert('Remove Failed', json.message || 'Could not remove item.');
+        // Revert optimistic update
+        setCartItems(prevCart);
+      } else {
+        // Refresh cart data
+        fetchCartItems(authToken);
+      }
+    } catch (e) {
+      console.error('Remove Error:', e);
+      Alert.alert('Error', 'Network error.');
+      // Revert optimistic update
+      setCartItems(prevCart);
+    }
+  };
+
+  // Apply coupon function
+  const applyCoupon = () => {
+    setCouponError('');
+    const coupon = availableCoupons.find(c => c.code === couponCode.toUpperCase());
+    
+    if (coupon) {
+      setAppliedCoupon(coupon);
+    } else {
+      setCouponError('Invalid coupon code');
+    }
+  };
+
+  // Remove coupon function
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    setCouponError('');
+  };
+
+  // Modal functions - same as your original
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onPanResponderMove: (evt, gestureState) => {
@@ -98,7 +263,6 @@ const MyCart = () => {
     },
   });
 
-  // PanResponder for pickup modal
   const pickupPanResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onPanResponderMove: (evt, gestureState) => {
@@ -140,16 +304,11 @@ const MyCart = () => {
   const handleOptionSelect = (option) => {
     navigation.navigate("ReviewOrder")
     setSelectedOption(option);
-    // setTimeout(() => {
-      closeModal();
-    // }, 500);
+    closeModal();
   };
 
   const openPickupModal = () => {
-    // पहले delivery modal को बंद करें
     closeModal();
-
-    // थोड़ी देर बाद pickup modal खोलें
     setTimeout(() => {
       setPickupModalVisible(true);
       Animated.timing(pickupSlideAnim, {
@@ -174,27 +333,10 @@ const MyCart = () => {
     navigation.navigate("ReviewOrder")
   }
 
-  const updateQuantity = (itemId, newQuantity) => {
-    if (newQuantity === 0) {
-      setCartItems(prev => prev.filter(item => item.id !== itemId));
-    } else {
-      setCartItems(prev =>
-        prev.map(item =>
-          item.id === itemId
-            ? { ...item, quantity: newQuantity }
-            : item
-        )
-      );
-    }
-  };
-
-  const removeItem = (itemId) => {
-    setCartItems(prev => prev.filter(item => item.id !== itemId));
-  };
-
+  // Cart Card Component - same design as original
   const CartCard = ({ item }) => (
     <View style={styles.cartCard}>
-      <Image source={{ uri: item.image }} style={styles.productImage} />
+      <Image source={{ uri: item.image || 'https://via.placeholder.com/300' }} style={styles.productImage} />
 
       <View style={styles.productDetails}>
         <View style={styles.productInfo}>
@@ -202,7 +344,7 @@ const MyCart = () => {
           <Text style={styles.productSubtitle}>{item.subtitle}</Text>
 
           <View style={styles.priceContainer}>
-            <Text style={styles.mrpText}>MRP ₹{item.mrp}</Text>
+            {/* <Text style={styles.mrpText}>MRP ₹{item.mrp}</Text> */}
             <Text style={styles.priceText}>₹{item.price}</Text>
           </View>
 
@@ -243,54 +385,101 @@ const MyCart = () => {
     <View style={{ flex: 1, backgroundColor: '#fff' }}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Cart</Text>
+        <Text style={styles.headerTitle}>My Cart {loading && '(Updating...)'}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       {/* Scrollable Content */}
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
         <View style={styles.cartSection}>
-          {cartItems.map((item) => (
-            <CartCard key={item.id} item={item} />
-          ))}
+          {loading && cartItems.length === 0 ? (
+            <Text style={styles.emptyCartText}>Loading cart...</Text>
+          ) : cartItems.length === 0 ? (
+            <Text style={styles.emptyCartText}>Your cart is empty!</Text>
+          ) : (
+            cartItems.map((item) => (
+              <CartCard key={item.id} item={item} />
+            ))
+          )}
         </View>
 
-        <View style={styles.priceSection}>
-          <Text style={styles.priceSectionTitle}>Price Details</Text>
-
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Total MRP</Text>
-            <Text style={styles.priceValue}>₹{totalMRP}</Text>
+        {/* Coupon Section */}
+        {cartItems.length > 0 && (
+          <View style={styles.couponSection}>
+            <Text style={styles.couponTitle}>Have a Coupon ?</Text>
+            <Text style={styles.couponSubtitle}>Apply now and Save Extra!</Text>
+            
+            <View style={styles.couponInputContainer}>
+              <TextInput
+                style={styles.couponInput}
+                placeholder="Enter your coupon code"
+                value={couponCode}
+                onChangeText={setCouponCode}
+                editable={!appliedCoupon}
+              />
+              {appliedCoupon ? (
+                <TouchableOpacity style={styles.removeCouponButton} onPress={removeCoupon}>
+                  <Text style={styles.removeCouponText}>Remove</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.applyCouponButton} onPress={applyCoupon}>
+                  <Text style={styles.applyCouponText}>Apply</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            {couponError ? (
+              <Text style={styles.couponError}>{couponError}</Text>
+            ) : appliedCoupon ? (
+              <Text style={styles.couponSuccess}>
+                Coupon applied! {appliedCoupon.discount}
+                {appliedCoupon.type === 'percentage' ? '%' : '₹'} discount
+              </Text>
+            ) : null}
           </View>
+        )}
 
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Coupon Discount</Text>
-            <Text style={styles.discountValue}>-₹{couponDiscount}</Text>
-          </View>
+        {/* Price Section */}
+        {cartItems.length > 0 && (
+          <View style={styles.priceSection}>
+            <Text style={styles.priceSectionTitle}>Price Details</Text>
 
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Delivery Charges</Text>
-            <Text style={styles.priceValue}>₹{deliveryCharges}</Text>
-          </View>
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>Total MRP</Text>
+              <Text style={styles.priceValue}>₹{priceDetails.totalMRP}</Text>
+            </View>
 
-          <View style={[styles.priceRow, styles.totalRow]}>
-            <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>₹{finalAmount}</Text>
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>Coupon Discount</Text>
+              <Text style={styles.discountValue}>-₹{couponDiscount}</Text>
+            </View>
+
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>Delivery Charges</Text>
+              <Text style={styles.priceValue}>₹{priceDetails.deliveryCharge}</Text>
+            </View>
+
+            <View style={[styles.priceRow, styles.totalRow]}>
+              <Text style={styles.totalLabel}>Total Amount</Text>
+              <Text style={styles.totalValue}>₹{finalAmount}</Text>
+            </View>
           </View>
-        </View>
+        )}
 
         <SuggestionCard />
       </ScrollView>
 
       {/* Fixed Checkout Button */}
-      <View style={styles.checkoutContainer}>
-        <TouchableOpacity style={styles.checkoutButton} onPress={openModal}>
-          <Image source={require("../../assets/via-farm-img/icons/UpArrow.png")} />
-          <Text style={styles.checkoutText}>Place Order</Text>
-        </TouchableOpacity>
-      </View>
+      {cartItems.length > 0 && (
+        <View style={styles.checkoutContainer}>
+          <TouchableOpacity style={styles.checkoutButton} onPress={openModal}>
+            <Image source={require("../../assets/via-farm-img/icons/UpArrow.png")} />
+            <Text style={styles.checkoutText}>Place Order</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
-      {/* Pickup Modal */}
+      {/* Pickup Modal - Same as original */}
       <Modal
         visible={pickupModalVisible}
         transparent={true}
@@ -298,14 +487,12 @@ const MyCart = () => {
         onRequestClose={closePickupModal}
       >
         <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-          {/* Background overlay */}
           <TouchableOpacity
             style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' }}
             activeOpacity={1}
             onPress={closePickupModal}
           />
 
-          {/* Bottom Sheet */}
           <Animated.View
             style={{
               backgroundColor: '#fff',
@@ -319,12 +506,9 @@ const MyCart = () => {
             }}
             {...pickupPanResponder.panHandlers}
           >
-            {/* Drag handle */}
             <View style={styles.dragHandle} />
 
-            {/* Modal content Start*/}
             <View style={styles.modalContainer}>
-              {/* Header */}
               <View style={styles.modalHeader}>
                 <TouchableOpacity style={styles.backButton}>
                   <Image source={require('../../assets/via-farm-img/icons/groupArrow.png')} />
@@ -332,7 +516,6 @@ const MyCart = () => {
                 <Text style={styles.modalHeaderTitle}>Pickup Location</Text>
               </View>
 
-              {/* Location Info */}
               <View style={styles.locationInfo}>
                 <View style={styles.locationIcon}>
                   <Image source={require('../../assets/via-farm-img/icons/loca.png')} />
@@ -346,11 +529,9 @@ const MyCart = () => {
                 </TouchableOpacity>
               </View>
 
-              {/* Pick a slot section */}
               <View style={styles.slotSection}>
                 <Text style={styles.slotTitle}>Pick a slot</Text>
 
-                {/* Date picker */}
                 <View style={styles.dateRow}>
                   <Text style={styles.dateLabel}>Date</Text>
                   <TouchableOpacity style={styles.datePicker}>
@@ -359,7 +540,6 @@ const MyCart = () => {
                   </TouchableOpacity>
                 </View>
 
-                {/* Time slot */}
                 <View style={styles.timeRow}>
                   <Text style={styles.timeLabel}>Between</Text>
                   <View style={styles.timeContainer}>
@@ -376,13 +556,10 @@ const MyCart = () => {
                 </View>
               </View>
 
-              {/* Vendor Details */}
               <Text style={styles.vendorTitle}>Vendor's Details</Text>
 
               <View style={styles.vendorInfo}>
-                {/* <View style={styles.vendorImage}> */}
-                  <Image borderRadius={10} width={30} height={30} source={require("../../assets/via-farm-img/category/category.png")} />
-                {/* </View> */}
+                <Image borderRadius={10} width={30} height={30} source={require("../../assets/via-farm-img/category/category.png")} />
                 <View style={styles.vendorDetails}>
                   <Text style={styles.vendorName}>Ashok Sharma</Text>
                   <Text style={styles.vendorLocation}>Location - 182/3, Vinod Nagar,Delhi</Text>
@@ -390,9 +567,7 @@ const MyCart = () => {
                 </View>
               </View>
             </View>
-            {/* Model Content End */}
 
-            {/* Fixed Proceed Button */}
             <View style={styles.bottomProceed}>
               <TouchableOpacity
                 style={styles.proceedButtonStyle}
@@ -409,7 +584,7 @@ const MyCart = () => {
         </View>
       </Modal>
 
-      {/* Delivery Option Modal */}
+      {/* Delivery Option Modal - Same as original */}
       <Modal
         visible={modalVisible}
         transparent={true}
@@ -431,17 +606,13 @@ const MyCart = () => {
             ]}
             {...panResponder.panHandlers}
           >
-            {/* Drag Handle */}
             <View style={styles.dragHandle} />
 
-            {/* Modal Header */}
             <View style={styles.deliveryModalHeader}>
               <Text style={styles.modalTitle}>Select One</Text>
             </View>
 
-            {/* Options */}
             <View style={styles.optionsContainer}>
-              {/* Pickup Option */}
               <TouchableOpacity
                 style={styles.optionCard}
                 onPress={openPickupModal}
@@ -454,7 +625,6 @@ const MyCart = () => {
                 </View>
               </TouchableOpacity>
 
-              {/* Delivery Option */}
               <TouchableOpacity
                 style={styles.optionCard}
                 onPress={() => handleOptionSelect('delivery')}
@@ -475,6 +645,80 @@ const MyCart = () => {
 };
 
 const styles = StyleSheet.create({
+  emptyCartText: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#666',
+    marginTop: 50,
+    padding: 20,
+  },
+  couponSection: {
+    backgroundColor: '#fff',
+    margin: 8,
+    marginTop: 16,
+    borderRadius: 8,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  couponTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(1, 151, 218, 1)',
+    marginBottom: 4,
+  },
+  couponSubtitle: {
+    fontSize: 14,
+    color: 'rgba(1, 151, 218, 1)',
+    marginBottom: 12,
+  },
+  couponInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  couponInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginRight: 10,
+    fontSize: 14,
+  },
+  applyCouponButton: {
+    backgroundColor: 'rgba(76, 175, 80, 1)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  applyCouponText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  removeCouponButton: {
+    backgroundColor: '#ff4444',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  removeCouponText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  couponError: {
+    color: '#ff4444',
+    fontSize: 12,
+    marginTop: 8,
+  },
+  couponSuccess: {
+    color: '#28a745',
+    fontSize: 12,
+    marginTop: 8,
+  },
+
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -538,7 +782,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   priceContainer: {
-    // backgroundColor:'blue',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   mrpText: {
     fontSize: 14,
@@ -556,11 +801,14 @@ const styles = StyleSheet.create({
     color: '#28a745',
     marginTop: 4,
   },
-  removeButton: {
-    position: 'absolute',
-    padding: 4,
-    marginLeft: 240,
-  },
+removeButton: {
+  position: 'absolute',
+  right: '5%',  
+  top: '5%',    
+  padding: 4,
+  backgroundColor: '#fff', 
+  borderRadius: 20,        
+},
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -584,11 +832,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: 'rgba(76, 175, 80, 1)',
-  },
-  quantityDisplay: {
-    marginHorizontal: 12,
-    minWidth: 30,
-    alignItems: 'center',
   },
   quantityText: {
     fontSize: 16,

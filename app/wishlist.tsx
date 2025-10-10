@@ -145,29 +145,140 @@ const MyWishlist = () => {
         }
     };
 
-    // Function to handle add to cart
-    const handleAddToCart = (id) => {
-        const updatedData = wishlistData.map(item => {
-            if (item.id === id) {
-                return { ...item, inCart: true };
-            }
-            return item;
-        });
-        const updatedFilteredData = filteredData.map(item => {
-            if (item.id === id) {
-                return { ...item, inCart: true };
-            }
-            return item;
-        });
+    // Function to handle add to cart via API
+    const handleAddToCart = async (item) => {
+        try {
+            const token = await AsyncStorage.getItem("userToken");
 
-        setWishlistData(updatedData);
-        setFilteredData(updatedFilteredData);
-        Alert.alert('Added to Cart', 'Item has been added to your cart');
+            if (!token) {
+                throw new Error("No token found. Please login again.");
+            }
+
+            console.log("🛒 Adding to cart:", item);
+
+            const requestBody = {
+                productId: item.productId || item.id,
+                quantity: 1 // Default quantity, you can modify this as needed
+            };
+
+            console.log("🛒 Add to Cart Request Body:", requestBody);
+
+            const response = await fetch(`${API_BASE}/api/buyer/cart/add`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(requestBody),
+            });
+
+            const json = await response.json();
+            console.log("🛒 Add to Cart Response:", json);
+
+            if (!response.ok || !json.success) {
+                throw new Error(json.message || `Failed to add item to cart`);
+            }
+
+            // Update local state to show item is in cart
+            const updatedData = wishlistData.map(wishlistItem => {
+                if (wishlistItem.id === item.id) {
+                    return { ...wishlistItem, inCart: true };
+                }
+                return wishlistItem;
+            });
+            
+            const updatedFilteredData = filteredData.map(wishlistItem => {
+                if (wishlistItem.id === item.id) {
+                    return { ...wishlistItem, inCart: true };
+                }
+                return wishlistItem;
+            });
+
+            setWishlistData(updatedData);
+            setFilteredData(updatedFilteredData);
+
+            Alert.alert('Success', 'Item added to cart successfully');
+        } catch (error) {
+            console.error('❌ Error adding to cart:', error);
+            Alert.alert('Error', error.message || 'Failed to add item to cart');
+        }
     };
 
-    // Function to handle move to cart (for items already in cart)
-    const handleMoveToCart = (id) => {
-        Alert.alert('Move to Cart', 'Item is already in your cart');
+    // Function to handle remove from cart via API
+    const handleRemoveFromCart = async (item) => {
+        try {
+            const token = await AsyncStorage.getItem("userToken");
+
+            if (!token) {
+                throw new Error("No token found. Please login again.");
+            }
+
+            console.log("🗑️ Removing from cart:", item);
+
+            const itemId = item.productId || item.id;
+            const response = await fetch(`${API_BASE}/api/buyer/cart/${itemId}`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            const json = await response.json();
+            console.log("🗑️ Remove from Cart Response:", json);
+
+            if (!response.ok || !json.success) {
+                throw new Error(json.message || `Failed to remove item from cart`);
+            }
+
+            // Update local state to show item is not in cart
+            const updatedData = wishlistData.map(wishlistItem => {
+                if (wishlistItem.id === item.id) {
+                    return { ...wishlistItem, inCart: false };
+                }
+                return wishlistItem;
+            });
+            
+            const updatedFilteredData = filteredData.map(wishlistItem => {
+                if (wishlistItem.id === item.id) {
+                    return { ...wishlistItem, inCart: false };
+                }
+                return wishlistItem;
+            });
+
+            setWishlistData(updatedData);
+            setFilteredData(updatedFilteredData);
+
+            Alert.alert('Success', 'Item removed from cart successfully');
+        } catch (error) {
+            console.error('❌ Error removing from cart:', error);
+            Alert.alert('Error', error.message || 'Failed to remove item from cart');
+        }
+    };
+
+    // Function to handle move to cart (toggle between add/remove)
+    const handleCartAction = (item) => {
+        if (item.inCart) {
+            // If item is already in cart, remove it
+            Alert.alert(
+                'Remove from Cart',
+                'Are you sure you want to remove this item from your cart?',
+                [
+                    {
+                        text: 'Cancel',
+                        style: 'cancel',
+                    },
+                    {
+                        text: 'Remove',
+                        style: 'destructive',
+                        onPress: () => handleRemoveFromCart(item),
+                    },
+                ]
+            );
+        } else {
+            // If item is not in cart, add it
+            handleAddToCart(item);
+        }
     };
 
     const toggleDropdown = () => {
@@ -269,16 +380,16 @@ const MyWishlist = () => {
                 </Text>
             </View>
 
-            {/* Add to Cart Button */}
+            {/* Add to Cart / Remove from Cart Button */}
             <TouchableOpacity
                 style={[
                     styles.cartButton,
-                    item.inCart ? styles.moveButton : styles.addButton
+                    item.inCart ? styles.removeButton : styles.addButton
                 ]}
-                onPress={() => item.inCart ? handleMoveToCart(item.id) : handleAddToCart(item.id)}
+                onPress={() => handleCartAction(item)}
             >
                 <Text style={styles.cartButtonText}>
-                    {item.inCart ? 'Move to Cart' : 'Add to Cart'}
+                    {item.inCart ? 'Remove from Cart' : 'Add to Cart'}
                 </Text>
             </TouchableOpacity>
         </View>
@@ -390,12 +501,13 @@ const MyWishlist = () => {
                     contentContainerStyle={styles.flatListContent}
                     showsVerticalScrollIndicator={false}
                     refreshing={loading}
-                    onRefresh={fetchWishlistData} // ✅ Yeh line add karein
+                    onRefresh={fetchWishlistData}
                 />
             )}
         </SafeAreaView>
     );
 };
+
 
 const styles = StyleSheet.create({
     container: {

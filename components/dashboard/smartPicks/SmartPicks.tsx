@@ -20,6 +20,8 @@ const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
 const ENDPOINT = '/api/buyer/smart-picks';
 const WISHLIST_ADD_ENDPOINT = '/api/buyer/wishlist/add';
 const WISHLIST_REMOVE_ENDPOINT = '/api/buyer/wishlist';
+const CART_ADD_ENDPOINT = '/api/buyer/cart/add';
+const CART_QUANTITY_ENDPOINT = '/api/buyer/cart';
 
 const SmartPicks = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -29,6 +31,7 @@ const SmartPicks = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [favorites, setFavorites] = useState(new Set());
   const [showDropdown, setShowDropdown] = useState(false);
+  const [cartItems, setCartItems] = useState({}); // Store cart quantities by productId
 
   const animation = useRef(new Animated.Value(0)).current;
 
@@ -53,17 +56,19 @@ const SmartPicks = () => {
   }, [products, selectedCategory, filterProductsByCategory]);
 
   const mapApiItemToProduct = useCallback((item) => {
+
+  
     return {
       id: item.id || item._id || String(Math.random()),
       title: item.name || item.title || 'Product',
-      subtitle: item.vendor?.name || '',
+      subtitle: item.vendor?.name || item.variety || '',
       price: item.price ?? 0,
       rating: item.rating ?? 0,
       ratingCount: item.ratingCount ?? 0,
       image: item.image || null,
       isFavorite: false,
-      raw: item, // keep original API data for filtering
-      productId: item.productId || item.id,
+      raw: item, // Keep original data
+      productId: item._id || item.id || item.productId,
       category: item.category || 'General',
     };
   }, []);
@@ -84,7 +89,6 @@ const SmartPicks = () => {
         const mapped = res.data.data.map(mapApiItemToProduct);
         setProducts(mapped);
         console.log('📦 Loaded products:', mapped.length);
-        console.log('🏷️ Product categories:', [...new Set(mapped.map(p => p.category))]);
       } else {
         if (res?.data?.data) {
           try {
@@ -103,6 +107,36 @@ const SmartPicks = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  // Fetch Cart Items
+  const fetchCart = async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
+
+      const response = await axios.get(`${API_BASE}/api/buyer/cart`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.data.success) {
+        const items = response.data.data?.items || [];
+        const cartMap = {};
+        items.forEach(item => {
+          const productId = item.productId || item.id;
+          cartMap[productId] = {
+            quantity: item.quantity || 1,
+            cartItemId: item._id || item.id
+          };
+        });
+        setCartItems(cartMap);
+        // Removed console log to reduce clutter
+      }
+    } catch (error) {
+      console.error('Error fetching cart:', error);
     }
   };
 
@@ -131,16 +165,18 @@ const SmartPicks = () => {
   useEffect(() => {
     fetchProducts();
     fetchWishlist();
+    fetchCart();
   }, []);
 
-  // Listen for wishlist updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchWishlist();
-    }, 3000);
+  // Listen for cart updates (removed auto-refresh to reduce API calls)
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     fetchCart();
+  //     fetchWishlist();
+  //   }, 3000);
 
-    return () => clearInterval(interval);
-  }, []);
+  //   return () => clearInterval(interval);
+  // }, []);
 
   // Dropdown animation
   const toggleDropdown = () => {
@@ -156,13 +192,124 @@ const SmartPicks = () => {
 
   const dropdownHeight = animation.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 240], // Height for 6 items
+    outputRange: [0, 240],
   });
 
   const borderWidth = animation.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 1],
   });
+
+  // Add to Cart Function
+  const addToCart = async (product) => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      
+      if (!token) {
+        Alert.alert('Login Required', 'Please login to add items to cart');
+        return false;
+      }
+
+      // Get the correct productId from raw data
+      const productId = product.raw?.productId || product.raw?._id || product.productId || product.id;
+
+      const cartData = {
+        productId: productId,
+        name: product.title || product.raw?.name,
+        image: product.image || product.raw?.image,
+        price: product.price || product.raw?.price,
+        quantity: 1,
+        category: product.category || product.raw?.category || 'General',
+        variety: product.subtitle || product.raw?.variety || 'Standard',
+        unit: 'piece'
+      };
+
+
+      const response = await axios.post(
+        `${API_BASE}${CART_ADD_ENDPOINT}`,
+        cartData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          timeout: 10000,
+        }
+      );
+
+      if (response.data.success) {
+        Alert.alert('Success', 'Product added to cart!');
+        // Update cart items immediately
+        await fetchCart();
+        return true;
+      } else {
+        throw new Error(response.data.message || 'Failed to add to cart');
+      }
+    } catch (error) {
+      console.error('❌ Error adding to cart:', error);
+      console.error('❌ Error response:', error.response?.data);
+      
+      if (error.response?.status === 400) {
+        const errorMsg = error.response?.data?.message || 'Product is already in your cart';
+        Alert.alert('Info', errorMsg);
+        await fetchCart();
+      } else if (error.response?.status === 401) {
+        Alert.alert('Login Required', 'Please login to add items to cart');
+      } else {
+        Alert.alert('Error', error.response?.data?.message || 'Failed to add to cart');
+      }
+      return false;
+    }
+  };
+
+  // Update Cart Quantity
+  const updateQuantity = async (itemId, newQty) => {
+  if (!authToken) {
+    Alert.alert('Error', 'Token not found.');
+    return;
+  }
+  
+  if (newQty < 1) return removeItem(itemId);
+
+  const prevItem = cartItems.find(i => i.id === itemId);
+
+  // Optimistic UI
+  setCartItems(prev =>
+    prev.map(i => (i.id === itemId ? { ...i, quantity: newQty } : i))
+  );
+
+  try {
+    // Correct API endpoint with itemId in URL
+    const res = await fetch(`${BASE_URL}/api/buyer/cart/${itemId}/quantity`, {
+      method: 'PUT',
+      headers: { 
+        'Content-Type': 'application/json', 
+        Authorization: `Bearer ${authToken}` 
+      },
+      body: JSON.stringify({ quantity: newQty }), // Only send quantity in body
+    });
+    
+    const json = await res.json();
+    
+    if (!res.ok || !json.success) {
+      Alert.alert('Update Failed', json.message || 'Could not update quantity.');
+      // Revert optimistic update
+      setCartItems(prev =>
+        prev.map(i => (i.id === itemId ? prevItem : i))
+      );
+    } else {
+      // Refresh cart data to get updated prices
+      fetchCartItems(authToken);
+    }
+  } catch (e) {
+    console.error('Update Error:', e);
+    Alert.alert('Error', 'Network error.');
+    // Revert optimistic update
+    setCartItems(prev =>
+      prev.map(i => (i.id === itemId ? prevItem : i))
+    );
+  }
+};
 
   // Add to Wishlist Function
   const addToWishlist = async (product) => {
@@ -279,31 +426,81 @@ const SmartPicks = () => {
     }
   };
 
+  // Handle Add to Cart Button Press from ProductCard
+  const handleAddToCart = async (productId) => {
+    try {
+      const product = filteredProducts.find(p => p.id === productId);
+      if (!product) return;
+
+      const productIdKey = product.productId || product.id;
+      
+      // Check if already in cart
+      if (cartItems[productIdKey]) {
+        // Already in cart, do nothing or show message
+        Alert.alert('Already in Cart', 'This product is already in your cart');
+        return;
+      }
+
+      await addToCart(product);
+    } catch (error) {
+      console.error('Error in add to cart:', error);
+    }
+  };
+
+  // Handle Quantity Change from ProductCard
+  const handleQuantityChange = async (productId, change) => {
+    try {
+      const product = filteredProducts.find(p => p.id === productId);
+      if (!product) return;
+
+      const productIdKey = product.productId || product.id;
+      const currentQuantity = cartItems[productIdKey]?.quantity || 0;
+      const newQuantity = currentQuantity + change;
+
+      if (newQuantity < 0) return;
+
+      await updateCartQuantity(product, newQuantity);
+    } catch (error) {
+      console.error('Error in quantity change:', error);
+    }
+  };
+
   const handleCategorySelect = (category) => {
     setSelectedCategory(category);
     toggleDropdown();
     console.log('🎯 Selected category:', category);
   };
 
-  const renderProductCard = useCallback(({ item }) => (
-    <View style={styles.cardWrapper}>
-      <ProductCard
-        id={item.id}
-        title={item.title}
-        subtitle={item.subtitle}
-        price={item.price}
-        rating={item.rating}
-        image={item.image}
-        isFavorite={favorites.has(item.id)}
-        onPress={handleCardPress}
-        onFavoritePress={handleFavoritePress}
-        width={135}
-        showRating
-        showFavorite
-        imageHeight={120}
-      />
-    </View>
-  ), [favorites, filteredProducts]);
+  const renderProductCard = useCallback(({ item }) => {
+    const productIdKey = item.productId || item.id;
+    const cartItem = cartItems[productIdKey];
+    const inCart = !!cartItem;
+    const quantity = cartItem?.quantity || 0;
+
+    return (
+      <View style={styles.cardWrapper}>
+        <ProductCard
+          id={item.id}
+          title={item.title}
+          subtitle={item.subtitle}
+          price={item.price}
+          rating={item.rating}
+          image={item.image}
+          isFavorite={favorites.has(item.id)}
+          onPress={handleCardPress}
+          onFavoritePress={handleFavoritePress}
+          onAddToCart={handleAddToCart}
+          onQuantityChange={handleQuantityChange}
+          inCart={inCart}
+          cartQuantity={quantity}
+          width={135}
+          showRating
+          showFavorite
+          imageHeight={120}
+        />
+      </View>
+    );
+  }, [favorites, filteredProducts, cartItems]);
 
   const getItemLayout = useCallback((data, index) => ({
     length: 138,
@@ -378,7 +575,10 @@ const SmartPicks = () => {
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 
-            onRefresh={() => fetchProducts(true)} 
+            onRefresh={() => {
+              fetchProducts(true);
+              fetchCart();
+            }} 
           />
         }
         ListEmptyComponent={
@@ -489,7 +689,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   listContainer: {
-    paddingHorizontal:10,
+    paddingHorizontal: 10,
   },
   flatListStyle: {
     paddingBottom: 10,
