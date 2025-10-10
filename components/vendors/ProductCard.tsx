@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   Dimensions,
@@ -21,13 +22,14 @@ import {
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
 const { width } = Dimensions.get("window");
 
-// --- ProductCard Component (Updated with stock dropdown) ---
+// --- ProductCard Component with FIXED Stock Update ---
 
 const ProductCard = ({ item, onDelete, onStockUpdate }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [isStockDropdownOpen, setIsStockDropdownOpen] = useState(false);
   const [stockDropdownPosition, setStockDropdownPosition] = useState({ x: 0, y: 0 });
+  const [updatingStock, setUpdatingStock] = useState(false);
   const menuButtonRef = useRef(null);
   const stockButtonRef = useRef(null);
 
@@ -78,27 +80,105 @@ const ProductCard = ({ item, onDelete, onStockUpdate }) => {
     }
   };
 
+  // FIXED Stock Update Handler with Multiple API Methods
   const handleStockChange = async (newStatus) => {
+    // Close dropdown immediately
+    setIsStockDropdownOpen(false);
+    
+    // Start loading
+    setUpdatingStock(true);
+
     try {
       const token = await getToken();
-      const res = await axios.patch(
-        `${API_BASE}/api/vendor/products/${item._id}`,
-        { status: newStatus },
-        {
-          headers: { Authorization: `Bearer ${token}` },
+      if (!token) {
+        Alert.alert("Error", "User not logged in!");
+        setUpdatingStock(false);
+        return;
+      }
+
+      let response = null;
+      let lastError = null;
+
+      // Try Method 1: PATCH /api/vendor/products/:id/status
+      try {
+        response = await axios.patch(
+          `${API_BASE}/api/vendor/products/${item._id}/status`,
+          { status: newStatus },
+          {
+            headers: { 
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 10000
+          }
+        );
+      } catch (err) {
+        lastError = err;
+        
+        // Try Method 2: PATCH /api/vendor/products/:id (without /status)
+        try {
+          response = await axios.patch(
+            `${API_BASE}/api/vendor/products/${item._id}`,
+            { status: newStatus },
+            {
+              headers: { 
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              timeout: 10000
+            }
+          );
+        } catch (err2) {
+          lastError = err2;
+          
+          // Try Method 3: PUT /api/vendor/products/:id
+          try {
+            response = await axios.put(
+              `${API_BASE}/api/vendor/products/${item._id}`,
+              { status: newStatus },
+              {
+                headers: { 
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                timeout: 10000
+              }
+            );
+          } catch (err3) {
+            lastError = err3;
+          }
         }
-      );
-      if (res.data.success) {
+      }
+
+      // Check if any method succeeded
+      if (response && response.data && response.data.success) {
         Alert.alert("Success", `Product marked as ${newStatus}`);
+        // Update parent component state
         onStockUpdate(item._id, newStatus);
       } else {
-        Alert.alert("Error", "Failed to update stock status");
+        throw lastError || new Error("Failed to update status");
       }
+
     } catch (error) {
       console.log("Stock update error:", error);
-      Alert.alert("Error", "Something went wrong while updating stock");
+      
+      if (error.response?.status === 404) {
+        Alert.alert("Error", "API endpoint not found. Please check server.");
+      } else if (error.response?.status === 401) {
+        Alert.alert("Error", "Authentication failed. Please login again.");
+      } else if (error.response?.status === 403) {
+        Alert.alert("Error", "You don't have permission to update this product.");
+      } else if (error.response?.status === 500) {
+        Alert.alert("Server Error", error.response?.data?.message || "Internal server error");
+      } else if (error.code === 'ECONNABORTED') {
+        Alert.alert("Timeout", "Request took too long.");
+      } else if (error.message === 'Network Error') {
+        Alert.alert("Network Error", "Cannot connect to server.");
+      } else {
+        Alert.alert("Error", "Something went wrong while updating stock");
+      }
     } finally {
-      setIsStockDropdownOpen(false);
+      setUpdatingStock(false);
     }
   };
 
@@ -116,6 +196,7 @@ const ProductCard = ({ item, onDelete, onStockUpdate }) => {
             ref={menuButtonRef}
             style={cardStyles.menuButton}
             onPress={handleMenuPress}
+            disabled={updatingStock}
           >
             <Feather name="more-vertical" size={20} color="#6b7280" />
           </TouchableOpacity>
@@ -147,37 +228,50 @@ const ProductCard = ({ item, onDelete, onStockUpdate }) => {
               item.status === "In Stock"
                 ? cardStyles.inStock
                 : cardStyles.outOfStock,
+              updatingStock && cardStyles.stockBadgeDisabled
             ]}
             onPress={handleStockPress}
+            disabled={updatingStock}
           >
-            <View
-              style={[
-                cardStyles.stockDot,
-                item.status === "In Stock"
-                  ? cardStyles.inStockDot
-                  : cardStyles.outOfStockDot,
-              ]}
-            />
-            <Text
-              style={[
-                cardStyles.stockText,
-                item.status === "In Stock"
-                  ? cardStyles.inStockText
-                  : cardStyles.outOfStockText,
-              ]}
-            >
-              {item.status}
-            </Text>
-            <Feather
-              name="chevron-down"
-              size={16}
-              color={item.status === "In Stock" ? "#22c55e" : "#ef4444"}
-            />
+            {updatingStock ? (
+              <>
+                <ActivityIndicator size="small" color={item.status === "In Stock" ? "#22c55e" : "#ef4444"} />
+                <Text style={[cardStyles.stockText, cardStyles.updatingText]}>
+                  Updating...
+                </Text>
+              </>
+            ) : (
+              <>
+                <View
+                  style={[
+                    cardStyles.stockDot,
+                    item.status === "In Stock"
+                      ? cardStyles.inStockDot
+                      : cardStyles.outOfStockDot,
+                  ]}
+                />
+                <Text
+                  style={[
+                    cardStyles.stockText,
+                    item.status === "In Stock"
+                      ? cardStyles.inStockText
+                      : cardStyles.outOfStockText,
+                  ]}
+                >
+                  {item.status}
+                </Text>
+                <Feather
+                  name="chevron-down"
+                  size={16}
+                  color={item.status === "In Stock" ? "#22c55e" : "#ef4444"}
+                />
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Menu Modal (Edit, Hide, Delete) */}
+      {/* Menu Modal (Edit, Delete) */}
       <Modal
         visible={isMenuOpen}
         transparent
@@ -208,19 +302,6 @@ const ProductCard = ({ item, onDelete, onStockUpdate }) => {
             >
               <Feather name="edit-2" size={18} color="#374151" />
               <Text style={cardStyles.menuItemText}>Edit</Text>
-            </TouchableOpacity>
-
-            <View style={cardStyles.menuDivider} />
-
-            <TouchableOpacity
-              style={cardStyles.menuItem}
-              onPress={() => {
-                setIsMenuOpen(false);
-                console.log("Hide clicked");
-              }}
-            >
-              <Feather name="eye-off" size={18} color="#374151" />
-              <Text style={cardStyles.menuItemText}>Hide</Text>
             </TouchableOpacity>
 
             <View style={cardStyles.menuDivider} />
@@ -294,7 +375,7 @@ const ProductCard = ({ item, onDelete, onStockUpdate }) => {
   );
 };
 
-// --- ProductFilter Component (No changes needed here) ---
+// --- ProductFilter Component ---
 
 const categories = [
   "All",
@@ -333,7 +414,6 @@ const ProductFilter = ({
   const slideAnim = useRef(new Animated.Value(width)).current;
   const dropdownButtonRef = useRef(null);
 
-  // Animate filter modal
   useEffect(() => {
     if (isFilterOpen) {
       slideAnim.setValue(width);
@@ -358,7 +438,6 @@ const ProductFilter = ({
     });
   };
 
-  // जब कैटेगरी ड्रॉपडाउन में आइटम सेलेक्ट होता है
   const onCategorySelect = (category) => {
     setSelectedCategory(category);
     handleCategoryChange(category);
@@ -379,12 +458,9 @@ const ProductFilter = ({
 
   return (
     <View style={filterStyles.container}>
-      {/* Title */}
       <Text style={filterStyles.title}>My Products</Text>
 
-      {/* Right Side Controls */}
       <View style={filterStyles.controls}>
-        {/* Category Dropdown */}
         <TouchableOpacity
           ref={dropdownButtonRef}
           style={filterStyles.dropdownButton}
@@ -395,7 +471,6 @@ const ProductFilter = ({
           <Feather name="chevron-down" size={18} color="#6b7280" />
         </TouchableOpacity>
 
-        {/* Filter Button */}
         <TouchableOpacity
           style={filterStyles.filterButton}
           onPress={() => setIsFilterOpen(true)}
@@ -408,7 +483,6 @@ const ProductFilter = ({
         </TouchableOpacity>
       </View>
 
-      {/* Dropdown Modal */}
       <Modal
         visible={isDropdownOpen}
         transparent={true}
@@ -436,7 +510,7 @@ const ProductFilter = ({
                     selectedCategory === category &&
                       filterStyles.dropdownItemActive,
                   ]}
-                  onPress={() => onCategorySelect(category)} // अपडेटेड फंक्शन
+                  onPress={() => onCategorySelect(category)}
                 >
                   <Text
                     style={[
@@ -454,7 +528,6 @@ const ProductFilter = ({
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* Filter Modal */}
       <Modal
         animationType="none"
         transparent={true}
@@ -484,7 +557,6 @@ const ProductFilter = ({
               style={filterStyles.modalBody}
               showsVerticalScrollIndicator={false}
             >
-              {/* Stock */}
               <View style={filterStyles.filterSection}>
                 <TouchableOpacity
                   style={filterStyles.filterHeader}
@@ -534,7 +606,6 @@ const ProductFilter = ({
                 )}
               </View>
 
-              {/* Date */}
               <View style={filterStyles.filterSection}>
                 <TouchableOpacity
                   style={filterStyles.filterHeader}
@@ -584,7 +655,6 @@ const ProductFilter = ({
                 )}
               </View>
 
-              {/* Amount */}
               <View style={filterStyles.filterSection}>
                 <TouchableOpacity
                   style={filterStyles.filterHeader}
@@ -650,21 +720,17 @@ const ProductFilter = ({
   );
 };
 
-// --- ProductList Component (Main Controller) ---
+// --- ProductList Component ---
 
 const ProductList = ({ refreshbut }) => {
-  // Product Data States
-
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Filter States (Temp states for Filter Modal)
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [stockFilter, setStockFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [amountFilter, setAmountFilter] = useState("");
 
-  // State to hold the APPLIED filters (The filters currently active on the list)
   const [appliedFilters, setAppliedFilters] = useState({
     stock: "",
     date: "",
@@ -676,7 +742,6 @@ const ProductList = ({ refreshbut }) => {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem("userToken");
-      // API call
       const res = await axios.get(`${API_BASE}/api/vendor/products`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -690,30 +755,23 @@ const ProductList = ({ refreshbut }) => {
     }
   };
 
-  // --- HANDLERS ---
-
-  // Fired when an option is selected inside the Category Dropdown.
   const handleCategoryChange = (newCategory) => {
-    // Category बदलने पर, सिर्फ़ Category फ़िल्टर को तुरंत लागू करें।
     setAppliedFilters((prev) => ({
       ...prev,
       category: newCategory,
     }));
   };
 
-  // Fired when the APPLY FILTERS button is pressed in the Filter Modal.
   const handleApplyFilters = () => {
-    // Stock, Date, Amount फ़िल्टर्स को लागू करें।
     setAppliedFilters((prev) => ({
       ...prev,
       stock: stockFilter,
       date: dateFilter,
       amount: amountFilter,
-      // Category पहले ही handleCategoryChange से अपडेट हो चुका है।
     }));
   };
 
-  // Handle stock status update
+  // Handle stock update WITHOUT removing product from list
   const handleStockUpdate = (productId, newStatus) => {
     setProducts(prevProducts => 
       prevProducts.map(product => 
@@ -724,10 +782,7 @@ const ProductList = ({ refreshbut }) => {
     );
   };
 
-  // --- FILTERING LOGIC ---
-
   const filteredProducts = useMemo(() => {
-    // products की एक copy बना लें ताकि sorting original array को प्रभावित न करे
     let filtered = [...products];
 
     // Category Filter (Instant)
@@ -737,39 +792,34 @@ const ProductList = ({ refreshbut }) => {
       filtered = filtered.filter((item) => item.category === categoryToFilter);
     }
 
-    // Stock Filter (Applied via Modal)
+    // Stock Filter - ONLY APPLY IF USER HAS EXPLICITLY SELECTED A STOCK FILTER
+    // Don't filter by stock automatically - only when user applies stock filter from modal
     const stockToFilter = appliedFilters.stock;
-    if (stockToFilter) {
+    if (stockToFilter && stockToFilter !== "") {
       filtered = filtered.filter((item) => item.status === stockToFilter);
     }
+    // If no stock filter is applied, show ALL products regardless of stock status
 
-    // Amount Filter (Sorting - Applied via Modal)
+    // Amount Filter (Sorting)
     if (appliedFilters.amount === "Low to High") {
-      // 'Low to High' sorting
       filtered.sort((a, b) => a.price - b.price);
     } else if (appliedFilters.amount === "High to Low") {
-      // 'High to Low' sorting
       filtered.sort((a, b) => b.price - a.price);
     }
-
-    // Date Filter (Not implemented, requires date conversion/logic)
 
     return filtered;
   }, [products, appliedFilters]);
 
-  // 3. Delete Handler
   const handleDeleteFromList = (id) => {
     setProducts((prev) => prev.filter((item) => item._id !== id));
   };
 
-  // 4. Initial Data Fetch
   useEffect(() => {
     fetchProducts();
   }, [refreshbut]);
 
   return (
     <View style={{ flex: 1 }}>
-      {/* ProductFilter Component - List के ठीक ऊपर */}
       <ProductFilter
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
@@ -780,15 +830,15 @@ const ProductList = ({ refreshbut }) => {
         amountFilter={amountFilter}
         setAmountFilter={setAmountFilter}
         applyFilters={handleApplyFilters}
-        handleCategoryChange={handleCategoryChange} // नया प्रॉप
+        handleCategoryChange={handleCategoryChange}
       />
 
-      {/* Product List */}
       {loading ? (
         <View
           style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
         >
-          <Text>Loading products...</Text>
+          <ActivityIndicator size="large" color="rgba(255,202,40,1)" />
+          <Text style={{ marginTop: 12, color: "#666" }}>Loading products...</Text>
         </View>
       ) : (
         <FlatList
@@ -816,7 +866,7 @@ const ProductList = ({ refreshbut }) => {
 
 export default ProductList;
 
-// ---- STYLES for ProductCard (cardStyles) ----
+// ---- STYLES ----
 const cardStyles = StyleSheet.create({
   listContainer: { padding: 16, gap: 16 },
   card: {
@@ -868,6 +918,9 @@ const cardStyles = StyleSheet.create({
     borderWidth: 1,
     gap: 6,
   },
+  stockBadgeDisabled: {
+    opacity: 0.7,
+  },
   inStock: { backgroundColor: "#f0fdf4", borderColor: "#bbf7d0" },
   outOfStock: { backgroundColor: "#fef2f2", borderColor: "#fecaca" },
   stockDot: { width: 8, height: 8, borderRadius: 4 },
@@ -876,6 +929,7 @@ const cardStyles = StyleSheet.create({
   stockText: { fontSize: 14, fontWeight: "500" },
   inStockText: { color: "#22c55e" },
   outOfStockText: { color: "#ef4444" },
+  updatingText: { color: "#6b7280" },
   modalOverlayTransparent: { flex: 1, backgroundColor: "transparent" },
   menuPopup: {
     backgroundColor: "#fff",
@@ -903,7 +957,6 @@ const cardStyles = StyleSheet.create({
   deleteText: { color: "#ef4444" },
   menuDivider: { height: 1, backgroundColor: "#f3f4f6", marginHorizontal: 8 },
   
-  // New styles for stock dropdown
   stockDropdown: {
     backgroundColor: "#fff",
     borderRadius: 8,
@@ -938,7 +991,6 @@ const cardStyles = StyleSheet.create({
   },
 });
 
-// ---- STYLES for ProductFilter (filterStyles) ----
 const filterStyles = StyleSheet.create({
   container: {
     flexDirection: "row",
@@ -995,8 +1047,6 @@ const filterStyles = StyleSheet.create({
   dropdownItemActive: { backgroundColor: "#f3f4f6" },
   dropdownItemText: { fontSize: 15, color: "#374151" },
   dropdownItemTextActive: { fontWeight: "600", color: "#111827" },
-
-  // Filter Modal
   filterOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",

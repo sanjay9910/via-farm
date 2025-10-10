@@ -28,6 +28,7 @@ const MyRecentListing = () => {
   const [isStockDropdownOpen, setIsStockDropdownOpen] = useState(false);
   const [stockDropdownPosition, setStockDropdownPosition] = useState({ x: 0, y: 0 });
   const [currentProductId, setCurrentProductId] = useState(null);
+  const [updatingStock, setUpdatingStock] = useState(false);
   const stockButtonRefs = useRef({});
 
   // Fetch products
@@ -53,7 +54,7 @@ const MyRecentListing = () => {
           quantity: product.quantity,
           uploadedOn: new Date(product.datePosted).toLocaleDateString(),
           image: product.images[0] || "",
-          status: product.status,
+          status: product.status || "In Stock",
         }));
         setListingsData(formattedData);
       } else {
@@ -69,6 +70,13 @@ const MyRecentListing = () => {
 
   useEffect(() => {
     fetchProducts();
+  }, []);
+
+  // Refresh list when modal closes
+  useEffect(() => {
+    if (!modalVisible) {
+      fetchProducts();
+    }
   }, [modalVisible]);
 
   // Modal handlers
@@ -90,14 +98,12 @@ const MyRecentListing = () => {
     closeModal();
   };
 
-  // Stock Dropdown - Fixed version
+  // Stock Dropdown Handler
   const openStockDropdown = (productId) => {
     const ref = stockButtonRefs.current[productId];
-    console.log("Opening dropdown for product:", productId, "Ref:", ref);
     
     if (ref) {
       ref.measureInWindow((x, y, width, height) => {
-        console.log("Button position:", { x, y, width, height });
         setStockDropdownPosition({ 
           x: x - 60, 
           y: y + height + 5 
@@ -105,74 +111,135 @@ const MyRecentListing = () => {
         setCurrentProductId(productId);
         setIsStockDropdownOpen(true);
       });
-    } else {
-      console.log("Ref not found for product:", productId);
     }
   };
 
+  // Stock Status Update Handler
   const handleStockChange = async (newStatus) => {
     if (!currentProductId) {
       Alert.alert("Error", "No product selected");
       return;
     }
 
+    // Close dropdown immediately
+    setIsStockDropdownOpen(false);
+    
+    // Start loading
+    setUpdatingStock(true);
+
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) {
         Alert.alert("Error", "User not logged in!");
+        setUpdatingStock(false);
+        setCurrentProductId(null);
         return;
       }
 
-      console.log("Updating stock for:", currentProductId, "to:", newStatus);
-      console.log("API Endpoint:", `${API_BASE}/api/vendor/products/${currentProductId}/status`);
+      // Try multiple API methods
+      let response = null;
+      let lastError = null;
 
-      const res = await axios.patch(
-        `${API_BASE}/api/vendor/products/${currentProductId}/status`,
-        { status: newStatus },
-        { 
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          } 
+      // Method 1: PATCH /api/vendor/products/:id/status
+      try {
+        response = await axios.patch(
+          `${API_BASE}/api/vendor/products/${currentProductId}/status`,
+          { status: newStatus },
+          { 
+            headers: { 
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 10000
+          }
+        );
+      } catch (err) {
+        lastError = err;
+        
+        // Method 2: PATCH /api/vendor/products/:id (without /status)
+        try {
+          response = await axios.patch(
+            `${API_BASE}/api/vendor/products/${currentProductId}`,
+            { status: newStatus },
+            { 
+              headers: { 
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              timeout: 10000
+            }
+          );
+        } catch (err2) {
+          lastError = err2;
+          
+          // Method 3: PUT /api/vendor/products/:id
+          try {
+            response = await axios.put(
+              `${API_BASE}/api/vendor/products/${currentProductId}`,
+              { status: newStatus },
+              { 
+                headers: { 
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                timeout: 10000
+              }
+            );
+          } catch (err3) {
+            lastError = err3;
+          }
         }
-      );
+      }
 
-      console.log("API Response:", res.data);
-
-      if (res.data.success) {
+      // Check if any method succeeded
+      if (response && response.data && response.data.success) {
+        // Update local state WITHOUT removing product
         const updatedList = listingsData.map((item) =>
           item.id === currentProductId ? { ...item, status: newStatus } : item
         );
         setListingsData(updatedList);
-        Alert.alert("Success", "Stock status updated successfully!");
+        Alert.alert("Success", `Product marked as ${newStatus}`);
       } else {
-        Alert.alert("Error", res.data.message || "Failed to update stock status");
+        throw lastError || new Error("Failed to update status");
       }
+
     } catch (error) {
       console.log("Stock update error:", error);
-      console.log("Error response:", error.response?.data);
       
       if (error.response?.status === 404) {
-        Alert.alert("Error", "API endpoint not found. Please check the server.");
+        Alert.alert("Error", "API endpoint not found. Please check server.");
       } else if (error.response?.status === 401) {
         Alert.alert("Error", "Authentication failed. Please login again.");
+      } else if (error.response?.status === 403) {
+        Alert.alert("Error", "You don't have permission to update this product.");
+      } else if (error.response?.status === 500) {
+        Alert.alert("Server Error", error.response?.data?.message || "Internal server error");
+      } else if (error.code === 'ECONNABORTED') {
+        Alert.alert("Timeout", "Request took too long.");
+      } else if (error.message === 'Network Error') {
+        Alert.alert("Network Error", "Cannot connect to server.");
       } else {
         Alert.alert("Error", "Something went wrong while updating stock");
       }
     } finally {
-      setIsStockDropdownOpen(false);
+      setUpdatingStock(false);
       setCurrentProductId(null);
     }
   };
 
   const renderItem = ({ item }) => {
     const circleColor = item.status.toLowerCase() === "in stock" ? "#22c55e" : "#ef4444";
+    const isCurrentlyUpdating = updatingStock && currentProductId === item.id;
 
     return (
       <View style={styles.listingCard}>
         <View style={styles.cardContent}>
           <View style={styles.imageContainer}>
-            <Image source={{ uri: item.image }} style={styles.itemImage} resizeMode="cover" />
+            <Image 
+              source={{ uri: item.image }} 
+              style={styles.itemImage} 
+              resizeMode="cover"
+            />
           </View>
 
           <View style={styles.textContainer}>
@@ -195,25 +262,43 @@ const MyRecentListing = () => {
             </View>
 
             <View style={styles.editBtn}>
-              {/* Stock dropdown */}
+              {/* Stock dropdown with loading */}
               <TouchableOpacity
                 ref={(ref) => {
                   stockButtonRefs.current[item.id] = ref;
                 }}
-                style={styles.dropdownBtn}
+                style={[
+                  styles.dropdownBtn,
+                  isCurrentlyUpdating && styles.dropdownBtnDisabled
+                ]}
                 onPress={() => openStockDropdown(item.id)}
+                disabled={isCurrentlyUpdating}
               >
-                <View style={styles.statusRow}>
-                  <View style={[styles.statusCircle, { backgroundColor: circleColor }]} />
-                  <Text style={[styles.statusText, { color: circleColor }]}>{item.status}</Text>
-                </View>
+                {isCurrentlyUpdating ? (
+                  <View style={styles.statusRow}>
+                    <ActivityIndicator size="small" color="rgba(255,202,40,1)" />
+                    <Text style={styles.statusTextUpdating}>Updating...</Text>
+                  </View>
+                ) : (
+                  <View style={styles.statusRow}>
+                    <View style={[styles.statusCircle, { backgroundColor: circleColor }]} />
+                    <Text style={[styles.statusText, { color: circleColor }]}>{item.status}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
 
               {/* Edit button */}
-              <TouchableOpacity style={styles.editButton} onPress={() => openModal(item)}>
+              <TouchableOpacity 
+                style={styles.editButton} 
+                onPress={() => openModal(item)}
+                disabled={isCurrentlyUpdating}
+              >
                 <Image
                   source={require("../../assets/via-farm-img/icons/editicon.png")}
-                  style={styles.editIcon}
+                  style={[
+                    styles.editIcon,
+                    isCurrentlyUpdating && styles.editIconDisabled
+                  ]}
                 />
               </TouchableOpacity>
             </View>
@@ -225,11 +310,22 @@ const MyRecentListing = () => {
 
   if (loading) {
     return (
-      <ActivityIndicator 
-        size="large" 
-        color="rgba(255,202,40,1)" 
-        style={{ flex: 1, justifyContent: "center", alignItems: "center" }} 
-      />
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator 
+          size="large" 
+          color="rgba(255,202,40,1)" 
+        />
+        <Text style={styles.loadingText}>Loading products...</Text>
+      </View>
+    );
+  }
+
+  if (listingsData.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No products found</Text>
+        <Text style={styles.emptySubText}>Start adding products to see them here</Text>
+      </View>
     );
   }
 
@@ -251,7 +347,7 @@ const MyRecentListing = () => {
         contentContainerStyle={styles.flatListContent}
       />
 
-      {/* Stock Dropdown Modal - Fixed */}
+      {/* Stock Dropdown Modal */}
       <Modal
         visible={isStockDropdownOpen}
         transparent={true}
@@ -260,34 +356,36 @@ const MyRecentListing = () => {
       >
         <TouchableWithoutFeedback onPress={() => setIsStockDropdownOpen(false)}>
           <View style={styles.modalOverlay}>
-            <View
-              style={[
-                styles.stockDropdown,
-                { 
-                  position: 'absolute',
-                  top: stockDropdownPosition.y, 
-                  left: stockDropdownPosition.x 
-                },
-              ]}
-            >
-              <TouchableOpacity 
-                style={styles.stockOption} 
-                onPress={() => handleStockChange("In Stock")}
+            <TouchableWithoutFeedback>
+              <View
+                style={[
+                  styles.stockDropdown,
+                  { 
+                    position: 'absolute',
+                    top: stockDropdownPosition.y, 
+                    left: stockDropdownPosition.x 
+                  },
+                ]}
               >
-                <View style={[styles.stockDot, { backgroundColor: "#22c55e" }]} />
-                <Text style={styles.stockOptionText}>In Stock</Text>
-              </TouchableOpacity>
-              
-              <View style={styles.stockDivider} />
-              
-              <TouchableOpacity 
-                style={styles.stockOption} 
-                onPress={() => handleStockChange("Out of Stock")}
-              >
-                <View style={[styles.stockDot, { backgroundColor: "#ef4444" }]} />
-                <Text style={styles.stockOptionText}>Out of Stock</Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity 
+                  style={styles.stockOption} 
+                  onPress={() => handleStockChange("In Stock")}
+                >
+                  <View style={[styles.stockDot, { backgroundColor: "#22c55e" }]} />
+                  <Text style={styles.stockOptionText}>In Stock</Text>
+                </TouchableOpacity>
+                
+                <View style={styles.stockDivider} />
+                
+                <TouchableOpacity 
+                  style={styles.stockOption} 
+                  onPress={() => handleStockChange("Out of Stock")}
+                >
+                  <View style={[styles.stockDot, { backgroundColor: "#ef4444" }]} />
+                  <Text style={styles.stockOptionText}>Out of Stock</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
       </Modal>
@@ -312,6 +410,35 @@ const styles = StyleSheet.create({
     paddingVertical: 16, 
     backgroundColor: "#fff", 
     flex: 1 
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#666',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  emptySubText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
   },
   headerRowContainer: { 
     flexDirection: "row", 
@@ -421,10 +548,15 @@ const styles = StyleSheet.create({
     borderWidth: 1, 
     borderColor: "rgba(0, 0, 0, 0.3)" 
   },
+  dropdownBtnDisabled: {
+    opacity: 0.6,
+    borderColor: "rgba(0, 0, 0, 0.15)",
+  },
   statusRow: { 
     flexDirection: "row", 
     alignItems: "center", 
-    gap: 6 
+    gap: 6,
+    minWidth: 90,
   },
   statusCircle: { 
     width: 10, 
@@ -435,6 +567,11 @@ const styles = StyleSheet.create({
     fontSize: 14, 
     fontWeight: "500" 
   },
+  statusTextUpdating: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#666",
+  },
   editButton: { 
     padding: 6, 
     borderRadius: 4 
@@ -443,8 +580,9 @@ const styles = StyleSheet.create({
     width: 20, 
     height: 20 
   },
-
-  // Stock dropdown styles - Fixed
+  editIconDisabled: {
+    opacity: 0.4,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
@@ -472,7 +610,8 @@ const styles = StyleSheet.create({
   },
   stockOptionText: { 
     fontSize: 14, 
-    fontWeight: "500" 
+    fontWeight: "500",
+    color: "#374151",
   },
   stockDivider: { 
     height: 1, 
