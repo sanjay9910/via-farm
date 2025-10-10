@@ -202,7 +202,7 @@ export default function HeaderDesign() {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
-    height:200,
+    height:133,
   },
   header: {
     backgroundColor: '#fff',
