@@ -320,7 +320,7 @@ const MyCart = () => {
   };
 
   const closePickupModal = () => {
-    Animated.timing(pickupSlideAnim, {
+    Animated.timing(pickupSlideModal, {
       toValue: 300,
       duration: 300,
       useNativeDriver: true,
@@ -381,95 +381,115 @@ const MyCart = () => {
     </View>
   );
 
+  // Empty Cart Component
+  const EmptyCart = () => (
+    <View style={styles.emptyCartContainer}>
+      <Image 
+        source={require("../../assets/via-farm-img/icons/emptyShoppingCard.jpg")} 
+        style={styles.emptyCartImage}
+      />
+      <Text style={styles.emptyCartTitle}>Your Cart is Empty</Text>
+      <Text style={styles.emptyCartSubtitle}>Looks like you haven't added anything to your cart yet</Text>
+      <TouchableOpacity 
+        style={styles.shopNowButton}
+        onPress={() => navigation.navigate('index')}
+      >
+        <Text style={styles.shopNowText}>Shop Now</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: '#fff' }}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Cart {loading && '(Updating...)'}</Text>
+        <Text style={styles.headerTitle}>My Cart {loading && cartItems.length > 0 && '(Updating...)'}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       {/* Scrollable Content */}
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
-        <View style={styles.cartSection}>
-          {loading && cartItems.length === 0 ? (
-            <Text style={styles.emptyCartText}>Loading cart...</Text>
-          ) : cartItems.length === 0 ? (
-            <Text style={styles.emptyCartText}>Your cart is empty!</Text>
-          ) : (
-            cartItems.map((item) => (
-              <CartCard key={item.id} item={item} />
-            ))
+      {cartItems.length === 0 && !loading ? (
+        <EmptyCart />
+      ) : (
+        <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+          <View style={styles.cartSection}>
+            {loading ? (
+              <Text style={styles.emptyCartText}>Loading cart...</Text>
+            ) : (
+              cartItems.map((item) => (
+                <CartCard key={item.id} item={item} />
+              ))
+            )}
+          </View>
+
+          {/* Coupon Section */}
+          {cartItems.length > 0 && (
+            <View style={styles.couponSection}>
+              <Text style={styles.couponTitle}>Have a Coupon ?</Text>
+              <Text style={styles.couponSubtitle}>Apply now and Save Extra!</Text>
+              
+              <View style={styles.couponInputContainer}>
+                <TextInput
+                  style={styles.couponInput}
+                  placeholder="Enter your coupon code"
+                  value={couponCode}
+                  onChangeText={setCouponCode}
+                  editable={!appliedCoupon}
+                />
+                {appliedCoupon ? (
+                  <TouchableOpacity style={styles.removeCouponButton} onPress={removeCoupon}>
+                    <Text style={styles.removeCouponText}>Remove</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity style={styles.applyCouponButton} onPress={applyCoupon}>
+                    <Text style={styles.applyCouponText}>Apply</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              
+              {couponError ? (
+                <Text style={styles.couponError}>{couponError}</Text>
+              ) : appliedCoupon ? (
+                <Text style={styles.couponSuccess}>
+                  Coupon applied! {appliedCoupon.discount}
+                  {appliedCoupon.type === 'percentage' ? '%' : '₹'} discount
+                </Text>
+              ) : null}
+            </View>
           )}
-        </View>
 
-        {/* Coupon Section */}
-        {cartItems.length > 0 && (
-          <View style={styles.couponSection}>
-            <Text style={styles.couponTitle}>Have a Coupon ?</Text>
-            <Text style={styles.couponSubtitle}>Apply now and Save Extra!</Text>
-            
-            <View style={styles.couponInputContainer}>
-              <TextInput
-                style={styles.couponInput}
-                placeholder="Enter your coupon code"
-                value={couponCode}
-                onChangeText={setCouponCode}
-                editable={!appliedCoupon}
-              />
-              {appliedCoupon ? (
-                <TouchableOpacity style={styles.removeCouponButton} onPress={removeCoupon}>
-                  <Text style={styles.removeCouponText}>Remove</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity style={styles.applyCouponButton} onPress={applyCoupon}>
-                  <Text style={styles.applyCouponText}>Apply</Text>
-                </TouchableOpacity>
-              )}
+          {/* Price Section */}
+          {cartItems.length > 0 && (
+            <View style={styles.priceSection}>
+              <Text style={styles.priceSectionTitle}>Price Details</Text>
+
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>Total MRP</Text>
+                <Text style={styles.priceValue}>₹{priceDetails.totalMRP}</Text>
+              </View>
+
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>Coupon Discount</Text>
+                <Text style={styles.discountValue}>-₹{couponDiscount}</Text>
+              </View>
+
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>Delivery Charges</Text>
+                <Text style={styles.priceValue}>₹{priceDetails.deliveryCharge}</Text>
+              </View>
+
+              <View style={[styles.priceRow, styles.totalRow]}>
+                <Text style={styles.totalLabel}>Total Amount</Text>
+                <Text style={styles.totalValue}>₹{finalAmount}</Text>
+              </View>
             </View>
-            
-            {couponError ? (
-              <Text style={styles.couponError}>{couponError}</Text>
-            ) : appliedCoupon ? (
-              <Text style={styles.couponSuccess}>
-                Coupon applied! {appliedCoupon.discount}
-                {appliedCoupon.type === 'percentage' ? '%' : '₹'} discount
-              </Text>
-            ) : null}
-          </View>
-        )}
+          )}
 
-        {/* Price Section */}
-        {cartItems.length > 0 && (
-          <View style={styles.priceSection}>
-            <Text style={styles.priceSectionTitle}>Price Details</Text>
+          {cartItems.length > 0 && <SuggestionCard />}
+        </ScrollView>
+      )}
 
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Total MRP</Text>
-              <Text style={styles.priceValue}>₹{priceDetails.totalMRP}</Text>
-            </View>
-
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Coupon Discount</Text>
-              <Text style={styles.discountValue}>-₹{couponDiscount}</Text>
-            </View>
-
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Delivery Charges</Text>
-              <Text style={styles.priceValue}>₹{priceDetails.deliveryCharge}</Text>
-            </View>
-
-            <View style={[styles.priceRow, styles.totalRow]}>
-              <Text style={styles.totalLabel}>Total Amount</Text>
-              <Text style={styles.totalValue}>₹{finalAmount}</Text>
-            </View>
-          </View>
-        )}
-
-        <SuggestionCard />
-      </ScrollView>
-
-      {/* Fixed Checkout Button */}
+      {/* Fixed Checkout Button - Only show when cart has items */}
       {cartItems.length > 0 && (
         <View style={styles.checkoutContainer}>
           <TouchableOpacity style={styles.checkoutButton} onPress={openModal}>
@@ -645,6 +665,43 @@ const MyCart = () => {
 };
 
 const styles = StyleSheet.create({
+  emptyCartContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyCartImage: {
+    width: 200,
+    height: 200,
+    marginBottom: 24,
+    resizeMode: 'contain',
+  },
+  emptyCartTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  emptyCartSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 22,
+  },
+  shopNowButton: {
+    backgroundColor: 'rgba(76, 175, 80, 1)',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 8,
+  },
+  shopNowText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   emptyCartText: {
     textAlign: 'center',
     fontSize: 16,

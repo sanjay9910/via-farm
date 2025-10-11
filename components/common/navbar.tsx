@@ -27,6 +27,7 @@ export default function HeaderDesign() {
   const placeholders = ["Search by Products", "Search by Name", "Search by ID"];
   const [index, setIndex] = useState(0);
 
+
   useEffect(() => {
     const interval = setInterval(() => {
       setIndex((prev) => (prev + 1) % placeholders.length);
@@ -54,11 +55,11 @@ export default function HeaderDesign() {
   };
 
   // AuthContext se user data
-  const { user } = useContext(AuthContext);
-  
+  const { user, address, fetchBuyerAddress } = useContext(AuthContext);
+
   // Profile picture URL
   const profilePicture = user?.profilePicture || user?.profileImage || null;
-  
+
   // First letter for fallback
   const getInitial = () => {
     if (user?.name && user.name.length > 0) {
@@ -66,6 +67,10 @@ export default function HeaderDesign() {
     }
     return 'U';
   };
+
+  useEffect(() => {
+    fetchBuyerAddress();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -78,8 +83,9 @@ export default function HeaderDesign() {
         <View style={styles.topRow}>
           {/* Location Section */}
           <TouchableOpacity style={styles.locationContainer}>
-            <Text style={styles.locationText}>Delhi</Text>
-            <Ionicons name="chevron-down" size={16} color="#333" />
+            <Text style={styles.locationText}>
+              {address?.city || 'Select City'}
+            </Text>
           </TouchableOpacity>
 
           {/* Language and Profile Section */}
@@ -93,8 +99,8 @@ export default function HeaderDesign() {
             >
               <View style={styles.profileCircle}>
                 {profilePicture ? (
-                  <Image 
-                    source={{ uri: profilePicture }} 
+                  <Image
+                    source={{ uri: profilePicture }}
                     style={styles.profileImage}
                   />
                 ) : (
@@ -105,7 +111,7 @@ export default function HeaderDesign() {
           </View>
         </View>
 
-        <Text style={styles.locationSubtitle}>Janakpuri West, New Delhi</Text>
+        <Text style={styles.locationSubtitle}>{address.locality}, {address.district}</Text>
 
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
@@ -202,7 +208,7 @@ export default function HeaderDesign() {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
-    height:200,
+    height: 200,
   },
   header: {
     backgroundColor: '#fff',

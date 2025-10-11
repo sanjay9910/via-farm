@@ -7,6 +7,7 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [address, setAddress] = useState([])
 
   const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms/api/auth';
   const API_BUYER_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms/api/buyer';
@@ -149,6 +150,7 @@ export const AuthProvider = ({ children }) => {
       if (user.role === 'buyer') {
         try {
           await fetchBuyerProfile();
+          await fetchBuyerAddress();
         } catch (error) {
           console.log("Could not fetch buyer profile after login:", error);
         }
@@ -198,6 +200,38 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+const fetchBuyerAddress = async () => {
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) throw new Error('No token found');
+
+    const res = await axios.get(`${API_BUYER_BASE}/addresses`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    console.log("Buyer Address Response:", res.data);
+
+    if (res.data.success || res.data.status === 'success') {
+      // Extract all addresses
+      const allAddresses = res.data.addresses || [];
+
+      // Pick the default address (isDefault === true)
+      const defaultAddress = allAddresses.find(addr => addr.isDefault) || allAddresses[0];
+
+      // Save both all addresses and default
+      setAddress(defaultAddress || {}); // Keep only default address in state for easy use
+      await AsyncStorage.setItem('buyerAddress', JSON.stringify(defaultAddress));
+
+      return defaultAddress;
+    }
+
+    return res.data;
+  } catch (error) {
+    console.error("Address Fetching Error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
   return (
     <AuthContext.Provider
       value={{
@@ -211,6 +245,8 @@ export const AuthProvider = ({ children }) => {
         logout,
         newPassword,
         fetchBuyerProfile,
+        fetchBuyerAddress,
+        address,
       }}
     >
       {children}

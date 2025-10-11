@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import React, { useEffect, useRef, useState } from "react";
+import { useNavigation } from "expo-router";
+import React, { useEffect, useRef, useState, } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -16,6 +17,7 @@ import {
 } from "react-native";
 import ProductModal from "../../components/vendors/ProductEditModel";
 
+
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
 const { width } = Dimensions.get("window");
 
@@ -30,7 +32,7 @@ const MyRecentListing = () => {
   const [currentProductId, setCurrentProductId] = useState(null);
   const [updatingStock, setUpdatingStock] = useState(false);
   const stockButtonRefs = useRef({});
-
+  const navigation = useNavigation();
   // Fetch products
   const fetchProducts = async () => {
     setLoading(true);
@@ -97,6 +99,11 @@ const MyRecentListing = () => {
     setListingsData(updatedList);
     closeModal();
   };
+
+  const viewAll = () => {
+    navigation.navigate("MyRecentlyAllProduct");
+  };
+
 
   // Stock Dropdown Handler
   const openStockDropdown = (productId) => {
@@ -333,7 +340,7 @@ const MyRecentListing = () => {
     <View style={styles.container}>
       <View style={styles.headerRowContainer}>
         <Text style={styles.headerTitle}>My Recent Listings</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={viewAll}>
           <Text style={styles.seeAll}>See All &gt;</Text>
         </TouchableOpacity>
       </View>

@@ -1,7 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
+import * as Location from 'expo-location';
 import React, { useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     ScrollView,
     StyleSheet,
@@ -13,362 +17,294 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+// ✅ Base URL
+const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
+
 const AddNewAddress = () => {
-    const navigation = useNavigation();
+  const navigation = useNavigation();
 
-    const [formData, setFormData] = useState({
-        name: '',
-        mobileNo: '',
-        pincode: '',
-        houseNumber: '',
-        locality: '',
-        city: '',
-        district: ''
-    });
+  const [formData, setFormData] = useState({
+    pincode: '',
+    houseNumber: '',
+    locality: '',
+    city: '',
+    district: '',
+  });
 
-    const [isDefaultAddress, setIsDefaultAddress] = useState(false);
+  const [isDefaultAddress, setIsDefaultAddress] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [locating, setLocating] = useState(false);
 
-    const handleInputChange = (field, value) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
-    };
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
-    const handleSave = () => {
-        // Validation
-        if (!formData.name || !formData.mobileNo || !formData.pincode ||
-            !formData.houseNumber || !formData.locality || !formData.city || !formData.district) {
-            Alert.alert('Error', 'Please fill all required fields');
-            return;
-        }
+  // 📍 Get Current Location and Autofill Address
+  const handleUseCurrentLocation = async () => {
+    try {
+      setLocating(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required.');
+        setLocating(false);
+        return;
+      }
 
-        // Save logic here - you can replace with your API call
-        console.log('Saving address:', { ...formData, isDefaultAddress });
+      const location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
 
-        // Navigate back after save
+      // 🔍 Reverse Geocode (convert lat/lng to address)
+      const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+
+      if (geocode && geocode.length > 0) {
+        const addr = geocode[0];
+        setFormData({
+          houseNumber: addr.name || '',
+          locality: addr.street || '',
+          city: addr.city || addr.subregion || '',
+          district: addr.district || addr.region || '',
+          pincode: addr.postalCode || '',
+        });
+      } else {
+        Alert.alert('Error', 'Unable to fetch address from location.');
+      }
+    } catch (error) {
+      console.error('Location Error:', error);
+      Alert.alert('Error', 'Failed to fetch current location.');
+    } finally {
+      setLocating(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      const requiredFields = ['pincode', 'houseNumber', 'locality', 'city', 'district'];
+      const missing = requiredFields.filter((f) => !formData[f]);
+      if (missing.length > 0) {
+        Alert.alert('Error', 'Please fill all required fields');
+        return;
+      }
+
+      setLoading(true);
+
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        Alert.alert('Error', 'User not logged in');
+        return;
+      }
+
+      const payload = {
+        pinCode: formData.pincode,
+        houseNumber: formData.houseNumber,
+        locality: formData.locality,
+        city: formData.city,
+        district: formData.district,
+        isDefault: isDefaultAddress,
+      };
+
+      const res = await axios.post(`${API_BASE}/api/buyer/addresses`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Address Add Response:', res.data);
+
+      if (res.data.success) {
+        Alert.alert('Success', 'Address added successfully!');
         navigation.goBack();
-    };
+      } else {
+        Alert.alert('Error', res.data.message || 'Something went wrong');
+      }
+    } catch (error) {
+      console.error('Add Address Error:', error.response?.data || error.message);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to add address');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleCancel = () => {
-        navigation.goBack();
-    };
+  const handleCancel = () => navigation.goBack();
 
-    const handleUseCurrentLocation = () => {
-        // Implement current location logic
-        Alert.alert('Info', 'Current location feature will be implemented');
-    };
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleCancel} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Add New Address</Text>
+        <View style={{ width: 24 }} />
+      </View>
 
-    const handleSearchLocation = () => {
-        // Implement search location logic
-        Alert.alert('Info', 'Search location feature will be implemented');
-    };
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* 📍 Use Current Location */}
+        <View style={styles.locationBox}>
+          <TouchableOpacity
+            style={styles.locationButton}
+            onPress={handleUseCurrentLocation}
+            disabled={locating}
+          >
+            <Ionicons name="location" size={20} color="#3b82f6" />
+            <Text style={styles.locationText}>
+              {locating ? 'Fetching location...' : 'Use Current Location'}
+            </Text>
+            {locating && <ActivityIndicator size="small" color="#3b82f6" style={{ marginLeft: 10 }} />}
+          </TouchableOpacity>
+        </View>
 
-    return (
-        <SafeAreaView style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Add New Address</Text>
-                <View style={styles.headerRight} />
-            </View>
+        {/* Address Form */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Address Details</Text>
 
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-                {/* Contact Details Section */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Contact Details</Text>
-                    {/* Name */}
-                    <View style={styles.inputContainer}>
-                        <TextInput
-                            style={styles.textInput}
-                            placeholder="Name*"
-                            value={formData.name}
-                            onChangeText={(value) => handleInputChange('name', value)}
-                            placeholderTextColor="#999"
-                        />
-                    </View>
-                    {/* Mobile No */}
-                    <View style={styles.inputContainer}>
-                        <TextInput
-                            style={styles.textInput}
-                            placeholder="Number*"
-                            keyboardType="phone-pad"
-                            value={formData.mobileNo}
-                            onChangeText={(value) => handleInputChange('mobileNo', value)}
-                            placeholderTextColor="#999"
-                            maxLength={10}
-                        />
-                    </View>
-                </View>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Pin Code"
+            keyboardType="number-pad"
+            value={formData.pincode}
+            onChangeText={(value) => handleInputChange('pincode', value)}
+            placeholderTextColor="#999"
+            maxLength={6}
+          />
 
-                {/* Address Section */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Address</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="House Number / Block / Street"
+            value={formData.houseNumber}
+            onChangeText={(value) => handleInputChange('houseNumber', value)}
+            placeholderTextColor="#999"
+          />
 
-                    {/* Location Buttons */}
-                    <TouchableOpacity style={styles.locationButton} onPress={handleUseCurrentLocation}>
-                        <Ionicons name="location" size={20} color="#3b82f6" />
-                        <Text style={styles.locationButtonText}>Use my current location</Text>
-                        <Ionicons name="chevron-forward" size={20} color="#666" />
-                    </TouchableOpacity>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Locality / Town"
+            value={formData.locality}
+            onChangeText={(value) => handleInputChange('locality', value)}
+            placeholderTextColor="#999"
+          />
 
-                    <TouchableOpacity style={styles.searchLocationButton} onPress={handleSearchLocation}>
-                        <Ionicons name="search" size={20} color="#3b82f6" />
-                        <Text style={styles.searchLocationButtonText}>Search Location</Text>
-                        <Ionicons name="chevron-forward" size={20} color="#666" />
-                    </TouchableOpacity>
+          <View style={styles.row}>
+            <TextInput
+              style={[styles.textInput, styles.halfInput]}
+              placeholder="City"
+              value={formData.city}
+              onChangeText={(value) => handleInputChange('city', value)}
+              placeholderTextColor="#999"
+            />
+            <TextInput
+              style={[styles.textInput, styles.halfInput]}
+              placeholder="District"
+              value={formData.district}
+              onChangeText={(value) => handleInputChange('district', value)}
+              placeholderTextColor="#999"
+            />
+          </View>
 
-                    {/* Address Input Fields */}
-                    <View style={styles.inputContainer}>
-                        <TextInput
-                            style={styles.textInput}
-                            placeholder="Enter pin code"
-                            keyboardType="number-pad"
-                            value={formData.pincode}
-                            onChangeText={(value) => handleInputChange('pincode', value)}
-                            placeholderTextColor="#999"
-                            maxLength={6}
-                        />
-                    </View>
+          <View style={styles.switchContainer}>
+            <Switch
+              value={isDefaultAddress}
+              onValueChange={setIsDefaultAddress}
+              trackColor={{ false: '#f0f0f0', true: '#3b82f6' }}
+              thumbColor="#fff"
+            />
+            <Text style={styles.switchLabel}>Make this my default address</Text>
+          </View>
+        </View>
 
-                    <View style={styles.inputContainer}>
-                        <TextInput
-                            style={styles.textInput}
-                            placeholder="Enter house number/block/street"
-                            value={formData.houseNumber}
-                            onChangeText={(value) => handleInputChange('houseNumber', value)}
-                            placeholderTextColor="#999"
-                        />
-                    </View>
+        <View style={{ height: 100 }} />
+      </ScrollView>
 
-                    <View style={styles.inputContainer}>
-                        <TextInput
-                            style={styles.textInput}
-                            placeholder="Enter locality/town"
-                            value={formData.locality}
-                            onChangeText={(value) => handleInputChange('locality', value)}
-                            placeholderTextColor="#999"
-                        />
-                    </View>
-                    <View style={styles.CityDistrict}>
-                        <View style={styles.inputContainerC}>
-                            <TextInput
-                                style={styles.textInputC}
-                                placeholder="city*"
-                                value={formData.city}
-                                onChangeText={(value) => handleInputChange('city', value)}
-                                placeholderTextColor="rgba(77, 77, 77, 0.35)"
-                            />
-                        </View>
+      {/* Footer */}
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+          <Text style={styles.cancelButtonText}>Cancel</Text>
+        </TouchableOpacity>
 
-                        <View style={styles.inputContainerC}>
-                            <TextInput
-                                style={styles.textInputC}
-                                placeholder="district*"
-                                value={formData.district}
-                                onChangeText={(value) => handleInputChange('district', value)}
-                                placeholderTextColor="#999"
-                            />
-                        </View>
-                    </View>
-
-
-                    {/* Default Address Switch */}
-                    <View style={styles.switchContainer}>
-                        <Switch
-                            value={isDefaultAddress}
-                            onValueChange={setIsDefaultAddress}
-                            trackColor={{ false: '#f0f0f0', true: '#3b82f6' }}
-                            thumbColor={isDefaultAddress ? '#fff' : '#f4f3f4'}
-                        />
-                        <Text style={styles.switchLabel}>Make this as my default address</Text>
-                    </View>
-                </View>
-
-                {/* Bottom Space */}
-                <View style={styles.bottomSpace} />
-            </ScrollView>
-
-            {/* Footer Buttons */}
-            <View style={styles.footer}>
-                <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                    <Text style={styles.saveButtonText}>Save</Text>
-                </TouchableOpacity>
-            </View>
-        </SafeAreaView>
-    );
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={handleSave}
+          disabled={loading}
+        >
+          <Text style={styles.saveButtonText}>
+            {loading ? 'Saving...' : 'Save'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
 };
 
+// 💅 Styles
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: 'rgba(249, 249, 249, 1)',
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0',
-        backgroundColor: 'rgba(249, 249, 249, 1)',
-    },
-    backButton: {
-        padding: 4,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#000',
-    },
-    headerRight: {
-        width: 24,
-    },
-    scrollView: {
-        flex: 1,
-        paddingHorizontal: 16,
-    },
-    section: {
-        marginTop: 14,
-        borderWidth: 1,
-        borderColor: 'rgba(0, 0, 0, 0.1)',
-        padding: 15,
-        borderRadius: 12,
-        marginBottom: 20,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#000',
-        marginBottom: 16,
-    },
-    CityDistrict: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        gap: 4,
-    },
-    inputContainer: {
-        marginBottom: 10,
-    },
-    inputContainerC: {
-        width: '50%',
-    },
-    label: {
-        fontSize: 16,
-        fontWeight: '500',
-        color: '#333',
-        marginBottom: 8,
-    },
-    textInput: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 12,
-        fontSize: 16,
-        backgroundColor: '#fff',
-    },
-    textInputC: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 12,
-        fontSize: 16,
-        fontWeight:'600',
-         backgroundColor: 'rgba(77, 77, 77, 0.35)',
-    },
-    locationButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#3b82f6',
-        borderRadius: 8,
-        padding: 12,
-        marginBottom: 12,
-    },
-    locationButtonText: {
-        flex: 1,
-        fontSize: 16,
-        color: '#3b82f6',
-        fontWeight: '500',
-        marginLeft: 8,
-    },
-    searchLocationButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#3b82f6',
-        borderRadius: 8,
-        padding: 12,
-        marginBottom: 20,
-    },
-    searchLocationButtonText: {
-        flex: 1,
-        fontSize: 16,
-        color: '#3b82f6',
-        fontWeight: '500',
-        marginLeft: 8,
-    },
-    switchContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 20,
-        marginBottom: 10,
-    },
-    switchLabel: {
-        fontSize: 16,
-        color: '#333',
-        fontWeight: '500',
-        marginLeft: 12,
-    },
-    bottomSpace: {
-        height: 100,
-    },
-    footer: {
-        flexDirection: 'row',
-        paddingHorizontal: 16,
-        paddingVertical: 16,
-        borderTopWidth: 1,
-        borderTopColor: '#e0e0e0',
-        backgroundColor: '#fff',
-    },
-    cancelButton: {
-        flex: 1,
-        paddingVertical: 14,
-        paddingHorizontal: 20,
-        borderWidth:2,
-        borderColor: 'rgba(76, 175, 80, 1)',
-        borderRadius: 8,
-        marginRight: 12,
-        alignItems: 'center',
-    },
-    cancelButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: 'rgba(76, 175, 80, 1)',
-    },
-    saveButton: {
-        flex: 1,
-        paddingVertical: 14,
-        paddingHorizontal: 20,
-        backgroundColor: 'rgba(76, 175, 80, 1)',
-        borderRadius: 8,
-        marginLeft: 12,
-        alignItems: 'center',
-    },
-    saveButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#fff',
-    },
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  backButton: { padding: 4 },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '600' },
+  scrollView: { paddingHorizontal: 16 },
+  section: { marginTop: 20 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 10 },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  row: { flexDirection: 'row', justifyContent: 'space-between' },
+  halfInput: { flex: 1, marginRight: 8 },
+  switchContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
+  switchLabel: { marginLeft: 8, fontSize: 14 },
+  footer: {
+    flexDirection: 'row',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    backgroundColor: '#fff',
+  },
+  cancelButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButtonText: { color: '#555', fontWeight: '500' },
+  saveButton: {
+    flex: 1,
+    backgroundColor: '#3b82f6',
+    marginLeft: 10,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveButtonText: { color: '#fff', fontWeight: '600' },
+  locationBox: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+    borderRadius: 8,
+    padding: 12,
+    backgroundColor: '#e8f0ff',
+  },
+  locationButton: { flexDirection: 'row', alignItems: 'center' },
+  locationText: {
+    marginLeft: 8,
+    color: '#3b82f6',
+    fontWeight: '600',
+  },
 });
 
 export default AddNewAddress;

@@ -1,9 +1,13 @@
 import SuggestionCard from '@/components/myCard/SuggestionCard'
 import { Ionicons } from '@expo/vector-icons'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import axios from 'axios'
 import { useNavigation, useRouter } from 'expo-router'
 import { goBack } from 'expo-router/build/global-state/routing'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
+  ActivityIndicator,
+  Alert,
   Animated,
   Image,
   Modal,
@@ -15,33 +19,17 @@ import {
   TouchableOpacity,
   View
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+
+const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
 
 const ReviewOrder = () => {
   const router = useRouter();
   const navigation = useNavigation();
 
-  // Sample product data - this will come from API
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: 'Prize',
-      description: 'Head Pointed',
-      price: 400,
-      quantity: 2,
-      image: require('../assets/via-farm-img/category/category.png'),
-      deliveryDate: 'Sep 20'
-    },
-    {
-      id: 2,
-      name: 'Jade',
-      description: 'Self Widening Jade Plant',
-      price: 100,
-      quantity: 1,
-      image: require('../assets/via-farm-img/category/category.png'),
-      deliveryDate: 'Sep 20'
-    }
-  ]);
-
+  // State for products and loading
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [donation, setDonation] = useState(20);
   const deliveryCharge = 20;
 
@@ -58,6 +46,58 @@ const ReviewOrder = () => {
 
   const [selectedAddress, setSelectedAddress] = useState(addresses[0]);
 
+  // Fetch products from API
+  useEffect(() => {
+    fetchCartProducts();
+  }, []);
+
+  const fetchCartProducts = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('userToken');
+
+      if (!token) {
+        Alert.alert('Error', 'Please login to view cart');
+        setLoading(false);
+        return;
+      }
+
+      const response = await axios.get(`${API_BASE}/api/buyer/cart`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      console.log("Cart Response:", response.data);
+
+      if (response.data.success) {
+        const cartItems = response.data.data?.items || [];
+        
+        // Map API response to component format
+        const mappedProducts = cartItems.map((item) => ({
+          id: item._id || item.id,
+          productId: item.productId,
+          name: item.name || 'Product',
+          description: item.subtitle || item.variety || 'Fresh Product',
+          price: item.mrp || item.price || 0,
+          quantity: item.quantity || 1,
+          image:  { uri: item.imageUrl },
+          deliveryDate: item.deliveryText || 'Sep 25'
+        }));
+
+        setProducts(mappedProducts);
+        console.log('Mapped Products:', mappedProducts);
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to load cart');
+      }
+    } catch (error) {
+      console.error("Error fetching cart products:", error);
+      Alert.alert('Error', 'Failed to load cart items');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Calculate total amounts
   const calculateTotals = () => {
     const totalMRP = products.reduce((sum, product) => sum + (product.price * product.quantity), 0);
@@ -71,30 +111,99 @@ const ReviewOrder = () => {
 
   const { totalMRP, totalAmount } = calculateTotals();
 
+  // Update quantity in API
+  const updateQuantityInAPI = async (cartItemId, newQuantity) => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      
+      const response = await axios.put(
+        `${API_BASE}/api/buyer/cart/${cartItemId}/quantity`,
+        { quantity: newQuantity },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.data.success) {
+        throw new Error('Failed to update quantity');
+      }
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+      Alert.alert('Error', 'Failed to update quantity');
+      // Revert the change
+      fetchCartProducts();
+    }
+  };
+
   // Quantity handlers
   const increaseQuantity = (productId) => {
-    setProducts(products.map(product =>
-      product.id === productId
-        ? { ...product, quantity: product.quantity + 1 }
-        : product
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    const newQuantity = product.quantity + 1;
+
+    // Optimistic update
+    setProducts(products.map(p =>
+      p.id === productId
+        ? { ...p, quantity: newQuantity }
+        : p
     ));
+
+    // Update in API
+    updateQuantityInAPI(productId, newQuantity);
   };
 
   const decreaseQuantity = (productId) => {
-    setProducts(products.map(product =>
-      product.id === productId && product.quantity > 1
-        ? { ...product, quantity: product.quantity - 1 }
-        : product
+    const product = products.find(p => p.id === productId);
+    if (!product || product.quantity <= 1) return;
+
+    const newQuantity = product.quantity - 1;
+
+    // Optimistic update
+    setProducts(products.map(p =>
+      p.id === productId
+        ? { ...p, quantity: newQuantity }
+        : p
     ));
+
+    // Update in API
+    updateQuantityInAPI(productId, newQuantity);
   };
 
-  // Remove product
-  const removeProduct = (productId) => {
-    setProducts(products.filter(product => product.id !== productId));
+  // Remove product from cart
+  const removeProduct = async (productId) => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      
+      const response = await axios.delete(
+        `${API_BASE}/api/buyer/cart/${productId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setProducts(products.filter(product => product.id !== productId));
+        Alert.alert('Success', 'Item removed from cart');
+      }
+    } catch (error) {
+      console.error('Error removing product:', error);
+      Alert.alert('Error', 'Failed to remove item');
+    }
   };
 
   // Handle proceed to payment
   const handleProceedToPayment = () => {
+    if (products.length === 0) {
+      Alert.alert('Cart Empty', 'Please add items to cart first');
+      return;
+    }
+
     navigation.navigate("Payment", {
       totalAmount: totalAmount.toString(),
       totalItems: products.reduce((sum, product) => sum + product.quantity, 0).toString()
@@ -156,7 +265,10 @@ const ReviewOrder = () => {
     <View style={styles.productCard}>
       <View style={styles.mainContainer}>
         <View>
-          <Image source={product.image} style={styles.productImage} />
+          <Image 
+            source={product.image} 
+            style={styles.productImage}
+          />
         </View>
         <View style={styles.productDetails}>
           <Text style={styles.productName}>{product.name}</Text>
@@ -193,8 +305,32 @@ const ReviewOrder = () => {
     </View>
   );
 
+  // Loading state
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4CAF50" />
+      </View>
+    );
+  }
+
+  // Empty cart state
+  if (products.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>Your cart is empty</Text>
+        <TouchableOpacity 
+          style={styles.shopButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.shopButtonText}>Continue Shopping</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack}>
@@ -218,8 +354,13 @@ const ReviewOrder = () => {
             </TouchableOpacity>
           </View>
         </View>
-        {/* Delivery Date */}
-        <Text style={styles.deliveryDate}>Delivered by Sep 20</Text>
+
+        {/* Delivery Date - Show first product's delivery date */}
+        {products.length > 0 && (
+          <Text style={styles.deliveryDate}>
+            {products[0].deliveryDate || 'Delivered by Sep 20'}
+          </Text>
+        )}
 
         {/* Product Cards - Dynamic */}
         {products.map(product => (
@@ -261,7 +402,7 @@ const ReviewOrder = () => {
 
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>Total MRP</Text>
-            <Text style={styles.priceValue}>₹{totalMRP}</Text>
+            <Text style={styles.priceValue}>₹{totalMRP.toFixed(2)}</Text>
           </View>
 
           <View style={styles.priceRow}>
@@ -281,7 +422,7 @@ const ReviewOrder = () => {
 
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>₹{totalAmount}</Text>
+            <Text style={styles.totalValue}>₹{totalAmount.toFixed(2)}</Text>
           </View>
         </View>
 
@@ -306,7 +447,7 @@ const ReviewOrder = () => {
       <View style={styles.bottomPaymentCard}>
         <View style={styles.paymentLeft}>
           <Text style={styles.priceLabelBottom}>Price</Text>
-          <Text style={styles.totalPrice}>₹{totalAmount}</Text>
+          <Text style={styles.totalPrice}>₹{totalAmount.toFixed(2)}</Text>
         </View>
         <TouchableOpacity
           style={styles.proceedButton}
@@ -315,7 +456,6 @@ const ReviewOrder = () => {
           <Image source={require("../assets/via-farm-img/icons/UpArrow.png")} />
           <Text style={styles.proceedButtonText}>
              Proceed to Payment
-             {/* {products.reduce((sum, product) => sum + product.quantity, 0)} | */}
           </Text>
         </TouchableOpacity>
       </View>
@@ -424,9 +564,10 @@ const ReviewOrder = () => {
           </Animated.View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   )
 }
+
 
 export default ReviewOrder
 
@@ -445,6 +586,12 @@ const styles = StyleSheet.create({
   mainContainer: {
     flexDirection: 'row',
     gap: 12,
+  },
+  loadingContainer:{
+    flex:1,
+    backgroundColor:'#fff',
+    justifyContent:'center',
+    alignContent:'center',
   },
   productImage: {
     width: 167,
