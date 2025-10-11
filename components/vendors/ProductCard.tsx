@@ -81,106 +81,103 @@ const ProductCard = ({ item, onDelete, onStockUpdate }) => {
   };
 
   // FIXED Stock Update Handler with Multiple API Methods
-  const handleStockChange = async (newStatus) => {
-    // Close dropdown immediately
-    setIsStockDropdownOpen(false);
-    
-    // Start loading
-    setUpdatingStock(true);
+const handleStockChange = async (newStatus) => {
+  setIsStockDropdownOpen(false);
+  setUpdatingStock(true);
 
+  try {
+    // ✅ Correct token fetch (matches login storage)
+    const token = await AsyncStorage.getItem("userToken");
+
+    if (!token) {
+      Alert.alert("Error", "User not logged in!");
+      setUpdatingStock(false);
+      return;
+    }
+
+    let response = null;
+    let lastError = null;
+
+    // Try PATCH first
     try {
-      const token = await getToken();
-      if (!token) {
-        Alert.alert("Error", "User not logged in!");
-        setUpdatingStock(false);
-        return;
-      }
-
-      let response = null;
-      let lastError = null;
-
-      // Try Method 1: PATCH /api/vendor/products/:id/status
+      response = await axios.patch(
+        `${API_BASE}/api/vendor/products/${item._id}/status`,
+        { status: newStatus },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          timeout: 10000,
+        }
+      );
+    } catch (err) {
+      lastError = err;
+      // Try PATCH on alternate route
       try {
         response = await axios.patch(
-          `${API_BASE}/api/vendor/products/${item._id}/status`,
+          `${API_BASE}/api/vendor/products/${item._id}`,
           { status: newStatus },
           {
-            headers: { 
+            headers: {
               Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json'
+              "Content-Type": "application/json",
             },
-            timeout: 10000
+            timeout: 10000,
           }
         );
-      } catch (err) {
-        lastError = err;
-        
-        // Try Method 2: PATCH /api/vendor/products/:id (without /status)
+      } catch (err2) {
+        lastError = err2;
+        // Try PUT as last fallback
         try {
-          response = await axios.patch(
+          response = await axios.put(
             `${API_BASE}/api/vendor/products/${item._id}`,
             { status: newStatus },
             {
-              headers: { 
+              headers: {
                 Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json'
+                "Content-Type": "application/json",
               },
-              timeout: 10000
+              timeout: 10000,
             }
           );
-        } catch (err2) {
-          lastError = err2;
-          
-          // Try Method 3: PUT /api/vendor/products/:id
-          try {
-            response = await axios.put(
-              `${API_BASE}/api/vendor/products/${item._id}`,
-              { status: newStatus },
-              {
-                headers: { 
-                  Authorization: `Bearer ${token}`,
-                  'Content-Type': 'application/json'
-                },
-                timeout: 10000
-              }
-            );
-          } catch (err3) {
-            lastError = err3;
-          }
+        } catch (err3) {
+          lastError = err3;
         }
       }
-
-      // Check if any method succeeded
-      if (response && response.data && response.data.success) {
-        Alert.alert("Success", `Product marked as ${newStatus}`);
-        // Update parent component state
-        onStockUpdate(item._id, newStatus);
-      } else {
-        throw lastError || new Error("Failed to update status");
-      }
-
-    } catch (error) {
-      console.log("Stock update error:", error);
-      
-      if (error.response?.status === 404) {
-        Alert.alert("Error", "API endpoint not found. Please check server.");
-      } else if (error.response?.status === 401) {
-        Alert.alert("Error", "Authentication failed. Please login again.");
-      } else if (error.response?.status === 403) {
-        Alert.alert("Error", "You don't have permission to update this product.");
-      } else if (error.response?.status === 500) {
-        Alert.alert("Server Error", error.response?.data?.message || "Internal server error");
-      } else if (error.code === 'ECONNABORTED') {
-        Alert.alert("Timeout", "Request took too long.");
-      } else if (error.message === 'Network Error') {
-        Alert.alert("Network Error", "Cannot connect to server.");
-      } else {
-        Alert.alert("Error", "Something went wrong while updating stock");
-      }
-    } finally {
-      setUpdatingStock(false);
     }
-  };
+
+    if (response && response.data && response.data.success) {
+      Alert.alert("Success", `Product marked as ${newStatus}`);
+      onStockUpdate(item._id, newStatus);
+    } else {
+      throw lastError || new Error("Failed to update status");
+    }
+  } catch (error) {
+    console.log("Stock update error:", error);
+
+    if (error.response?.status === 401) {
+      Alert.alert("Error", "Authentication failed. Please login again.");
+    } else if (error.response?.status === 404) {
+      Alert.alert("Error", "API endpoint not found. Please check server.");
+    } else if (error.response?.status === 403) {
+      Alert.alert("Error", "You don't have permission to update this product.");
+    } else if (error.response?.status === 500) {
+      Alert.alert(
+        "Server Error",
+        error.response?.data?.message || "Internal server error"
+      );
+    } else if (error.code === "ECONNABORTED") {
+      Alert.alert("Timeout", "Request took too long.");
+    } else if (error.message === "Network Error") {
+      Alert.alert("Network Error", "Cannot connect to server.");
+    } else {
+      Alert.alert("Error", "Something went wrong while updating stock");
+    }
+  } finally {
+    setUpdatingStock(false);
+  }
+};
 
   return (
     <View style={cardStyles.card}>
