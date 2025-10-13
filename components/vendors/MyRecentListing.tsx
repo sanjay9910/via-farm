@@ -341,7 +341,7 @@ const MyRecentListing = () => {
       <View style={styles.headerRowContainer}>
         <Text style={styles.headerTitle}>My Recent Listings</Text>
         <TouchableOpacity onPress={viewAll}>
-          <Text style={styles.seeAll}>See All &gt;</Text>
+          <Text style={styles.seeAll}>See All</Text>
         </TouchableOpacity>
       </View>
 

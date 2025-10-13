@@ -21,7 +21,7 @@ const ITEM_GAP = 10;
 const VISIBLE_ITEM_WIDTH = width - (2 * SCREEN_PADDING); 
 
 const BASE_URL = 'https://393rb0pp-5000.inc1.devtunnels.ms';
-const ENDPOINT = '/api/admin/public/manage-app/banners';
+const ENDPOINT = '/api/admin/public/manage-app/banners/placement/HomePageSlider';
 
 const BannerCard = () => {
   const [banners, setBanners] = useState([]);

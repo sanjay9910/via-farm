@@ -156,7 +156,7 @@ const Plants = () => {
     <View>
       <View style={styles.headerRow}>
         <Text style={styles.heading}>Plants</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("AllPlants")}>
+        <TouchableOpacity onPress={() => navigation.navigate("ViewAllPlants")}>
           <Text style={styles.link}>View All</Text>
         </TouchableOpacity>
       </View>

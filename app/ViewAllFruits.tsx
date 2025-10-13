@@ -3,18 +3,20 @@ import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Dimensions,
+    FlatList,
+    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
 
-// ✅ Reusable Product Card (same as NewSeason)
+// ✅ Product Card
 const ProductCard = ({ name, image }) => {
   return (
     <View style={cardStyles.container}>
@@ -34,9 +36,9 @@ const ProductCard = ({ name, image }) => {
   );
 };
 
-const Fruits = () => {
+const ViewAllFruits = () => {
   const navigation = useNavigation();
-  const [data, setData] = useState([]);
+  const [fruits, setFruits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -63,8 +65,6 @@ const Fruits = () => {
         }
       );
 
-      console.log("🍎 Fruits API Response:", response.data);
-
       if (response.data && response.data.success) {
         const formattedData = response.data.data.map((item, index) => ({
           id: item._id || `fruit-${index}`,
@@ -74,20 +74,16 @@ const Fruits = () => {
               ? item.images[0]
               : "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
         }));
-        setData(formattedData);
-        console.log(`✅ Loaded ${formattedData.length} fruits`);
+        setFruits(formattedData);
       } else {
         setError("No fruits found in your area");
       }
     } catch (err) {
-      console.error("❌ Error fetching fruits:", err);
-
+      console.error("Error fetching fruits:", err);
       if (err.response?.status === 401) {
         setError("Please login to view fruits");
       } else if (err.code === "ECONNABORTED") {
         setError("Request timeout. Please try again.");
-      } else if (err.response?.status === 404) {
-        setError("Fruits not found");
       } else if (!err.response) {
         setError("Network error. Please check your connection.");
       } else {
@@ -107,116 +103,92 @@ const Fruits = () => {
     fetchFruits();
   };
 
-  const handleLogin = () => {
-    navigation.navigate("login");
-  };
+  return (
+    <SafeAreaView style={{ flex: 1 }}>
+      {/* ✅ Header */}
+      <Header />
 
-  // ⏳ Loading
-  if (loading) {
-    return (
-      <View style={{ marginVertical: 20 }}>
-        <View style={styles.headerRow}>
-          <Text style={styles.heading}>Fruits</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("ViewAllFruits")}>
-            <Text style={styles.link}>View All</Text>
-          </TouchableOpacity>
-        </View>
+      {/* ⏳ Loading */}
+      {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFA500" />
           <Text style={styles.loadingText}>Fetching fresh fruits...</Text>
         </View>
-      </View>
-    );
-  }
+      )}
 
-  // ⚠️ Error
-  if (error) {
-    return (
-      <View >
-        <View style={styles.headerRow}>
-          <Text style={styles.heading}>Fruits</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("ViewAllFruits")}>
-            <Text style={styles.link}>View All</Text>
-          </TouchableOpacity>
-        </View>
-
+      {/* ⚠️ Error */}
+      {error && !loading && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-              <Text style={styles.buttonText}>Try Again</Text>
-            </TouchableOpacity>
-
-            {error.includes("login") && (
-              <TouchableOpacity
-                style={styles.loginButton}
-                onPress={handleLogin}
-              >
-                <Text style={styles.buttonText}>Go to Login</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  // ✅ Success
-  return (
-    <View >
-      <View style={styles.headerRow}>
-        <Text style={styles.heading}>Fruits</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("ViewAllFruits")}>
-          <Text style={styles.link}>View All</Text>
-        </TouchableOpacity>
-      </View>
-
-      {data.length > 0 ? (
-        <FlatList
-          data={data}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 10 }}
-          renderItem={({ item }) => (
-            <ProductCard name={item.name} image={item.image} />
-          )}
-        />
-      ) : (
-        <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>No fruits available right now</Text>
           <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
             <Text style={styles.buttonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       )}
+
+      {/* ✅ Success */}
+      {!loading && !error && (
+        <FlatList
+          data={fruits}
+          keyExtractor={(item) => item.id}
+          numColumns={2} // 2 cards per row
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 20 }}
+          renderItem={({ item }) => <ProductCard name={item.name} image={item.image} />}
+          columnWrapperStyle={{ justifyContent: "space-between", marginBottom: 15 }}
+        />
+      )}
+    </SafeAreaView>
+  );
+};
+
+// ✅ Header Component
+const Header = () => {
+  const navigation = useNavigation();
+  return (
+    <View style={styles.header}>
+      {/* Back Button */}
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonContainer}>
+        <Image
+          source={require("../assets/via-farm-img/icons/groupArrow.png")}
+          style={styles.backIcon}
+        />
+      </TouchableOpacity>
+
+      {/* Title */}
+      <Text style={styles.headerTitle}>All Fruits</Text>
+
+      {/* Placeholder for spacing */}
+      <View style={{ width: 50 }} />
     </View>
   );
 };
 
-export default Fruits;
+export default ViewAllFruits;
 
 const styles = StyleSheet.create({
-  heading: {
-    fontSize: 20,
-    marginLeft: 20,
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  backButton: {
+    color: "#1976d2",
+    fontSize: 16,
     fontWeight: "600",
   },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 15,
-    paddingRight: 20,
-  },
-  link: {
-    color: "blue",
+  headerTitle: {
+    fontSize: 20,
     fontWeight: "600",
   },
   loadingContainer: {
     alignItems: "center",
     padding: 20,
+    flex:1,
+    justifyContent:'center',
+    alignContent:'center',
   },
   loadingText: {
     marginTop: 10,
@@ -228,6 +200,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffebee",
     borderRadius: 8,
     marginHorizontal: 20,
+    marginTop: 20,
   },
   errorText: {
     color: "#d32f2f",
@@ -235,18 +208,8 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     fontSize: 16,
   },
-  buttonContainer: {
-    flexDirection: "row",
-    gap: 10,
-  },
   retryButton: {
     backgroundColor: "#1976d2",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
-  loginButton: {
-    backgroundColor: "#388e3c",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,
@@ -255,30 +218,22 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "600",
   },
-  noDataContainer: {
-    alignItems: "center",
-    padding: 20,
-  },
-  noDataText: {
-    color: "#666",
-    fontSize: 16,
-  },
 });
 
-// ✅ Same card design as NewSeason
+// ✅ Card Styles
 const cardStyles = StyleSheet.create({
   container: {
     alignItems: "center",
     marginHorizontal: 8,
-    width: 120,
+    width: Dimensions.get("window").width / 2 - 20,
   },
   card: {
     backgroundColor: "#fff",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#e0e0e0",
-    width: 120,
-    height: 120,
+    width: "100%",
+    height: 150,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
@@ -299,6 +254,5 @@ const cardStyles = StyleSheet.create({
     textAlign: "center",
     marginTop: 4,
     flexWrap: "wrap",
-    width: 100,
   },
 });

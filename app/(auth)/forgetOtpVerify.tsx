@@ -75,7 +75,7 @@ const ForgetOtpVerify = () => {
 
     try {
       const response = await axios.post(
-        `${FORGET_API_BASE}/api/auth/verify-otp-login`,
+        `${FORGET_API_BASE}/api/auth/reset-password`,
         {
           mobileNumber: mobileNumber,
           otp: otpValue,

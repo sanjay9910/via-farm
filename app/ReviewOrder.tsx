@@ -27,24 +27,56 @@ const ReviewOrder = () => {
   const router = useRouter();
   const navigation = useNavigation();
 
-  // State for products and loading
+  // States
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [donation, setDonation] = useState(20);
   const deliveryCharge = 20;
-
-  // Address Modal State
   const [modalVisible, setModalVisible] = useState(false);
   const [pincode, setPincode] = useState('110098');
   const slideAnim = useState(new Animated.Value(300))[0];
 
-  const addresses = [
-    { id: 1, name: 'Devong Arya', pincode: '110098', address: '1st C, Amnipal Apartments, Delhi' },
-    { id: 2, name: 'Devong Arya', pincode: '110099', address: '2nd Floor, Green Park, Delhi' },
-    { id: 3, name: 'Devong Arya', pincode: '110100', address: '3rd Block, Rohini, Delhi' }
-  ];
+  // Address states
+  const [addresses, setAddresses] = useState([]);
+  const [selectedAddress, setSelectedAddress] = useState(null);
 
-  const [selectedAddress, setSelectedAddress] = useState(addresses[0]);
+  // Fetch addresses from API
+  useEffect(() => {
+    fetchBuyerAddresses();
+  }, []);
+
+  const fetchBuyerAddresses = async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        Alert.alert('Error', 'Please login to view addresses');
+        return;
+      }
+
+      const response = await axios.get(`${API_BASE}/api/buyer/addresses`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.data.success) {
+        const fetchedAddresses = response.data.addresses.map((addr) => ({
+          id: addr.id || addr._id,
+          name: addr.name || 'Buyer',
+          pincode: addr.pinCode || addr.pincode || '000000',
+          address: `${addr.houseNumber || ''}, ${addr.locality || ''}, ${addr.city || ''}, ${addr.state || ''}`,
+          isDefault: addr.isDefault || false,
+        }));
+
+        setAddresses(fetchedAddresses);
+        const defaultAddr = fetchedAddresses.find((a) => a.isDefault) || fetchedAddresses[0];
+        if (defaultAddr) setSelectedAddress(defaultAddr);
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to load addresses');
+      }
+    } catch (error) {
+      console.error('Error fetching buyer addresses:', error);
+      Alert.alert('Error', 'Failed to load addresses');
+    }
+  };
 
   // Fetch products from API
   useEffect(() => {
@@ -55,7 +87,6 @@ const ReviewOrder = () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem('userToken');
-
       if (!token) {
         Alert.alert('Error', 'Please login to view cart');
         setLoading(false);
@@ -63,17 +94,11 @@ const ReviewOrder = () => {
       }
 
       const response = await axios.get(`${API_BASE}/api/buyer/cart`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      console.log("Cart Response:", response.data);
 
       if (response.data.success) {
         const cartItems = response.data.data?.items || [];
-        
-        // Map API response to component format
         const mappedProducts = cartItems.map((item) => ({
           id: item._id || item.id,
           productId: item.productId,
@@ -81,115 +106,73 @@ const ReviewOrder = () => {
           description: item.subtitle || item.variety || 'Fresh Product',
           price: item.mrp || item.price || 0,
           quantity: item.quantity || 1,
-          image:  { uri: item.imageUrl },
-          deliveryDate: item.deliveryText || 'Sep 25'
+          image: { uri: item.imageUrl },
+          deliveryDate: item.deliveryText || 'Sep 25',
         }));
 
         setProducts(mappedProducts);
-        console.log('Mapped Products:', mappedProducts);
       } else {
         Alert.alert('Error', response.data.message || 'Failed to load cart');
       }
     } catch (error) {
-      console.error("Error fetching cart products:", error);
+      console.error('Error fetching cart products:', error);
       Alert.alert('Error', 'Failed to load cart items');
     } finally {
       setLoading(false);
     }
   };
 
-  // Calculate total amounts
+  // Totals
   const calculateTotals = () => {
-    const totalMRP = products.reduce((sum, product) => sum + (product.price * product.quantity), 0);
+    const totalMRP = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
     const totalAmount = totalMRP + deliveryCharge + donation;
-
-    return {
-      totalMRP,
-      totalAmount
-    };
+    return { totalMRP, totalAmount };
   };
 
   const { totalMRP, totalAmount } = calculateTotals();
 
-  // Update quantity in API
+  // Update quantity
   const updateQuantityInAPI = async (cartItemId, newQuantity) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
-      
       const response = await axios.put(
         `${API_BASE}/api/buyer/cart/${cartItemId}/quantity`,
         { quantity: newQuantity },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      if (!response.data.success) {
-        throw new Error('Failed to update quantity');
-      }
+      if (!response.data.success) throw new Error('Failed to update quantity');
     } catch (error) {
       console.error('Error updating quantity:', error);
       Alert.alert('Error', 'Failed to update quantity');
-      // Revert the change
       fetchCartProducts();
     }
   };
 
-  // Quantity handlers
-  const increaseQuantity = (productId) => {
-    const product = products.find(p => p.id === productId);
+  const increaseQuantity = (id) => {
+    const product = products.find(p => p.id === id);
     if (!product) return;
-
     const newQuantity = product.quantity + 1;
-
-    // Optimistic update
-    setProducts(products.map(p =>
-      p.id === productId
-        ? { ...p, quantity: newQuantity }
-        : p
-    ));
-
-    // Update in API
-    updateQuantityInAPI(productId, newQuantity);
+    setProducts(products.map(p => p.id === id ? { ...p, quantity: newQuantity } : p));
+    updateQuantityInAPI(id, newQuantity);
   };
 
-  const decreaseQuantity = (productId) => {
-    const product = products.find(p => p.id === productId);
+  const decreaseQuantity = (id) => {
+    const product = products.find(p => p.id === id);
     if (!product || product.quantity <= 1) return;
-
     const newQuantity = product.quantity - 1;
-
-    // Optimistic update
-    setProducts(products.map(p =>
-      p.id === productId
-        ? { ...p, quantity: newQuantity }
-        : p
-    ));
-
-    // Update in API
-    updateQuantityInAPI(productId, newQuantity);
+    setProducts(products.map(p => p.id === id ? { ...p, quantity: newQuantity } : p));
+    updateQuantityInAPI(id, newQuantity);
   };
 
-  // Remove product from cart
-  const removeProduct = async (productId) => {
+  const removeProduct = async (id) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
-      
-      const response = await axios.delete(
-        `${API_BASE}/api/buyer/cart/${productId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-
+      const response = await axios.delete(`${API_BASE}/api/buyer/cart/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (response.data.success) {
-        setProducts(products.filter(product => product.id !== productId));
-        Alert.alert('Success', 'Item removed from cart');
+        setProducts(products.filter(p => p.id !== id));
+        Alert.alert('Success', 'Item removed');
       }
     } catch (error) {
       console.error('Error removing product:', error);
@@ -197,105 +180,69 @@ const ReviewOrder = () => {
     }
   };
 
-  // Handle proceed to payment
+  // Proceed
   const handleProceedToPayment = () => {
-    if (products.length === 0) {
-      Alert.alert('Cart Empty', 'Please add items to cart first');
+    if (!selectedAddress) {
+      Alert.alert('Address Missing', 'Please select a delivery address');
       return;
     }
-
+    if (products.length === 0) {
+      Alert.alert('Cart Empty', 'Please add items first');
+      return;
+    }
     navigation.navigate("Payment", {
       totalAmount: totalAmount.toString(),
-      totalItems: products.reduce((sum, product) => sum + product.quantity, 0).toString()
+      totalItems: products.reduce((sum, p) => sum + p.quantity, 0).toString(),
     });
   };
 
-  // Modal Functions
+  // Modal
   const openModal = () => {
     setModalVisible(true);
-    Animated.timing(slideAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+    Animated.timing(slideAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start();
   };
-
   const closeModal = () => {
-    Animated.timing(slideAnim, {
-      toValue: 300,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
-      setModalVisible(false);
-    });
+    Animated.timing(slideAnim, { toValue: 300, duration: 300, useNativeDriver: true }).start(() => setModalVisible(false));
   };
-
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onPanResponderMove: (evt, gestureState) => {
-      if (gestureState.dy > 0) {
-        slideAnim.setValue(gestureState.dy);
-      }
+      if (gestureState.dy > 0) slideAnim.setValue(gestureState.dy);
     },
     onPanResponderRelease: (evt, gestureState) => {
-      if (gestureState.dy > 100) {
-        closeModal();
-      } else {
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-        }).start();
-      }
+      if (gestureState.dy > 100) closeModal();
+      else Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true }).start();
     },
   });
-
-  const handleAddressSelect = (address) => {
-    setSelectedAddress(address);
-    setPincode(address.pincode);
+  const handleAddressSelect = (addr) => {
+    setSelectedAddress(addr);
+    setPincode(addr.pincode);
     closeModal();
   };
-
   const MoveToNewAddress = () => {
     setModalVisible(false);
     navigation.navigate("AddNewAddress");
-  }
+  };
 
-  // Render product card
   const ProductCard = ({ product }) => (
     <View style={styles.productCard}>
       <View style={styles.mainContainer}>
-        <View>
-          <Image 
-            source={product.image} 
-            style={styles.productImage}
-          />
-        </View>
+        <Image source={product.image} style={styles.productImage} />
         <View style={styles.productDetails}>
           <Text style={styles.productName}>{product.name}</Text>
           <Text style={styles.productDescription}>{product.description}</Text>
           <Text style={styles.productPrice}>MRP ₹{product.price}</Text>
-
-          <TouchableOpacity
-            style={styles.deleteBtn}
-            onPress={() => removeProduct(product.id)}
-          >
+          <TouchableOpacity style={styles.deleteBtn} onPress={() => removeProduct(product.id)}>
             <Image source={require('../assets/via-farm-img/icons/deleteBtn.png')} />
           </TouchableOpacity>
-
           <View style={styles.deliveryRow}>
             <Text style={styles.deliveryText}>Delivery by {product.deliveryDate}</Text>
             <View style={styles.quantityContainer}>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={() => decreaseQuantity(product.id)}
-              >
+              <TouchableOpacity style={styles.quantityButton} onPress={() => decreaseQuantity(product.id)}>
                 <Text style={styles.quantityText}>-</Text>
               </TouchableOpacity>
               <Text style={styles.quantityNumber}>{product.quantity}</Text>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={() => increaseQuantity(product.id)}
-              >
+              <TouchableOpacity style={styles.quantityButton} onPress={() => increaseQuantity(product.id)}>
                 <Text style={styles.quantityText}>+</Text>
               </TouchableOpacity>
             </View>
@@ -305,29 +252,22 @@ const ReviewOrder = () => {
     </View>
   );
 
-  // Loading state
-  if (loading) {
+  if (loading)
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#4CAF50" />
       </View>
     );
-  }
 
-  // Empty cart state
-  if (products.length === 0) {
+  if (products.length === 0)
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>Your cart is empty</Text>
-        <TouchableOpacity 
-          style={styles.shopButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.shopButton} onPress={() => navigation.goBack()}>
           <Text style={styles.shopButtonText}>Continue Shopping</Text>
         </TouchableOpacity>
       </View>
     );
-  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -340,14 +280,15 @@ const ReviewOrder = () => {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
         {/* Deliver to Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Deliver to</Text>
           <View style={styles.addressContainer}>
             <View style={styles.location}>
               <Image source={require("../assets/via-farm-img/icons/loca.png")} />
-              <Text style={styles.addressText}>{selectedAddress.name}, {selectedAddress.pincode}</Text>
+              <Text style={styles.addressText}>
+                {selectedAddress ? `${selectedAddress.name}, ${selectedAddress.pincode}` : "Select delivery address"}
+              </Text>
             </View>
             <TouchableOpacity onPress={openModal}>
               <Text style={styles.changeText}>Change ?</Text>
@@ -355,19 +296,15 @@ const ReviewOrder = () => {
           </View>
         </View>
 
-        {/* Delivery Date - Show first product's delivery date */}
         {products.length > 0 && (
-          <Text style={styles.deliveryDate}>
-            {products[0].deliveryDate || 'Delivered by Sep 20'}
-          </Text>
+          <Text style={styles.deliveryDate}>{products[0].deliveryDate || 'Delivered soon'}</Text>
         )}
 
-        {/* Product Cards - Dynamic */}
         {products.map(product => (
           <ProductCard key={product.id} product={product} />
         ))}
 
-        {/* Coupon Section */}
+        {/* Rest unchanged sections */}
         <View style={styles.couponSection}>
           <Image source={require('../assets/via-farm-img/icons/promo-code.png')} />
           <View>
@@ -376,175 +313,87 @@ const ReviewOrder = () => {
           </View>
         </View>
 
-        {/* Coupon Input */}
         <View style={styles.couponInputContainer}>
-          <TextInput
-            style={styles.couponInput}
-            placeholder="Enter your coupon code"
-            placeholderTextColor="#999"
-          />
+          <TextInput style={styles.couponInput} placeholder="Enter your coupon code" placeholderTextColor="#999" />
         </View>
 
-        {/* Donation Section */}
         <Text style={styles.donationText}>If you like the app, you can donate us.</Text>
         <View style={styles.donationSection}>
-          <View >
-            <Text style={styles.indiaCurrency}>₹</Text>
-          </View>
-          <View>
-            <Text style={styles.donationValue}>₹{donation}</Text>
-          </View>
+          <View><Text style={styles.indiaCurrency}>₹</Text></View>
+          <View><Text style={styles.donationValue}>₹{donation}</Text></View>
         </View>
 
-        {/* Price Details - Dynamic */}
         <View style={styles.priceSection}>
           <Text style={styles.priceTitle}>Price Details</Text>
-
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Total MRP</Text>
-            <Text style={styles.priceValue}>₹{totalMRP.toFixed(2)}</Text>
-          </View>
-
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Coupon Discount</Text>
-            <Text style={styles.priceValue}>₹0.00</Text>
-          </View>
-
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Delivery Charge</Text>
-            <Text style={styles.priceValue}>₹{deliveryCharge}</Text>
-          </View>
-
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Donation</Text>
-            <Text style={styles.priceValue}>₹{donation}</Text>
-          </View>
-
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>₹{totalAmount.toFixed(2)}</Text>
-          </View>
+          <View style={styles.priceRow}><Text style={styles.priceLabel}>Total MRP</Text><Text style={styles.priceValue}>₹{totalMRP.toFixed(2)}</Text></View>
+          <View style={styles.priceRow}><Text style={styles.priceLabel}>Coupon Discount</Text><Text style={styles.priceValue}>₹0.00</Text></View>
+          <View style={styles.priceRow}><Text style={styles.priceLabel}>Delivery Charge</Text><Text style={styles.priceValue}>₹{deliveryCharge}</Text></View>
+          <View style={styles.priceRow}><Text style={styles.priceLabel}>Donation</Text><Text style={styles.priceValue}>₹{donation}</Text></View>
+          <View style={styles.totalRow}><Text style={styles.totalLabel}>Total Amount</Text><Text style={styles.totalValue}>₹{totalAmount.toFixed(2)}</Text></View>
         </View>
 
-        {/* Comments Section */}
         <View style={styles.commentsSection}>
           <Text style={styles.commentsTitle}>Comments / Instructions</Text>
-          <TextInput
-            style={styles.commentsInput}
-            placeholder="Instructions / Comments for the vendor"
-            placeholderTextColor="#999"
-            multiline
-          />
+          <TextInput style={styles.commentsInput} placeholder="Instructions / Comments for the vendor" placeholderTextColor="#999" multiline />
         </View>
 
         <SuggestionCard />
-
-        {/* Extra space for bottom fixed card */}
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {/* Fixed Bottom Payment Card */}
+      {/* Bottom Card */}
       <View style={styles.bottomPaymentCard}>
         <View style={styles.paymentLeft}>
           <Text style={styles.priceLabelBottom}>Price</Text>
           <Text style={styles.totalPrice}>₹{totalAmount.toFixed(2)}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.proceedButton}
-          onPress={handleProceedToPayment}
-        >
+        <TouchableOpacity style={styles.proceedButton} onPress={handleProceedToPayment}>
           <Image source={require("../assets/via-farm-img/icons/UpArrow.png")} />
-          <Text style={styles.proceedButtonText}>
-             Proceed to Payment
-          </Text>
+          <Text style={styles.proceedButtonText}>Proceed to Payment</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Address Selection Modal */}
-      <Modal
-        visible={modalVisible}
-        transparent={true}
-        animationType="none"
-        onRequestClose={closeModal}
-      >
+      {/* Address Modal */}
+      <Modal visible={modalVisible} transparent animationType="none" onRequestClose={closeModal}>
         <View style={styles.modalOverlay}>
-          <TouchableOpacity
-            style={styles.modalBackground}
-            activeOpacity={1}
-            onPress={closeModal}
-          />
-          <Animated.View
-            style={[
-              styles.modalContainer,
-              {
-                transform: [{ translateY: slideAnim }]
-              }
-            ]}
-            {...panResponder.panHandlers}
-          >
-            {/* Drag Handle */}
+          <TouchableOpacity style={styles.modalBackground} activeOpacity={1} onPress={closeModal} />
+          <Animated.View style={[styles.modalContainer, { transform: [{ translateY: slideAnim }] }]} {...panResponder.panHandlers}>
             <View style={styles.dragHandle} />
-
-            {/* Modal Header */}
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Delivery Location</Text>
-              <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color="#666" />
-              </TouchableOpacity>
+              <TouchableOpacity onPress={closeModal} style={styles.closeButton}><Ionicons name="close" size={24} color="#666" /></TouchableOpacity>
             </View>
 
-            {/* Search Section */}
             <View style={styles.searchSection}>
               <View style={styles.pincodeInputContainer}>
-                <TextInput
-                  style={styles.pincodeInput}
-                  placeholder="Enter Pincode"
-                  value={pincode}
-                  onChangeText={setPincode}
-                />
-                <TouchableOpacity style={styles.checkButton}>
-                  <Text style={styles.checkButtonText}>Check Pincode</Text>
-                </TouchableOpacity>
+                <TextInput style={styles.pincodeInput} placeholder="Enter Pincode" value={pincode} onChangeText={setPincode} />
+                <TouchableOpacity style={styles.checkButton}><Text style={styles.checkButtonText}>Check Pincode</Text></TouchableOpacity>
               </View>
-
               <TouchableOpacity style={styles.locationButton}>
                 <Ionicons name="location" size={16} color="#3b82f6" />
                 <Text style={styles.locationButtonText}>Use my current location</Text>
               </TouchableOpacity>
-
               <TouchableOpacity style={styles.searchLocationButton}>
                 <Ionicons name="search" size={16} color="blue" />
                 <Text style={styles.searchLocationButtonText}>Search Location</Text>
               </TouchableOpacity>
-
               <Text style={styles.orText}>OR</Text>
             </View>
 
-            {/* Address List */}
             <ScrollView style={styles.addressList} showsVerticalScrollIndicator={false}>
               {addresses.map((address) => (
                 <TouchableOpacity
                   key={address.id}
-                  style={[
-                    styles.addressItem,
-                    selectedAddress.id === address.id && styles.selectedAddressItem
-                  ]}
+                  style={[styles.addressItem, selectedAddress?.id === address.id && styles.selectedAddressItem]}
                   onPress={() => handleAddressSelect(address)}
                 >
                   <View style={styles.radioContainer}>
-                    <View style={[
-                      styles.radioOuter,
-                      selectedAddress.id === address.id && styles.radioOuterSelected
-                    ]}>
-                      {selectedAddress.id === address.id && (
-                        <View style={styles.radioInner} />
-                      )}
+                    <View style={[styles.radioOuter, selectedAddress?.id === address.id && styles.radioOuterSelected]}>
+                      {selectedAddress?.id === address.id && <View style={styles.radioInner} />}
                     </View>
                   </View>
                   <View style={styles.addressDetails}>
-                    <Text style={styles.addressName}>
-                      {address.name}, {address.pincode}
-                    </Text>
+                    <Text style={styles.addressName}>{address.name}, {address.pincode}</Text>
                     <Text style={styles.addressText}>{address.address}</Text>
                   </View>
                   <TouchableOpacity>
@@ -554,7 +403,6 @@ const ReviewOrder = () => {
               ))}
             </ScrollView>
 
-            {/* Add New Address Button */}
             <TouchableOpacity style={styles.addAddressButton}>
               <TouchableOpacity style={styles.NewAddress} onPress={MoveToNewAddress}>
                 <Ionicons name="add" size={20} color="rgba(76, 175, 80, 1)" />
@@ -565,9 +413,8 @@ const ReviewOrder = () => {
         </View>
       </Modal>
     </SafeAreaView>
-  )
-}
-
+  );
+};
 
 export default ReviewOrder
 

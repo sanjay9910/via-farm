@@ -30,6 +30,8 @@ const MyCart = () => {
   const [authToken, setAuthToken] = useState(null);
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [vendorDetails, SetVendorsDetails] = useState('')
+  const [slot, setSlot] = useState({ date: '', startTime: '', endTime: '' })
 
   // Price summary from API
   const [priceDetails, setPriceDetails] = useState({
@@ -62,7 +64,7 @@ const MyCart = () => {
   // Calculate coupon discount
   const calculateCouponDiscount = () => {
     if (!appliedCoupon) return 0;
-    
+
     if (appliedCoupon.type === 'percentage') {
       return (priceDetails.totalAmount * appliedCoupon.discount) / 100;
     } else {
@@ -85,6 +87,45 @@ const MyCart = () => {
     }
   };
 
+  // fetch Vendors Details start
+  useEffect(() => {
+    const fetchVendorDetails = async () => {
+      try {
+        const token = await getAuthToken(); // fetch token
+        if (!token) return;
+
+        const response = await fetch(
+          "https://393rb0pp-5000.inc1.devtunnels.ms/api/buyer/pickup/68d63155abec554d6931b766?buyerLat=19.076&buyerLng=72.8777",
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const data = await response.json();
+        if (data.success) {
+          console.log("Vendor Details:", data.data.vendor);
+          SetVendorsDetails(data.data.vendor);
+        } else {
+          console.warn("Failed to fetch vendor details:", data.message);
+        }
+      } catch (error) {
+        console.error("Vendor Details Error:", error);
+      }
+    };
+
+    fetchVendorDetails();
+  }, []);
+  // fetch Vendors Details end
+   
+  // vendors Slot time
+
+
+  // vendors Slot end
+
   // --- Fetch Cart ---
   const fetchCartItems = useCallback(async (token) => {
     if (!token) {
@@ -105,10 +146,10 @@ const MyCart = () => {
           title: item.name,
           subtitle: item.subtitle,
           mrp: item.mrp,
-          price: item.mrp, 
+          price: item.mrp,
           image: item.imageUrl,
           quantity: item.quantity,
-          deliveryDate: item.deliveryText || 'Sep 27', 
+          deliveryDate: item.deliveryText || 'Sep 27',
         }));
         setCartItems(transformed);
 
@@ -147,59 +188,54 @@ const MyCart = () => {
 
   // --- Update Quantity ---
   const updateQuantity = async (itemId, newQty) => {
-  if (!authToken) {
-    Alert.alert('Error', 'Token not found.');
-    return;
-  }
-  
-  if (newQty < 1) return removeItem(itemId);
+    if (!authToken) {
+      Alert.alert('Error', 'Token not found.');
+      return;
+    }
 
-  const prevItem = cartItems.find(i => i.id === itemId);
+    if (newQty < 1) return removeItem(itemId);
 
-  // Optimistic UI
-  setCartItems(prev =>
-    prev.map(i => (i.id === itemId ? { ...i, quantity: newQty } : i))
-  );
+    const prevItem = cartItems.find(i => i.id === itemId);
 
-  try {
-    // Correct API endpoint with itemId in URL
-    const res = await fetch(`${BASE_URL}/api/buyer/cart/${itemId}/quantity`, {
-      method: 'PUT',
-      headers: { 
-        'Content-Type': 'application/json', 
-        Authorization: `Bearer ${authToken}` 
-      },
-      body: JSON.stringify({ quantity: newQty }), // Only send quantity in body
-    });
-    
-    const json = await res.json();
-    
-    if (!res.ok || !json.success) {
-      Alert.alert('Update Failed', json.message || 'Could not update quantity.');
-      // Revert optimistic update
+    // Optimistic UI
+    setCartItems(prev =>
+      prev.map(i => (i.id === itemId ? { ...i, quantity: newQty } : i))
+    );
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/buyer/cart/${itemId}/quantity`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ quantity: newQty }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        Alert.alert('Update Failed', json.message || 'Could not update quantity.');
+        setCartItems(prev =>
+          prev.map(i => (i.id === itemId ? prevItem : i))
+        );
+      } else {
+        fetchCartItems(authToken);
+      }
+    } catch (e) {
+      console.error('Update Error:', e);
+      Alert.alert('Error', 'Network error.');
       setCartItems(prev =>
         prev.map(i => (i.id === itemId ? prevItem : i))
       );
-    } else {
-      // Refresh cart data to get updated prices
-      fetchCartItems(authToken);
     }
-  } catch (e) {
-    console.error('Update Error:', e);
-    Alert.alert('Error', 'Network error.');
-    // Revert optimistic update
-    setCartItems(prev =>
-      prev.map(i => (i.id === itemId ? prevItem : i))
-    );
-  }
-};
+  };
 
   // --- Remove Item ---
   const removeItem = async (itemId) => {
     if (!authToken) return Alert.alert('Error', 'Token not found.');
     const prevCart = [...cartItems];
-    
-    // Optimistic UI update
+
     setCartItems(prev => prev.filter(i => i.id !== itemId));
 
     try {
@@ -210,16 +246,13 @@ const MyCart = () => {
       if (!res.ok) {
         const json = await res.json();
         Alert.alert('Remove Failed', json.message || 'Could not remove item.');
-        // Revert optimistic update
         setCartItems(prevCart);
       } else {
-        // Refresh cart data
         fetchCartItems(authToken);
       }
     } catch (e) {
       console.error('Remove Error:', e);
       Alert.alert('Error', 'Network error.');
-      // Revert optimistic update
       setCartItems(prevCart);
     }
   };
@@ -228,7 +261,7 @@ const MyCart = () => {
   const applyCoupon = () => {
     setCouponError('');
     const coupon = availableCoupons.find(c => c.code === couponCode.toUpperCase());
-    
+
     if (coupon) {
       setAppliedCoupon(coupon);
     } else {
@@ -243,7 +276,7 @@ const MyCart = () => {
     setCouponError('');
   };
 
-  // Modal functions - same as your original
+  // Modal functions
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onPanResponderMove: (evt, gestureState) => {
@@ -320,7 +353,7 @@ const MyCart = () => {
   };
 
   const closePickupModal = () => {
-    Animated.timing(pickupSlideModal, {
+    Animated.timing(pickupSlideAnim, {
       toValue: 300,
       duration: 300,
       useNativeDriver: true,
@@ -333,7 +366,7 @@ const MyCart = () => {
     navigation.navigate("ReviewOrder")
   }
 
-  // Cart Card Component - same design as original
+  // Cart Card Component
   const CartCard = ({ item }) => (
     <View style={styles.cartCard}>
       <Image source={{ uri: item.image || 'https://via.placeholder.com/300' }} style={styles.productImage} />
@@ -344,7 +377,6 @@ const MyCart = () => {
           <Text style={styles.productSubtitle}>{item.subtitle}</Text>
 
           <View style={styles.priceContainer}>
-            {/* <Text style={styles.mrpText}>MRP ₹{item.mrp}</Text> */}
             <Text style={styles.priceText}>₹{item.price}</Text>
           </View>
 
@@ -384,13 +416,13 @@ const MyCart = () => {
   // Empty Cart Component
   const EmptyCart = () => (
     <View style={styles.emptyCartContainer}>
-      <Image 
-        source={require("../../assets/via-farm-img/icons/emptyShoppingCard.jpg")} 
+      <Image
+        source={require("../../assets/via-farm-img/icons/emptyShoppingCard.jpg")}
         style={styles.emptyCartImage}
       />
       <Text style={styles.emptyCartTitle}>Your Cart is Empty</Text>
       <Text style={styles.emptyCartSubtitle}>Looks like you haven't added anything to your cart yet</Text>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.shopNowButton}
         onPress={() => navigation.navigate('index')}
       >
@@ -427,7 +459,7 @@ const MyCart = () => {
             <View style={styles.couponSection}>
               <Text style={styles.couponTitle}>Have a Coupon ?</Text>
               <Text style={styles.couponSubtitle}>Apply now and Save Extra!</Text>
-              
+
               <View style={styles.couponInputContainer}>
                 <TextInput
                   style={styles.couponInput}
@@ -446,7 +478,7 @@ const MyCart = () => {
                   </TouchableOpacity>
                 )}
               </View>
-              
+
               {couponError ? (
                 <Text style={styles.couponError}>{couponError}</Text>
               ) : appliedCoupon ? (
@@ -489,7 +521,7 @@ const MyCart = () => {
         </ScrollView>
       )}
 
-      {/* Fixed Checkout Button - Only show when cart has items */}
+      {/* Fixed Checkout Button */}
       {cartItems.length > 0 && (
         <View style={styles.checkoutContainer}>
           <TouchableOpacity style={styles.checkoutButton} onPress={openModal}>
@@ -499,7 +531,7 @@ const MyCart = () => {
         </View>
       )}
 
-      {/* Pickup Modal - Same as original */}
+      {/* Pickup Modal */}
       <Modal
         visible={pickupModalVisible}
         transparent={true}
@@ -530,7 +562,7 @@ const MyCart = () => {
 
             <View style={styles.modalContainer}>
               <View style={styles.modalHeader}>
-                <TouchableOpacity style={styles.backButton}>
+                <TouchableOpacity style={styles.backButton} onPress={closePickupModal}>
                   <Image source={require('../../assets/via-farm-img/icons/groupArrow.png')} />
                 </TouchableOpacity>
                 <Text style={styles.modalHeaderTitle}>Pickup Location</Text>
@@ -555,7 +587,9 @@ const MyCart = () => {
                 <View style={styles.dateRow}>
                   <Text style={styles.dateLabel}>Date</Text>
                   <TouchableOpacity style={styles.datePicker}>
-                    <Text style={styles.dateText}>29/09/2025</Text>
+                    <Text style={styles.dateText}>
+                      {slot.date || 'Select Date'}
+                    </Text>
                     <Text style={styles.dateIcon}>📅</Text>
                   </TouchableOpacity>
                 </View>
@@ -564,14 +598,16 @@ const MyCart = () => {
                   <Text style={styles.timeLabel}>Between</Text>
                   <View style={styles.timeContainer}>
                     <View style={styles.timeInput}>
-                      <Text style={styles.timeText}>10:30</Text>
+                      <Text style={styles.timeText}>
+                        {slot.startTime || '--:--'}
+                      </Text>
                     </View>
-                    <Text style={styles.timeUnit}>AM</Text>
                     <Text style={styles.timeTo}>to</Text>
                     <View style={styles.timeInput}>
-                      <Text style={styles.timeText}>12:30</Text>
+                      <Text style={styles.timeText}>
+                        {slot.endTime || '--:--'}
+                      </Text>
                     </View>
-                    <Text style={styles.timeUnit}>PM</Text>
                   </View>
                 </View>
               </View>
@@ -579,11 +615,23 @@ const MyCart = () => {
               <Text style={styles.vendorTitle}>Vendor's Details</Text>
 
               <View style={styles.vendorInfo}>
-                <Image borderRadius={10} width={30} height={30} source={require("../../assets/via-farm-img/category/category.png")} />
+                <Image
+                  borderRadius={10}
+                  style={{ width: 60, height: 60 }}
+                  source={{
+                    uri: vendorDetails?.profilePicture || "https://via.placeholder.com/60",
+                  }}
+                />
                 <View style={styles.vendorDetails}>
-                  <Text style={styles.vendorName}>Ashok Sharma</Text>
-                  <Text style={styles.vendorLocation}>Location - 182/3, Vinod Nagar,Delhi</Text>
-                  <Text style={styles.vendorPhone}>Phone No. - 9999999999</Text>
+                  <Text style={styles.vendorName}>
+                    {vendorDetails?.name || "Vendor Name"}
+                  </Text>
+                  <Text style={styles.vendorLocation}>
+                    {vendorDetails?.pickupLocationText || "Vendor Location"}
+                  </Text>
+                  <Text style={styles.vendorPhone}>
+                    Phone: {vendorDetails?.phoneNo || "N/A"}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -592,19 +640,18 @@ const MyCart = () => {
               <TouchableOpacity
                 style={styles.proceedButtonStyle}
                 onPress={() => {
-                  closePickupModal(); 
+                  closePickupModal();
                   goReviewPage();
                 }}
               >
                 <Text style={styles.proceedButtonText}>Proceed</Text>
               </TouchableOpacity>
             </View>
-
           </Animated.View>
         </View>
       </Modal>
 
-      {/* Delivery Option Modal - Same as original */}
+      {/* Delivery Option Modal */}
       <Modal
         visible={modalVisible}
         transparent={true}
@@ -858,14 +905,14 @@ const styles = StyleSheet.create({
     color: '#28a745',
     marginTop: 4,
   },
-removeButton: {
-  position: 'absolute',
-  right: '5%',  
-  top: '5%',    
-  padding: 4,
-  backgroundColor: '#fff', 
-  borderRadius: 20,        
-},
+  removeButton: {
+    position: 'absolute',
+    right: '5%',
+    top: '5%',
+    padding: 4,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+  },
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1197,11 +1244,11 @@ removeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 25,
-    gap:10,
+    gap: 10,
   },
   vendorImage: {
-    width:30,
-    height:30,
+    width: 30,
+    height: 30,
     borderRadius: 25,
     backgroundColor: '#ddd',
     marginRight: 15,
@@ -1241,7 +1288,7 @@ removeButton: {
     width: '60%',
   },
   proceedButtonText: {
-    color: '#fff', 
+    color: '#fff',
     fontWeight: '600',
   },
 });

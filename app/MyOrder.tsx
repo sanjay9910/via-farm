@@ -1,4 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -40,8 +42,50 @@ const MyOrdersScreen = () => {
 
     const navigation = useNavigation();
 
-    // API Configuration - Replace with your actual API endpoint
-    const API_ENDPOINT = 'YOUR_API_ENDPOINT_HERE';
+    // API Configuration
+    const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
+    const API_ENDPOINT = `${API_BASE}/api/buyer/orders`;
+
+    // Get status display text
+    const getStatusDisplay = (status) => {
+        const statusMap = {
+            'Paid': 'Delivered',
+            'In-process': 'Picked Up',
+            'Pending': 'Pending',
+            'Cancelled': 'Cancelled'
+        };
+        return statusMap[status] || status;
+    };
+
+    // Format date
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+        return `On ${date.toLocaleDateString('en-US', options)}`;
+    };
+
+    // Transform API data to component format
+    const transformOrderData = (apiOrders) => {
+        return apiOrders.map(order => {
+            const firstItem = order.items && order.items.length > 0 ? order.items[0] : null;
+            
+            return {
+                id: order._id,
+                orderId: order.orderId,
+                status: getStatusDisplay(order.orderStatus),
+                date: formatDate(order.createdAt),
+                productName: firstItem?.product?.name || 'Unknown Product',
+                productDescription: `${firstItem?.quantity || 0} items • ₹${order.totalPrice}`,
+                productImage: firstItem?.product?.images?.[0] || 'https://via.placeholder.com/150',
+                rating: 0,
+                canReview: order.orderStatus === 'Paid' || order.orderStatus === 'In-process',
+                orderType: order.orderType,
+                totalPrice: order.totalPrice,
+                vendorName: firstItem?.vendor?.name || 'Unknown Vendor',
+                allItems: order.items || []
+            };
+        });
+    };
 
     // Fetch Orders from API
     const fetchOrders = async () => {
@@ -49,72 +93,42 @@ const MyOrdersScreen = () => {
             setLoading(true);
             setError(null);
 
-            // Replace with your actual API call
-            const response = await fetch(API_ENDPOINT);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            // Get token from AsyncStorage
+            const token = await AsyncStorage.getItem('userToken');
+            
+            if (!token) {
+                throw new Error('No authentication token found. Please login again.');
             }
 
-            const data = await response.json();
-            setOrders(data);
+            // API call with authorization header
+            const response = await axios.get(API_ENDPOINT, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.data.success && response.data.orders) {
+                const transformedOrders = transformOrderData(response.data.orders);
+                setOrders(transformedOrders);
+            } else {
+                throw new Error('Invalid response format from server');
+            }
 
         } catch (error) {
-            console.error('Error fetching wishlist data:', error);
-
-            // Fallback data for development/testing
-            setOrders([
-                {
-                    id: 1,
-                    status: 'Delivered',
-                    date: 'On Fri, 19 Sep 2025',
-                    productName: 'Ceramic Plate',
-                    productDescription: 'Hand Painted Blue Design',
-                    productImage: 'https://images.unsplash.com/photo-1547514701-42782101795e?w=150&h=150&fit=crop',
-                    rating: 0,
-                    canReview: true
-                },
-                {
-                    id: 2,
-                    status: 'Picked Up',
-                    date: 'On Fri, 18 Sep 2025',
-                    productName: 'Wooden Bowl',
-                    productDescription: 'Handcrafted Mango Wood',
-                    productImage: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=150&h=150&fit=crop',
-                    rating: 0,
-                    canReview: true
-                },
-                {
-                    id: 3,
-                    status: 'Delivered',
-                    date: 'On Fri, 18 Sep 2025',
-                    productName: 'Glass Vase',
-                    productDescription: 'Crystal Clear Design',
-                    productImage: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=150&h=150&fit=crop',
-                    rating: 0,
-                    canReview: true
-                },
-                {
-                    id: 4,
-                    status: 'Pending',
-                    date: 'On Fri, 17 Sep 2025',
-                    productName: 'Clay Pot',
-                    productDescription: 'Traditional Terracotta',
-                    productImage: 'https://images.unsplash.com/photo-1547514701-42782101795e?w=150&h=150&fit=crop',
-                    rating: 0,
-                    canReview: false
-                },
-                {
-                    id: 5,
-                    status: 'Cancelled',
-                    date: 'On Fri, 16 Sep 2025',
-                    productName: 'Steel Plate',
-                    productDescription: 'Stainless Steel Finish',
-                    productImage: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=150&h=150&fit=crop',
-                    rating: 0,
-                    canReview: false
-                }
-            ]);
+            console.error('Error fetching orders:', error);
+            
+            if (error.response?.status === 401) {
+                setError('Session expired. Please login again.');
+                Alert.alert('Session Expired', 'Please login again to continue.', [
+                    { text: 'OK', onPress: () => navigation.navigate('login') }
+                ]);
+            } else if (error.response?.status === 404) {
+                // No orders found is not an error
+                setOrders([]);
+            } else {
+                setError(error.message || 'Failed to fetch orders');
+            }
 
         } finally {
             setLoading(false);
@@ -172,28 +186,74 @@ const MyOrdersScreen = () => {
     };
 
     // Handle Review Rating in Modal
-    const handleReviewRating = (starIndex) => {
-        setReviewRating(starIndex + 1);
+    const handleReviewRating = (rating) => {
+        setReviewRating(rating);
     };
 
     // Submit Review
-    const submitReview = () => {
-        if (reviewRating === 0) {
-            Alert.alert('Rating Required', 'Please select a rating before submitting.');
+const submitReview = async () => {
+    if (reviewRating === 0) {
+        Alert.alert('Rating Required', 'Please select a rating before submitting.');
+        return;
+    }
+
+    try {
+        const token = await AsyncStorage.getItem('userToken');
+        if (!token) {
+            Alert.alert('Error', 'User not logged in. Please log in again.');
             return;
         }
 
-        // Here you would typically send the review to your API
-        console.log('Review submitted:', {
+        // ✅ Find selected order and product
+        const selectedOrder = orders.find(order => order.id === selectedOrderId);
+        if (!selectedOrder) {
+            Alert.alert('Error', 'Could not find selected order.');
+            return;
+        }
+
+        // ✅ Get first product from that order (you can expand later for multiple)
+        const firstItem = selectedOrder.allItems[0];
+        const productId = firstItem?.product?._id;
+
+        if (!productId) {
+            Alert.alert('Error', 'No product found for this order.');
+            return;
+        }
+
+        // ✅ Prepare data dynamically
+        const reviewData = {
             orderId: selectedOrderId,
+            productId: productId,
             rating: reviewRating,
             text: reviewText,
-            images: uploadedImages
-        });
+            images: uploadedImages.map(img => img.uri),
+        };
 
-        Alert.alert('Review Submitted', 'Thank you for your review!');
-        closeReviewModal();
-    };
+        console.log('Submitting review:', reviewData);
+
+        // ✅ Dynamic product review API endpoint
+        const response = await axios.post(
+            `${API_BASE}/api/buyer/reviews/${productId}`,
+            reviewData,
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+
+        if (response.status === 200 || response.status === 201) {
+            Alert.alert('Review Submitted', 'Thank you for your review!');
+            closeReviewModal();
+        } else {
+            Alert.alert('Error', 'Failed to submit review. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error submitting review:', error.response?.data || error.message);
+        Alert.alert('Error', 'Failed to submit review. Please try again.');
+    }
+};
 
     // Request camera and gallery permissions
     const requestPermissions = async () => {
@@ -300,7 +360,7 @@ const MyOrdersScreen = () => {
     // Real-time search filter using useMemo for performance
     const filteredOrders = useMemo(() => {
         if (!searchQuery.trim()) {
-            return orders; // Return all orders if search is empty
+            return orders;
         }
 
         return orders.filter(order => {
@@ -308,7 +368,8 @@ const MyOrdersScreen = () => {
             return (
                 order.productName.toLowerCase().includes(searchLower) ||
                 order.productDescription.toLowerCase().includes(searchLower) ||
-                order.status.toLowerCase().includes(searchLower)
+                order.status.toLowerCase().includes(searchLower) ||
+                order.orderId.toLowerCase().includes(searchLower)
             );
         });
     }, [orders, searchQuery]);
@@ -330,8 +391,8 @@ const MyOrdersScreen = () => {
     };
 
     const backOrder = () => {
-        navigation.navigate("profile")
-    }
+        navigation.navigate("profile");
+    };
 
     // Clear search
     const clearSearch = () => {
@@ -351,7 +412,11 @@ const MyOrdersScreen = () => {
                                 onPress={() => handleStarRating(order.id, starIndex)}
                                 style={styles.starButton}
                             >
-                                <Image source={require('../assets/via-farm-img/icons/ratingIcon.png')} />
+                                <Ionicons 
+                                    name={starIndex < order.rating ? "star" : "star-outline"} 
+                                    size={24} 
+                                    color={starIndex < order.rating ? "#FFD700" : "#E0E0E0"} 
+                                />
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -372,19 +437,16 @@ const MyOrdersScreen = () => {
     const renderModalStars = () => {
         return (
             <View style={styles.modalStarsContainer}>
-                {[0, 1, 2, 3, 4].map((starIndex) => (
+                {[1, 2, 3, 4, 5].map((star) => (
                     <TouchableOpacity
-                        key={starIndex}
-                        onPress={() => handleReviewRating(starIndex + 1)} // जिस पर क्लिक करें, उतना rating set हो
+                        key={star}
+                        onPress={() => handleReviewRating(star)}
                         style={styles.modalStarButton}
                     >
-                        <Image
-                            source={require('../assets/via-farm-img/icons/ratingIcon.png')}
-                            style={{
-                                width: 30,
-                                height: 30,
-                                tintColor: starIndex < reviewRating ? "#FFD700" : "#E0E0E0",
-                            }}
+                        <Ionicons
+                            name={star <= reviewRating ? "star" : "star-outline"}
+                            size={36}
+                            color={star <= reviewRating ? "#FFD700" : "#E0E0E0"}
                         />
                     </TouchableOpacity>
                 ))}
@@ -397,9 +459,12 @@ const MyOrdersScreen = () => {
         <View style={styles.orderCard}>
             {/* Status and Date */}
             <View style={styles.orderHeader}>
-                <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-                    {item.status}
-                </Text>
+                <View>
+                    <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+                        {item.status}
+                    </Text>
+                    <Text style={styles.orderIdText}>{item.orderId}</Text>
+                </View>
                 <Text style={styles.dateText}>{item.date}</Text>
             </View>
 
@@ -412,6 +477,7 @@ const MyOrdersScreen = () => {
                 <View style={styles.productInfo}>
                     <Text style={styles.productName}>{item.productName}</Text>
                     <Text style={styles.productDescription}>{item.productDescription}</Text>
+                    <Text style={styles.vendorName}>By: {item.vendorName}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#666" />
             </TouchableOpacity>
@@ -458,7 +524,7 @@ const MyOrdersScreen = () => {
                     <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="Search Product, Status..."
+                        placeholder="Search Product, Status, Order ID..."
                         placeholderTextColor="#999"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
@@ -471,9 +537,9 @@ const MyOrdersScreen = () => {
                         </TouchableOpacity>
                     )}
                 </View>
-                <TouchableOpacity style={styles.filterButton}>
+                {/* <TouchableOpacity style={styles.filterButton}>
                     <Ionicons name="options" size={20} color="#666" />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
             </View>
 
             {/* Search Results Counter */}
@@ -493,7 +559,8 @@ const MyOrdersScreen = () => {
             {/* Orders List */}
             {error && filteredOrders.length === 0 && !searchQuery ? (
                 <View style={styles.centerContainer}>
-                    <Text style={styles.errorText}>Error: {error}</Text>
+                    <Ionicons name="alert-circle-outline" size={64} color="#F44336" style={styles.emptyIcon} />
+                    <Text style={styles.errorText}>{error}</Text>
                     <TouchableOpacity style={styles.retryButton} onPress={fetchOrders}>
                         <Text style={styles.retryButtonText}>Retry</Text>
                     </TouchableOpacity>
@@ -529,7 +596,7 @@ const MyOrdersScreen = () => {
                     contentContainerStyle={styles.listContainer}
                     showsVerticalScrollIndicator={false}
                     refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4CAF50']} />
                     }
                 />
             )}
@@ -567,7 +634,7 @@ const MyOrdersScreen = () => {
                                         source={{
                                             uri: selectedOrderId ?
                                                 orders.find(order => order.id === selectedOrderId)?.productImage :
-                                                'https://images.unsplash.com/photo-1547514701-42782101795e?w=150&h=150&fit=crop'
+                                                'https://via.placeholder.com/150'
                                         }}
                                         style={styles.modalProductImage}
                                     />
@@ -618,7 +685,7 @@ const MyOrdersScreen = () => {
                             <Text style={styles.modalReviewText}>Write a review</Text>
                             <TextInput
                                 style={styles.modalReviewInput}
-                                placeholder=""
+                                placeholder="Share your experience with this product..."
                                 placeholderTextColor="#999"
                                 value={reviewText}
                                 onChangeText={setReviewText}

@@ -1,6 +1,8 @@
 import SuggestionCard from '@/components/myCard/SuggestionCard';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -26,7 +28,10 @@ const ProductDetailScreen = () => {
   const [product, setProduct] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const navigation = useNavigation();
+  const { orderId } = useLocalSearchParams();
   const slideAnim = useState(new Animated.Value(300))[0];
+
+  const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
 
   const addresses = [
     { id: 1, name: 'Douang Arya', pincode: '100888', address: '1st C, Amnipal Apartments, Delhi' },
@@ -37,30 +42,70 @@ const ProductDetailScreen = () => {
   const [selectedAddress, setSelectedAddress] = useState(addresses[0]);
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const response = await fetch('https://jsonplaceholder.typicode.com/users');
-        const data = await response.json();
-        setProduct({
-          name: data[0].name,
-          image: 'https://via.placeholder.com/400x220.png?text=Product',
-          rating: 4.5,
-          price: 200,
-          category: 'Handicraft',
-          variety: 'Plate',
-          description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
-          vendor: 'ABC Handicrafts',
-          deliveryDate: 'Sep 30',
-        });
-      } catch (error) {
-        console.error('Error fetching product:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchOrderDetails();
+  }, [orderId]);
 
-    fetchProduct();
-  }, []);
+  const AddToCard = ()=>{
+    navigation.navigate("AddToCard")
+  }
+
+  const fetchOrderDetails = async () => {
+    try {
+      setLoading(true);
+
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await axios.get(`${API_BASE}/api/buyer/orders/${orderId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.data.success && response.data.order) {
+        const orderData = response.data.order;
+        const firstItem = orderData.items && orderData.items.length > 0 ? orderData.items[0] : null;
+
+        // Transform API data to match your component structure
+        const transformedProduct = {
+          name: firstItem?.name || 'Unknown Product',
+          image: firstItem?.image || 'https://via.placeholder.com/400x220.png?text=Product',
+          rating: 4.5, // You can get this from reviews if available
+          price: orderData.totalPrice,
+          category: 'category', // You might want to add category to your API
+          variety: firstItem?.subtext || 'Item',
+          description:firstItem?.description,
+          vendor: orderData.vendorDetails?.name || 'Unknown Vendor',
+          deliveryDate: orderData.deliveryDate,
+          orderDetails: orderData
+        };
+
+        setProduct(transformedProduct);
+
+        // Set shipping address from order data if available
+        if (orderData.shippingAddress) {
+          const shippingAddr = orderData.shippingAddress;
+          setPincode(shippingAddr.pinCode || '110015');
+          setSelectedAddress({
+            id: 1,
+            name: 'User',
+            pincode: shippingAddr.pinCode,
+            address: `${shippingAddr.houseNumber}, ${shippingAddr.locality}, ${shippingAddr.city}, ${shippingAddr.state}`
+          });
+        }
+      } else {
+        throw new Error('Invalid order data');
+      }
+    } catch (error) {
+      console.error('Error fetching order details:', error);
+      alert('Failed to load order details. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const backOrderPage = () => {
     navigation.navigate("MyOrder");
@@ -126,10 +171,10 @@ const ProductDetailScreen = () => {
     );
   }
 
-const MoveToNewAddress = () => {
-  setModalVisible(false);
-  navigation.navigate("AddNewAddress");
-}
+  const MoveToNewAddress = () => {
+    setModalVisible(false);
+    navigation.navigate("AddNewAddress");
+  }
 
   return (
     <SafeAreaView style={styles.mainContainer}>
@@ -147,7 +192,7 @@ const MoveToNewAddress = () => {
           <TouchableOpacity style={{ marginRight: 15 }}>
             <Image source={require("../assets/via-farm-img/icons/heart.png")} />
           </TouchableOpacity>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={AddToCard}>
             <Image source={require("../assets/via-farm-img/icons/shoppinCard.png")} />
           </TouchableOpacity>
         </View>
@@ -170,9 +215,11 @@ const MoveToNewAddress = () => {
             </View>
           </View>
 
-          <Text style={styles.price}>MRP ${product.price}/pc</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between',marginTop:10, }}>
+            <Text style={styles.sectionTitle}>About the product</Text>
+            <Text style={styles.price}>MRP {product.price}/pc</Text>
+          </View>
 
-          <Text style={styles.sectionTitle}>About the product</Text>
           <Text style={styles.subText}>Category : {product.category}</Text>
           <Text style={styles.subText}>Variety : {product.variety}</Text>
           <Text style={styles.description}>{product.description}</Text>
@@ -216,7 +263,7 @@ const MoveToNewAddress = () => {
         <TopRatingCard />
         <SuggestionCard />
 
-        <View  /> {/* Space for bottom cart */}
+        <View /> {/* Space for bottom cart */}
       </ScrollView>
 
       {/* Bottom Cart Section */}
@@ -568,14 +615,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding:15,
+    padding: 15,
   },
   NewAddress: {
-    borderWidth:2,
+    borderWidth: 2,
     borderColor: 'rgba(76, 175, 80, 1)',
-    flexDirection:'row',
-    padding:10,
-    borderRadius:10,
+    flexDirection: 'row',
+    padding: 10,
+    borderRadius: 10,
   },
   addAddressButtonText: {
     color: 'rgba(76, 175, 80, 1)',
