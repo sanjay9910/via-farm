@@ -396,9 +396,50 @@ const ReviewOrder = () => {
                     <Text style={styles.addressName}>{address.name}, {address.pincode}</Text>
                     <Text style={styles.addressText}>{address.address}</Text>
                   </View>
-                  <TouchableOpacity>
-                    <Image source={require('../assets/via-farm-img/icons/editicon.png')} />
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, }}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        closeModal(); // first close the modal
+                        setTimeout(() => {
+                          // Pass all fields individually
+                          navigation.navigate('aditAddress', {
+                            address: {
+                              id: address.id,
+                              pincode: address.pincode,
+                              houseNumber: addresses.houseNumber || '',
+                              locality: addresses.locality || '',
+                              city: address.city || '',
+                              district: address.district || '',
+                              isDefault: address.isDefault || false,
+                              name: address.name || 'Buyer'
+                            }
+                          });
+                        }, 300); 
+                      }}
+                    >
+                      <Image source={require('../assets/via-farm-img/icons/editicon.png')} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={async () => {
+                        try {
+                          const token = await AsyncStorage.getItem('userToken');
+                          const res = await axios.delete(`${API_BASE}/api/buyer/addresses/${address.id}`, {
+                            headers: { Authorization: `Bearer ${token}` },
+                          });
+                          if (res.data.success) {
+                            Alert.alert('Deleted', 'Address deleted successfully');
+                            fetchBuyerAddresses(); // refresh addresses
+                          }
+                        } catch (err) {
+                          console.error(err);
+                          Alert.alert('Error', 'Failed to delete address');
+                        }
+                      }}
+                    >
+                      <Image source={require('../assets/via-farm-img/icons/deleteBtn.png')} />
+                    </TouchableOpacity>
+                  </View>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -427,18 +468,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 50,
     paddingBottom: 30,
   },
   mainContainer: {
     flexDirection: 'row',
     gap: 12,
   },
-  loadingContainer:{
-    flex:1,
-    backgroundColor:'#fff',
-    justifyContent:'center',
-    alignContent:'center',
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignContent: 'center',
   },
   productImage: {
     width: 167,
@@ -461,7 +501,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 5,
     borderBottomLeftRadius: 5,
     width: 50,
-    fontSize:20,
+    fontSize: 20,
   },
   location: {
     flexDirection: 'row',
@@ -475,7 +515,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingHorizontal:10,
+    paddingHorizontal: 10,
   },
   scrollContent: {
     paddingBottom: 100,
@@ -608,15 +648,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
     borderRadius: 10,
-    gap:20,
+    gap: 20,
     borderWidth: 2,
     borderColor: 'rgba(0, 0, 0, 0.2)',
   },
   donationText: {
-    fontSize:15,
-    marginTop:10,
+    fontSize: 15,
+    marginTop: 10,
     color: '#666',
-    marginBottom:10,
+    marginBottom: 10,
   },
   donationAmount: {
     backgroundColor: '#F8F8F8',
@@ -627,7 +667,7 @@ const styles = StyleSheet.create({
     borderColor: '#E5E5E5',
   },
   donationValue: {
-    fontSize:16,
+    fontSize: 16,
     fontWeight: '600',
     color: '#000',
   },
@@ -700,7 +740,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: '#fff',
     flexDirection: 'row',
-    justifyContent:'space-around',
+    justifyContent: 'space-around',
     alignItems: 'center',
     paddingHorizontal: 30,
     paddingVertical: 25,
@@ -730,12 +770,12 @@ const styles = StyleSheet.create({
   },
   proceedButton: {
     backgroundColor: '#28a745',
-    paddingHorizontal:30,
+    paddingHorizontal: 30,
     paddingVertical: 16,
     borderRadius: 8,
     minWidth: 180,
-    flexDirection:'row',
-    gap:10,
+    flexDirection: 'row',
+    gap: 10,
     alignItems: 'center',
   },
   proceedButtonText: {

@@ -1,4 +1,3 @@
-// File: ViewVendors.tsx
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
@@ -27,9 +26,7 @@ const ViewVendors = () => {
       setLoading(true);
       setError(null);
 
-      // Get token from AsyncStorage
       const token = await AsyncStorage.getItem('userToken');
-      
       if (!token) {
         setError('Please login to view vendors near you');
         setLoading(false);
@@ -51,12 +48,11 @@ const ViewVendors = () => {
         throw new Error(data.message || 'Failed to fetch vendors');
       }
 
-      // Map API data to match ProfileCard component
       const mappedVendors = data.vendors.map((vendor: any) => ({
         id: vendor.id,
         image: vendor.profilePicture || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d',
         name: vendor.name,
-        rating: 4.5, // Default rating since API doesn't provide
+        rating: 4.5,
         distance: vendor.distance,
         category: vendor.categories,
       }));
@@ -66,27 +62,6 @@ const ViewVendors = () => {
     } catch (err: any) {
       console.error('❌ Error fetching vendors:', err);
       setError(err.message || 'Failed to load vendors near you');
-      
-      // Fallback to dummy data if API fails
-      const dummyVendors = [
-        {
-          id: '1',
-          image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d',
-          name: 'subbu rajput',
-          rating: 4.5,
-          distance: '0.0 km away',
-          category: 'Fruit, Fruits (+1)',
-        },
-        {
-          id: '2',
-          image: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f',
-          name: 'SUbo thakur',
-          rating: 4.8,
-          distance: '1.3 km away',
-          category: 'Fruits',
-        },
-      ];
-      setVendors(dummyVendors);
     } finally {
       setLoading(false);
     }
@@ -96,8 +71,11 @@ const ViewVendors = () => {
     fetchVendorsNearYou();
   }, []);
 
-  const handleRetry = () => {
-    fetchVendorsNearYou();
+  const handleRetry = () => fetchVendorsNearYou();
+
+  const handleVendorPress = (vendorId: string) => {
+    // Navigate to VendorsDetails and pass vendorId
+    navigation.navigate('VendorsDetails', { vendorId });
   };
 
   if (loading) {
@@ -147,18 +125,18 @@ const ViewVendors = () => {
       
       <ScrollView 
         contentContainerStyle={styles.container}
-        horizontal={false}
         showsVerticalScrollIndicator={false}
       >
-        {vendors.slice(0, 3).map((vendor) => (
-          <ProfileCard
-            key={vendor.id}
-            image={vendor.image}
-            name={vendor.name}
-            rating={vendor.rating}
-            distance={vendor.distance}
-            category={vendor.category}
-          />
+        {vendors.slice(0,2).map((vendor) => (
+          <TouchableOpacity key={vendor.id} onPress={() => handleVendorPress(vendor.id)}>
+            <ProfileCard
+              image={vendor.image}
+              name={vendor.name}
+              rating={vendor.rating}
+              distance={vendor.distance}
+              category={vendor.category}
+            />
+          </TouchableOpacity>
         ))}
         
         {error && (
@@ -172,6 +150,9 @@ const ViewVendors = () => {
     </View>
   );
 };
+
+
+
 
 export default ViewVendors;
 

@@ -21,17 +21,93 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import TopRatingCard from '../components/common/topRatingCard';
 import RatingCardAlso from '../components/myCard/RatingCardAlso';
 
+const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
+
+// --- UPDATED PickupLocationCard Component ---
+const PickupLocationCard = ({ vendorAddress, distance, onPressNavigation }) => {
+  // Constructing the full address string from vendorAddress object
+  const fullVendorAddress = vendorAddress?.houseNumber || vendorAddress?.locality || vendorAddress?.city
+    ? `${vendorAddress.houseNumber || ''}${vendorAddress.houseNumber && vendorAddress.locality ? ', ' : ''}${vendorAddress.locality || ''}${vendorAddress.locality && vendorAddress.city ? ', ' : ''}${vendorAddress.city || ''}`
+    : 'Vendor Location not available';
+
+  const displayAddress = fullVendorAddress.trim() || 'Vendor Location not available';
+
+  return (
+    <View style={pickupStyles.container}>
+      <View style={pickupStyles.leftContent}>
+        {/* <Ionicons name="location-sharp" size={20} color="#555" style={pickupStyles.icon} /> */}
+        <View style={pickupStyles.textContainer}>
+          <Text style={pickupStyles.locationText} numberOfLines={1}>
+            <Ionicons name="location-sharp" size={20} color="#555" style={pickupStyles.icon} /> Pickup Location - {displayAddress}
+          </Text>
+          <Text style={pickupStyles.distanceText}>
+            ({distance})
+          </Text>
+        </View>
+      </View>
+      <TouchableOpacity onPress={onPressNavigation} style={pickupStyles.navigationButton}>
+        <Image source={require("../assets/via-farm-img/icons/mapDirection.png")} />
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+const pickupStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    marginTop:10,
+    marginBottom:10,
+    padding:5,
+    backgroundColor: 'whitesmock', 
+  },
+
+  icon: {
+    // marginRight: 10,
+    color: '#666', 
+  },
+  textContainer: {
+    flex: 1,
+    alignItems:'center',
+  },
+  locationText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333', 
+    alignItems:'center',
+  },
+  distanceText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  navigationButton: {
+    padding: 5,
+    borderRadius: 20,
+  },
+});
+// ------------------------------------------
+
 const ProductDetailScreen = () => {
   const [pincode, setPincode] = useState('110015');
   const [coupon, setCoupon] = useState('');
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [inWishlist, setInWishlist] = useState(false);
+  const [inCart, setInCart] = useState(false);
+  // Default selectedAddress is for the buyer's delivery location (used in Delivery section and distance calculation)
+  const [selectedAddress, setSelectedAddress] = useState({
+      id: 0,
+      name: 'Default',
+      pincode: '110015',
+      address: '182/3, Vinod Nagar, Delhi', // Default buyer address
+  }); 
+  const [vendorExpanded, setVendorExpanded] = useState(false);
+  const slideAnim = useState(new Animated.Value(300))[0];
   const navigation = useNavigation();
   const { orderId } = useLocalSearchParams();
-  const slideAnim = useState(new Animated.Value(300))[0];
-
-  const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
 
   const addresses = [
     { id: 1, name: 'Douang Arya', pincode: '100888', address: '1st C, Amnipal Apartments, Delhi' },
@@ -39,160 +115,178 @@ const ProductDetailScreen = () => {
     { id: 3, name: 'Douang Arya', pincode: '100888', address: '1st C, Amnipal Apartments, Delhi' }
   ];
 
-  const [selectedAddress, setSelectedAddress] = useState(addresses[0]);
-
   useEffect(() => {
     fetchOrderDetails();
   }, [orderId]);
 
-  const AddToCard = ()=>{
-    navigation.navigate("AddToCard")
-  }
-
+  // ✅ Fetch order details + set product
   const fetchOrderDetails = async () => {
     try {
       setLoading(true);
-
       const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
+      if (!token) throw new Error('Login required');
 
       const response = await axios.get(`${API_BASE}/api/buyer/orders/${orderId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.data.success && response.data.order) {
         const orderData = response.data.order;
-        const firstItem = orderData.items && orderData.items.length > 0 ? orderData.items[0] : null;
+        const firstItem = orderData.items?.[0];
 
-        // Transform API data to match your component structure
+        // Ensure vendorDetails.address is handled correctly
+        const vendorAddressData = orderData.vendorDetails?.address || {};
+
         const transformedProduct = {
+          id: firstItem?.id || '',
           name: firstItem?.name || 'Unknown Product',
           image: firstItem?.image || 'https://via.placeholder.com/400x220.png?text=Product',
-          rating: 4.5, // You can get this from reviews if available
-          price: orderData.totalPrice,
-          category: 'category', // You might want to add category to your API
-          variety: firstItem?.subtext || 'Item',
-          description:firstItem?.description,
+          rating: 4.5,
+          price: firstItem?.price || orderData.totalPrice || 0,
+          category: firstItem?.category || 'Unknown Category',
+          variety: firstItem?.subtext || 'Unknown Variety',
+          description: firstItem?.description || 'No description available.',
           vendor: orderData.vendorDetails?.name || 'Unknown Vendor',
-          deliveryDate: orderData.deliveryDate,
-          orderDetails: orderData
+          vendorId: orderData.vendor || '',
+          deliveryDate: orderData.deliveryDate || 'N/A',
+          vendorDetails: {
+            name: orderData.vendorDetails?.name || 'Unknown Vendor',
+            mobileNumber: orderData.vendorDetails?.mobileNumber || 'N/A',
+            profilePicture: orderData.vendorDetails?.profilePicture || 'https://via.placeholder.com/80x80.png?text=Vendor',
+            about: orderData.vendorDetails?.about || 'No information available.',
+            // Use the fetched vendor address data
+            address: vendorAddressData
+          }
         };
 
         setProduct(transformedProduct);
 
-        // Set shipping address from order data if available
+        // Set shipping address based on order data if available (Buyer's address)
         if (orderData.shippingAddress) {
-          const shippingAddr = orderData.shippingAddress;
-          setPincode(shippingAddr.pinCode || '110015');
+          const addr = orderData.shippingAddress;
           setSelectedAddress({
             id: 1,
             name: 'User',
-            pincode: shippingAddr.pinCode,
-            address: `${shippingAddr.houseNumber}, ${shippingAddr.locality}, ${shippingAddr.city}, ${shippingAddr.state}`
+            pincode: addr.pinCode,
+            address: `${addr.houseNumber}, ${addr.locality}, ${addr.city}, ${addr.state}`
           });
+          setPincode(addr.pinCode);
         }
+
+        // Check cart & wishlist
+        checkIfInCart(transformedProduct.id, token);
+        checkIfInWishlist(transformedProduct.id, token);
       } else {
-        throw new Error('Invalid order data');
+        throw new Error('Order not found');
       }
     } catch (error) {
-      console.error('Error fetching order details:', error);
-      alert('Failed to load order details. Please try again.');
+      console.log('Order fetch error:', error.response?.data || error.message);
+      alert('Failed to load order details.');
     } finally {
       setLoading(false);
     }
   };
 
-  const backOrderPage = () => {
-    navigation.navigate("MyOrder");
-  }
+  // The rest of the functions (checkIfInCart, checkIfInWishlist, handleCartToggle, 
+  // handleWishlistToggle, openModal, closeModal, panResponder, handleAddressSelect, 
+  // MoveToNewAddress, backOrderPage, handleNavigate) remain the same.
+
+  const checkIfInCart = async (productId, token) => {
+    try {
+      const res = await axios.get(`${API_BASE}/api/buyer/cart`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.data.success && res.data.cartItems) {
+        const exists = res.data.cartItems.some(item => item.productId === productId);
+        setInCart(exists);
+      }
+    } catch (error) {
+      console.log('Check cart error:', error.response?.data || error.message);
+    }
+  };
+
+  const checkIfInWishlist = async (productId, token) => {
+    try {
+      const res = await axios.get(`${API_BASE}/api/buyer/wishlist`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.data.success && res.data.wishlistItems) {
+        const exists = res.data.wishlistItems.some(item => item.productId === productId);
+        setInWishlist(exists);
+      }
+    } catch (error) {
+      console.log('Check wishlist error:', error.response?.data || error.message);
+    }
+  };
+
+  const handleCartToggle = async () => {
+    try {
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) return alert("Login required");
+      if (!product?.id) return alert("Product not loaded");
+
+      if (!inCart) {
+        const payload = { productId: product.id, quantity: 1, vendorId: product.vendorId };
+        const res = await axios.post(`${API_BASE}/api/buyer/cart/add`, payload, { headers: { Authorization: `Bearer ${token}` } });
+        if (res.data.success) setInCart(true);
+        alert(res.data.message || "Added to cart!");
+      } else {
+        const res = await axios.delete(`${API_BASE}/api/buyer/cart/${product.id}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (res.data.success) setInCart(false);
+        alert(res.data.message || "Removed from cart!");
+      }
+    } catch (error) {
+      console.log('Cart error:', error.response?.data || error.message);
+      alert(error.response?.data?.message || "Error updating cart");
+    }
+  };
+
+  const handleWishlistToggle = async () => {
+    try {
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) return alert("Login required");
+      if (!product?.id) return alert("Product not loaded");
+
+      const payload = { productId: product.id };
+      const res = await axios.post(`${API_BASE}/api/buyer/wishlist/add`, payload, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.data.success) setInWishlist(!inWishlist);
+      alert(res.data.message || (inWishlist ? "Removed from wishlist" : "Added to wishlist"));
+    } catch (error) {
+      console.log('Wishlist error:', error.response?.data || error.message);
+      alert(error.response?.data?.message || "Error updating wishlist");
+    }
+  };
 
   const openModal = () => {
     setModalVisible(true);
-    Animated.timing(slideAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+    Animated.timing(slideAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start();
   };
 
   const closeModal = () => {
-    Animated.timing(slideAnim, {
-      toValue: 300,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
-      setModalVisible(false);
-    });
+    Animated.timing(slideAnim, { toValue: 300, duration: 300, useNativeDriver: true }).start(() => setModalVisible(false));
   };
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
-    onPanResponderMove: (evt, gestureState) => {
-      if (gestureState.dy > 0) {
-        slideAnim.setValue(gestureState.dy);
-      }
-    },
-    onPanResponderRelease: (evt, gestureState) => {
-      if (gestureState.dy > 100) {
-        closeModal();
-      } else {
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-        }).start();
-      }
-    },
+    onPanResponderMove: (_, gestureState) => { if (gestureState.dy > 0) slideAnim.setValue(gestureState.dy); },
+    onPanResponderRelease: (_, gestureState) => { if (gestureState.dy > 100) closeModal(); else Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true }).start(); }
   });
 
-  const handleAddressSelect = (address) => {
-    setSelectedAddress(address);
-    setPincode(address.pincode);
-    closeModal();
-  };
+  const handleAddressSelect = (address) => { setSelectedAddress(address); setPincode(address.pincode); closeModal(); };
+  const MoveToNewAddress = () => { setModalVisible(false); navigation.navigate("AddNewAddress"); };
+  const backOrderPage = () => navigation.navigate("MyOrder");
+  const handleNavigate = () => alert(`Navigating to Vendor Location: ${product.vendorDetails?.address?.city || 'Unknown'}`); // Placeholder function
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="green" />
-      </View>
-    );
-  }
-
-  if (!product) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text>Product not found</Text>
-      </View>
-    );
-  }
-
-  const MoveToNewAddress = () => {
-    setModalVisible(false);
-    navigation.navigate("AddNewAddress");
-  }
+  if (loading) return (<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" color="green" /></View>);
+  if (!product) return (<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>Product not found</Text></View>);
 
   return (
     <SafeAreaView style={styles.mainContainer}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={backOrderPage} style={styles.headerLeft}>
-          <Image source={require('../assets/via-farm-img/icons/groupArrow.png')} />
-        </TouchableOpacity>
-
-        <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
-          {product.name}
-        </Text>
-
+        <TouchableOpacity onPress={backOrderPage} style={styles.headerLeft}><Image source={require('../assets/via-farm-img/icons/groupArrow.png')} /></TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1}>{product.name}</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={{ marginRight: 15 }}>
-            <Image source={require("../assets/via-farm-img/icons/heart.png")} />
+          <TouchableOpacity style={{ marginRight: 15 }} onPress={handleWishlistToggle}>
+            <Ionicons name={inWishlist ? "heart" : "heart-outline"} size={24} color={inWishlist ? "red" : "black"} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={AddToCard}>
+          <TouchableOpacity onPress={() => navigation.navigate("AddToCard")}>
             <Image source={require("../assets/via-farm-img/icons/shoppinCard.png")} />
           </TouchableOpacity>
         </View>
@@ -200,189 +294,126 @@ const ProductDetailScreen = () => {
 
       {/* Scrollable Content */}
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <Image
-          source={{ uri: product.image }}
-          style={styles.productImage}
-        />
+        <Image source={{ uri: product.image }} style={styles.productImage} />
 
-        {/* Product Info */}
         <View style={styles.productInfo}>
           <View style={styles.rowBetween}>
             <Text style={styles.productTitle}>{product.name}</Text>
-            <View style={styles.rating}>
-              <Ionicons name="star" size={14} color="gold" />
-              <Text style={styles.ratingText}>{product.rating}</Text>
-            </View>
+            <View style={styles.rating}><Ionicons name="star" size={14} color="gold" /><Text style={styles.ratingText}>{product.rating}</Text></View>
           </View>
-
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between',marginTop:10, }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
             <Text style={styles.sectionTitle}>About the product</Text>
-            <Text style={styles.price}>MRP {product.price}/pc</Text>
+            <Text style={styles.price}>MRP ₹{product.price}/pc</Text>
           </View>
-
           <Text style={styles.subText}>Category : {product.category}</Text>
           <Text style={styles.subText}>Variety : {product.variety}</Text>
           <Text style={styles.description}>{product.description}</Text>
         </View>
 
-        {/* Vendor Section */}
-        <View style={styles.vendorSection}>
-          <Text style={styles.sectionTitle}>About the vendor</Text>
-          <Text style={styles.subText}>{product.vendor}</Text>
-        </View>
+        {/* Vendor Section with Dropdown */}
+        <TouchableOpacity 
+          onPress={() => setVendorExpanded(!vendorExpanded)} 
+          style={styles.vendorSection}
+          activeOpacity={0.7}
+        >
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',marginBottom:10, }}>
+            <Text style={styles.sectionTitle}>About the vendor</Text>
+            <Ionicons 
+              name={vendorExpanded ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              color="#666" 
+            />
+          </View>
+          
+          {vendorExpanded && (
+            <View style={{ marginTop: 15, flexDirection: 'row', alignItems: 'flex-start',marginBottom:15, }}>
+              <Image 
+                source={{ uri: product.vendorDetails?.profilePicture || 'https://via.placeholder.com/80x80.png?text=Vendor' }} 
+                style={{ width: 100, height: 100, borderRadius:10, marginRight: 15 }}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 4 }}>
+                  {product.vendorDetails?.name || product.vendor}
+                </Text>
+                <Text style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>
+                  {product.vendorDetails?.address?.houseNumber && product.vendorDetails?.address?.locality 
+                    ? `Location - ${product.vendorDetails.address.houseNumber}, ${product.vendorDetails.address.locality}, ${product.vendorDetails.address.city}` 
+                    : 'Location not available'}
+                </Text>
+                {product.vendorDetails?.mobileNumber && (
+                  <Text style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>
+                    Mobile: {product.vendorDetails.mobileNumber}
+                  </Text>
+                )}
+                <Text style={{ fontSize: 12, color: '#999', lineHeight: 18 }}>
+                  {product.vendorDetails?.about || 'No information available about this vendor.'}
+                </Text>
+              </View>
+            </View>
+          )}
+        </TouchableOpacity>
 
-        {/* Delivery Address */}
+        {/* --- PickupLocationCard Integration (Now uses Vendor Address) --- */}
+        <PickupLocationCard 
+          vendorAddress={product.vendorDetails?.address} 
+          distance="1.2 kms away" // STATIC Distance (Vendor's location from Buyer's selectedAddress)
+          onPressNavigation={handleNavigate}
+        />
+        {/* ----------------------------------------------------------------- */}
+
+
         <View style={styles.deliverySection}>
-          <View style={styles.rowBetween}>
-            <Text style={styles.sectionTitle}>Delivery Address</Text>
-          </View>
+          <View style={styles.rowBetween}><Text style={styles.sectionTitle}>Delivery Address</Text></View>
           <View style={styles.deliveryInput}>
-            <Text style={{ fontSize: 15 }}>{selectedAddress.pincode}</Text>
-            <TouchableOpacity onPress={openModal}>
-              <Text style={styles.changeText}>Change ›</Text>
-            </TouchableOpacity>
+            <Text style={{ fontSize: 15 }}>{selectedAddress?.pincode}</Text>
+            <TouchableOpacity onPress={openModal}><Text style={styles.changeText}>Change ›</Text></TouchableOpacity>
           </View>
-          <Text style={styles.deliveryDate}>
-            Delivered by {product.deliveryDate}
-          </Text>
+          <Text style={styles.deliveryDate}>Delivered by {product.deliveryDate}</Text>
         </View>
 
-        {/* Coupon Section */}
         <View style={styles.couponSection}>
           <Text style={styles.couponTitle}>Have a Coupon ?</Text>
           <Text style={styles.couponSub}>Apply now and Save Extra !</Text>
-          <TextInput
-            style={styles.couponInput}
-            placeholder="Enter your coupon code"
-            value={coupon}
-            onChangeText={setCoupon}
-          />
+          <TextInput style={styles.couponInput} placeholder="Enter your coupon code" value={coupon} onChangeText={setCoupon} />
         </View>
 
         <RatingCardAlso />
         <TopRatingCard />
         <SuggestionCard />
-
-        <View /> {/* Space for bottom cart */}
       </ScrollView>
 
-      {/* Bottom Cart Section */}
+      {/* Bottom Cart */}
       <View style={styles.bottomCartSection}>
-        <View style={styles.priceSection}>
-          <Text style={styles.priceLabel}>Price</Text>
-          <Text style={styles.priceValue}>${product.price}</Text>
-        </View>
-
-        <TouchableOpacity style={styles.addToCartButton}>
-          <Image
-            style={{ width: 20, height: 20, marginRight: 8, tintColor: '#fff' }}
-            source={require('../assets/via-farm-img/icons/shoppinCard.png')}
-          />
-          <Text style={styles.addToCartText}>Add to Cart</Text>
+        <View style={styles.priceSection}><Text style={styles.priceLabel}>Price</Text><Text style={styles.priceValue}>₹{product.price}</Text></View>
+        <TouchableOpacity style={styles.addToCartButton} onPress={handleCartToggle}>
+          <Image style={{ width: 20, height: 20, marginRight: 8, tintColor: '#fff' }} source={require('../assets/via-farm-img/icons/shoppinCard.png')} />
+          <Text style={styles.addToCartText}>{inCart ? 'Move to Cart' : 'Add to Cart'}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Address Selection Modal */}
-      <Modal
-        visible={modalVisible}
-        transparent={true}
-        animationType="none"
-        onRequestClose={closeModal}
-      >
+      {/* Address Modal */}
+      <Modal visible={modalVisible} transparent animationType="none" onRequestClose={closeModal}>
         <View style={styles.modalOverlay}>
-          <TouchableOpacity
-            style={styles.modalBackground}
-            activeOpacity={1}
-            onPress={closeModal}
-          />
-          <Animated.View
-            style={[
-              styles.modalContainer,
-              {
-                transform: [{ translateY: slideAnim }]
-              }
-            ]}
-            {...panResponder.panHandlers}
-          >
-            {/* Drag Handle */}
+          <TouchableOpacity style={styles.modalBackground} activeOpacity={1} onPress={closeModal} />
+          <Animated.View style={[styles.modalContainer, { transform: [{ translateY: slideAnim }] }]} {...panResponder.panHandlers}>
             <View style={styles.dragHandle} />
-
-            {/* Modal Header */}
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Delivery Location</Text>
-              <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color="#666" />
-              </TouchableOpacity>
+              <TouchableOpacity onPress={closeModal} style={styles.closeButton}><Ionicons name="close" size={24} color="#666" /></TouchableOpacity>
             </View>
-
-            {/* Search Section */}
-            <View style={styles.searchSection}>
-              <View style={styles.pincodeInputContainer}>
-                <TextInput
-                  style={styles.pincodeInput}
-                  placeholder="Enter Pincode"
-                  value={pincode}
-                  onChangeText={setPincode}
-                />
-                <TouchableOpacity style={styles.checkButton}>
-                  <Text style={styles.checkButtonText}>Check Pincode ›</Text>
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity style={styles.locationButton}>
-                <Ionicons name="location" size={16} color="#3b82f6" />
-                <Text style={styles.locationButtonText}>Use my current location</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.searchLocationButton}>
-                <Ionicons name="search" size={16} color="blue" />
-                <Text style={styles.searchLocationButtonText}>Search Location</Text>
-              </TouchableOpacity>
-
-              <Text style={styles.orText}>OR</Text>
-            </View>
-
-            {/* Address List */}
-            <ScrollView style={styles.addressList} showsVerticalScrollIndicator={false}>
-              {addresses.map((address) => (
-                <TouchableOpacity
-                  key={address.id}
-                  style={[
-                    styles.addressItem,
-                    selectedAddress.id === address.id && styles.selectedAddressItem
-                  ]}
-                  onPress={() => handleAddressSelect(address)}
-                >
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {addresses.map(address => (
+                <TouchableOpacity key={address.id} style={[styles.addressItem, selectedAddress?.id === address.id && styles.selectedAddressItem]} onPress={() => handleAddressSelect(address)}>
                   <View style={styles.radioContainer}>
-                    <View style={[
-                      styles.radioOuter,
-                      selectedAddress.id === address.id && styles.radioOuterSelected
-                    ]}>
-                      {selectedAddress.id === address.id && (
-                        <View style={styles.radioInner} />
-                      )}
+                    <View style={[styles.radioOuter, selectedAddress?.id === address.id && styles.radioOuterSelected]}>
+                      {selectedAddress?.id === address.id && <View style={styles.radioInner} />}
                     </View>
                   </View>
-                  <View style={styles.addressDetails}>
-                    <Text style={styles.addressName}>
-                      {address.name}, {address.pincode}
-                    </Text>
-                    <Text style={styles.addressText}>{address.address}</Text>
-                  </View>
-                  <TouchableOpacity>
-                    <Image source={require('../assets/via-farm-img/icons/editicon.png')} />
-                  </TouchableOpacity>
+                  <View style={styles.addressDetails}><Text style={styles.addressName}>{address.name}, {address.pincode}</Text><Text style={styles.addressText}>{address.address}</Text></View>
                 </TouchableOpacity>
               ))}
+              <TouchableOpacity style={styles.NewAddress} onPress={MoveToNewAddress}><Ionicons name="add" size={20} color="rgba(76, 175, 80, 1)" /><Text style={styles.addAddressButtonText}>Add New Address</Text></TouchableOpacity>
             </ScrollView>
-
-            {/* Add New Address Button */}
-            <TouchableOpacity style={styles.addAddressButton}>
-              <TouchableOpacity style={styles.NewAddress} onPress={MoveToNewAddress}>
-                <Ionicons name="add" size={20} color="rgba(76, 175, 80, 1)" />
-                <Text style={styles.addAddressButtonText}>Add New Address</Text>
-              </TouchableOpacity>
-            </TouchableOpacity>
           </Animated.View>
         </View>
       </Modal>
