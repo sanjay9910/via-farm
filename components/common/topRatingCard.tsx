@@ -11,7 +11,7 @@ import {
 
 const { width } = Dimensions.get('window');
 
-// Sample data - replace this with your API data
+
 const sampleData = [
   {
     id: 1,
@@ -21,30 +21,6 @@ const sampleData = [
     message: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
   },
-  {
-    id: 2,
-    name: 'Priya Sharma',
-    rating: 4.8,
-    date: '15/10/2025',
-    message: 'Excellent service and amazing experience. Highly recommended for everyone looking for quality work.',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'
-  },
-  {
-    id: 3,
-    name: 'Rahul Singh',
-    rating: 4.5,
-    date: '14/10/2025',
-    message: 'Great work and professional approach. Will definitely work again in the future projects.',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
-  },
-  {
-    id: 4,
-    name: 'Anita Patel',
-    rating: 4.9,
-    date: '13/10/2025',
-    message: 'Outstanding quality and timely delivery. Very satisfied with the overall experience and results.',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face'
-  }
 ];
 
 const ReviewCard = ({ item }) => {
@@ -81,7 +57,7 @@ const CardList = () => {
   horizontal={true}
   showsHorizontalScrollIndicator={false}
   contentContainerStyle={styles.listContainer}
-  snapToInterval={330 + 15} // card width + margin
+  snapToInterval={330 + 15} 
   decelerationRate="fast"
   pagingEnabled={true}
 />

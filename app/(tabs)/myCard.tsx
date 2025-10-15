@@ -5,9 +5,7 @@ import OrderAdd from '../../components/myCard/AddToCard'
 const MyCard = () => {
   return (
     <View style={styles.container}>
-      <OrderAdd/>
-      {/* <SuggestionCard/> */}
-      
+      <OrderAdd/>      
     </View>
   )
 }

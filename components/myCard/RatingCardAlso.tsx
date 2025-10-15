@@ -11,10 +11,6 @@ const NewSeason = () => {
   { name: 'like', image: 'https://disneyvillains.fandom.com/wiki/Tamatoa' },
   { name: 'like', image: 'https://disneyvillains.fandom.com/wiki/Tamatoa' },
   { name: 'like', image: 'https://disneyvillains.fandom.com/wiki/Tamatoa' },
-  { name: 'like', image: 'https://disneyvillains.fandom.com/wiki/Tamatoa' },
-  { name: 'like', image: 'https://disneyvillains.fandom.com/wiki/Tamatoa' },
-  { name: 'like', image: 'https://disneyvillains.fandom.com/wiki/Tamatoa' },
-  { name: 'like', image: 'https://disneyvillains.fandom.com/wiki/Tamatoa' },
 ];
 
 

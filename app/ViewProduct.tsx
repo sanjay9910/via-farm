@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  FlatList,
   Image,
   Modal,
   PanResponder,
@@ -57,25 +58,25 @@ const pickupStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    marginTop:10,
-    marginBottom:10,
-    padding:5,
-    backgroundColor: 'whitesmock', 
+    marginTop: 10,
+    marginBottom: 10,
+    padding: 5,
+    backgroundColor: 'whitesmock',
   },
 
   icon: {
     // marginRight: 10,
-    color: '#666', 
+    color: '#666',
   },
   textContainer: {
     flex: 1,
-    alignItems:'center',
+    alignItems: 'center',
   },
   locationText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333', 
-    alignItems:'center',
+    color: '#333',
+    alignItems: 'center',
   },
   distanceText: {
     fontSize: 14,
@@ -97,13 +98,12 @@ const ProductDetailScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [inWishlist, setInWishlist] = useState(false);
   const [inCart, setInCart] = useState(false);
-  // Default selectedAddress is for the buyer's delivery location (used in Delivery section and distance calculation)
   const [selectedAddress, setSelectedAddress] = useState({
-      id: 0,
-      name: 'Default',
-      pincode: '110015',
-      address: '182/3, Vinod Nagar, Delhi', // Default buyer address
-  }); 
+    id: 0,
+    name: 'Default',
+    pincode: '110015',
+    address: '182/3, Vinod Nagar, Delhi',
+  });
   const [vendorExpanded, setVendorExpanded] = useState(false);
   const slideAnim = useState(new Animated.Value(300))[0];
   const navigation = useNavigation();
@@ -132,50 +132,95 @@ const ProductDetailScreen = () => {
 
       if (response.data.success && response.data.order) {
         const orderData = response.data.order;
-        const firstItem = orderData.items?.[0];
 
-        // Ensure vendorDetails.address is handled correctly
-        const vendorAddressData = orderData.vendorDetails?.address || {};
+        // Transform each item
+        const transformedItems = orderData.items.map(item => ({
+          id: item.id || '',
+          name: item.name || 'Unknown Product',
+          description: item.description || 'No description available.',
+          category: item.category || 'Unknown Category',
+          variety: item.subtext || 'Unknown Variety',
+          quantity: item.quantity || 0,
+          price: item.price || 0,
+          unit: item.unit || 'pc',
+          image: item.image || 'https://via.placeholder.com/400x220.png?text=Product',
+          reviews: (item.reviews || []).map(r => ({
+            id: r.id,
+            rating: r.rating,
+            comment: r.comment || '',
+            images: r.images || [],
+            createdAt: r.createdAt,
+            user: {
+              id: r.user._id,
+              name: r.user.name,
+              profilePicture: r.user.profilePicture
+            }
+          }))
+        }));
+
+        // Vendor info
+        const vendorDetails = orderData.vendorDetails || {};
+        const vendorAddress = vendorDetails.address || {};
 
         const transformedProduct = {
-          id: firstItem?.id || '',
-          name: firstItem?.name || 'Unknown Product',
-          image: firstItem?.image || 'https://via.placeholder.com/400x220.png?text=Product',
-          rating: 4.5,
-          price: firstItem?.price || orderData.totalPrice || 0,
-          category: firstItem?.category || 'Unknown Category',
-          variety: firstItem?.subtext || 'Unknown Variety',
-          description: firstItem?.description || 'No description available.',
-          vendor: orderData.vendorDetails?.name || 'Unknown Vendor',
+          id: transformedItems[0]?.id || '',
+          name: transformedItems[0]?.name || 'Unknown Product',
+          image: transformedItems[0]?.image || 'https://via.placeholder.com/400x220.png?text=Product',
+          rating: 4.5, // You can calculate avg rating if needed
+          price: transformedItems[0]?.price || orderData.totalPrice || 0,
+          category: transformedItems[0]?.category || 'Unknown Category',
+          variety: transformedItems[0]?.variety || 'Unknown Variety',
+          description: transformedItems[0]?.description || 'No description available.',
+          vendor: vendorDetails.name || 'Unknown Vendor',
           vendorId: orderData.vendor || '',
           deliveryDate: orderData.deliveryDate || 'N/A',
+          items: transformedItems,
           vendorDetails: {
-            name: orderData.vendorDetails?.name || 'Unknown Vendor',
-            mobileNumber: orderData.vendorDetails?.mobileNumber || 'N/A',
-            profilePicture: orderData.vendorDetails?.profilePicture || 'https://via.placeholder.com/80x80.png?text=Vendor',
-            about: orderData.vendorDetails?.about || 'No information available.',
-            // Use the fetched vendor address data
-            address: vendorAddressData
-          }
+            name: vendorDetails.name || 'Unknown Vendor',
+            mobileNumber: vendorDetails.mobileNumber || 'N/A',
+            profilePicture: vendorDetails.profilePicture || 'https://via.placeholder.com/80x80.png?text=Vendor',
+            about: vendorDetails.about || 'No information available.',
+            address: {
+              houseNumber: vendorAddress.houseNumber || '',
+              street: vendorAddress.street || '',
+              locality: vendorAddress.locality || '',
+              city: vendorAddress.city || '',
+              district: vendorAddress.district || '',
+              state: vendorAddress.state || '',
+              zip: vendorAddress.zip || '',
+              pinCode: vendorAddress.pinCode || '',
+              latitude: vendorAddress.latitude || '',
+              longitude: vendorAddress.longitude || ''
+            }
+          },
+          shippingAddress: orderData.shippingAddress
+            ? {
+              id: orderData.shippingAddress._id,
+              name: 'User',
+              pincode: orderData.shippingAddress.pinCode,
+              address: `${orderData.shippingAddress.houseNumber}, ${orderData.shippingAddress.locality}, ${orderData.shippingAddress.city}, ${orderData.shippingAddress.state}`
+            }
+            : null,
+          totalPrice: orderData.totalPrice,
+          paymentMethod: orderData.paymentMethod,
+          comments: orderData.comments,
+          donation: orderData.donation,
+          orderStatus: orderData.orderStatus,
+          transactionId: orderData.transactionId
         };
 
         setProduct(transformedProduct);
 
-        // Set shipping address based on order data if available (Buyer's address)
-        if (orderData.shippingAddress) {
-          const addr = orderData.shippingAddress;
-          setSelectedAddress({
-            id: 1,
-            name: 'User',
-            pincode: addr.pinCode,
-            address: `${addr.houseNumber}, ${addr.locality}, ${addr.city}, ${addr.state}`
-          });
-          setPincode(addr.pinCode);
+        // Set selected address
+        if (transformedProduct.shippingAddress) {
+          setSelectedAddress(transformedProduct.shippingAddress);
+          setPincode(transformedProduct.shippingAddress.pincode);
         }
 
         // Check cart & wishlist
         checkIfInCart(transformedProduct.id, token);
         checkIfInWishlist(transformedProduct.id, token);
+
       } else {
         throw new Error('Order not found');
       }
@@ -187,9 +232,7 @@ const ProductDetailScreen = () => {
     }
   };
 
-  // The rest of the functions (checkIfInCart, checkIfInWishlist, handleCartToggle, 
-  // handleWishlistToggle, openModal, closeModal, panResponder, handleAddressSelect, 
-  // MoveToNewAddress, backOrderPage, handleNavigate) remain the same.
+
 
   const checkIfInCart = async (productId, token) => {
     try {
@@ -283,10 +326,10 @@ const ProductDetailScreen = () => {
         <TouchableOpacity onPress={backOrderPage} style={styles.headerLeft}><Image source={require('../assets/via-farm-img/icons/groupArrow.png')} /></TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{product.name}</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={{ marginRight: 15 }} onPress={handleWishlistToggle}>
+          <TouchableOpacity style={{ marginRight: 15 }} onPress={() => navigation.navigate("wishlist")} >
             <Ionicons name={inWishlist ? "heart" : "heart-outline"} size={24} color={inWishlist ? "red" : "black"} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate("AddToCard")}>
+          <TouchableOpacity onPress={() => navigation.navigate("myCard")}>
             <Image source={require("../assets/via-farm-img/icons/shoppinCard.png")} />
           </TouchableOpacity>
         </View>
@@ -295,6 +338,9 @@ const ProductDetailScreen = () => {
       {/* Scrollable Content */}
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <Image source={{ uri: product.image }} style={styles.productImage} />
+        <TouchableOpacity style={{ right: 10, top: 10, position: 'absolute' }} onPress={handleWishlistToggle}>
+          <Ionicons name={inWishlist ? "heart" : "heart-outline"} size={27} color={inWishlist ? "red" : "white"} />
+        </TouchableOpacity>
 
         <View style={styles.productInfo}>
           <View style={styles.rowBetween}>
@@ -311,33 +357,33 @@ const ProductDetailScreen = () => {
         </View>
 
         {/* Vendor Section with Dropdown */}
-        <TouchableOpacity 
-          onPress={() => setVendorExpanded(!vendorExpanded)} 
+        <TouchableOpacity
+          onPress={() => setVendorExpanded(!vendorExpanded)}
           style={styles.vendorSection}
           activeOpacity={0.7}
         >
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',marginBottom:10, }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, }}>
             <Text style={styles.sectionTitle}>About the vendor</Text>
-            <Ionicons 
-              name={vendorExpanded ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color="#666" 
+            <Ionicons
+              name={vendorExpanded ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#666"
             />
           </View>
-          
+
           {vendorExpanded && (
-            <View style={{ marginTop: 15, flexDirection: 'row', alignItems: 'flex-start',marginBottom:15, }}>
-              <Image 
-                source={{ uri: product.vendorDetails?.profilePicture || 'https://via.placeholder.com/80x80.png?text=Vendor' }} 
-                style={{ width: 100, height: 100, borderRadius:10, marginRight: 15 }}
+            <View style={{ marginTop: 15, flexDirection: 'row', alignItems: 'flex-start', marginBottom: 15, }}>
+              <Image
+                source={{ uri: product.vendorDetails?.profilePicture || 'https://via.placeholder.com/80x80.png?text=Vendor' }}
+                style={{ width: 100, height: 100, borderRadius: 10, marginRight: 15 }}
               />
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 4 }}>
                   {product.vendorDetails?.name || product.vendor}
                 </Text>
                 <Text style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>
-                  {product.vendorDetails?.address?.houseNumber && product.vendorDetails?.address?.locality 
-                    ? `Location - ${product.vendorDetails.address.houseNumber}, ${product.vendorDetails.address.locality}, ${product.vendorDetails.address.city}` 
+                  {product.vendorDetails?.address?.houseNumber && product.vendorDetails?.address?.locality
+                    ? `Location - ${product.vendorDetails.address.houseNumber}, ${product.vendorDetails.address.locality}, ${product.vendorDetails.address.city}`
                     : 'Location not available'}
                 </Text>
                 {product.vendorDetails?.mobileNumber && (
@@ -354,8 +400,8 @@ const ProductDetailScreen = () => {
         </TouchableOpacity>
 
         {/* --- PickupLocationCard Integration (Now uses Vendor Address) --- */}
-        <PickupLocationCard 
-          vendorAddress={product.vendorDetails?.address} 
+        <PickupLocationCard
+          vendorAddress={product.vendorDetails?.address}
           distance="1.2 kms away" // STATIC Distance (Vendor's location from Buyer's selectedAddress)
           onPressNavigation={handleNavigate}
         />
@@ -378,6 +424,32 @@ const ProductDetailScreen = () => {
         </View>
 
         <RatingCardAlso />
+        <View>
+          <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',paddingHorizontal:10,}}>
+            <View><Text>Left</Text></View>
+            <TouchableOpacity>
+              <Text>See All</Text>
+              </TouchableOpacity>
+          </View>
+        <FlatList
+          data={product.items[0].reviews.filter(r => r.images.length > 0)} // only reviews with images
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <View style={{ marginRight: 10 }}>
+              {item.images.map((imgUrl, index) => (
+                <Image
+                  key={index}
+                  source={{ uri: imgUrl }}
+                  style={{ width: 120, height: 120, borderRadius: 8 }}
+                  resizeMode="cover"
+                />
+              ))}
+            </View>
+          )}
+        />
+        </View>
         <TopRatingCard />
         <SuggestionCard />
       </ScrollView>

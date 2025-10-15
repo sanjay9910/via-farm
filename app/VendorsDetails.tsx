@@ -1,287 +1,359 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation, useRoute } from '@react-navigation/native'; // useNavigation भी जोड़ा
+import { useNavigation, useRoute } from '@react-navigation/native';
 import axios from 'axios';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text, // 💡 ScrollView जोड़ा
-    TouchableOpacity // Back button के लिए जोड़ा
-    ,
-    View
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ProductCard from '../components/common/ProductCard';
 
-// Base URL for the API
-const API_BASE_URL = 'https://393rb0pp-5000.inc1.devtunnels.ms';
-const BUYER_COORDINATES = '?buyerLat=28.70&buyerLng=77.22'; 
+const { width } = Dimensions.get('window');
+const API = 'https://393rb0pp-5000.inc1.devtunnels.ms';
+const COORDS = '?buyerLat=28.70&buyerLng=77.22';
+
+const CARD_MARGIN = 10;
+const CARD_COLUMNS = 2;
+const CARD_WIDTH = (width - CARD_MARGIN * (CARD_COLUMNS * 2)) / CARD_COLUMNS;
+
+const CATEGORIES = ['All', 'Fruits', 'Vegetables', 'Seeds', 'Plants', 'Handicrafts'];
+
+const ReviewCard = ({ item }) => (
+  <TouchableOpacity style={styles.reviewCard} activeOpacity={0.8}>
+    <View style={styles.header}>
+      <Image
+        source={{ uri: item?.user?.profilePicture || 'https://via.placeholder.com/50' }}
+        style={styles.avatar}
+      />
+      <View style={{ flex: 1, marginLeft: 10 }}>
+        <Text style={styles.name}>{item?.user?.name || 'Anonymous'}</Text>
+        <Text style={styles.rating}>⭐ {item?.rating || 'N/A'}</Text>
+      </View>
+      <Text style={styles.date}>
+        {new Date(item?.createdAt).toLocaleDateString('en-GB')}
+      </Text>
+    </View>
+    {item?.comment && <Text style={styles.comment}>{item.comment}</Text>}
+  </TouchableOpacity>
+);
 
 const VendorsDetails = () => {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation(); // navigation हुक जोड़ा
+  const navigation = useNavigation();
+  const { params } = useRoute();
+  const vendorId = params?.vendorId;
+
   const [vendor, setVendor] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const route = useRoute();
-  const vendorId = route.params?.vendorId; 
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [dropdownLayout, setDropdownLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
-  // Helper function to retrieve the token from AsyncStorage
-  const getAuthToken = async () => {
+  const dropdownButtonRef = useRef(null);
+
+  const fetchVendor = async () => {
     try {
-      const token = await AsyncStorage.getItem('userToken'); 
-      return token;
-    } catch (e) {
-      console.error("Failed to retrieve token from AsyncStorage:", e);
-      return null;
-    }
-  };
-
-  const fetchVendorDetails = async () => {
-    setLoading(true);
-    setError(null);
-
-    if (!vendorId) {
-        setError('Vendor ID is missing. Cannot fetch details.');
-        setLoading(false);
-        return;
-    }
-    
-    try {
-      const token = await getAuthToken();
-      
-      if (!token) {
-        throw new Error('Authentication token not found. Please log in first.');
-      }
-
-      const url = `${API_BASE_URL}/api/buyer/vendor/${vendorId}${BUYER_COORDINATES}`;
-      
-      const response = await axios.get(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`, 
-          'Content-Type': 'application/json',
-        },
+      const token = await AsyncStorage.getItem('userToken');
+      const { data } = await axios.get(`${API}/api/buyer/vendor/${vendorId}${COORDS}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (response.data.success === true && response.data.data && response.data.data.vendor) {
-        setVendor(response.data.data.vendor); 
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch vendor details. API response was not successful.');
-      }
-
-    } catch (err) {
-      console.error("API Error caught:", err.message);
-      
-      if (axios.isAxiosError(err) && err.response) {
-          setError(`Error: ${err.response.status}. Please check API URL.`);
-      } else {
-          setError(err.message || 'An unknown error occurred while fetching data.');
-      }
-      
+      if (data.success && data.data?.vendor) {
+        setVendor(data.data.vendor);
+        setReviews(data.data?.reviews?.list || []);
+        setProducts(data.data?.listedProducts || []);
+      } else throw new Error('Vendor not found');
+    } catch (e) {
+      setError(e.message);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchVendorDetails();
-  }, [vendorId]); 
+    fetchVendor();
+  }, [vendorId]);
 
-  // --- Loading and Error States ---
-  if (loading) {
-    return (
-      <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color="#4CAF50" />
-        <Text style={{ marginTop: 10 }}>Loading vendor details...</Text>
-      </View>
-    );
-  }
-
-  if (error || !vendor) {
-    return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.errorHeader}>Data Fetch Error</Text>
-        <Text style={styles.errorText}>{error || 'No vendor data available.'}</Text>
-      </View>
-    );
-  }
-
-  // --- Data Mapping ---
-  const vendorData = {
-    name: vendor.name,
-    location: vendor.locationText || "Location not specified",
-    distance: vendor.distance || "Distance N/A",
-    rating: vendor.rating || 0,
-    about: vendor.about || "No information available about this vendor.",
-    imageUrl: vendor.profilePicture || 'https://picsum.photos/800/600',
+  const handleDropdownPress = () => {
+    if (dropdownButtonRef.current) {
+      dropdownButtonRef.current.measure((x, y, width, height, pageX, pageY) => {
+        setDropdownLayout({
+          x: pageX,
+          y: pageY,
+          width,
+          height,
+        });
+        setModalVisible(true);
+      });
+    }
   };
-  
-  const displayRating = vendorData.rating !== undefined ? vendorData.rating.toFixed(1) : 'N/A';
-  const vendorImage = vendorData.imageUrl;
 
-  // --- New Review and Product Placeholder Components ---
+  if (loading)
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#4CAF50" />
+        <Text>Loading...</Text>
+      </View>
+    );
 
-  const ReviewSection = () => (
-    <View style={styles.sectionContainer}>
-        <Text style={styles.sectionHeader}>Customer Reviews (4.5/5)</Text>
-        <Text style={styles.placeholderText}>
-            Review 1: "Great service, fast delivery!" (User 1)
-        </Text>
-        <Text style={styles.placeholderText}>
-            Review 2: "Quality was okay." (User 2)
-        </Text>
-        <TouchableOpacity style={styles.seeAllButton}>
-            <Text style={styles.seeAllButtonText}>View All Reviews</Text>
+  if (error || !vendor)
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorHeader}>Error</Text>
+        <Text>{error}</Text>
+      </View>
+    );
+
+  const v = vendor;
+  const image = v.profilePicture || 'https://picsum.photos/800/600';
+
+  // Filter products
+  const filteredProducts =
+    selectedCategory === 'All'
+      ? products
+      : products.filter(p => p.category === selectedCategory);
+
+  const allReviewImages = reviews.reduce((acc, review) => {
+    if (review.images && Array.isArray(review.images)) {
+      return [...acc, ...review.images];
+    }
+    return acc;
+  }, []);
+
+  const ListHeader = () => (
+    <View style={{ width: '100%', paddingBottom: 10 }}>
+      {/* Header Image */}
+      <View style={styles.imageBox}>
+        <Image source={{ uri: image }} style={styles.image} />
+        <TouchableOpacity
+          style={[styles.backBtn, { top: insets.top + 10 }]}
+          onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-    </View>
-  );
+      </View>
 
-  const TopReviewers = () => (
-    <View style={styles.sectionContainer}>
-        <Text style={styles.sectionHeader}>Top Contributors</Text>
-        <Text style={styles.placeholderText}>
-            User A: 15 Reviews
-        </Text>
-        <Text style={styles.placeholderText}>
-            User B: 10 Reviews
-        </Text>
-    </View>
-  );
+      {/* Vendor Info */}
+      <View style={styles.cardContainer}>
+        <View style={styles.rowBetween}>
+          <Text style={styles.vendorName}>{v.name}</Text>
+          <View style={styles.ratingBox}>
+            <Text style={styles.ratingText}>{v.rating?.toFixed(1) || 'N/A'}</Text>
+          </View>
+        </View>
+        <View style={styles.row}>
+          <Ionicons name="location-sharp" size={16} color="#757575" />
+          <Text style={styles.location}>
+            {v.locationText || 'Unknown'} ({v.distance || 'N/A'})
+          </Text>
+        </View>
+        <Text style={styles.aboutHeader}>About</Text>
+        <Text style={styles.about}>{v.about || 'No information available.'}</Text>
+      </View>
 
-  const ProductListing = () => (
-    <View style={styles.sectionContainer}>
-        <Text style={styles.sectionHeader}>Vendor Products & Services</Text>
-        <Text style={styles.placeholderText}>
-            Product 1: Item name and price
+      {allReviewImages.length > 0 && (
+        <View style={{ backgroundColor: '#fff', paddingVertical: 10, paddingLeft: 10 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', }}>
+            <Text style={styles.sectionHeader}>Reviews ( {reviews.length} reviews)</Text>
+
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('SeeAllReview', {
+                  vendor,
+                  reviews,
+                })
+              }>
+              <Text style={{ color: 'blue', fontWeight: '600', marginRight: 10, }}>See All</Text>
+            </TouchableOpacity>
+
+
+          </View>
+          <FlatList
+            data={allReviewImages}
+            horizontal
+            keyExtractor={(item, idx) => `review-img-${idx}`}
+            renderItem={({ item }) => (
+              <Image
+                source={{ uri: item }}
+                style={{ width: 120, height: 120, marginRight: 8, borderRadius: 8 }}
+              />
+            )}
+            showsHorizontalScrollIndicator={false}
+          />
+        </View>
+      )}
+
+      {/* Reviews */}
+      <View style={{ backgroundColor: '#fff', paddingVertical: 10, marginTop: allReviewImages.length > 0 ? 0 : 10 }}>
+        {reviews.length > 0 ? (
+          <FlatList
+            data={reviews}
+            renderItem={({ item }) => <ReviewCard item={item} />}
+            keyExtractor={item => item._id.toString()}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 10 }}
+          />
+        ) : (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', }}>
+            <Image style={{ width: 160, height: 160 }} source={require('../assets/via-farm-img/icons/emptyReview.png')} />
+            <Text style={styles.noReviewText}>No reviews yet.</Text>
+          </View>
+
+        )}
+      </View>
+
+      {/* Products Header + Dropdown */}
+      <View style={styles.productsHeaderContainer}>
+        <Text style={[styles.sectionHeader, { marginLeft: 0, marginVertical: 0 }]}>
+          Listing Product
         </Text>
-        <Text style={styles.placeholderText}>
-            Product 2: Another item name and price
-        </Text>
-        <TouchableOpacity style={styles.seeAllButton}>
-            <Text style={styles.seeAllButtonText}>See All Products</Text>
+
+        <TouchableOpacity
+          ref={dropdownButtonRef}
+          style={styles.dropdownButton}
+          onPress={handleDropdownPress}>
+          <Text style={styles.dropdownButtonText}>{selectedCategory}</Text>
+          <Ionicons name="chevron-down" size={20} color="#555" />
         </TouchableOpacity>
+      </View>
+
+      {/* Modal for Dropdown */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setModalVisible(false)}>
+          <View style={[
+            styles.modalContent,
+            {
+              position: 'absolute',
+              top: dropdownLayout.y + dropdownLayout.height + 5,
+              left: dropdownLayout.x,
+              width: dropdownLayout.width,
+            }
+          ]}>
+            <ScrollView
+              style={styles.modalScrollView}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled={true}>
+              {CATEGORIES.map(cat => (
+                <TouchableOpacity
+                  key={cat}
+                  style={[
+                    styles.modalItem,
+                    selectedCategory === cat && styles.modalItemSelected,
+                  ]}
+                  onPress={() => {
+                    setSelectedCategory(cat);
+                    setModalVisible(false);
+                  }}>
+                  <Text
+                    style={[
+                      styles.modalItemText,
+                      selectedCategory === cat && styles.modalItemTextSelected,
+                    ]}>
+                    {cat}
+                  </Text>
+                  {selectedCategory === cat && (
+                    <Ionicons name="checkmark" size={18} color="#4CAF50" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 
   return (
-    // 💡 Main container को ScrollView से बदला गया
-    <ScrollView style={styles.scrollViewContainer} showsVerticalScrollIndicator={false}>
-      
-      {/* --- 1. Vendor Header and Details --- */}
-      <View style={styles.headerImageContainer}>
-        <Image 
-          source={{ uri: vendorImage }} 
-          style={styles.vendorImage} 
+    <FlatList
+      data={filteredProducts}
+      ListHeaderComponent={<ListHeader />}
+      renderItem={({ item }) => (
+        <ProductCard
+          id={item?._id}
+          title={item?.name || 'Unnamed Product'}
+          subtitle={item?.variety || ''}
+          price={item?.price || 0}
+          rating={item?.rating || 0}
+          image={item?.images?.[0] || 'https://via.placeholder.com/150'}
+          width={CARD_WIDTH}
+          onPress={() => console.log('Pressed product', item?._id)}
+          onAddToCart={() => console.log('Add to cart:', item?._id)}
         />
-        {/* Back Arrow */}
-        <TouchableOpacity 
-            style={[styles.backButton, { top: insets.top + 10 }]}
-            onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Details Card */}
-      <View style={styles.detailsCard}>
-        <View style={styles.nameRow}>
-          <Text style={styles.vendorName}>{vendorData.name}</Text>
-          <View style={styles.ratingBox}>
-            <Text style={styles.ratingText}>{displayRating}</Text>
-          </View>
-        </View>
-        <View style={styles.locationRow}>
-          <Ionicons name="location-sharp" size={16} color="#757575" />
-          <Text style={styles.locationText}>
-            {`${vendorData.location} (${vendorData.distance})`}
-          </Text>
-        </View>
-
-        {/* About Section */}
-        <Text style={styles.aboutHeader}>About the vendor</Text>
-        <Text style={styles.aboutText}>{vendorData.about}</Text>
-      </View>
-      
-      {/* --- 2. Review Section --- */}
-      <ReviewSection />
-
-      {/* --- 3. Top Reviewers Section --- */}
-      <TopReviewers />
-
-      {/* --- 4. Product Listing Section --- */}
-      <ProductListing />
-      
-      {/* Bottom padding for better scroll viewing */}
-      <View style={{ height: 30 }} /> 
-    </ScrollView>
+      )}
+      keyExtractor={(item, index) => item?._id?.toString() || index.toString()}
+      numColumns={CARD_COLUMNS}
+      columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: CARD_MARGIN }}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 40, backgroundColor: '#fff' }}
+      ListEmptyComponent={<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Image style={{ width: 120, height: 120, }} source={require('../assets/via-farm-img/icons/emptyProductList.png')} />
+        <Text>No products available.</Text>
+      </View>}
+    />
   );
 };
 
-export default VendorsDetails;
-
 const styles = StyleSheet.create({
-  // 💡 flex: 1 को ScrollView को हटा दिया गया है, लेकिन अन्य sections के लिए flex: 1 रखा जा सकता है।
-  scrollViewContainer: {
-    flex: 1, // ScrollView को पूरी स्क्रीन लेने दें
-    backgroundColor: '#f5f5f5', // हल्का बैकग्राउंड
-  },
-  centerContent: {
+  center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5',
   },
   errorHeader: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#D32F2F',
     marginBottom: 10,
   },
-  errorText: {
-    color: '#E53935',
-    textAlign: 'center',
-    padding: 10,
-  },
-  // --- Image and Header Styles ---
-  headerImageContainer: {
+  imageBox: {
     width: '100%',
-    height: 220,
+    height: 250,
   },
-  vendorImage: {
+  image: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
-  backButton: {
+  backBtn: {
     position: 'absolute',
     left: 10,
-    backgroundColor: 'rgba(0,0,0,0.4)', 
+    backgroundColor: 'rgba(0,0,0,0.4)',
     borderRadius: 20,
     padding: 5,
-    zIndex: 10, // सुनिश्चित करें कि यह इमेज के ऊपर दिखे
   },
-  // --- Details Card Styles ---
-  detailsCard: {
+  cardContainer: {
+    padding: 15,
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    marginTop: -20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 5,
-    marginBottom: 10, // नीचे मार्जिन जोड़ा
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    marginBottom: 10,
   },
-  nameRow: {
+  rowBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 5,
   },
   vendorName: {
     fontSize: 24,
@@ -289,71 +361,148 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   ratingBox: {
-    backgroundColor: '#FFEB3B',
-    borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: '#4CAF50',
+    borderRadius: 15,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
   },
   ratingText: {
-    fontSize: 16,
+    color: '#fff',
     fontWeight: 'bold',
-    color: '#333',
-    marginLeft: 4,
   },
-  locationRow: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 10,
   },
-  locationText: {
-    fontSize: 16,
-    color: '#757575',
+  location: {
     marginLeft: 5,
+    fontSize: 14,
+    color: '#757575',
   },
   aboutHeader: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
+    marginTop: 10,
     color: '#333',
-    marginBottom: 8,
   },
-  aboutText: {
+  about: {
     fontSize: 14,
     color: '#555',
-    lineHeight: 22,
-  },
-
-  // --- New Section Styles ---
-  sectionContainer: {
-    backgroundColor: '#fff',
-    padding: 15,
-    marginHorizontal: 0,
-    marginTop: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    marginTop: 5,
+    lineHeight: 20,
   },
   sectionHeader: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 10,
+    marginVertical: 10,
+    marginLeft: 10,
   },
-  placeholderText: {
-    fontSize: 14,
-    color: '#666',
+  noReviewText: {
+    textAlign: 'center',
+    color: '#757575',
+    paddingVertical: 10,
+  },
+  reviewCard: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    padding: 15,
+    marginRight: 10,
+    width: 300,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 5,
-    paddingLeft: 10,
   },
-  seeAllButton: {
-    marginTop: 15,
-    padding: 10,
-    backgroundColor: '#E3F2FD',
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  name: {
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  rating: {
+    fontSize: 12,
+    color: '#FFC107',
+    marginTop: 2,
+  },
+  date: {
+    fontSize: 12,
+    color: '#9E9E9E',
+  },
+  comment: {
+    fontSize: 14,
+    color: '#555',
+    marginTop: 5,
+  },
+  productsHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    marginTop: 10,
+    backgroundColor: '#fff',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    backgroundColor: '#f0f0f0',
     borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    minWidth: 120,
+  },
+  dropdownButtonText: {
+    fontSize: 16,
+    marginRight: 5,
+    color: '#333',
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    maxHeight: 235,
+    minWidth: 100,
+  },
+  modalScrollView: {
+    paddingVertical: 5,
+  },
+  modalItem: {
+    padding: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  seeAllButtonText: {
-    color: '#1976D2',
-    fontWeight: '600',
-  }
+  modalItemSelected: {
+    backgroundColor: '#e8f5e9',
+  },
+  modalItemText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  modalItemTextSelected: {
+    fontWeight: 'bold',
+    color: '#4CAF50',
+  },
 });
+
+export default VendorsDetails;

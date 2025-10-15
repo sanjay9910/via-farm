@@ -1,37 +1,40 @@
 // File: ViewVendors.tsx
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
-import Navbar from '../components/common/navbar';
 import ProfileCard from './../components/common/VendorsCard';
 
 const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
 const API_ENDPOINT = '/api/buyer/allvendors?lat=19.0760&lng=72.877';
 
 const ViewVendors = () => {
-  const [vendors, setVendors] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [vendors, setVendors] = useState<any[]>([]);
+  const [filteredVendors, setFilteredVendors] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filterText, setFilterText] = useState<string>('');
 
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>(); 
 
   const fetchAllVendors = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Get token from AsyncStorage
       const token = await AsyncStorage.getItem('userToken');
-      
+
       if (!token) {
         setError('Please login to view vendors');
         setLoading(false);
@@ -46,28 +49,25 @@ const ViewVendors = () => {
         timeout: 10000,
       });
 
-      console.log('📦 All Vendors API Response:', response.data);
-
       if (response.data && response.data.success) {
-        // Map API data to match ProfileCard component
-        const mappedVendors = response.data.vendors.map((vendor) => ({
+        const mappedVendors = response.data.vendors.map((vendor: any) => ({
           id: vendor.id,
-          image: vendor.profilePicture !== 'https://default-image-url.com/default.png' 
-            ? vendor.profilePicture 
+          image: vendor.profilePicture && vendor.profilePicture !== 'https://default-image-url.com/default.png'
+            ? vendor.profilePicture
             : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d',
           name: vendor.name,
-          rating: 4.5, // Default rating since API doesn't provide
-          distance: vendor.distance !== 'N/A' ? vendor.distance : 'Not available',
-          category: vendor.categories !== 'No categories listed' ? vendor.categories : 'General',
+          rating: vendor.rating || 4.5,
+          distance: vendor.distance || 'Not available',
+          category: vendor.categories || 'General',
         }));
 
         setVendors(mappedVendors);
-        console.log(`✅ Loaded ${mappedVendors.length} vendors`);
+        setFilteredVendors(mappedVendors);
       } else {
         throw new Error('Failed to fetch vendors data');
       }
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('❌ Error fetching all vendors:', err);
       
       if (err.response?.status === 401) {
@@ -82,9 +82,8 @@ const ViewVendors = () => {
         setError(err.response?.data?.message || 'Failed to load vendors');
       }
 
-      // ❌ REMOVED DUMMY DATA FALLBACK - Only show API data
-      setVendors([]); // Empty array if API fails
-
+      setVendors([]); 
+      setFilteredVendors([]);
     } finally {
       setLoading(false);
     }
@@ -93,6 +92,21 @@ const ViewVendors = () => {
   useEffect(() => {
     fetchAllVendors();
   }, []);
+
+  // Filtering Logic: Updates whenever vendors or filterText changes
+  useEffect(() => {
+    if (filterText === '') {
+      setFilteredVendors(vendors);
+      return;
+    }
+
+    const lowerCaseFilter = filterText.toLowerCase();
+    const result = vendors.filter(vendor => 
+      vendor.name.toLowerCase().includes(lowerCaseFilter)
+    );
+    setFilteredVendors(result);
+  }, [filterText, vendors]);
+
 
   const handleRetry = () => {
     setError(null);
@@ -103,10 +117,14 @@ const ViewVendors = () => {
     navigation.navigate('login');
   };
 
+  const handleVendorPress = (vendorId: string) => {
+    navigation.navigate('VendorsDetails', { vendorId });
+  };
+
+
   if (loading) {
     return (
       <View style={styles.mainContainer}>
-        <Navbar />
         <View style={styles.loader}>
           <ActivityIndicator size="large" color="#4CAF50" />
           <Text style={styles.loadingText}>Loading all vendors...</Text>
@@ -116,60 +134,91 @@ const ViewVendors = () => {
   }
 
   return (
-    <View style={styles.mainContainer}>
-      <Navbar />
-      
-      {error && vendors.length === 0 && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-              <Text style={styles.buttonText}>Try Again</Text>
-            </TouchableOpacity>
-            {error.includes('login') && (
-              <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-                <Text style={styles.buttonText}>Go to Login</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      )}
+    <SafeAreaView style={styles.safeArea}>
+        <View style={styles.mainContainer}>
+            
+            {/* 🎯 Simplified Header with Back Arrow and Search Input */}
+            <View style={styles.integratedHeader}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <Ionicons name="arrow-back" size={24} color="#333" />
+                </TouchableOpacity>
 
-      <ScrollView
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header with vendor count */}
-        <View style={styles.header}>
-          <Text style={styles.heading}>All Vendors</Text>
-          {vendors.length > 0 && (
-            <Text style={styles.vendorCount}>{vendors.length} vendors found</Text>
-          )}
-        </View>
-
-        {vendors.length > 0 ? (
-          vendors.map((vendor) => (
-            <ProfileCard
-              key={vendor.id}
-              image={vendor.image}
-              name={vendor.name}
-              rating={vendor.rating}
-              distance={vendor.distance}
-              category={vendor.category}
-            />
-          ))
-        ) : (
-          !error && (
-            <View style={styles.noVendorsContainer}>
-              <Text style={styles.noVendorsText}>No vendors found</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-                <Text style={styles.buttonText}>Refresh</Text>
-              </TouchableOpacity>
+                {/* Search/Filter Input */}
+                <View style={styles.searchInputWrapper}>
+                    <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Filter vendors by name..."
+                        value={filterText}
+                        onChangeText={setFilterText}
+                        placeholderTextColor="#999"
+                    />
+                </View>
             </View>
-          )
-        )}
-      </ScrollView>
-    </View>
+
+            {error && vendors.length === 0 && (
+                <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
+                    <View style={styles.buttonContainer}>
+                        <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+                            <Text style={styles.buttonText}>Try Again</Text>
+                        </TouchableOpacity>
+                        {error.includes('login') && (
+                            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+                                <Text style={styles.buttonText}>Go to Login</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+            )}
+
+            <ScrollView
+                contentContainerStyle={styles.container}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* Main Heading/Count (Optional, as the list is below) */}
+                <View style={styles.header}>
+                    <Text style={styles.heading}>Vendors</Text>
+                    {filteredVendors.length > 0 && (
+                        <Text style={styles.vendorCount}>{filteredVendors.length} vendors found</Text>
+                    )}
+                </View>
+
+                {filteredVendors.length > 0 ? (
+                    filteredVendors.map((vendor) => (
+                        <TouchableOpacity 
+                            key={vendor.id} 
+                            onPress={() => handleVendorPress(vendor.id)}
+                            activeOpacity={0.7}
+                            style={styles.cardWrapper}
+                        >
+                            <ProfileCard
+                                image={vendor.image}
+                                name={vendor.name}
+                                rating={vendor.rating}
+                                distance={vendor.distance}
+                                category={vendor.category}
+                            />
+                        </TouchableOpacity>
+                    ))
+                ) : (
+                    !loading && (
+                        <View style={styles.noVendorsContainer}>
+                            <Text style={styles.noVendorsText}>
+                                {filterText 
+                                    ? `No vendors found matching "${filterText}"` 
+                                    : 'No vendors found'
+                                }
+                            </Text>
+                            <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+                                <Text style={styles.buttonText}>Refresh</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )
+                )}
+            </ScrollView>
+        </View>
+    </SafeAreaView>
   );
 };
 
@@ -188,9 +237,48 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
+  safeArea: {
+    flex: 1,
+    backgroundColor: 'white', 
+  },
   mainContainer: {
     flex: 1,
     backgroundColor: 'white',
+  },
+  // 🎯 New Integrated Header Style
+  integratedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    backgroundColor: 'white',
+  },
+  backButton: {
+    padding: 6, // Increase touchable area
+  },
+  // 🔍 Search Input Wrapper (Takes up remaining space)
+  searchInputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 10, // Space between arrow and search
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    paddingVertical: 0, // Ensure height is controlled by wrapper
   },
   container: {
     paddingHorizontal: 16,
