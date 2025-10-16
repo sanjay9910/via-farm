@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
         },
       });
 
-      console.log("Buyer Profile Response:", res.data);
+      // console.log("Buyer Profile Response:", res.data);
 
       if (res.data.success || res.data.status === 'success') {
         // Handle both response structures
@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const { mobileNumber, name, role } = profileData;
       
-      console.log("Calling completeProfile API with:", { mobileNumber, name, role });
+      // console.log("Calling completeProfile API with:", { mobileNumber, name, role });
 
       if (!name || !name.trim()) {
         throw new Error('Name is required');
@@ -89,14 +89,14 @@ export const AuthProvider = ({ children }) => {
         role: role || 'buyer',
       });
 
-      console.log("Full API response:", res.data);
+      // console.log("Full API response:", res.data);
 
       if (res.data.status === 'success') {
         const { token, user } = res.data.data;
         await AsyncStorage.setItem('userToken', token);
         await AsyncStorage.setItem('userData', JSON.stringify(user));
         setUser(user);
-        console.log("Profile completed successfully, token saved:", token);
+        // console.log("Profile completed successfully, token saved:", token);
       }
 
       return res.data;
@@ -111,7 +111,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const { mobileNumber, name, password, role } = profileData;
       
-      console.log("Calling createProfile API with:", { name, role });
+      // console.log("Calling createProfile API with:", { name, role });
 
       const res = await axios.post(`${API_BASE}/complete-profile`, {
         mobileNumber,
@@ -120,14 +120,14 @@ export const AuthProvider = ({ children }) => {
         role,
       });
 
-      console.log("Full API response:", res.data);
+      // console.log("Full API response:", res.data);
 
       if (res.data.status === 'success') {
         const { token, user } = res.data.data;
         await AsyncStorage.setItem('userToken', token);
         await AsyncStorage.setItem('userData', JSON.stringify(user));
         setUser(user);
-        console.log("Profile created successfully, token saved:", token);
+        // console.log("Profile created successfully, token saved:", token);
       }
 
       return res.data;
@@ -165,7 +165,7 @@ export const AuthProvider = ({ children }) => {
   // Set Password 
   const newPassword = async (mobileNumber, password, confirmPassword) => {
     try {
-      console.log("Calling setPassword API with:", { mobileNumber, password, confirmPassword });
+      // console.log("Calling setPassword API with:", { mobileNumber, password, confirmPassword });
 
       const res = await axios.post(`${API_BASE}/set-Password`, {
         mobileNumber,
@@ -173,7 +173,7 @@ export const AuthProvider = ({ children }) => {
         confirmPassword,
       });
 
-      console.log("Full API response:", res.data);
+      // console.log("Full API response:", res.data);
 
       const token = res.data?.data?.token || res.data?.token;
       const user = res.data?.data?.user || res.data?.user;
@@ -182,7 +182,7 @@ export const AuthProvider = ({ children }) => {
         await AsyncStorage.setItem('userToken', token);
         await AsyncStorage.setItem('userData', JSON.stringify(user));
         setUser(user);
-        console.log("Token saved successfully:", token);
+        // console.log("Token saved successfully:", token);
       } else {
         console.warn("Token or user missing in API response:", res.data);
       }
@@ -209,7 +209,7 @@ const fetchBuyerAddress = async () => {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    console.log("Buyer Address Response:", res.data);
+    // console.log("Buyer Address Response:", res.data);
 
     if (res.data.success || res.data.status === 'success') {
       // Extract all addresses

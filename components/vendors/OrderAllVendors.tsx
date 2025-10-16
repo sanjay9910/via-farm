@@ -50,6 +50,7 @@ export default function AllOrders() {
             item: itemNames,
             quantity: quantities,
             price: prices,
+            orderType: o.orderType,
             totalPrice: o.totalPrice || 0, // For filtering
             deliveredAt: o.pickupSlot ? new Date(o.pickupSlot).toLocaleString() : o.date ? new Date(o.date).toLocaleString() : "N/A",
             originalDate: o.pickupSlot || o.date || new Date().toISOString(), // For date filtering

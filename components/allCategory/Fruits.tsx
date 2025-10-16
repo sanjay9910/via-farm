@@ -75,7 +75,7 @@ const Fruits = () => {
               : "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
         }));
         setData(formattedData);
-        console.log(`✅ Loaded ${formattedData.length} fruits`);
+        // console.log(`✅ Loaded ${formattedData.length} fruits`);
       } else {
         setError("No fruits found in your area");
       }

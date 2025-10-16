@@ -81,42 +81,27 @@ const ProductCard = ({ item, onDelete, onStockUpdate }) => {
   };
 
   // FIXED Stock Update Handler with Multiple API Methods
-const handleStockChange = async (newStatus) => {
-  setIsStockDropdownOpen(false);
-  setUpdatingStock(true);
+  const handleStockChange = async (newStatus) => {
+    setIsStockDropdownOpen(false);
+    setUpdatingStock(true);
 
-  try {
-    // ✅ Correct token fetch (matches login storage)
-    const token = await AsyncStorage.getItem("userToken");
-
-    if (!token) {
-      Alert.alert("Error", "User not logged in!");
-      setUpdatingStock(false);
-      return;
-    }
-
-    let response = null;
-    let lastError = null;
-
-    // Try PATCH first
     try {
-      response = await axios.patch(
-        `${API_BASE}/api/vendor/products/${item._id}/status`,
-        { status: newStatus },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          timeout: 10000,
-        }
-      );
-    } catch (err) {
-      lastError = err;
-      // Try PATCH on alternate route
+      // ✅ Correct token fetch (matches login storage)
+      const token = await AsyncStorage.getItem("userToken");
+
+      if (!token) {
+        Alert.alert("Error", "User not logged in!");
+        setUpdatingStock(false);
+        return;
+      }
+
+      let response = null;
+      let lastError = null;
+
+      // Try PATCH first
       try {
         response = await axios.patch(
-          `${API_BASE}/api/vendor/products/${item._id}`,
+          `${API_BASE}/api/vendor/products/${item._id}/status`,
           { status: newStatus },
           {
             headers: {
@@ -126,11 +111,11 @@ const handleStockChange = async (newStatus) => {
             timeout: 10000,
           }
         );
-      } catch (err2) {
-        lastError = err2;
-        // Try PUT as last fallback
+      } catch (err) {
+        lastError = err;
+        // Try PATCH on alternate route
         try {
-          response = await axios.put(
+          response = await axios.patch(
             `${API_BASE}/api/vendor/products/${item._id}`,
             { status: newStatus },
             {
@@ -141,43 +126,58 @@ const handleStockChange = async (newStatus) => {
               timeout: 10000,
             }
           );
-        } catch (err3) {
-          lastError = err3;
+        } catch (err2) {
+          lastError = err2;
+          // Try PUT as last fallback
+          try {
+            response = await axios.put(
+              `${API_BASE}/api/vendor/products/${item._id}`,
+              { status: newStatus },
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
+                timeout: 10000,
+              }
+            );
+          } catch (err3) {
+            lastError = err3;
+          }
         }
       }
-    }
 
-    if (response && response.data && response.data.success) {
-      Alert.alert("Success", `Product marked as ${newStatus}`);
-      onStockUpdate(item._id, newStatus);
-    } else {
-      throw lastError || new Error("Failed to update status");
-    }
-  } catch (error) {
-    console.log("Stock update error:", error);
+      if (response && response.data && response.data.success) {
+        Alert.alert("Success", `Product marked as ${newStatus}`);
+        onStockUpdate(item._id, newStatus);
+      } else {
+        throw lastError || new Error("Failed to update status");
+      }
+    } catch (error) {
+      console.log("Stock update error:", error);
 
-    if (error.response?.status === 401) {
-      Alert.alert("Error", "Authentication failed. Please login again.");
-    } else if (error.response?.status === 404) {
-      Alert.alert("Error", "API endpoint not found. Please check server.");
-    } else if (error.response?.status === 403) {
-      Alert.alert("Error", "You don't have permission to update this product.");
-    } else if (error.response?.status === 500) {
-      Alert.alert(
-        "Server Error",
-        error.response?.data?.message || "Internal server error"
-      );
-    } else if (error.code === "ECONNABORTED") {
-      Alert.alert("Timeout", "Request took too long.");
-    } else if (error.message === "Network Error") {
-      Alert.alert("Network Error", "Cannot connect to server.");
-    } else {
-      Alert.alert("Error", "Something went wrong while updating stock");
+      if (error.response?.status === 401) {
+        Alert.alert("Error", "Authentication failed. Please login again.");
+      } else if (error.response?.status === 404) {
+        Alert.alert("Error", "API endpoint not found. Please check server.");
+      } else if (error.response?.status === 403) {
+        Alert.alert("Error", "You don't have permission to update this product.");
+      } else if (error.response?.status === 500) {
+        Alert.alert(
+          "Server Error",
+          error.response?.data?.message || "Internal server error"
+        );
+      } else if (error.code === "ECONNABORTED") {
+        Alert.alert("Timeout", "Request took too long.");
+      } else if (error.message === "Network Error") {
+        Alert.alert("Network Error", "Cannot connect to server.");
+      } else {
+        Alert.alert("Error", "Something went wrong while updating stock");
+      }
+    } finally {
+      setUpdatingStock(false);
     }
-  } finally {
-    setUpdatingStock(false);
-  }
-};
+  };
 
   return (
     <View style={cardStyles.card}>
@@ -208,11 +208,11 @@ const handleStockChange = async (newStatus) => {
         <View style={cardStyles.row}>
           <Text style={cardStyles.label}>Price</Text>
           <Text style={cardStyles.colon}>:</Text>
-          <Text style={cardStyles.value}>
-            ₹ {item.price}/{item.unit}
-          </Text>
-        </View>
+            <Text style={cardStyles.value}>
+              ₹ {item.price}/ {item.unit === "pc" ? `1${item.unit}` : item.unit} {item.weightPerPiece}
+            </Text>
 
+        </View>
         <Text style={cardStyles.uploadDate}>
           Uploaded on {new Date(item.datePosted).toLocaleDateString()}
         </Text>
@@ -505,7 +505,7 @@ const ProductFilter = ({
                   style={[
                     filterStyles.dropdownItem,
                     selectedCategory === category &&
-                      filterStyles.dropdownItemActive,
+                    filterStyles.dropdownItemActive,
                   ]}
                   onPress={() => onCategorySelect(category)}
                 >
@@ -513,7 +513,7 @@ const ProductFilter = ({
                     style={[
                       filterStyles.dropdownItemText,
                       selectedCategory === category &&
-                        filterStyles.dropdownItemTextActive,
+                      filterStyles.dropdownItemTextActive,
                     ]}
                   >
                     {category}
@@ -581,7 +581,7 @@ const ProductFilter = ({
                           style={[
                             filterStyles.radioCircle,
                             stockFilter === option &&
-                              filterStyles.radioCircleSelected,
+                            filterStyles.radioCircleSelected,
                           ]}
                         >
                           {stockFilter === option && (
@@ -592,7 +592,7 @@ const ProductFilter = ({
                           style={[
                             filterStyles.optionText,
                             stockFilter === option &&
-                              filterStyles.optionTextSelected,
+                            filterStyles.optionTextSelected,
                           ]}
                         >
                           {option}
@@ -630,7 +630,7 @@ const ProductFilter = ({
                           style={[
                             filterStyles.radioCircle,
                             dateFilter === option &&
-                              filterStyles.radioCircleSelected,
+                            filterStyles.radioCircleSelected,
                           ]}
                         >
                           {dateFilter === option && (
@@ -641,7 +641,7 @@ const ProductFilter = ({
                           style={[
                             filterStyles.optionText,
                             dateFilter === option &&
-                              filterStyles.optionTextSelected,
+                            filterStyles.optionTextSelected,
                           ]}
                         >
                           {option}
@@ -679,7 +679,7 @@ const ProductFilter = ({
                           style={[
                             filterStyles.radioCircle,
                             amountFilter === option &&
-                              filterStyles.radioCircleSelected,
+                            filterStyles.radioCircleSelected,
                           ]}
                         >
                           {amountFilter === option && (
@@ -690,7 +690,7 @@ const ProductFilter = ({
                           style={[
                             filterStyles.optionText,
                             amountFilter === option &&
-                              filterStyles.optionTextSelected,
+                            filterStyles.optionTextSelected,
                           ]}
                         >
                           {option}
@@ -770,9 +770,9 @@ const ProductList = ({ refreshbut }) => {
 
   // Handle stock update WITHOUT removing product from list
   const handleStockUpdate = (productId, newStatus) => {
-    setProducts(prevProducts => 
-      prevProducts.map(product => 
-        product._id === productId 
+    setProducts(prevProducts =>
+      prevProducts.map(product =>
+        product._id === productId
           ? { ...product, status: newStatus }
           : product
       )
@@ -842,9 +842,9 @@ const ProductList = ({ refreshbut }) => {
           data={filteredProducts}
           keyExtractor={(item) => item._id}
           renderItem={({ item }) => (
-            <ProductCard 
-              item={item} 
-              onDelete={handleDeleteFromList} 
+            <ProductCard
+              item={item}
+              onDelete={handleDeleteFromList}
               onStockUpdate={handleStockUpdate}
             />
           )}
@@ -880,7 +880,7 @@ const cardStyles = StyleSheet.create({
     elevation: 3,
   },
   image: { width: 150, height: "100%", minHeight: 180 },
-  details: { flex: 1, padding: 16, justifyContent: "space-between" },
+  details: { flex: 1, padding:8, justifyContent: "space-between" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -953,7 +953,7 @@ const cardStyles = StyleSheet.create({
   menuItemText: { fontSize: 13, color: "#374151", fontWeight: "500" },
   deleteText: { color: "#ef4444" },
   menuDivider: { height: 1, backgroundColor: "#f3f4f6", marginHorizontal: 8 },
-  
+
   stockDropdown: {
     backgroundColor: "#fff",
     borderRadius: 8,

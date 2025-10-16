@@ -28,16 +28,18 @@ const AddProduct = ({ refreshprops }) => {
   const [variety, setVariety] = useState("");
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
-  3;
   const [description, setDescription] = useState("");
   const [allIndiaDelivery, setAllIndiaDelivery] = useState(false);
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [weightPerPiece, setWeightPerPiece] = useState("");
+  const [isUnitDropdownOpen, setIsUnitDropdownOpen] = useState(false); // dropdown toggle
+
+  const unitOptions = ["kg", "pc", "ltr", "dozen"];
 
   const pickImages = async () => {
     try {
-      const { status } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(
           "Permission Denied",
@@ -68,7 +70,6 @@ const AddProduct = ({ refreshprops }) => {
   };
 
   const handleSubmit = async () => {
-    // Validation
     if (!name.trim()) {
       Alert.alert("Error", "Please enter product name");
       return;
@@ -90,9 +91,17 @@ const AddProduct = ({ refreshprops }) => {
       return;
     }
     if (!unit.trim()) {
-      Alert.alert("Error", "Please enter unit");
+      Alert.alert("Error", "Please select unit (kg/pc/ltr/dozen)");
       return;
     }
+
+    const normalizedUnit = unit.trim().toLowerCase();
+
+    if (normalizedUnit === "pc" && !weightPerPiece.trim()) {
+      Alert.alert("Error", "Please enter weight per piece for pc unit");
+      return;
+    }
+
     if (images.length === 0) {
       Alert.alert("Error", "Please add at least one image");
       return;
@@ -101,36 +110,33 @@ const AddProduct = ({ refreshprops }) => {
     setLoading(true);
 
     try {
-      // Get token from AsyncStorage
       const token = await AsyncStorage.getItem("userToken");
-
-      // console.log("Tokenjkhgfgdukghfdgh:", refreshprops);
-
       if (!token) {
         Alert.alert("Error", "Please login first");
         setLoading(false);
         return;
       }
 
-      // Create FormData
       const formData = new FormData();
       formData.append("name", name.trim());
       formData.append("category", category.trim());
       formData.append("variety", variety.trim());
-      formData.append("price", price.trim());
-      formData.append("quantity", quantity.trim());
-      formData.append("unit", unit.trim());
+      formData.append("price", parseFloat(price.trim()));
+      formData.append("quantity", parseFloat(quantity.trim()));
+      formData.append("unit", normalizedUnit);
       formData.append("description", description.trim() || "");
-      formData.append("allIndiaDelivery", allIndiaDelivery.toString());
+      formData.append("allIndiaDelivery", allIndiaDelivery);
 
-      // Append images with correct format
+      if (normalizedUnit === "pc" && weightPerPiece.trim()) {
+        formData.append("weightPerPiece", weightPerPiece.trim());
+      }
+
       images.forEach((image, index) => {
         const uri = image.uri;
         const uriParts = uri.split("/");
         const fileName = uriParts[uriParts.length - 1];
         const fileType = fileName.split(".").pop().toLowerCase();
 
-        // Create proper file object
         const file = {
           uri: uri,
           type: `image/${fileType === "jpg" ? "jpeg" : fileType}`,
@@ -140,16 +146,13 @@ const AddProduct = ({ refreshprops }) => {
         formData.append("images", file);
       });
 
-      // API call
       const response = await axios.post(`${API_BASE}/products/add`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
-        timeout: 30000, // 30 seconds timeout
+        timeout: 30000,
       });
-
-      console.log("Response:", response.data);
 
       if (response.data.success) {
         Alert.alert("Success", "Product added successfully!", [
@@ -158,23 +161,19 @@ const AddProduct = ({ refreshprops }) => {
             onPress: () => {
               setModalVisible(false);
               resetForm();
+              if (refreshprops) refreshprops();
             },
           },
         ]);
-        refreshprops();
       } else {
         Alert.alert("Error", response.data.message || "Failed to add product");
       }
     } catch (error) {
       console.error("Full error:", error);
       console.error("Error response:", error.response?.data);
-      console.error("Error status:", error.response?.status);
-
       let errorMessage = "Failed to add product. Please try again.";
 
       if (error.response) {
-        // Server responded with error
-        console.log("Server error data:", error.response.data);
         errorMessage =
           error.response.data?.message ||
           error.response.data?.error ||
@@ -184,11 +183,12 @@ const AddProduct = ({ refreshprops }) => {
           errorMessage = "Session expired. Please login again.";
         } else if (error.response.status === 413) {
           errorMessage = "Images are too large. Please select smaller images.";
+        } else if (error.response.status === 400) {
+          errorMessage = error.response.data?.message || "Please check all fields and try again.";
         } else if (error.response.status === 500) {
           errorMessage = "Server error. Please check all fields and try again.";
         }
       } else if (error.request) {
-        // Request made but no response
         errorMessage = "Network error. Please check your connection.";
       } else if (error.code === "ECONNABORTED") {
         errorMessage = "Request timeout. Please try again.";
@@ -210,6 +210,7 @@ const AddProduct = ({ refreshprops }) => {
     setDescription("");
     setAllIndiaDelivery(false);
     setImages([]);
+    setWeightPerPiece("");
   };
 
   return (
@@ -225,13 +226,11 @@ const AddProduct = ({ refreshprops }) => {
             Showcase your fresh produce or handmade items to more buyers
           </Text>
         </View>
-
         <View style={styles.iconContainer}>
           <Feather name="plus" size={28} color="#fff" />
         </View>
       </TouchableOpacity>
 
-      {/* Product Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <TouchableOpacity
           style={styles.overlay}
@@ -254,12 +253,12 @@ const AddProduct = ({ refreshprops }) => {
 
               <Text style={styles.smallNote}>* marks important fields</Text>
 
-              <Text style={styles.label}>Product *</Text>
+              <Text style={styles.label}>Product Name *</Text>
               <TextInput
                 style={styles.input}
                 value={name}
                 onChangeText={setName}
-                placeholder="e.g., Kashamiri Apples"
+                placeholder="e.g., Kashmiri Apples"
                 editable={!loading}
               />
 
@@ -280,7 +279,7 @@ const AddProduct = ({ refreshprops }) => {
                     style={styles.input}
                     value={variety}
                     onChangeText={setVariety}
-                    placeholder="e.g., Apple/Banana"
+                    placeholder="e.g., Royal Gala"
                     editable={!loading}
                   />
                 </View>
@@ -293,35 +292,85 @@ const AddProduct = ({ refreshprops }) => {
                     style={styles.input}
                     value={price}
                     onChangeText={setPrice}
-                    placeholder="200"
+                    placeholder="eg.0"
                     keyboardType="numeric"
                     editable={!loading}
                   />
                 </View>
+
                 <View style={styles.flex1}>
                   <Text style={styles.label}>Quantity *</Text>
                   <TextInput
                     style={styles.input}
                     value={quantity}
                     onChangeText={setQuantity}
-                    placeholder="50"
+                    placeholder="eg.0"
                     keyboardType="numeric"
                     editable={!loading}
                   />
                 </View>
+
+
+
+
                 <View style={styles.flex1}>
                   <Text style={styles.label}>Unit *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={unit}
-                    onChangeText={setUnit}
-                    placeholder="piece/kg"
-                    editable={!loading}
-                  />
+
+                  {/* Dropdown button */}
+                  <TouchableOpacity
+                    style={[
+                      styles.input,
+                      { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+                    ]}
+                    onPress={() => setIsUnitDropdownOpen(!isUnitDropdownOpen)}
+                    disabled={loading}
+                  >
+                    <Text>{unit || "Select Unit"}</Text>
+                    <Ionicons name={isUnitDropdownOpen ? "chevron-up" : "chevron-down"} size={20} color="#000" />
+                  </TouchableOpacity>
+
+                  {/* Dropdown list (shown just below input) */}
+                  {isUnitDropdownOpen && (
+                    <View style={styles.dropdownBelowInput}>
+                      {unitOptions.map((opt) => (
+                        <TouchableOpacity
+                          key={opt}
+                          style={[
+                            styles.dropdownOption,
+                            unit === opt && { backgroundColor: "#f0f0f0" },
+                          ]}
+                          onPress={() => {
+                            setUnit(opt);
+                            setIsUnitDropdownOpen(false);
+                          }}
+                        >
+                          <Text>{opt}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
                 </View>
+
+
+
               </View>
 
-              {/* Image Upload */}
+              {unit.toLowerCase() === "pc" && (
+                <View>
+                  <Text style={styles.label}>Weight Per Piece *</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={weightPerPiece}
+                    onChangeText={setWeightPerPiece}
+                    placeholder="e.g., 400gm or 0.4kg"
+                    editable={!loading}
+                  />
+                  <Text style={styles.helperText}>
+                    Enter weight of one piece (e.g., 400gm, 0.5kg, 200gram)
+                  </Text>
+                </View>
+              )}
+
               <Text style={styles.label}>Add Images *</Text>
               <TouchableOpacity
                 style={[
@@ -385,7 +434,10 @@ const AddProduct = ({ refreshprops }) => {
 
               <View style={styles.submitContainer}>
                 <TouchableOpacity
-                  style={styles.submitBtn}
+                  style={[
+                    styles.submitBtn,
+                    loading && styles.submitBtnDisabled,
+                  ]}
                   onPress={handleSubmit}
                   disabled={loading}
                   activeOpacity={loading ? 1 : 0.7}
@@ -427,21 +479,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  content: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1f2937",
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#6b7280",
-    lineHeight: 20,
-  },
+  content: { flex: 1, paddingRight: 12 },
+  title: { fontSize: 18, fontWeight: "700", color: "#1f2937", marginBottom: 6 },
+  subtitle: { fontSize: 14, color: "#6b7280", lineHeight: 20 },
   iconContainer: {
     width: 56,
     height: 56,
@@ -455,11 +495,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    justifyContent: "flex-end",
-  },
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.3)", justifyContent: "flex-end" },
   modalContainer: {
     maxHeight: "90%",
     backgroundColor: "#fff",
@@ -467,29 +503,10 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 16,
     padding: 16,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  headerText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#000",
-  },
-  smallNote: {
-    fontSize: 12,
-    color: "#777",
-    marginBottom: 10,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginTop: 10,
-    marginBottom: 4,
-    color: "#333",
-  },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
+  headerText: { fontSize: 18, fontWeight: "600", color: "#000" },
+  smallNote: { fontSize: 12, color: "#777", marginBottom: 10 },
+  label: { fontSize: 14, fontWeight: "500", marginTop: 10, marginBottom: 4, color: "#333" },
   input: {
     borderWidth: 1,
     borderColor: "#f0c96a",
@@ -498,25 +515,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     marginBottom: 8,
   },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 4,
-  },
-  flex1: {
-    flex: 1,
-    marginRight: 8,
-  },
-  checkboxRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 12,
-  },
-  submitContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignContent: "center",
-  },
+  row: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
+  flex1: { flex: 1, marginRight: 8 },
+  checkboxRow: { flexDirection: "row", alignItems: "center", marginTop: 12 },
+  submitContainer: { flexDirection: "row", justifyContent: "center", alignContent: "center" },
   submitBtn: {
     backgroundColor: "#22c55e",
     width: "70%",
@@ -530,11 +532,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     alignItems: "center",
   },
-  submitText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 16,
-  },
+  submitText: { color: "#fff", fontWeight: "600", fontSize: 16 },
   imageUpload: {
     borderWidth: 1,
     borderColor: "#f0c96a",
@@ -545,30 +543,43 @@ const styles = StyleSheet.create({
     marginTop: 4,
     backgroundColor: "#fff",
   },
-  imageUploadDisabled: {
-    backgroundColor: "#f3f4f6",
-    opacity: 0.6,
+  imageUploadDisabled: { backgroundColor: "#f3f4f6", opacity: 0.7 },
+  imageUploadText: { marginTop: 8, color: "#777" },
+  imagePreviewContainer: { position: "relative", marginRight: 8 },
+  previewImage: { width: 80, height: 80, borderRadius: 8 },
+  removeImageBtn: { position: "absolute", top: -6, right: -6, backgroundColor: "#fff", borderRadius: 12 },
+  helperText: { fontSize: 12, color: "#777", marginBottom: 4 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  imageUploadText: {
-    fontSize: 12,
-    color: "#777",
-    marginTop: 4,
-    textAlign: "center",
-  },
-  imagePreviewContainer: {
-    position: "relative",
-    marginRight: 8,
-  },
-  previewImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-  },
-  removeImageBtn: {
-    position: "absolute",
-    top: -8,
-    right: -8,
+  dropdownContainer: {
     backgroundColor: "#fff",
-    borderRadius: 12,
+    borderRadius: 8,
+    // paddingVertical: 6,
+    width: 140,
+    elevation: 6,
+  },
+  dropdownOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+  },
+  dropdownBelowInput: {
+    width: 130,
+    marginTop:75,
+    position:'absolute',
+    borderWidth: 1,
+    borderColor: "#f0c96a",
+    borderRadius: 10,
+    backgroundColor: "#fff",
+    overflow: "hidden",
+    zIndex:100,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
 });

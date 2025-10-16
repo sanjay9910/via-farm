@@ -19,8 +19,6 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import TopRatingCard from '../components/common/topRatingCard';
-import RatingCardAlso from '../components/myCard/RatingCardAlso';
 
 const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
 
@@ -97,6 +95,7 @@ const ProductDetailScreen = () => {
   const [product, setProduct] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [inWishlist, setInWishlist] = useState(false);
+  const [addresses, setAddresses] = useState([]);
   const [inCart, setInCart] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState({
     id: 0,
@@ -109,11 +108,51 @@ const ProductDetailScreen = () => {
   const navigation = useNavigation();
   const { orderId } = useLocalSearchParams();
 
-  const addresses = [
-    { id: 1, name: 'Douang Arya', pincode: '100888', address: '1st C, Amnipal Apartments, Delhi' },
-    { id: 2, name: 'Douang Arya', pincode: '100888', address: '1st C, Amnipal Apartments, Delhi' },
-    { id: 3, name: 'Douang Arya', pincode: '100888', address: '1st C, Amnipal Apartments, Delhi' }
-  ];
+const fetchBuyerAddress = async () => {
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      console.log('No token found');
+      return [];
+    }
+
+    const res = await axios.get(
+      `${API_BASE}/api/buyer/addresses`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (res.data.success) {
+      const apiAddresses = res.data.addresses.map(addr => ({
+        id: addr.id,
+        name: addr.name || 'Unknown User',
+        pincode: addr.pinCode || '',
+        address: `${addr.houseNumber || ''}, ${addr.locality || ''}, ${addr.city || ''}, ${addr.district || ''}, ${addr.state || ''}`.replace(/,\s*,/g, ','),
+        isDefault: addr.isDefault || false,
+      }));
+
+      // console.log('Fetched Addresses:', apiAddresses);
+      return apiAddresses;
+    } else {
+      console.log('Failed to fetch addresses:', res.data.message);
+      return [];
+    }
+  } catch (error) {
+    console.error('Error fetching buyer addresses:', error);
+    return [];
+  }
+};
+
+useEffect(() => {
+  const loadAddresses = async () => {
+    const data = await fetchBuyerAddress();
+    setAddresses(data);
+  };
+  loadAddresses();
+}, []);
 
   useEffect(() => {
     fetchOrderDetails();
@@ -423,34 +462,158 @@ const ProductDetailScreen = () => {
           <TextInput style={styles.couponInput} placeholder="Enter your coupon code" value={coupon} onChangeText={setCoupon} />
         </View>
 
-        <RatingCardAlso />
+        {/* <RatingCardAlso /> */}
+
+
         <View>
-          <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',paddingHorizontal:10,}}>
-            <View><Text>Left</Text></View>
-            <TouchableOpacity>
-              <Text>See All</Text>
-              </TouchableOpacity>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 10, }}>
+            <View><Text>Rating & Reviews</Text></View>
+            {/* <TouchableOpacity>
+              <Text style={{color:'blue'}}>See All</Text>
+            </TouchableOpacity> */}
           </View>
-        <FlatList
-          data={product.items[0].reviews.filter(r => r.images.length > 0)} // only reviews with images
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <View style={{ marginRight: 10 }}>
-              {item.images.map((imgUrl, index) => (
-                <Image
-                  key={index}
-                  source={{ uri: imgUrl }}
-                  style={{ width: 120, height: 120, borderRadius: 8 }}
-                  resizeMode="cover"
-                />
-              ))}
-            </View>
-          )}
-        />
+          <FlatList
+            data={
+              product.items[0].reviews.filter(r => r.images && r.images.length > 0)
+            } // only reviews with images
+            keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingHorizontal: 20, 
+              paddingVertical: 10,   
+            }}
+            renderItem={({ item }) => (
+              <View style={{ marginRight: 10 }}>
+                {item.images.map((imgUrl, index) => (
+                  <Image
+                    key={index}
+                    source={{ uri: imgUrl }}
+                    style={{ width: 120, height: 120, borderRadius: 8 }}
+                    resizeMode="cover"
+                  />
+                ))}
+              </View>
+            )}
+          />
         </View>
-        <TopRatingCard />
+
+
+<FlatList
+  data={
+    product.items[0].reviews.filter(
+      (r) => r.comment && r.comment.trim().length > 0
+    )
+  } // only reviews that actually have a comment
+  keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+  showsHorizontalScrollIndicator={false}
+  horizontal
+  contentContainerStyle={{
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+    flexGrow: 1,
+    justifyContent: 'center',
+  }}
+  ListEmptyComponent={() => (
+    <View
+      style={{
+        alignItems: 'center',
+        justifyContent: 'center',
+        flex: 1,
+        height: 180,
+      }}
+    >
+      <Image
+        source={{
+          uri: 'https://cdn-icons-png.flaticon.com/512/4076/4076549.png',
+        }}
+        style={{ width: 80, height: 80, opacity: 0.7 }}
+        resizeMode="contain"
+      />
+      <Text style={{ color: '#777', marginTop: 6, fontSize: 14 }}>
+        No reviews yet
+      </Text>
+    </View>
+  )}
+  renderItem={({ item }) => (
+    <View
+      style={{
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 12,
+        marginTop:6,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+        marginRight:15,
+        width: 300,
+      }}
+    >
+      {/* Top Section - User Info */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: 10,
+          marginLeft:10,
+        }}
+      >
+        <Image
+          source={{
+            uri:
+              item.user?.profilePicture ||
+              'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+          }}
+          style={{
+            width:45,
+            height: 45,
+            borderRadius: 25,
+            marginRight: 10,
+            backgroundColor: '#eee',
+          }}
+        />
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{
+              fontWeight: '600',
+              fontSize: 15,
+              color: '#222',
+            }}
+          >
+            {item.user?.name || 'Anonymous'}
+          </Text>
+          <Text style={{ fontSize: 12, color: '#777' }}>
+            {new Date(item.createdAt).toLocaleDateString()}
+          </Text>
+        </View>
+
+        {/* Rating */}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Ionicons name="star" size={16} color="#FFD700" />
+          <Text style={{ marginLeft: 4, color: '#333', fontWeight: '600' }}>
+            {item.rating}/5
+          </Text>
+        </View>
+      </View>
+
+      {/* Comment */}
+      {item.comment ? (
+        <Text
+          style={{
+            fontSize: 14,
+            color: '#444',
+            lineHeight: 20,
+          }}
+        >
+          {item.comment}
+        </Text>
+      ) : null}
+    </View>
+  )}
+/>
+
         <SuggestionCard />
       </ScrollView>
 
@@ -577,6 +740,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
+    padding:10,
     borderTopRightRadius: 20,
     maxHeight: '95%',
     borderWidth: 2,
@@ -661,7 +825,7 @@ const styles = StyleSheet.create({
   },
   addressList: {
     maxHeight: 300,
-    paddingHorizontal: 20,
+    paddingHorizontal:30,
   },
   addressItem: {
     flexDirection: 'row',
@@ -724,8 +888,13 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(76, 175, 80, 1)',
     flexDirection: 'row',
-    padding: 10,
+    padding:10,
     borderRadius: 10,
+    marginHorizontal:50,
+    marginVertical:10,
+    flex:1,
+    justifyContent:'center',
+    alignItems:'center',
   },
   addAddressButtonText: {
     color: 'rgba(76, 175, 80, 1)',

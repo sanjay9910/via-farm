@@ -53,6 +53,8 @@ const MyRecentListing = () => {
           id: product._id,
           name: product.name,
           price: product.price,
+          unit: product.unit,
+          weightPerPiece:product.weightPerPiece,
           quantity: product.quantity,
           uploadedOn: new Date(product.datePosted).toLocaleDateString(),
           image: product.images[0] || "",
@@ -253,8 +255,8 @@ const MyRecentListing = () => {
             <View style={styles.headerRow}>
               <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
               <View style={styles.priceQuantityContainer}>
-                <Text style={styles.priceText}>₹{item.price}</Text>
-                <Text style={styles.quantity}>{item.quantity} units</Text>
+                <Text style={styles.priceText}>₹{item.price}/{item.unit}</Text>
+                <Text style={styles.quantity}>{item.weightPerPiece}</Text>
               </View>
             </View>
 

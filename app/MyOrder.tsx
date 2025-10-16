@@ -52,7 +52,8 @@ const MyOrdersScreen = () => {
             'Paid': 'Delivered',
             'In-process': 'Picked Up',
             'Pending': 'Pending',
-            'Cancelled': 'Cancelled'
+            'Cancelled': 'Cancelled',
+            'Completed':'Completed',
         };
         return statusMap[status] || status;
     };

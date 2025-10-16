@@ -7,7 +7,7 @@ const OrderCard = ({ order }) => {
     <View>
     <View style={styles.cardOuter}>
       <View style={styles.badge}>
-        <Text style={styles.badgeText}>Delivery</Text>
+        <Text style={styles.badgeText}>{order.orderType}</Text>
       </View>
 
       <View style={styles.cardInner}>
