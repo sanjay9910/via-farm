@@ -1,13 +1,11 @@
-import { getToken } from "@/app/utility/Storage";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from "axios";
 import Checkbox from "expo-checkbox";
 import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
+  ActivityIndicator, Alert, Image,
   Modal,
   Pressable,
   ScrollView,
@@ -15,8 +13,8 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-} from "react-native";
+  View
+} from 'react-native';
 
 const BASE_URL = "https://393rb0pp-5000.inc1.devtunnels.ms";
 
@@ -74,68 +72,115 @@ const ProductModal = ({ visible, onClose, onSubmit, product }) => {
     }
   };
 
-  // Update product API call
-  const handleUpdateProduct = async () => {
-    if (!product || !product.id) {
-      alert("Product ID missing. Cannot update.");
-      return;
-    }
 
-    if (!name || !category || !unit || !variety || !price || !quantity) {
-      alert("Please fill all mandatory fields!");
-      return;
-    }
+const handleUpdateProduct = async () => {
+  console.log("=== UPDATE PRODUCT STARTED ===");
+  console.log("Product ID:", product?.id);
+  console.log("Form Data:", { name, category, unit, variety, price, quantity, description, allIndiaDelivery, images });
 
-    setLoading(true);
-    try {
-      // Get token saved after login
-      const token = await getToken();
-      console.log(token);
-      if (!token) {
-        alert("User not authorized. Please login again.");
-        return;
-      }
+  if (!product || !product.id) {
+    Alert.alert("Error", "Product ID missing. Cannot update.");
+    return;
+  }
 
-      const updatedProduct = {
-        name,
-        category,
-        unit,
-        variety,
-        price: Number(price),
-        quantity: Number(quantity),
-        description,
-        allIndiaDelivery,
-        images, // Make sure these are valid URLs; for local files, you need to upload first
-      };
+  // Enhanced validation with specific messages
+  const errors = [];
+  if (!name?.trim()) errors.push("Product Name");
+  if (!category) errors.push("Category");
+  if (!unit) errors.push("Unit");
+  if (!variety) errors.push("Variety");
+  if (!price) errors.push("Price");
+  if (!quantity) errors.push("Quantity");
 
-      const response = await axios.put(
-        `${BASE_URL}/api/vendor/products/${product.id}`,
-        updatedProduct,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+  if (errors.length > 0) {
+    Alert.alert("Error", `Please fill: ${errors.join(", ")}`);
+    return;
+  }
 
-      if (response.data.success) {
-        Alert.alert("Success", "Product updated successfully");
-        onSubmit(response.data.data); // send updated product back
-        onClose();
-      } else {
-        Alert.alert(
-          "Error",
-          response.data.message || "Failed to update product"
-        );
-      }
-    } catch (error) {
-      console.log("Update product error:", error.response || error.message);
-      Alert.alert("Error", "Something went wrong while updating the product.");
-    } finally {
+  setLoading(true);
+  try {
+    const token = await AsyncStorage.getItem("userToken");
+    console.log("Token length:", token?.length);
+
+    if (!token) {
+      Alert.alert("Error", "Please login again.");
       setLoading(false);
+      return;
     }
-  };
+
+    // Use FormData for image upload
+    const formData = new FormData();
+    
+    // Append all text fields
+    formData.append('name', name.trim());
+    formData.append('category', category);
+    formData.append('unit', unit);
+    formData.append('variety', variety);
+    formData.append('price', parseFloat(price));
+    formData.append('quantity', parseInt(quantity));
+    formData.append('description', description?.trim() || "");
+    formData.append('allIndiaDelivery', String(Boolean(allIndiaDelivery)));
+
+    // Append images if they exist
+    if (images && images.length > 0) {
+      images.forEach((imageUri, index) => {
+        if (imageUri.startsWith('file://')) {
+          const filename = imageUri.split('/').pop();
+          const match = /\.(\w+)$/.exec(filename || '');
+          const type = match ? `image/${match[1]}` : `image`;
+          
+          formData.append('images', {
+            uri: imageUri,
+            name: filename || `image_${index}.jpg`,
+            type,
+          } as any);
+        } else {
+          formData.append('existingImages', imageUri);
+        }
+      });
+    }
+
+    console.log("Sending update request with FormData...");
+    
+    const response = await axios.put(
+      `${BASE_URL}/api/vendor/products/${product.id}`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 15000,
+      }
+    );
+
+    console.log("Update successful:", response.data);
+
+    if (response.data.success) {
+      Alert.alert("Success", "Product updated successfully");
+      onSubmit(response.data.data); 
+      onClose();
+    } else {
+      Alert.alert("Error", response.data.message || "Update failed");
+    }
+
+  } catch (error) {
+    console.log("FULL ERROR:", error);
+    
+    if (error.code === 'NETWORK_ERROR') {
+      Alert.alert("Network Error", "Please check your internet connection");
+    } else if (error.response?.status === 401) {
+      Alert.alert("Session Expired", "Please login again");
+    } else if (error.response?.data?.message) {
+      Alert.alert("Error", error.response.data.message);
+    } else {
+      Alert.alert("Error", "Failed to update product. Please try again.");
+    }
+  } finally {
+    setLoading(false);
+    console.log("=== UPDATE PRODUCT FINISHED ===");
+  }
+};
 
   return (
     <Modal visible={visible} animationType="slide" transparent>

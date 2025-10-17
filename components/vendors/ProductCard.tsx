@@ -1,4 +1,3 @@
-import { getToken } from "@/app/utility/Storage";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -57,28 +56,70 @@ const ProductCard = ({ item, onDelete, onStockUpdate }) => {
     }
   };
 
-  const handleDelete = async () => {
-    try {
-      const token = await getToken();
-      const res = await axios.delete(
-        `${API_BASE}/api/vendor/products/${item._id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (res.data.success) {
-        Alert.alert("Success", "Product deleted successfully");
-        onDelete(item._id);
-      } else {
-        Alert.alert("Error", "Failed to delete product");
-      }
-    } catch (error) {
-      console.log("Delete error:", error);
-      Alert.alert("Error", "Something went wrong while deleting");
-    } finally {
-      setIsMenuOpen(false);
+ 
+
+const handleDelete = async () => {
+  try {
+    const token = await AsyncStorage.getItem("userToken");
+    if (!token) {
+      Alert.alert("Error", "User not logged in!");
+      return;
     }
-  };
+
+    const tokenData = JSON.parse(atob(token.split(".")[1]));
+    const userRole = tokenData.role;
+
+    // Use item._id instead of product._id
+    let deleteUrl = "";
+    if (userRole === "Vendor") {
+      deleteUrl = `${API_BASE}/api/vendor/products/${item._id}`;
+    } else if (userRole === "Admin") {
+      deleteUrl = `${API_BASE}/api/admin/products/${item._id}`;
+    } else {
+      Alert.alert("Permission Denied", "Only vendors or admins can delete products.");
+      return;
+    }
+
+    Alert.alert(
+      "Delete Product",
+      "Are you sure you want to delete this product?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const response = await axios.delete(deleteUrl, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+
+              if (response.data?.success) {
+                Alert.alert("Success", "Product deleted successfully!");
+                if (onDelete) onDelete(item._id); // remove from UI
+              } else {
+                Alert.alert("Error", response.data?.message || "Failed to delete");
+              }
+            } catch (error) {
+              console.log("Delete error:", error.response?.data || error.message);
+              if (error.response?.status === 403) {
+                Alert.alert(
+                  "Unauthorized",
+                  "Your account is not allowed to delete this product."
+                );
+              } else {
+                Alert.alert("Error", "Something went wrong while deleting");
+              }
+            }
+          },
+        },
+      ]
+    );
+  } catch (err) {
+    console.log("Error:", err);
+    Alert.alert("Error", "Unexpected error occurred");
+  }
+};
 
   // FIXED Stock Update Handler with Multiple API Methods
   const handleStockChange = async (newStatus) => {

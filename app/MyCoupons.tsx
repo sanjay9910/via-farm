@@ -6,7 +6,6 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   Modal,
   ScrollView,
   StyleSheet,
@@ -17,8 +16,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const { width } = Dimensions.get("window");
-
 // --- API Configuration ---
 const API_BASE_URL = "https://393rb0pp-5000.inc1.devtunnels.ms";
 const API_ENDPOINTS = {
@@ -26,6 +23,7 @@ const API_ENDPOINTS = {
   CREATE_COUPON: "/api/vendor/coupons/create",
   UPDATE_COUPON: "/api/vendor/coupons/",
   DELETE_COUPON: "/api/vendor/coupons/",
+  GET_PRODUCTS: "/api/vendor/products",
 };
 
 // Helper Function to format Date
@@ -56,42 +54,16 @@ const formatDateForAPI = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-// --- Dropdown Component for Discount Percentage ---
-const DiscountDropdown = ({ visible, onSelect, value, onClose }) => {
-  const percentages = [5, 10, 15, 20, 25, 50];
-
-  if (!visible) return null;
-
-  return (
-    <View style={dropdownStyles.dropdownContainer}>
-      {percentages.map((percent) => (
-        <TouchableOpacity
-          key={percent}
-          style={[
-            dropdownStyles.dropdownOption,
-            value === percent && dropdownStyles.selectedOption,
-          ]}
-          onPress={() => {
-            onSelect(percent);
-            onClose();
-          }}
-        >
-          <Text
-            style={[
-              dropdownStyles.dropdownText,
-              value === percent && dropdownStyles.selectedText,
-            ]}
-          >
-            {percent}%
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-};
-
-// --- Dropdown Component for Product Categories ---
-const CategoryDropdown = ({ visible, onSelect, value, onClose }) => {
+// --- Enhanced Category Dropdown with Checkboxes and Product Dropdown ---
+const CategoryProductDropdown = ({
+  visible,
+  selectedCategories,
+  selectedProducts,
+  onCategoryToggle,
+  onProductSelect,
+  onClose,
+  products,
+}) => {
   const categories = [
     "All Products",
     "Fruits",
@@ -101,32 +73,104 @@ const CategoryDropdown = ({ visible, onSelect, value, onClose }) => {
     "Handicrafts",
   ];
 
+  const [expandedCategory, setExpandedCategory] = useState(null);
+
   if (!visible) return null;
+
+  const getProductsByCategory = (category) => {
+    if (category === "All Products") return products;
+    return products.filter((product) => product.category === category);
+  };
+
+  const isCategorySelected = (category) => {
+    return selectedCategories.includes(category);
+  };
+
+  const isProductSelected = (productId) => {
+    return selectedProducts.includes(productId);
+  };
 
   return (
     <View style={dropdownStyles.dropdownContainer}>
-      {categories.map((category) => (
-        <TouchableOpacity
-          key={category}
-          style={[
-            dropdownStyles.dropdownOption,
-            value === category && dropdownStyles.selectedOption,
-          ]}
-          onPress={() => {
-            onSelect(category);
-            onClose();
-          }}
-        >
-          <Text
-            style={[
-              dropdownStyles.dropdownText,
-              value === category && dropdownStyles.selectedText,
-            ]}
-          >
-            {category}
-          </Text>
-        </TouchableOpacity>
-      ))}
+      <ScrollView
+        style={dropdownStyles.scrollView}
+        nestedScrollEnabled={true}
+        showsVerticalScrollIndicator={true}
+      >
+        {categories.map((category) => {
+          const categoryProducts = getProductsByCategory(category);
+          const isExpanded = expandedCategory === category;
+
+          return (
+            <View key={category} style={dropdownStyles.categoryContainer}>
+              <View style={dropdownStyles.categoryRow}>
+                {/* Checkbox for category */}
+                <TouchableOpacity
+                  style={dropdownStyles.checkboxContainer}
+                  onPress={() => onCategoryToggle(category)}
+                >
+                  <View
+                    style={[
+                      dropdownStyles.checkbox,
+                      isCategorySelected(category) &&
+                        dropdownStyles.checkboxSelected,
+                    ]}
+                  >
+                    {isCategorySelected(category) && (
+                      <Text style={dropdownStyles.checkmark}>✓</Text>
+                    )}
+                  </View>
+                  <Text style={dropdownStyles.categoryText}>{category}</Text>
+                </TouchableOpacity>
+
+                {/* Dropdown arrow for products */}
+                {category !== "All Products" && categoryProducts.length > 0 && (
+                  <TouchableOpacity
+                    style={dropdownStyles.expandButton}
+                    onPress={() =>
+                      setExpandedCategory(isExpanded ? null : category)
+                    }
+                  >
+                    <Text style={dropdownStyles.expandArrow}>
+                      {isExpanded ? "▲" : "▼"}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Products dropdown */}
+              {isExpanded && category !== "All Products" && (
+                <View style={dropdownStyles.productsContainer}>
+                  {categoryProducts.map((product) => (
+                    <TouchableOpacity
+                      key={product._id}
+                      style={[
+                        dropdownStyles.productRow,
+                        isProductSelected(product._id) &&
+                          dropdownStyles.productRowSelected,
+                      ]}
+                      onPress={() => onProductSelect(product._id, category)}
+                    >
+                      <Text
+                        style={[
+                          dropdownStyles.productText,
+                          isProductSelected(product._id) &&
+                            dropdownStyles.productTextSelected,
+                        ]}
+                      >
+                        {product.name}
+                      </Text>
+                      {isProductSelected(product._id) && (
+                        <Text style={dropdownStyles.productCheckmark}>✓</Text>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 };
@@ -148,13 +192,18 @@ const CouponForm = ({
   const [minimumOrder, setMinimumOrder] = useState(
     initialData?.minimumOrder || ""
   );
+  const [totalUsageLimit, setTotalUsageLimit] = useState(
+    initialData?.totalUsageLimit?.toString() || "20"
+  );
+  const [usageLimitPerUser, setUsageLimitPerUser] = useState(
+    initialData?.usageLimitPerUser?.toString() || "1"
+  );
 
   // Parse dates properly from DD/MM/YYYY format
   const parseDisplayDate = (dateStr) => {
     if (!dateStr || dateStr === "N/A") return new Date();
     const parts = dateStr.split("/");
     if (parts.length === 3) {
-      // DD/MM/YYYY format
       return new Date(parts[2], parts[1] - 1, parts[0]);
     }
     return new Date(dateStr);
@@ -170,16 +219,134 @@ const CouponForm = ({
       ? parseDisplayDate(initialData.validTill)
       : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   );
-  const [appliesTo, setAppliesTo] = useState(
-    initialData?.appliesTo || "All Products"
+
+  const [selectedCategories, setSelectedCategories] = useState(
+    initialData?.appliesTo || []
   );
-  const [discountDropdownVisible, setDiscountDropdownVisible] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState(
+    initialData?.productIds || []
+  );
+  const [products, setProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(false);
   const [categoryDropdownVisible, setCategoryDropdownVisible] = useState(false);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showExpiryDatePicker, setShowExpiryDatePicker] = useState(false);
 
+  // Fetch products on component mount
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const getAuthToken = async () => {
+    try {
+      let token = await AsyncStorage.getItem("userToken");
+      const HARDCODED_TOKEN = "YOUR_ACTUAL_VALID_TOKEN_HERE";
+      if (!token || token === HARDCODED_TOKEN) {
+        token = HARDCODED_TOKEN;
+      }
+      return token;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const fetchProducts = async () => {
+    setProductsLoading(true);
+    try {
+      const token = await getAuthToken();
+      const response = await axios.get(
+        `${API_BASE_URL}${API_ENDPOINTS.GET_PRODUCTS}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.data && response.data.success) {
+        setProducts(response.data.data);
+      }
+    } catch (err) {
+      console.error("Fetch Products Error:", err.response?.data || err.message);
+    } finally {
+      setProductsLoading(false);
+    }
+  };
+
+  const handleCategoryToggle = (category) => {
+    if (category === "All Products") {
+      // If "All Products" is selected, clear everything and select it
+      if (selectedCategories.includes("All Products")) {
+        setSelectedCategories([]);
+        setSelectedProducts([]);
+      } else {
+        setSelectedCategories(["All Products"]);
+        setSelectedProducts([]);
+      }
+    } else {
+      // Remove "All Products" if any specific category is selected
+      let updatedCategories = selectedCategories.filter(
+        (cat) => cat !== "All Products"
+      );
+
+      if (updatedCategories.includes(category)) {
+        // Deselect category
+        updatedCategories = updatedCategories.filter((cat) => cat !== category);
+        // Remove all products from this category
+        const categoryProductIds = products
+          .filter((p) => p.category === category)
+          .map((p) => p._id);
+        setSelectedProducts(
+          selectedProducts.filter((id) => !categoryProductIds.includes(id))
+        );
+      } else {
+        // Select category - but DON'T auto-select products
+        updatedCategories.push(category);
+      }
+
+      setSelectedCategories(updatedCategories);
+    }
+  };
+
+  const handleProductSelect = (productId, category) => {
+    if (selectedProducts.includes(productId)) {
+      // Deselect product
+      const updatedProducts = selectedProducts.filter((id) => id !== productId);
+      setSelectedProducts(updatedProducts);
+
+      // Check if category should be deselected
+      const categoryProducts = products.filter((p) => p.category === category);
+      const hasOtherProductsFromCategory = categoryProducts.some(
+        (p) => p._id !== productId && updatedProducts.includes(p._id)
+      );
+
+      if (!hasOtherProductsFromCategory) {
+        setSelectedCategories(
+          selectedCategories.filter((cat) => cat !== category)
+        );
+      }
+    } else {
+      // Select product
+      setSelectedProducts([...selectedProducts, productId]);
+      // Add category if not already added
+      if (!selectedCategories.includes(category)) {
+        setSelectedCategories([...selectedCategories, category]);
+      }
+    }
+  };
+
+  const getApplicableOnText = () => {
+    if (selectedCategories.includes("All Products")) {
+      return "All Products";
+    }
+    if (selectedProducts.length > 0) {
+      return `${selectedProducts.length} Product(s) selected`;
+    }
+    if (selectedCategories.length > 0) {
+      return selectedCategories.join(", ");
+    }
+    return "Select categories or products";
+  };
+
   const handleFormSubmit = () => {
-    // Validation
     if (!couponCode.trim()) {
       Alert.alert("Error", "Please enter coupon code.");
       return;
@@ -192,34 +359,50 @@ const CouponForm = ({
       Alert.alert("Error", "Please enter valid minimum order amount.");
       return;
     }
-
-    // Date validation
+    if (!totalUsageLimit || parseInt(totalUsageLimit) < 1) {
+      Alert.alert("Error", "Please enter valid total usage limit.");
+      return;
+    }
+    if (!usageLimitPerUser || parseInt(usageLimitPerUser) < 1) {
+      Alert.alert("Error", "Please enter valid usage limit per user.");
+      return;
+    }
     if (expiryDate <= startDate) {
       Alert.alert("Error", "Expiry date must be after start date.");
       return;
     }
-
     if (startDate < new Date()) {
       Alert.alert("Error", "Start date cannot be in the past.");
       return;
     }
+    if (
+      selectedCategories.length === 0 &&
+      !selectedCategories.includes("All Products")
+    ) {
+      Alert.alert("Error", "Please select at least one category or product.");
+      return;
+    }
 
-    // FIXED: Backend expects startDate and expiryDate in YYYY-MM-DD format
+    // Prepare final data - don't auto-select products for categories
+    let finalSelectedProducts = [...selectedProducts];
+    let finalSelectedCategories = [...selectedCategories];
+
     const couponData = {
-      code: couponCode.trim(),
-      discount: {
-        value: parseInt(discount),
-        type: "Percentage",
-      },
-      appliesTo: appliesTo,
-      startDate: formatDateForAPI(startDate), // Changed from validFrom and using YYYY-MM-DD format
-      expiryDate: formatDateForAPI(expiryDate), // Changed from validTill and using YYYY-MM-DD format
-      applicableId: null,
-      appliesToRef: null,
+      code: couponCode.trim().toUpperCase(),
+      discountValue: parseInt(discount),
+      discountType: "Percentage",
+      minimumOrder: parseInt(minimumOrder),
+      totalUsageLimit: parseInt(totalUsageLimit),
+      usageLimitPerUser: parseInt(usageLimitPerUser),
+      startDate: new Date(startDate).toISOString(),
+      expiryDate: new Date(expiryDate).toISOString(),
+      appliesTo: selectedCategories.includes("All Products")
+        ? ["All Products"]
+        : selectedCategories,
+      productIds: finalSelectedProducts,
       status: "Active",
     };
 
-    // Include ID for edit mode
     if (initialData?.id) {
       couponData.id = initialData.id;
     }
@@ -227,7 +410,6 @@ const CouponForm = ({
     onSubmit(couponData);
   };
 
-  // Handle discount input change
   const handleDiscountChange = (text) => {
     const numericValue = text.replace(/[^0-9]/g, "");
     if (
@@ -238,13 +420,21 @@ const CouponForm = ({
     }
   };
 
-  // Handle minimum order input change
   const handleMinimumOrderChange = (text) => {
     const numericValue = text.replace(/[^0-9]/g, "");
     setMinimumOrder(numericValue);
   };
 
-  // Date picker handlers
+  const handleTotalUsageLimitChange = (text) => {
+    const numericValue = text.replace(/[^0-9]/g, "");
+    setTotalUsageLimit(numericValue);
+  };
+
+  const handleUsageLimitPerUserChange = (text) => {
+    const numericValue = text.replace(/[^0-9]/g, "");
+    setUsageLimitPerUser(numericValue);
+  };
+
   const onStartDateChange = (event, selectedDate) => {
     setShowStartDatePicker(false);
     if (selectedDate) {
@@ -271,17 +461,13 @@ const CouponForm = ({
         activeOpacity={1}
         onPress={() => {
           onClose();
-          setDiscountDropdownVisible(false);
           setCategoryDropdownVisible(false);
         }}
       >
         <View
           style={createModalStyles.modalContainer}
           onStartShouldSetResponder={() => true}
-          onResponderRelease={() => {
-            setDiscountDropdownVisible(false);
-            setCategoryDropdownVisible(false);
-          }}
+          onResponderRelease={() => setCategoryDropdownVisible(false)}
         >
           {/* Header */}
           <View style={createModalStyles.header}>
@@ -309,7 +495,7 @@ const CouponForm = ({
                 value={couponCode}
                 onChangeText={setCouponCode}
                 maxLength={20}
-                editable={true}
+                autoCapitalize="characters"
               />
               <Text style={createModalStyles.starIcon}>✨</Text>
             </View>
@@ -318,43 +504,25 @@ const CouponForm = ({
             <View style={createModalStyles.row}>
               <View style={createModalStyles.halfInput}>
                 <Text style={createModalStyles.label}>Discount *</Text>
-                <View style={createModalStyles.discountInputWrapper}>
-                  <View style={createModalStyles.discountInputGroup}>
-                    <TextInput
-                      style={[
-                        createModalStyles.textInput,
-                        {
-                          flex: 1,
-                          borderTopRightRadius: 0,
-                          borderBottomRightRadius: 0,
-                        },
-                      ]}
-                      keyboardType="numeric"
-                      value={String(discount)}
-                      onChangeText={handleDiscountChange}
-                      placeholder="20"
-                      placeholderTextColor="#999"
-                    />
-
-                    <TouchableOpacity
-                      style={createModalStyles.discountDropdown}
-                      onPress={() =>
-                        setDiscountDropdownVisible(!discountDropdownVisible)
-                      }
-                    >
-                      <Text style={createModalStyles.discountText}>%</Text>
-                      <Text style={createModalStyles.dropdownArrow}>
-                        {discountDropdownVisible ? "↑" : "↓"}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <DiscountDropdown
-                    visible={discountDropdownVisible}
-                    onSelect={setDiscount}
-                    value={discount}
-                    onClose={() => setDiscountDropdownVisible(false)}
+                <View style={createModalStyles.discountInputGroup}>
+                  <TextInput
+                    style={[
+                      createModalStyles.textInput,
+                      {
+                        flex: 1,
+                        borderTopRightRadius: 0,
+                        borderBottomRightRadius: 0,
+                      },
+                    ]}
+                    keyboardType="numeric"
+                    value={String(discount)}
+                    onChangeText={handleDiscountChange}
+                    placeholder="20"
+                    placeholderTextColor="#999"
                   />
+                  <View style={createModalStyles.discountDropdown}>
+                    <Text style={createModalStyles.discountText}>%</Text>
+                  </View>
                 </View>
               </View>
 
@@ -366,6 +534,35 @@ const CouponForm = ({
                   value={minimumOrder}
                   onChangeText={handleMinimumOrderChange}
                   placeholder="e.g. 100"
+                  placeholderTextColor="#999"
+                />
+              </View>
+            </View>
+
+            {/* Total Usage Limit & Usage Limit Per User (Row) */}
+            <View style={createModalStyles.row}>
+              <View style={createModalStyles.halfInput}>
+                <Text style={createModalStyles.label}>Total Usage Limit *</Text>
+                <TextInput
+                  style={createModalStyles.textInput}
+                  keyboardType="numeric"
+                  value={totalUsageLimit}
+                  onChangeText={handleTotalUsageLimitChange}
+                  placeholder="e.g. 20"
+                  placeholderTextColor="#999"
+                />
+              </View>
+
+              <View style={createModalStyles.halfInput}>
+                <Text style={createModalStyles.label}>
+                  Usage Limit Per User *
+                </Text>
+                <TextInput
+                  style={createModalStyles.textInput}
+                  keyboardType="numeric"
+                  value={usageLimitPerUser}
+                  onChangeText={handleUsageLimitPerUserChange}
+                  placeholder="e.g. 1"
                   placeholderTextColor="#999"
                 />
               </View>
@@ -418,7 +615,7 @@ const CouponForm = ({
               </View>
             </View>
 
-            {/* Applicable On (Dropdown) */}
+            {/* Applicable On (Dropdown with Checkboxes and Products) */}
             <Text style={createModalStyles.label}>Applicable on *</Text>
             <View style={[createModalStyles.inputGroup, { zIndex: 100 }]}>
               <View style={createModalStyles.categoryInputWrapper}>
@@ -431,22 +628,34 @@ const CouponForm = ({
                     setCategoryDropdownVisible(!categoryDropdownVisible)
                   }
                 >
-                  <Text style={createModalStyles.dropdownText}>
-                    {appliesTo}
+                  <Text
+                    style={createModalStyles.dropdownText}
+                    numberOfLines={1}
+                  >
+                    {getApplicableOnText()}
                   </Text>
                   <Text style={createModalStyles.dropdownArrow}>
                     {categoryDropdownVisible ? "↑" : "↓"}
                   </Text>
                 </TouchableOpacity>
 
-                <CategoryDropdown
+                <CategoryProductDropdown
                   visible={categoryDropdownVisible}
-                  onSelect={setAppliesTo}
-                  value={appliesTo}
+                  selectedCategories={selectedCategories}
+                  selectedProducts={selectedProducts}
+                  onCategoryToggle={handleCategoryToggle}
+                  onProductSelect={handleProductSelect}
                   onClose={() => setCategoryDropdownVisible(false)}
+                  products={products}
                 />
               </View>
             </View>
+
+            {productsLoading && (
+              <Text style={createModalStyles.loadingText}>
+                Loading products...
+              </Text>
+            )}
 
             <View style={{ height: 30 }} />
           </ScrollView>
@@ -474,7 +683,7 @@ const CouponForm = ({
   );
 };
 
-// Simplified wrappers for clarity
+// Simplified wrappers
 const CreateCouponModal = (props) => (
   <CouponForm
     title="Create a Coupon"
@@ -489,7 +698,6 @@ const EditCouponModal = (props) => (
 );
 
 const MyCoupons = () => {
-  // API data state
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -497,23 +705,16 @@ const MyCoupons = () => {
   const [createLoading, setCreateLoading] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-
-  // Status Filter State
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterDropdownVisible, setFilterDropdownVisible] = useState(false);
-
-  // Three dots modal states
   const [actionModalVisible, setActionModalVisible] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState(null);
   const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
   const threeDotsRefs = useRef({});
-
-  // Modals for Create/Edit
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const navigation = useNavigation();
 
-  // --- Get Auth Token ---
   const getAuthToken = async () => {
     try {
       let token = await AsyncStorage.getItem("userToken");
@@ -532,13 +733,12 @@ const MyCoupons = () => {
     }
   };
 
-  // --- API Fetch Logic ---
   const fetchCoupons = async () => {
     setLoading(true);
     setError(null);
+
     try {
       const token = await getAuthToken();
-
       const response = await axios.get(
         `${API_BASE_URL}${API_ENDPOINTS.GET_COUPONS}`,
         {
@@ -550,11 +750,14 @@ const MyCoupons = () => {
         const fetchedCoupons = response.data.data.map((coupon) => ({
           id: coupon._id,
           code: coupon.code,
-          discount: `${coupon.discount.value}%`,
-          appliesTo: coupon.appliesTo,
+          discount: `${coupon.discount?.value || 0}%`,
+          appliesTo: coupon.appliesTo || [],
+          productIds: coupon.productIds || [],
           startDate: formatDate(coupon.startDate || coupon.validFrom),
           validTill: formatDate(coupon.expiryDate || coupon.validTill),
           minimumOrder: coupon.minimumOrder?.toString() || "0",
+          totalUsageLimit: coupon.totalUsageLimit || 0,
+          usageLimitPerUser: coupon.usageLimitPerUser || 0,
           status: coupon.status,
         }));
 
@@ -563,11 +766,14 @@ const MyCoupons = () => {
       } else {
         setError(response.data.message || "Failed to fetch coupons.");
       }
-    } catch (err) {
-      console.error("API Fetch Error:", err.response?.data || err.message);
-      setError(
-        "Could not load coupons. Please check the token validity or network connection."
-      );
+    } catch (error) {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Could not load coupons. Please check your connection.";
+
+      console.error("API Fetch Error:", error?.response?.data || errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -577,12 +783,10 @@ const MyCoupons = () => {
     fetchCoupons();
   }, []);
 
-  // --- Create Coupon API Integration ---
   const handleCreateCoupon = async (couponData) => {
     setCreateLoading(true);
     try {
       const token = await getAuthToken();
-
       const response = await axios.post(
         `${API_BASE_URL}${API_ENDPOINTS.CREATE_COUPON}`,
         couponData,
@@ -596,13 +800,12 @@ const MyCoupons = () => {
 
       if (response.data && response.data.success) {
         Alert.alert("Success", "Coupon created successfully!");
-
-        // Add new coupon to the list
         const newCoupon = {
           id: response.data.data._id,
           code: response.data.data.code,
           discount: `${response.data.data.discount.value}%`,
-          appliesTo: response.data.data.appliesTo,
+          appliesTo: response.data.data.appliesTo || [],
+          productIds: response.data.data.productIds || [],
           startDate: formatDate(
             response.data.data.startDate || response.data.data.validFrom
           ),
@@ -610,6 +813,8 @@ const MyCoupons = () => {
             response.data.data.expiryDate || response.data.data.validTill
           ),
           minimumOrder: response.data.data.minimumOrder?.toString() || "0",
+          totalUsageLimit: response.data.data.totalUsageLimit || 0,
+          usageLimitPerUser: response.data.data.usageLimitPerUser || 0,
           status: response.data.data.status,
         };
 
@@ -632,15 +837,11 @@ const MyCoupons = () => {
     }
   };
 
-  // --- Update Coupon API Integration ---
   const handleUpdateCoupon = async (couponData) => {
     setUpdateLoading(true);
     try {
       const token = await getAuthToken();
-
-      // Prepare update data - remove id from body
       const { id, ...updatePayload } = couponData;
-
       const response = await axios.put(
         `${API_BASE_URL}${API_ENDPOINTS.UPDATE_COUPON}${id}`,
         updatePayload,
@@ -654,13 +855,12 @@ const MyCoupons = () => {
 
       if (response.data && response.data.success) {
         Alert.alert("Success", "Coupon updated successfully!");
-
-        // Update coupon in the list
         const updatedCoupon = {
           id: response.data.data._id,
           code: response.data.data.code,
           discount: `${response.data.data.discount.value}%`,
-          appliesTo: response.data.data.appliesTo,
+          appliesTo: response.data.data.appliesTo || [],
+          productIds: response.data.data.productIds || [],
           startDate: formatDate(
             response.data.data.startDate || response.data.data.validFrom
           ),
@@ -668,6 +868,8 @@ const MyCoupons = () => {
             response.data.data.expiryDate || response.data.data.validTill
           ),
           minimumOrder: response.data.data.minimumOrder?.toString() || "0",
+          totalUsageLimit: response.data.data.totalUsageLimit || 0,
+          usageLimitPerUser: response.data.data.usageLimitPerUser || 0,
           status: response.data.data.status,
         };
 
@@ -694,47 +896,67 @@ const MyCoupons = () => {
     }
   };
 
-  // --- Delete Coupon API Integration ---
   const handleDeleteCoupon = async (couponId) => {
     setDeleteLoading(true);
     try {
       const token = await getAuthToken();
-
-      const response = await axios.delete(
-        `${API_BASE_URL}${API_ENDPOINTS.DELETE_COUPON}${couponId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      
+      // API endpoint fix - make sure it's correct
+      const deleteEndpoint = `${API_BASE_URL}${API_ENDPOINTS.DELETE_COUPON}${couponId}`;
+      console.log("Delete URL:", deleteEndpoint); // Debug log
+      
+      const response = await axios.delete(deleteEndpoint, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      );
+      });
+
+      console.log("Delete Response:", response.data); // Debug log
 
       if (response.data && response.data.success) {
         Alert.alert("Success", "Coupon deleted successfully!");
-
-        // Remove coupon from the list
+        
+        // Update both coupon lists
         setOriginalCoupons((prev) =>
           prev.filter((coupon) => coupon.id !== couponId)
         );
+        
+        setCoupons((prev) =>
+          prev.filter((coupon) => coupon.id !== couponId)
+        );
+        
       } else {
         Alert.alert(
           "Error",
-          response.data.message || "Failed to delete coupon."
+          response.data?.message || "Failed to delete coupon. Please try again."
         );
       }
     } catch (err) {
-      console.error("Delete Coupon Error:", err.response?.data || err.message);
+      console.error("Delete Coupon Error:", err);
+      
+      // More detailed error logging
+      if (err.response) {
+        console.error("Response Error:", err.response.status, err.response.data);
+      } else if (err.request) {
+        console.error("Request Error:", err.request);
+      } else {
+        console.error("Error:", err.message);
+      }
+
       const errorMessage =
         err.response?.data?.message ||
-        "Failed to delete coupon. Please try again.";
+        err.message ||
+        "Failed to delete coupon. Please check your connection and try again.";
+        
       Alert.alert("Error", errorMessage);
     } finally {
       setDeleteLoading(false);
       setActionModalVisible(false);
+      setSelectedCoupon(null); // Reset selected coupon
     }
   };
 
-  // --- Filtering Logic ---
   const getFilteredCoupons = () => {
     if (filterStatus === "all") {
       return originalCoupons;
@@ -745,7 +967,6 @@ const MyCoupons = () => {
     );
   };
 
-  // Update the displayed coupons whenever the filter status changes
   useEffect(() => {
     setCoupons(getFilteredCoupons());
   }, [filterStatus, originalCoupons]);
@@ -784,22 +1005,24 @@ const MyCoupons = () => {
     );
   };
 
-  const handleOpenCreateModal = () => {
-    setCreateModalVisible(true);
-  };
-
-  const handleBack = () => {
-    // Navigation logic here
-    console.log("Go back pressed");
-    navigation.goBack();
+  const getAppliestoDisplay = (coupon) => {
+    if (coupon.appliesTo.includes("All Products")) {
+      return "All Products";
+    }
+    if (coupon.productIds && coupon.productIds.length > 0) {
+      return `${coupon.productIds.length} Product(s)`;
+    }
+    return coupon.appliesTo.join(", ");
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Main Coupons Screen UI */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={handleBack} style={styles.headerIcon}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.headerIcon}
+          >
             <Text style={styles.iconText}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>My Coupons</Text>
@@ -808,12 +1031,11 @@ const MyCoupons = () => {
         <View style={styles.actionRow}>
           <TouchableOpacity
             style={styles.createButton}
-            onPress={handleOpenCreateModal}
+            onPress={() => setCreateModalVisible(true)}
           >
             <Text style={styles.createButtonText}>+ Create a Coupon</Text>
           </TouchableOpacity>
 
-          {/* Filter Dropdown */}
           <View style={styles.filterDropdownWrapper}>
             <TouchableOpacity
               style={styles.statusFilter}
@@ -855,7 +1077,6 @@ const MyCoupons = () => {
           </View>
         </View>
 
-        {/* Loading/Error/List */}
         {loading ? (
           <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color="#4CAF50" />
@@ -900,7 +1121,9 @@ const MyCoupons = () => {
                   <View style={styles.textRow}>
                     <Text style={styles.couponLabel}>Applies to</Text>
                     <Text style={styles.couponDivider}>:</Text>
-                    <Text style={styles.couponValue}>{coupon.appliesTo}</Text>
+                    <Text style={styles.couponValue}>
+                      {getAppliestoDisplay(coupon)}
+                    </Text>
                   </View>
                   <View style={styles.textRow}>
                     <Text style={styles.couponLabel}>Valid Till</Text>
@@ -940,7 +1163,6 @@ const MyCoupons = () => {
           </ScrollView>
         )}
 
-        {/* Three Dots Action Modal */}
         <Modal
           animationType="fade"
           transparent={true}
@@ -988,7 +1210,6 @@ const MyCoupons = () => {
         </Modal>
       </View>
 
-      {/* Create Coupon Modal */}
       {createModalVisible && (
         <CreateCouponModal
           onClose={() => setCreateModalVisible(false)}
@@ -997,7 +1218,6 @@ const MyCoupons = () => {
         />
       )}
 
-      {/* Edit Coupon Modal */}
       {editModalVisible && selectedCoupon && (
         <EditCouponModal
           onClose={() => setEditModalVisible(false)}
@@ -1018,38 +1238,106 @@ const dropdownStyles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: "white",
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#4CAF50",
     zIndex: 10,
-    maxHeight: 200,
-    overflow: "hidden",
+    maxHeight: 350,
+    marginBottom: 100,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  dropdownOption: {
-    padding: 10,
+  scrollView: {
+    maxHeight: 350,
+  },
+  categoryContainer: {
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
+  },
+  categoryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: "#4CAF50",
+    marginRight: 12,
+    justifyContent: "center",
     alignItems: "center",
   },
-  selectedOption: {
+  checkboxSelected: {
+    backgroundColor: "#4CAF50",
+  },
+  checkmark: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  categoryText: {
+    fontSize: 16,
+    color: "#333",
+    fontWeight: "600",
+  },
+  expandButton: {
+    padding: 6,
+    backgroundColor: "#f8f8f8",
+    borderRadius: 6,
+  },
+  expandArrow: {
+    fontSize: 14,
+    color: "#4CAF50",
+    fontWeight: "bold",
+  },
+  productsContainer: {
+    backgroundColor: "#f9f9f9",
+    paddingLeft: 48,
+    borderTopWidth: 1,
+    borderTopColor: "#e8e8e8",
+  },
+  productRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e8e8e8",
+  },
+  productRowSelected: {
     backgroundColor: "#e8f5e8",
   },
-  dropdownText: {
+  productText: {
     fontSize: 14,
-    color: "#333",
+    color: "#555",
+    flex: 1,
   },
-  selectedText: {
-    fontWeight: "bold",
+  productTextSelected: {
     color: "#4CAF50",
+    fontWeight: "600",
+  },
+  productCheckmark: {
+    color: "#4CAF50",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 8,
   },
 });
 
-// --- Styles for the Main Screen ---
+// --- Main Screen Styles ---
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#fff" },
   container: { flex: 1, paddingHorizontal: 16 },
@@ -1068,7 +1356,6 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "center",
   },
-
   actionRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1089,7 +1376,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 16,
   },
-
   filterDropdownWrapper: {
     position: "relative",
     zIndex: 3,
@@ -1123,16 +1409,16 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#4CAF50",
+    marginBottom: 100,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 5,
-    overflow: "hidden",
   },
   filterOption: {
-    padding: 10,
+    padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
   },
@@ -1140,7 +1426,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#333",
   },
-
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   errorText: {
     fontSize: 16,
@@ -1165,15 +1450,15 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   couponCard: {
     backgroundColor: "#fff",
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: "#e8e8e8",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
     elevation: 3,
     position: "relative",
     minHeight: 135,
@@ -1206,6 +1491,8 @@ const styles = StyleSheet.create({
     color: "#fff",
     textTransform: "capitalize",
   },
+  activeStatusText: {},
+  expiredStatusText: {},
   modalOverlay: { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.2)" },
   modalContent: {
     position: "absolute",
@@ -1217,7 +1504,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    overflow: "hidden",
   },
   modalOption: {
     paddingVertical: 12,
@@ -1230,7 +1516,7 @@ const styles = StyleSheet.create({
   modalDivider: { height: 1, backgroundColor: "#f0f0f0" },
 });
 
-// --- Styles for Create Coupon Modal ---
+// --- Create/Edit Modal Styles ---
 const createModalStyles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
@@ -1239,14 +1525,14 @@ const createModalStyles = StyleSheet.create({
   },
   modalContainer: {
     width: "100%",
-    height: "83%",
+    height: "90%",
     backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderWidth: 2,
     borderColor: "rgba(255, 202, 40, 0.5)",
     paddingHorizontal: 16,
-    paddingBottom: 20,
+    paddingBottom: 30,
   },
   header: {
     flexDirection: "row",
@@ -1322,10 +1608,6 @@ const createModalStyles = StyleSheet.create({
   halfInput: {
     width: "48%",
   },
-  discountInputWrapper: {
-    position: "relative",
-    zIndex: 10,
-  },
   categoryInputWrapper: {
     position: "relative",
     zIndex: 100,
@@ -1346,8 +1628,6 @@ const createModalStyles = StyleSheet.create({
     borderBottomRightRadius: 8,
     justifyContent: "center",
     alignItems: "center",
-    flexDirection: "row",
-    paddingHorizontal: 5,
     marginLeft: -1,
   },
   discountText: {
@@ -1369,6 +1649,12 @@ const createModalStyles = StyleSheet.create({
   dropdownText: {
     fontSize: 16,
     color: "#000",
+  },
+  loadingText: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 5,
+    fontStyle: "italic",
   },
   createButton: {
     backgroundColor: "#4CAF50",

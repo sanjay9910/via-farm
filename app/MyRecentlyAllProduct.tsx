@@ -26,13 +26,16 @@ const AllRecently = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isStockDropdownOpen, setIsStockDropdownOpen] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
   const [stockDropdownPosition, setStockDropdownPosition] = useState({ x: 0, y: 0 });
   const [categoryDropdownPosition, setCategoryDropdownPosition] = useState({ x: 0, y: 0 });
+  const [actionMenuPosition, setActionMenuPosition] = useState({ x: 0, y: 0 });
   const [currentProductId, setCurrentProductId] = useState(null);
   const [updatingStock, setUpdatingStock] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
 
   const stockButtonRefs = useRef({});
+  const actionMenuRefs = useRef({});
   const categoryButtonRef = useRef(null);
   const navigation = useNavigation();
 
@@ -108,6 +111,7 @@ const AllRecently = () => {
   const openModal = (product) => {
     setSelectedProduct(product);
     setModalVisible(true);
+    setIsActionMenuOpen(false);
   };
 
   const closeModal = () => {
@@ -148,6 +152,79 @@ const AllRecently = () => {
   const handleCategorySelect = (category) => {
     setSelectedCategory(category);
     setIsCategoryDropdownOpen(false);
+  };
+
+  // Action menu (3 dots)
+  const openActionMenu = (productId) => {
+    const ref = actionMenuRefs.current[productId];
+    if (ref) {
+      ref.measureInWindow((x, y, width, height) => {
+        setActionMenuPosition({ x: x - 100, y: y + height + 5 });
+        setCurrentProductId(productId);
+        setIsActionMenuOpen(true);
+      });
+    }
+  };
+
+  const handleEdit = () => {
+    const product = listingsData.find(item => item.id === currentProductId);
+    if (product) {
+      openModal(product);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!currentProductId) {
+      Alert.alert("Error", "No product selected");
+      return;
+    }
+
+    Alert.alert(
+      "Delete Product",
+      "Are you sure you want to delete this product? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: () => setIsActionMenuOpen(false)
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem("userToken");
+              if (!token) {
+                Alert.alert("Error", "User not logged in!");
+                return;
+              }
+
+              const response = await axios.delete(
+                `${API_BASE}/api/vendor/products/${currentProductId}`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
+
+              if (response.data.success) {
+                Alert.alert("Success", "Product deleted successfully");
+                // Remove from local state
+                const updatedList = listingsData.filter(item => item.id !== currentProductId);
+                setListingsData(updatedList);
+              } else {
+                Alert.alert("Error", "Failed to delete product");
+              }
+            } catch (error) {
+              console.log("Delete error:", error);
+              Alert.alert("Error", "Something went wrong while deleting product");
+            } finally {
+              setIsActionMenuOpen(false);
+              setCurrentProductId(null);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handleStockChange = async (newStatus) => {
@@ -281,15 +358,15 @@ const AllRecently = () => {
                 )}
               </TouchableOpacity>
 
+              {/* Three Dots Menu Button */}
               <TouchableOpacity
-                style={styles.editButton}
-                onPress={() => openModal(item)}
-                disabled={isCurrentlyUpdating}
+                ref={(ref) => {
+                  actionMenuRefs.current[item.id] = ref;
+                }}
+                style={styles.threeDotsButton}
+                onPress={() => openActionMenu(item.id)}
               >
-                <Image
-                  // source={require("../../assets/via-farm-img/icons/editicon.png")}
-                  style={[styles.editIcon, isCurrentlyUpdating && styles.editIconDisabled]}
-                />
+                <Text style={styles.threeDotsText}>⋮</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -302,20 +379,14 @@ const AllRecently = () => {
     <View style={styles.header}>
       <View style={styles.headerLeft}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Image
-            // source={require("../../assets/via-farm-img/icons/back-icon.png")}
-            style={styles.backIcon}
-          />
+          <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Recent Products</Text>
       </View>
 
       <TouchableOpacity ref={categoryButtonRef} style={styles.categoryDropdownButton} onPress={openCategoryDropdown}>
         <Text style={styles.categoryDropdownText}>{selectedCategory}</Text>
-        <Image
-          // source={require("../../assets/via-farm-img/icons/dropdown-arrow.png")}
-          style={styles.dropdownArrow}
-        />
+        <Text style={styles.dropdownArrow}>▼</Text>
       </TouchableOpacity>
     </View>
   );
@@ -394,6 +465,25 @@ const AllRecently = () => {
         </TouchableWithoutFeedback>
       </Modal>
 
+      {/* Action Menu Modal (3 dots) */}
+      <Modal visible={isActionMenuOpen} transparent={true} animationType="fade" onRequestClose={() => setIsActionMenuOpen(false)}>
+        <TouchableWithoutFeedback onPress={() => setIsActionMenuOpen(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.actionMenu, { position: "absolute", top: actionMenuPosition.y, left: actionMenuPosition.x }]}>
+                <TouchableOpacity style={styles.actionOption} onPress={handleEdit}>
+                  <Text style={styles.actionOptionText}>✏️ Edit</Text>
+                </TouchableOpacity>
+                <View style={styles.actionDivider} />
+                <TouchableOpacity style={styles.actionOption} onPress={handleDelete}>
+                  <Text style={[styles.actionOptionText, styles.deleteText]}>🗑️ Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
       {/* Product Edit Modal */}
       {selectedProduct && <ProductModal visible={modalVisible} onClose={closeModal} onSubmit={submitModal} product={selectedProduct} />}
     </View>
@@ -448,7 +538,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#e0e0e0",
-    paddingTop:80,
+    paddingTop: 80,
     backgroundColor: "#fff",
   },
   headerLeft: {
@@ -463,9 +553,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8f9fa",
   },
   backIcon: {
-    width: 20,
-    height: 20,
-    tintColor: "#333",
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
   },
   headerTitle: {
     fontSize: 18,
@@ -488,13 +578,13 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#333",
     marginRight: 8,
-    minWidth:140,
-    maxWidth:140,
+    minWidth: 140,
+    maxWidth: 140,
   },
   dropdownArrow: {
-    width: 16,
-    height: 16,
-    tintColor: "#666",
+    fontSize: 14,
+    color: "#666",
+    fontWeight: "bold",
   },
 
   // Card Styles
@@ -628,18 +718,22 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#666",
   },
-  editButton: {
+
+  // Three Dots Menu Styles
+  threeDotsButton: {
     padding: 8,
     borderRadius: 8,
     backgroundColor: "#f8f9fa",
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  editIcon: {
-    width: 20,
-    height: 20,
-    tintColor: "#333",
-  },
-  editIconDisabled: {
-    opacity: 0.4,
+  threeDotsText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+    transform: [{ rotate: '90deg' }],
   },
 
   // Modal Styles
@@ -656,6 +750,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderWidth: 1,
     borderColor: "rgba(255, 202, 40, 0.3)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
   },
   stockOption: {
     flexDirection: "row",
@@ -680,6 +779,38 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
 
+  // Action Menu Styles
+  actionMenu: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    minWidth: 140,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255, 202, 40, 0.3)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  actionOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  actionOptionText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#374151",
+  },
+  deleteText: {
+    color: "#ef4444",
+  },
+  actionDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "#f3f4f6",
+    marginHorizontal: 12,
+  },
+
   // Category Dropdown Styles
   categoryDropdown: {
     backgroundColor: "#fff",
@@ -688,6 +819,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderWidth: 1,
     borderColor: "rgba(255, 202, 40, 0.3)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
   },
   categoryOption: {
     paddingVertical: 12,
