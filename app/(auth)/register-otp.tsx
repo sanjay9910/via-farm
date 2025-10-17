@@ -39,9 +39,9 @@ export default function RegisterOtpScreen(): JSX.Element {
     }
 
     try {
-      console.log('Verifying OTP:', otpString, 'for mobile:', mobile);
+      // console.log('Verifying OTP:', otpString, 'for mobile:', mobile);
       const res = await verifyOtp(mobile, otpString);
-      console.log('Verify response:', res);
+      // console.log('Verify response:', res);
       
       if (res.status === 'success') {
         Alert.alert('Success', 'OTP Verified Successfully!', [

@@ -17,7 +17,7 @@ export default function RegisterScreen() {
     }
     
     try {
-      console.log('Calling signup with mobile:', mobile); 
+      // console.log('Calling signup with mobile:', mobile); 
       const res = await signup(mobile);
       console.log('Signup response:', res); 
       

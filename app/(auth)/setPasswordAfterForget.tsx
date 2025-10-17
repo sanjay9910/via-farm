@@ -67,7 +67,7 @@ const SetPasswordAfterForget = () => {
         }
       );
 
-      console.log("Reset Password Response:", response.data);
+      // console.log("Reset Password Response:", response.data);
 
       if (response.data.status === "success") {
         Alert.alert("Success", "Password reset successful!", [

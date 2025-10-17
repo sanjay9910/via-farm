@@ -24,9 +24,9 @@ export default function SetPasswordScreen(): JSX.Element {
     }
 
     try {
-      console.log('Setting password for mobile:', mobile);
+      // console.log('Setting password for mobile:', mobile);
       const res = await newPassword(mobile, password , confirmPassword);
-      console.log('Set password response:', res);
+      // console.log('Set password response:', res);
       
       if (res.status === 'success') {
         Alert.alert('Success', 'Password set successfully!', [

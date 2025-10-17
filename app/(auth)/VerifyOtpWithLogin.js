@@ -83,7 +83,7 @@ const VerifyOtpWithLogin = () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      console.log('Sending OTP verification request...');
+      // console.log('Sending OTP verification request...');
       
       const response = await fetch(`${API_BASE}/verify-otp-login`, {
         method: 'POST',
@@ -99,17 +99,17 @@ const VerifyOtpWithLogin = () => {
 
       clearTimeout(timeoutId);
 
-      console.log('Response status:', response.status);
+      // console.log('Response status:', response.status);
       
       const responseText = await response.text();
-      console.log('Response text:', responseText);
+      // console.log('Response text:', responseText);
       
       let data = {};
 
       if (responseText && responseText.trim() !== '') {
         try {
           data = JSON.parse(responseText);
-          console.log('Parsed data:', data);
+          // console.log('Parsed data:', data);
         } catch (parseError) {
           console.error('JSON Parse Error:', parseError);
           Alert.alert('Error', 'Invalid response from server');
@@ -128,8 +128,8 @@ const VerifyOtpWithLogin = () => {
           if (tokenSaved) {
             Alert.alert('Success', data.message || 'Login successful');
             
-            console.log('Token saved:', data.data.token);
-            console.log('User data saved:', data.data.user);
+            // console.log('Token saved:', data.data.token);
+            // console.log('User data saved:', data.data.user);
             
             // Check user role and navigate accordingly
             const userRole = data.data.user?.role;

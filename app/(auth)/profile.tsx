@@ -22,10 +22,10 @@ export default function ProfileScreen() {
       const profileData = {
         mobileNumber: mobile, 
         name: name.trim(),    
-        role: role, // Will send 'Buyer' or 'Vendor' to backend
+        role: role, 
       };
       
-      console.log('Sending profile data:', profileData);
+      // console.log('Sending profile data:', profileData);
       
       const res = await completeProfile(profileData);
       
@@ -34,9 +34,9 @@ export default function ProfileScreen() {
         
         // ROLE KE BASIS PE NAVIGATE KARO
         if (role === 'Buyer') {
-          router.replace('/(tabs)'); // Buyer tabs pe jayega
+          router.replace('/(tabs)'); 
         } else if (role === 'Vendor') {
-          router.replace('/(vendors)'); // Vendor tabs pe jayega
+          router.replace('/(vendors)'); 
         }
       }
     } catch (err) {

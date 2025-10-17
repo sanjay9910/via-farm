@@ -40,7 +40,7 @@ const ForgetPassword = () => {
         }
       );
 
-      console.log('Forget Password Response:', response.data);
+      // console.log('Forget Password Response:', response.data);
 
       if (response.data.status === 'success') {
         // Check if OTP is null or undefined
