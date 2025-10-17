@@ -17,13 +17,14 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import ProductModal from "../vendors/ProductEditModel";
 
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
 const { width } = Dimensions.get("window");
 
-// --- ProductCard Component with FIXED Stock Update ---
+// --- ProductCard Component with Edit Modal ---
 
-const ProductCard = ({ item, onDelete, onStockUpdate }) => {
+const ProductCard = ({ item, onDelete, onStockUpdate, onEdit }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [isStockDropdownOpen, setIsStockDropdownOpen] = useState(false);
@@ -56,78 +57,82 @@ const ProductCard = ({ item, onDelete, onStockUpdate }) => {
     }
   };
 
- 
-
-const handleDelete = async () => {
-  try {
-    const token = await AsyncStorage.getItem("userToken");
-    if (!token) {
-      Alert.alert("Error", "User not logged in!");
-      return;
+  const handleEdit = () => {
+    setIsMenuOpen(false);
+    if (onEdit) {
+      onEdit(item);
     }
+  };
 
-    const tokenData = JSON.parse(atob(token.split(".")[1]));
-    const userRole = tokenData.role;
+  const handleDelete = async () => {
+    try {
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) {
+        Alert.alert("Error", "User not logged in!");
+        return;
+      }
 
-    // Use item._id instead of product._id
-    let deleteUrl = "";
-    if (userRole === "Vendor") {
-      deleteUrl = `${API_BASE}/api/vendor/products/${item._id}`;
-    } else if (userRole === "Admin") {
-      deleteUrl = `${API_BASE}/api/admin/products/${item._id}`;
-    } else {
-      Alert.alert("Permission Denied", "Only vendors or admins can delete products.");
-      return;
-    }
+      const tokenData = JSON.parse(atob(token.split(".")[1]));
+      const userRole = tokenData.role;
 
-    Alert.alert(
-      "Delete Product",
-      "Are you sure you want to delete this product?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const response = await axios.delete(deleteUrl, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
+      let deleteUrl = "";
+      if (userRole === "Vendor") {
+        deleteUrl = `${API_BASE}/api/vendor/products/${item._id}`;
+      } else if (userRole === "Admin") {
+        deleteUrl = `${API_BASE}/api/admin/products/${item._id}`;
+      } else {
+        Alert.alert("Permission Denied", "Only vendors or admins can delete products.");
+        return;
+      }
 
-              if (response.data?.success) {
-                Alert.alert("Success", "Product deleted successfully!");
-                if (onDelete) onDelete(item._id); // remove from UI
-              } else {
-                Alert.alert("Error", response.data?.message || "Failed to delete");
+      Alert.alert(
+        "Delete Product",
+        "Are you sure you want to delete this product?",
+        [
+          { text: "Cancel", style: "cancel", onPress: () => setIsMenuOpen(false) },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                const response = await axios.delete(deleteUrl, {
+                  headers: { Authorization: `Bearer ${token}` },
+                });
+
+                if (response.data?.success) {
+                  Alert.alert("Success", "Product deleted successfully!");
+                  if (onDelete) onDelete(item._id);
+                } else {
+                  Alert.alert("Error", response.data?.message || "Failed to delete");
+                }
+              } catch (error) {
+                console.log("Delete error:", error.response?.data || error.message);
+                if (error.response?.status === 403) {
+                  Alert.alert(
+                    "Unauthorized",
+                    "Your account is not allowed to delete this product."
+                  );
+                } else {
+                  Alert.alert("Error", "Something went wrong while deleting");
+                }
+              } finally {
+                setIsMenuOpen(false);
               }
-            } catch (error) {
-              console.log("Delete error:", error.response?.data || error.message);
-              if (error.response?.status === 403) {
-                Alert.alert(
-                  "Unauthorized",
-                  "Your account is not allowed to delete this product."
-                );
-              } else {
-                Alert.alert("Error", "Something went wrong while deleting");
-              }
-            }
+            },
           },
-        },
-      ]
-    );
-  } catch (err) {
-    console.log("Error:", err);
-    Alert.alert("Error", "Unexpected error occurred");
-  }
-};
+        ]
+      );
+    } catch (err) {
+      console.log("Error:", err);
+      Alert.alert("Error", "Unexpected error occurred");
+    }
+  };
 
-  // FIXED Stock Update Handler with Multiple API Methods
   const handleStockChange = async (newStatus) => {
     setIsStockDropdownOpen(false);
     setUpdatingStock(true);
 
     try {
-      // ✅ Correct token fetch (matches login storage)
       const token = await AsyncStorage.getItem("userToken");
 
       if (!token) {
@@ -139,7 +144,6 @@ const handleDelete = async () => {
       let response = null;
       let lastError = null;
 
-      // Try PATCH first
       try {
         response = await axios.patch(
           `${API_BASE}/api/vendor/products/${item._id}/status`,
@@ -154,7 +158,6 @@ const handleDelete = async () => {
         );
       } catch (err) {
         lastError = err;
-        // Try PATCH on alternate route
         try {
           response = await axios.patch(
             `${API_BASE}/api/vendor/products/${item._id}`,
@@ -169,7 +172,6 @@ const handleDelete = async () => {
           );
         } catch (err2) {
           lastError = err2;
-          // Try PUT as last fallback
           try {
             response = await axios.put(
               `${API_BASE}/api/vendor/products/${item._id}`,
@@ -249,11 +251,11 @@ const handleDelete = async () => {
         <View style={cardStyles.row}>
           <Text style={cardStyles.label}>Price</Text>
           <Text style={cardStyles.colon}>:</Text>
-            <Text style={cardStyles.value}>
-              ₹ {item.price}/ {item.unit === "pc" ? `1${item.unit}` : item.unit} {item.weightPerPiece}
-            </Text>
-
+          <Text style={cardStyles.value}>
+            ₹ {item.price}/ {item.unit === "pc" ? `1${item.unit}` : item.unit} {item.weightPerPiece}
+          </Text>
         </View>
+        
         <Text style={cardStyles.uploadDate}>
           Uploaded on {new Date(item.datePosted).toLocaleDateString()}
         </Text>
@@ -333,10 +335,7 @@ const handleDelete = async () => {
           >
             <TouchableOpacity
               style={cardStyles.menuItem}
-              onPress={() => {
-                setIsMenuOpen(false);
-                console.log("Edit clicked");
-              }}
+              onPress={handleEdit}
             >
               <Feather name="edit-2" size={18} color="#374151" />
               <Text style={cardStyles.menuItemText}>Edit</Text>
@@ -758,7 +757,7 @@ const ProductFilter = ({
   );
 };
 
-// --- ProductList Component ---
+// --- ProductList Component with Edit Modal ---
 
 const ProductList = ({ refreshbut }) => {
   const [products, setProducts] = useState([]);
@@ -775,6 +774,10 @@ const ProductList = ({ refreshbut }) => {
     amount: "",
     category: "All",
   });
+
+  // Edit Modal States
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -809,7 +812,6 @@ const ProductList = ({ refreshbut }) => {
     }));
   };
 
-  // Handle stock update WITHOUT removing product from list
   const handleStockUpdate = (productId, newStatus) => {
     setProducts(prevProducts =>
       prevProducts.map(product =>
@@ -820,25 +822,66 @@ const ProductList = ({ refreshbut }) => {
     );
   };
 
+  const handleDeleteFromList = (id) => {
+    setProducts((prev) => prev.filter((item) => item._id !== id));
+  };
+
+  // Edit Modal Handlers
+  const handleEditProduct = (product) => {
+    // Convert product data to match modal format
+    const formattedProduct = {
+      id: product._id,
+      name: product.name,
+      price: product.price,
+      quantity: product.quantity,
+      uploadedOn: new Date(product.datePosted).toLocaleDateString(),
+      image: product.images?.[0] || "",
+      status: product.status || "In Stock",
+      category: product.category || "Fruits",
+    };
+    setSelectedProduct(formattedProduct);
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
+    setSelectedProduct(null);
+  };
+
+  const submitModal = (updatedProduct) => {
+    // Update the product in the list
+    const updatedList = products.map((item) =>
+      item._id === updatedProduct.id 
+        ? {
+            ...item,
+            name: updatedProduct.name,
+            price: updatedProduct.price,
+            quantity: updatedProduct.quantity,
+            status: updatedProduct.status,
+            category: updatedProduct.category,
+          }
+        : item
+    );
+    setProducts(updatedList);
+    closeModal();
+    // Optionally refetch to sync with server
+    fetchProducts();
+  };
+
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
 
-    // Category Filter (Instant)
     const categoryToFilter =
       appliedFilters.category === "All" ? null : appliedFilters.category;
     if (categoryToFilter) {
       filtered = filtered.filter((item) => item.category === categoryToFilter);
     }
 
-    // Stock Filter - ONLY APPLY IF USER HAS EXPLICITLY SELECTED A STOCK FILTER
-    // Don't filter by stock automatically - only when user applies stock filter from modal
     const stockToFilter = appliedFilters.stock;
     if (stockToFilter && stockToFilter !== "") {
       filtered = filtered.filter((item) => item.status === stockToFilter);
     }
-    // If no stock filter is applied, show ALL products regardless of stock status
 
-    // Amount Filter (Sorting)
     if (appliedFilters.amount === "Low to High") {
       filtered.sort((a, b) => a.price - b.price);
     } else if (appliedFilters.amount === "High to Low") {
@@ -848,13 +891,16 @@ const ProductList = ({ refreshbut }) => {
     return filtered;
   }, [products, appliedFilters]);
 
-  const handleDeleteFromList = (id) => {
-    setProducts((prev) => prev.filter((item) => item._id !== id));
-  };
-
   useEffect(() => {
     fetchProducts();
   }, [refreshbut]);
+
+  // Refetch when modal closes
+  useEffect(() => {
+    if (!modalVisible) {
+      // Optional: refetch to ensure sync
+    }
+  }, [modalVisible]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -887,6 +933,7 @@ const ProductList = ({ refreshbut }) => {
               item={item}
               onDelete={handleDeleteFromList}
               onStockUpdate={handleStockUpdate}
+              onEdit={handleEditProduct}
             />
           )}
           contentContainerStyle={cardStyles.listContainer}
@@ -896,6 +943,16 @@ const ProductList = ({ refreshbut }) => {
               No products found matching your filters.
             </Text>
           }
+        />
+      )}
+
+      {/* Product Edit Modal */}
+      {selectedProduct && (
+        <ProductModal
+          visible={modalVisible}
+          onClose={closeModal}
+          onSubmit={submitModal}
+          product={selectedProduct}
         />
       )}
     </View>
@@ -921,7 +978,7 @@ const cardStyles = StyleSheet.create({
     elevation: 3,
   },
   image: { width: 150, height: "100%", minHeight: 180 },
-  details: { flex: 1, padding:8, justifyContent: "space-between" },
+  details: { flex: 1, padding: 8, justifyContent: "space-between" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
