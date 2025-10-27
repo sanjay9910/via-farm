@@ -19,57 +19,79 @@ export default function AllOrders() {
     dateFilter: ""
   });
 
-  const fetchOrders = async () => {
-    try {
-      const token = await AsyncStorage.getItem("userToken");
-      if (!token) {
-        console.log("No token found!");
-        setLoading(false);
-        return;
-      }
+const fetchOrders = async () => {
+  try {
+    setLoading(true);
+    const token = await AsyncStorage.getItem("userToken");
+    if (!token) {
+      console.log("No token found!");
+      setLoading(false);
+      return;
+    }
 
-      const res = await axios.get(`${API_BASE}/api/vendor/orders`, {
-        headers: { Authorization: `Bearer ${token}` },
+    const res = await axios.get(`${API_BASE}/api/vendor/orders`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.data && res.data.success && Array.isArray(res.data.data)) {
+      const formattedOrders = res.data.data.map((o) => {
+        const products = Array.isArray(o.products) ? o.products : [];
+
+        // build item details properly
+        const itemNames = products.length
+          ? products
+              .map((p, idx) => {
+                const prod = p.product || {};
+                const name = prod.name || `Product-${idx + 1}`;
+                const unit = prod.unit || "N/A";
+                const qty = p.quantity ?? 0;
+                return `${name} | ${qty} ${unit}`;
+              })
+              .join(", ")
+          : "N/A";
+
+        // collect unique units
+        const uniqueUnits = Array.from(
+          new Set(
+            products
+              .map((p) => p.product?.unit)
+              .filter(Boolean)
+          )
+        ).join(", ") || "N/A";
+
+        // sum total quantity
+        const totalQty = products.reduce((sum, p) => sum + (Number(p.quantity) || 0), 0);
+
+        return {
+          id: o._id || o.orderId || "N/A",
+          orderId: o.orderId || o._id,
+          buyer: o.buyer?.name || "N/A",
+          contact: o.buyer?.mobileNumber || o.shippingAddress?.mobileNumber || "N/A",
+          item: itemNames, 
+          quantity: totalQty.toString(),
+          units: uniqueUnits, 
+          price: o.totalPrice ? `₹${o.totalPrice}` : "₹0",
+          orderType: o.orderType || "N/A",
+          paymentMethod: o.paymentMethod || "N/A",
+          comments: o.comments || "",
+          totalPrice: o.totalPrice || 0,
+          deliveredAt: o.createdAt ? new Date(o.createdAt).toLocaleString() : "N/A",
+          status: o.orderStatus || "Pending",
+          productsRaw: products, 
+        };
       });
 
-      if (res.data.success && Array.isArray(res.data.data)) {
-        const formattedOrders = res.data.data.map((o) => {
-          const products = o.products && o.products.length > 0 ? o.products : [];
-          const itemNames =
-            products.length > 0
-              ? products.map((p) => `${p.product?.name || "Unknown"} (${p.product?.variety || ""})`).join(", ")
-              : "N/A";
-          const quantities =
-            products.length > 0 ? products.map((p) => p.quantity).join(", ") : "N/A";
-          const prices = o.totalPrice ? `₹${o.totalPrice}` : "N/A";
-
-          return {
-            id: o._id || o.orderId || "N/A",
-            buyer: o.buyer?.name || "N/A",
-            contact: o.buyer?.mobileNumber || o.shippingAddress?.mobileNumber || "N/A",
-            item: itemNames,
-            quantity: quantities,
-            price: prices,
-            orderType: o.orderType,
-            totalPrice: o.totalPrice || 0, // For filtering
-            deliveredAt: o.pickupSlot ? new Date(o.pickupSlot).toLocaleString() : o.date ? new Date(o.date).toLocaleString() : "N/A",
-            originalDate: o.pickupSlot || o.date || new Date().toISOString(), // For date filtering
-            status: o.orderStatus || o.status || "N/A",
-          };
-        });
-
-        setOrders(formattedOrders);
-        setFilteredOrders(formattedOrders);
-      } else {
-        console.log("Failed to fetch orders:", res.data.message || "Unknown error");
-      }
-    } catch (error) {
-      console.log("Error fetching orders:", error);
-    } finally {
-      setLoading(false);
+      setOrders(formattedOrders);
+      setFilteredOrders(formattedOrders);
+    } else {
+      console.log("Failed to fetch orders:", res.data?.message || "Unknown error");
     }
-  };
-
+  } catch (error) {
+    console.log("Error fetching orders:", error);
+  } finally {
+    setLoading(false);
+  }
+};
   // Apply search and filters whenever they change
   useEffect(() => {
     applyFiltersAndSearch();

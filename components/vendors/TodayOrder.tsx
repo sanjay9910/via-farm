@@ -24,31 +24,64 @@ export default function OrdersScreen() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (res.data.success) {
-        const formattedOrders = res.data.data.map((o) => {
-          const products = o.products || [];
+      if (res.data && res.data.success) {
+        const formattedOrders = (res.data.data || []).map((o) => {
+          const products = Array.isArray(o.products) ? o.products : [];
+
+          // Build item string: "ProductName (unit) xquantity"
           const itemNames = products.length
-            ? products.map((p, idx) => (p.product ? `${p.product.name} (${p.product.variety || "N/A"})` : `Product-${idx + 1}`)).join(", ")
+            ? products
+                .map((p, idx) => {
+                  const prod = p.product || {};
+                  const name = prod.name || `Product-${idx + 1}`;
+                  const unit = prod.unit || "N/A";
+                  const qty = p.quantity ?? 0;
+                  return `${name} | ${p.quantity} ${unit}`;
+                })
+                .join(", ")
             : "No products";
-          const quantities = products.length
-            ? products.map((p) => p.quantity).join(", ")
+
+          // Total quantity (sum of product quantities)
+          const totalQuantity = products.reduce((sum, p) => sum + (Number(p.quantity) || 0), 0);
+
+          // Units list (comma separated, unique)
+          const units = Array.from(
+            new Set(
+              products
+                .map((p) => (p.product && p.product.unit ? p.product.unit : null))
+                .filter(Boolean)
+            )
+          ).join(", ") || "N/A";
+
+          // Delivered / pickup time display
+          const deliveredAt = o.pickupSlot
+            ? new Date(o.pickupSlot).toLocaleString()
+            : o.shippingAddress && o.shippingAddress.createdAt
+            ? new Date(o.createdAt || o.updatedAt || o.shippingAddress.updatedAt || o.shippingAddress.createdAt).toLocaleString()
             : "N/A";
 
           return {
-            id: o.orderId || o._id,
+            id: o._id || o.orderId,
+            orderId: o.orderId || o._id,
             buyer: o.buyer?.name || "Unknown Buyer",
             contact: o.buyer?.mobileNumber || "N/A",
             item: itemNames,
-            quantity: quantities,
-            price: `₹${o.totalPrice || 0}`,
-            deliveredAt: o.pickupSlot ? new Date(o.pickupSlot).toLocaleString() : "N/A",
+            orderType: o.orderType || "N/A",
+            quantity: totalQuantity.toString(), 
+            units, 
+               comments: o.comments || "",
+            paymentMethod:o.paymentMethod,
+            price: `₹${Number(o.totalPrice || 0)}`,
+            deliveredAt,
             status: o.orderStatus || "Pending",
+            raw: o,
           };
         });
 
         setOrders(formattedOrders);
       } else {
-        Alert.alert("Error", "Could not fetch orders");
+        console.warn("Orders API response:", res.data);
+        Alert.alert("Error", res.data?.message || "Could not fetch orders");
       }
     } catch (error) {
       console.log("Fetch Orders Error:", error);
@@ -67,8 +100,8 @@ export default function OrdersScreen() {
       {/* Header */}
       <View style={styles.headerRow}>
         <Text style={styles.headerTitle}>Today’s Orders</Text>
-        <TouchableOpacity>
-          <Text style={styles.seeAll}>See All &gt;</Text>
+        <TouchableOpacity onPress={fetchOrders}>
+          <Text style={styles.seeAll}>Refresh</Text>
         </TouchableOpacity>
       </View>
 

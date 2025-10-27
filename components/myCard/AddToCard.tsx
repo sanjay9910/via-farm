@@ -34,7 +34,6 @@ const MyCart = () => {
   const [vendorDetails, SetVendorsDetails] = useState('');
   const [slot, setSlot] = useState({ date: '', startTime: '', endTime: '' });
 
-  // Price summary from API (server may provide these; we will treat them as authoritative but compute subtotal locally too)
   const [priceDetails, setPriceDetails] = useState({
     totalMRP: 0,
     couponDiscount: 0,
@@ -162,12 +161,10 @@ const MyCart = () => {
       if (token) fetchCartItems(token);
       else {
         setLoading(false);
-        // don't force an alert on mount; show login when user tries actions
       }
     };
     init();
 
-    // subscribe to cartUpdated events so this screen refreshes immediately
     const sub = DeviceEventEmitter.addListener('cartUpdated', () => {
       getAuthToken().then((token) => {
         if (token) fetchCartItems(token);
@@ -269,30 +266,24 @@ const MyCart = () => {
     setCouponError('');
   };
 
-  // --- Totals calculation (clean, no double counting) ---
-  // Subtotal (recompute from cartItems to be safe)
   const subtotal = cartItems.reduce((s, i) => s + (Number(i.price) || 0) * (i.quantity || 0), 0);
 
-  // Coupon discount calculation base on subtotal
+
   const calculateCouponDiscount = () => {
     if (!appliedCoupon) return 0;
     if (appliedCoupon.type === 'percentage') {
       return (subtotal * appliedCoupon.discount) / 100;
     } else {
-      // fixed discount, can't exceed subtotal
       return Math.min(appliedCoupon.discount, subtotal);
     }
   };
 
   const couponDiscount = calculateCouponDiscount();
 
-  // deliveryCharge: prefer server value, otherwise fallback to 0
   const deliveryCharge = Number(priceDetails.deliveryCharge || 0);
 
-  // final amount = subtotal - couponDiscount + deliveryCharge
   const finalAmount = Number((subtotal - couponDiscount + deliveryCharge).toFixed(2));
 
-  // Modal pan responders & open/close (unchanged)
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onPanResponderMove: (evt, gestureState) => {
@@ -378,7 +369,6 @@ const MyCart = () => {
     });
   };
 
-  // Navigate to ReviewOrder and pass totalAmount so Payment flow uses same amount
   const goReviewPage = () => {
     navigation.navigate("ReviewOrder", {
       totalAmount: finalAmount,
