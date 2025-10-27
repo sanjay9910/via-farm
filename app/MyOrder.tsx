@@ -230,7 +230,7 @@ const submitReview = async () => {
             images: uploadedImages.map(img => img.uri),
         };
 
-        console.log('Submitting review:', reviewData);
+        // console.log('Submitting review:', reviewData);
 
         // ✅ Dynamic product review API endpoint
         const response = await axios.post(

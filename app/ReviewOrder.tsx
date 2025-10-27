@@ -30,8 +30,10 @@ const ReviewOrder = () => {
   // States
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [donation, setDonation] = useState(20);
-  const deliveryCharge = 20;
+
+  // IMPORTANT: deliveryCharge will come from serverPriceDetails if available
+  const [serverPriceDetails, setServerPriceDetails] = useState(null);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [pincode, setPincode] = useState('110098');
   const slideAnim = useState(new Animated.Value(300))[0];
@@ -78,7 +80,7 @@ const ReviewOrder = () => {
     }
   };
 
-  // Fetch products from API
+  // Fetch products from API (and server price details)
   useEffect(() => {
     fetchCartProducts();
   }, []);
@@ -104,13 +106,28 @@ const ReviewOrder = () => {
           productId: item.productId,
           name: item.name || 'Product',
           description: item.subtitle || item.variety || 'Fresh Product',
-          price: item.mrp || item.price || 0,
+          // ensure numeric price
+          price: Number(item.mrp || item.price || 0),
           quantity: item.quantity || 1,
           image: { uri: item.imageUrl },
           deliveryDate: item.deliveryText || 'Sep 25',
         }));
 
         setProducts(mappedProducts);
+
+        // set server price details if provided (authoritative)
+        const priceDetails = response.data.data?.priceDetails ?? null;
+        if (priceDetails) {
+          // ensure numbers
+          setServerPriceDetails({
+            totalMRP: Number(priceDetails.totalMRP ?? 0),
+            couponDiscount: Number(priceDetails.couponDiscount ?? 0),
+            deliveryCharge: Number(priceDetails.deliveryCharge ?? 0),
+            totalAmount: Number(priceDetails.totalAmount ?? 0),
+          });
+        } else {
+          setServerPriceDetails(null);
+        }
       } else {
         Alert.alert('Error', response.data.message || 'Failed to load cart');
       }
@@ -122,14 +139,35 @@ const ReviewOrder = () => {
     }
   };
 
-  // Totals
-  const calculateTotals = () => {
-    const totalMRP = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
-    const totalAmount = totalMRP + deliveryCharge + donation;
-    return { totalMRP, totalAmount };
-  };
+  // Totals calculation helper
+  const computeTotals = () => {
+    // subtotal computed from client-side product list (source of truth for items)
+    const subtotal = products.reduce((sum, p) => sum + (Number(p.price) || 0) * (p.quantity || 0), 0);
 
-  const { totalMRP, totalAmount } = calculateTotals();
+    // If serverPriceDetails exists and server provides totalAmount, prefer server numbers
+    if (serverPriceDetails && serverPriceDetails.totalAmount > 0) {
+      return {
+        subtotal: Number((serverPriceDetails.totalMRP ?? subtotal).toFixed(2)),
+        couponDiscount: Number((serverPriceDetails.couponDiscount ?? 0).toFixed(2)),
+        deliveryCharge: Number((serverPriceDetails.deliveryCharge ?? 0).toFixed(2)),
+        totalAmount: Number((serverPriceDetails.totalAmount ?? subtotal).toFixed(2)),
+        usedServer: true,
+      };
+    }
+
+    // Fallback: client-side calculation (no server details)
+    const couponDiscount = 0;
+    const deliveryChargeFallback = 0; // If server doesn't provide delivery, default to 0 (avoid surprise)
+    const total = subtotal - couponDiscount + deliveryChargeFallback;
+
+    return {
+      subtotal: Number(subtotal.toFixed(2)),
+      couponDiscount: Number(couponDiscount.toFixed(2)),
+      deliveryCharge: Number(deliveryChargeFallback.toFixed(2)),
+      totalAmount: Number(total.toFixed(2)),
+      usedServer: false,
+    };
+  };
 
   // Update quantity
   const updateQuantityInAPI = async (cartItemId, newQuantity) => {
@@ -141,6 +179,8 @@ const ReviewOrder = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!response.data.success) throw new Error('Failed to update quantity');
+      // refresh local products and server price details to keep totals accurate
+      fetchCartProducts();
     } catch (error) {
       console.error('Error updating quantity:', error);
       Alert.alert('Error', 'Failed to update quantity');
@@ -172,7 +212,11 @@ const ReviewOrder = () => {
       });
       if (response.data.success) {
         setProducts(products.filter(p => p.id !== id));
+        // refresh server price details after removal
+        fetchCartProducts();
         Alert.alert('Success', 'Item removed');
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to remove item');
       }
     } catch (error) {
       console.error('Error removing product:', error);
@@ -180,7 +224,7 @@ const ReviewOrder = () => {
     }
   };
 
-  // Proceed
+  // Proceed: use server-provided totalAmount when available
   const handleProceedToPayment = () => {
     if (!selectedAddress) {
       Alert.alert('Address Missing', 'Please select a delivery address');
@@ -190,13 +234,24 @@ const ReviewOrder = () => {
       Alert.alert('Cart Empty', 'Please add items first');
       return;
     }
+
+    const totals = computeTotals();
+    const totalItems = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
+
+    // IMPORTANT: pass server's totalAmount if usedServer true, else pass client totalAmount
+    const amountToPay = totals.totalAmount;
+
     navigation.navigate("Payment", {
-      totalAmount: totalAmount.toString(),
-      totalItems: products.reduce((sum, p) => sum + p.quantity, 0).toString(),
+      addressId: selectedAddress.id,
+      deliveryType: "Delivery",
+      comments: "Deliver before 8 PM please",
+      paymentMethod: "UPI",
+      totalAmount: Number(amountToPay.toFixed(2)), // ensure number
+      totalItems: totalItems.toString(),
     });
   };
 
-  // Modal
+  // Modal handlers
   const openModal = () => {
     setModalVisible(true);
     Animated.timing(slideAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start();
@@ -231,7 +286,7 @@ const ReviewOrder = () => {
         <View style={styles.productDetails}>
           <Text style={styles.productName}>{product.name}</Text>
           <Text style={styles.productDescription}>{product.description}</Text>
-          <Text style={styles.productPrice}>MRP ₹{product.price}</Text>
+          <Text style={styles.productPrice}>MRP ₹{Number(product.price).toFixed(2)}</Text>
           <TouchableOpacity style={styles.deleteBtn} onPress={() => removeProduct(product.id)}>
             <Image source={require('../assets/via-farm-img/icons/deleteBtn.png')} />
           </TouchableOpacity>
@@ -269,6 +324,9 @@ const ReviewOrder = () => {
       </View>
     );
 
+  // compute totals for render
+  const totalsForRender = computeTotals();
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -304,7 +362,7 @@ const ReviewOrder = () => {
           <ProductCard key={product.id} product={product} />
         ))}
 
-        {/* Rest unchanged sections */}
+        {/* Coupon / promo area (kept UI; coupon logic not changed) */}
         <View style={styles.couponSection}>
           <Image source={require('../assets/via-farm-img/icons/promo-code.png')} />
           <View>
@@ -317,23 +375,18 @@ const ReviewOrder = () => {
           <TextInput style={styles.couponInput} placeholder="Enter your coupon code" placeholderTextColor="#999" />
         </View>
 
-        <Text style={styles.donationText}>If you like the app, you can donate us.</Text>
-        <View style={styles.donationSection}>
-          <View><Text style={styles.indiaCurrency}>₹</Text></View>
-          <View><Text style={styles.donationValue}>₹{donation}</Text></View>
-        </View>
-
+        {/* Price details: prefer server values */}
         <View style={styles.priceSection}>
           <Text style={styles.priceTitle}>Price Details</Text>
-          <View style={styles.priceRow}><Text style={styles.priceLabel}>Total MRP</Text><Text style={styles.priceValue}>₹{totalMRP.toFixed(2)}</Text></View>
-          <View style={styles.priceRow}><Text style={styles.priceLabel}>Coupon Discount</Text><Text style={styles.priceValue}>₹0.00</Text></View>
-          <View style={styles.priceRow}><Text style={styles.priceLabel}>Delivery Charge</Text><Text style={styles.priceValue}>₹{deliveryCharge}</Text></View>
-          <View style={styles.priceRow}><Text style={styles.priceLabel}>Donation</Text><Text style={styles.priceValue}>₹{donation}</Text></View>
-          <View style={styles.totalRow}><Text style={styles.totalLabel}>Total Amount</Text><Text style={styles.totalValue}>₹{totalAmount.toFixed(2)}</Text></View>
+          <View style={styles.priceRow}><Text style={styles.priceLabel}>Total MRP</Text><Text style={styles.priceValue}>₹{totalsForRender.subtotal.toFixed(2)}</Text></View>
+          <View style={styles.priceRow}><Text style={styles.priceLabel}>Coupon Discount</Text><Text style={styles.priceValue}>₹{(-totalsForRender.couponDiscount).toFixed(2)}</Text></View>
+          <View style={styles.priceRow}><Text style={styles.priceLabel}>Delivery Charge</Text><Text style={styles.priceValue}>₹{totalsForRender.deliveryCharge.toFixed(2)}</Text></View>
+          <View style={styles.totalRow}><Text style={styles.totalLabel}>Total Amount</Text><Text style={styles.totalValue}>₹{totalsForRender.totalAmount.toFixed(2)}</Text></View>
+          {totalsForRender.usedServer && <Text style={{fontSize:12,color:'#666',marginTop:6}}>Using server-calculated charges</Text>}
         </View>
 
         <View style={styles.commentsSection}>
-          <Text style={styles.commentsTitle}>Comments / Instructions</Text>
+          <Text style={styles.commentsTitle}>Comments</Text>
           <TextInput style={styles.commentsInput} placeholder="Instructions / Comments for the vendor" placeholderTextColor="#999" multiline />
         </View>
 
@@ -345,7 +398,7 @@ const ReviewOrder = () => {
       <View style={styles.bottomPaymentCard}>
         <View style={styles.paymentLeft}>
           <Text style={styles.priceLabelBottom}>Price</Text>
-          <Text style={styles.totalPrice}>₹{totalAmount.toFixed(2)}</Text>
+          <Text style={styles.totalPrice}>₹{totalsForRender.totalAmount.toFixed(2)}</Text>
         </View>
         <TouchableOpacity style={styles.proceedButton} onPress={handleProceedToPayment}>
           <Image source={require("../assets/via-farm-img/icons/UpArrow.png")} />

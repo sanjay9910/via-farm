@@ -1,4 +1,3 @@
-// SmartPicks.js
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -7,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  DeviceEventEmitter,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -20,8 +20,7 @@ const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
 const ENDPOINT = '/api/buyer/smart-picks';
 const WISHLIST_ADD_ENDPOINT = '/api/buyer/wishlist/add';
 const WISHLIST_REMOVE_ENDPOINT = '/api/buyer/wishlist';
-const CART_ADD_ENDPOINT = '/api/buyer/cart/add';
-const CART_QUANTITY_ENDPOINT = '/api/buyer/cart';
+const CART_ADD_ENDPOINT = '/api/buyer/cart/add'; // expects productId etc.
 
 const SmartPicks = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -31,45 +30,43 @@ const SmartPicks = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [favorites, setFavorites] = useState(new Set());
   const [showDropdown, setShowDropdown] = useState(false);
-  const [cartItems, setCartItems] = useState({}); // Store cart quantities by productId
-
+  const [cartItems, setCartItems] = useState({}); // keys: productId (string)
   const animation = useRef(new Animated.Value(0)).current;
 
   const categories = ['All', 'Fruits', 'Vegetables', 'Plants', 'Seeds', 'Handicrafts'];
 
-  // Filter products based on selected category
-  const filterProductsByCategory = useCallback((productsList, category) => {
-    if (category === 'All') {
-      return productsList;
-    }
-    return productsList.filter(product => 
-      product.category?.toLowerCase() === category.toLowerCase() ||
-      product.raw?.category?.toLowerCase() === category.toLowerCase() ||
-      product.title?.toLowerCase().includes(category.toLowerCase())
-    );
-  }, []);
-
-  // Update filtered products when category or products change
-  useEffect(() => {
-    const filtered = filterProductsByCategory(products, selectedCategory);
-    setFilteredProducts(filtered);
-  }, [products, selectedCategory, filterProductsByCategory]);
-
-  const mapApiItemToProduct = useCallback((item) => {
-
-  
+  // Normalize product id from API item (single source of truth)
+  const normalizeApiItem = (item = {}) => {
+    // Prefer item.productId (explicit), then item._id, then item.id
+    const productId = String(item.productId ?? item._id ?? item.id ?? '');
     return {
-      id: item.id || item._id || String(Math.random()),
-      title: item.name || item.title || 'Product',
-      subtitle: item.vendor?.name || item.variety || '',
-      price: item.price ?? 0,
+      raw: item,
+      productId,
+      id: item.id ?? item._id ?? productId, // UI id
+      title: item.name ?? item.title ?? 'Product',
+      subtitle: item.vendor?.name ?? item.variety ?? '',
+      price: Number(item.price ?? item.mrp ?? 0),
+      image: item.image || item.imageUrl || null,
+      category: item.category || 'General',
       rating: item.rating ?? 0,
       ratingCount: item.ratingCount ?? 0,
-      image: item.image || null,
+    };
+  };
+
+  const mapApiItemToProduct = useCallback((item) => {
+    const n = normalizeApiItem(item);
+    return {
+      id: n.id,
+      title: n.title,
+      subtitle: n.subtitle,
+      price: n.price,
+      rating: n.rating,
+      ratingCount: n.ratingCount,
+      image: n.image,
       isFavorite: false,
-      raw: item, // Keep original data
-      productId: item._id || item.id || item.productId,
-      category: item.category || 'General',
+      raw: n.raw,
+      productId: n.productId,
+      category: n.category,
     };
   }, []);
 
@@ -88,15 +85,11 @@ const SmartPicks = () => {
       if (res?.data?.success && Array.isArray(res.data.data)) {
         const mapped = res.data.data.map(mapApiItemToProduct);
         setProducts(mapped);
-        console.log('📦 Loaded products:', mapped.length);
       } else {
+        // try object -> array fallback
         if (res?.data?.data) {
-          try {
-            const mapped = Object.values(res.data.data).map(mapApiItemToProduct);
-            setProducts(mapped);
-          } catch (e) {
-            setProducts([]);
-          }
+          const arr = Array.isArray(res.data.data) ? res.data.data : Object.values(res.data.data);
+          setProducts(arr.map(mapApiItemToProduct));
         } else {
           setProducts([]);
         }
@@ -110,33 +103,39 @@ const SmartPicks = () => {
     }
   };
 
-  // Fetch Cart Items
+  // Fetch Cart Items and build map keyed by productId (string)
   const fetchCart = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
-      if (!token) return;
+      if (!token) {
+        setCartItems({});
+        return;
+      }
 
       const response = await axios.get(`${API_BASE}/api/buyer/cart`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.data.success) {
         const items = response.data.data?.items || [];
         const cartMap = {};
         items.forEach(item => {
-          const productId = item.productId || item.id;
-          cartMap[productId] = {
-            quantity: item.quantity || 1,
-            cartItemId: item._id || item.id
+          // backend cart item should include productId or product reference id
+          // normalize same as normalizeApiItem
+          const productIdKey = String(item.productId ?? item._id ?? item.id ?? '');
+          cartMap[productIdKey] = {
+            quantity: item.quantity ?? 1,
+            cartItemId: item._id ?? item.id ?? null,
+            raw: item,
           };
         });
         setCartItems(cartMap);
-        // Removed console log to reduce clutter
+      } else {
+        setCartItems({});
       }
     } catch (error) {
       console.error('Error fetching cart:', error);
+      setCartItems({});
     }
   };
 
@@ -147,14 +146,12 @@ const SmartPicks = () => {
       if (!token) return;
 
       const response = await axios.get(`${API_BASE}/api/buyer/wishlist`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.data.success) {
         const wishlistItems = response.data.data?.items || [];
-        const favoriteIds = new Set(wishlistItems.map(item => item.productId || item.id));
+        const favoriteIds = new Set(wishlistItems.map(i => String(i.productId ?? i._id ?? i.id ?? '')));
         setFavorites(favoriteIds);
       }
     } catch (error) {
@@ -166,162 +163,136 @@ const SmartPicks = () => {
     fetchProducts();
     fetchWishlist();
     fetchCart();
+
+    // listen for cross-screen updates
+    const sub = DeviceEventEmitter.addListener('cartUpdated', () => {
+      fetchCart();
+    });
+    return () => sub.remove();
   }, []);
 
-  // Listen for cart updates (removed auto-refresh to reduce API calls)
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     fetchCart();
-  //     fetchWishlist();
-  //   }, 3000);
+  // Filter products
+  useEffect(() => {
+    const filtered = (selectedCategory === 'All') ? products : products.filter(p => (p.category || '').toLowerCase() === selectedCategory.toLowerCase());
+    setFilteredProducts(filtered);
+  }, [products, selectedCategory]);
 
-  //   return () => clearInterval(interval);
-  // }, []);
-
-  // Dropdown animation
   const toggleDropdown = () => {
     const toValue = showDropdown ? 0 : 1;
     setShowDropdown(!showDropdown);
-    
-    Animated.timing(animation, {
-      toValue,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
+    Animated.timing(animation, { toValue, duration: 300, useNativeDriver: false }).start();
   };
 
-  const dropdownHeight = animation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 240],
-  });
-
-  const borderWidth = animation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 1],
-  });
-
-  // Add to Cart Function
+  // Add to Cart: ensure correct productId sent and update cart map after success
   const addToCart = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
-      
       if (!token) {
         Alert.alert('Login Required', 'Please login to add items to cart');
         return false;
       }
 
-      // Get the correct productId from raw data
-      const productId = product.raw?.productId || product.raw?._id || product.productId || product.id;
+      // Use normalized productId (string)
+      const productId = String(product.productId ?? product.raw?._id ?? product.raw?.id ?? product.id ?? '');
+
+      if (!productId) {
+        Alert.alert('Error', 'Invalid product id');
+        return false;
+      }
+
+      // If already in cart according to current map, just update show message
+      if (cartItems[productId]) {
+        Alert.alert('Info', 'Product already in cart');
+        return false;
+      }
 
       const cartData = {
-        productId: productId,
-        name: product.title || product.raw?.name,
+        productId,
+        name: product.title,
         image: product.image || product.raw?.image,
-        price: product.price || product.raw?.price,
+        price: Number(product.price || 0),
         quantity: 1,
-        category: product.category || product.raw?.category || 'General',
+        category: product.category || 'General',
         variety: product.subtitle || product.raw?.variety || 'Standard',
-        unit: 'piece'
+        unit: 'piece',
       };
 
-
-      const response = await axios.post(
-        `${API_BASE}${CART_ADD_ENDPOINT}`,
-        cartData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          timeout: 10000,
-        }
-      );
+      const response = await axios.post(`${API_BASE}${CART_ADD_ENDPOINT}`, cartData, {
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        timeout: 10000,
+      });
 
       if (response.data.success) {
-        Alert.alert('Success', 'Product added to cart!');
-        // Update cart items immediately
+        // Backend added item — refresh cart to pick server's canonical data
         await fetchCart();
+        DeviceEventEmitter.emit('cartUpdated'); // notify other screens
+        Alert.alert('Success', 'Product added to cart!');
         return true;
       } else {
-        throw new Error(response.data.message || 'Failed to add to cart');
+        // if backend returns message (e.g., already present) show it
+        const msg = response.data.message || 'Failed to add to cart';
+        Alert.alert('Info', msg);
+        // still try refresh
+        await fetchCart();
+        return false;
       }
     } catch (error) {
-      console.error('❌ Error adding to cart:', error);
-      console.error('❌ Error response:', error.response?.data);
-      
-      if (error.response?.status === 400) {
-        const errorMsg = error.response?.data?.message || 'Product is already in your cart';
-        Alert.alert('Info', errorMsg);
-        await fetchCart();
-      } else if (error.response?.status === 401) {
-        Alert.alert('Login Required', 'Please login to add items to cart');
+      console.error('Error adding to cart:', error);
+      const status = error.response?.status;
+      const msg = error.response?.data?.message || error.message || 'Failed to add to cart';
+      if (status === 401) {
+        Alert.alert('Login Required', 'Please login to add items');
+      } else if (status === 400) {
+        Alert.alert('Info', msg);
       } else {
-        Alert.alert('Error', error.response?.data?.message || 'Failed to add to cart');
+        Alert.alert('Error', msg);
       }
+      // refresh just in case
+      await fetchCart();
       return false;
     }
   };
 
-  // Update Cart Quantity
-  const updateQuantity = async (itemId, newQty) => {
-  if (!authToken) {
-    Alert.alert('Error', 'Token not found.');
-    return;
-  }
-  
-  if (newQty < 1) return removeItem(itemId);
+  // Update quantity by cartItemId (safer)
+  const updateCartQuantity = async (product, newQty) => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
 
-  const prevItem = cartItems.find(i => i.id === itemId);
-
-  // Optimistic UI
-  setCartItems(prev =>
-    prev.map(i => (i.id === itemId ? { ...i, quantity: newQty } : i))
-  );
-
-  try {
-    // Correct API endpoint with itemId in URL
-    const res = await fetch(`${BASE_URL}/api/buyer/cart/${itemId}/quantity`, {
-      method: 'PUT',
-      headers: { 
-        'Content-Type': 'application/json', 
-        Authorization: `Bearer ${authToken}` 
-      },
-      body: JSON.stringify({ quantity: newQty }), // Only send quantity in body
-    });
-    
-    const json = await res.json();
-    
-    if (!res.ok || !json.success) {
-      Alert.alert('Update Failed', json.message || 'Could not update quantity.');
-      // Revert optimistic update
-      setCartItems(prev =>
-        prev.map(i => (i.id === itemId ? prevItem : i))
-      );
-    } else {
-      // Refresh cart data to get updated prices
-      fetchCartItems(authToken);
+      const productIdKey = String(product.productId ?? product.id ?? '');
+      const entry = cartItems[productIdKey];
+      if (!entry || !entry.cartItemId) {
+        // cannot update if no cart item id: refresh cart
+        await fetchCart();
+        return;
+      }
+      const cartItemId = entry.cartItemId;
+      const res = await axios.put(`${API_BASE}/api/buyer/cart/${cartItemId}/quantity`, { quantity: newQty }, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      if (res.data.success) {
+        await fetchCart();
+        DeviceEventEmitter.emit('cartUpdated');
+      } else {
+        Alert.alert('Error', res.data.message || 'Failed to update quantity');
+      }
+    } catch (err) {
+      console.error('Error updating cart quantity:', err);
+      Alert.alert('Error', 'Failed to update cart quantity');
+      await fetchCart();
     }
-  } catch (e) {
-    console.error('Update Error:', e);
-    Alert.alert('Error', 'Network error.');
-    // Revert optimistic update
-    setCartItems(prev =>
-      prev.map(i => (i.id === itemId ? prevItem : i))
-    );
-  }
-};
+  };
 
-  // Add to Wishlist Function
+  // Wishlist functions unchanged (use normalized ids)
   const addToWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
-      
       if (!token) {
         Alert.alert('Login Required', 'Please login to add items to wishlist');
         return false;
       }
 
-      const wishlistData = {
+      const payload = {
         productId: product.productId || product.id,
         name: product.title,
         image: product.image,
@@ -331,61 +302,36 @@ const SmartPicks = () => {
         unit: 'piece'
       };
 
-      const response = await axios.post(
-        `${API_BASE}${WISHLIST_ADD_ENDPOINT}`,
-        wishlistData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          timeout: 10000,
-        }
-      );
+      const response = await axios.post(`${API_BASE}${WISHLIST_ADD_ENDPOINT}`, payload, {
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      });
 
       if (response.data.success) {
-        Alert.alert('Success', 'Product added to wishlist!');
         setFavorites(prev => new Set(prev).add(product.id));
+        Alert.alert('Success', 'Product added to wishlist!');
         return true;
       } else {
         throw new Error(response.data.message || 'Failed to add to wishlist');
       }
     } catch (error) {
-      console.error('❌ Error adding to wishlist:', error);
-      
-      if (error.response?.status === 400) {
-        Alert.alert('Info', 'Product is already in your wishlist');
-        setFavorites(prev => new Set(prev).add(product.id));
-      } else if (error.response?.status === 401) {
-        Alert.alert('Login Required', 'Please login to add items to wishlist');
-      } else {
-        Alert.alert('Error', error.response?.data?.message || 'Failed to add to wishlist');
-      }
+      console.error('Error adding to wishlist:', error);
+      Alert.alert('Error', error.response?.data?.message || error.message || 'Failed to add to wishlist');
       return false;
     }
   };
 
-  // Remove from Wishlist Function
   const removeFromWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
-      
       if (!token) {
         Alert.alert('Login Required', 'Please login to manage wishlist');
         return false;
       }
 
       const productId = product.productId || product.id;
-
-      const response = await axios.delete(
-        `${API_BASE}${WISHLIST_REMOVE_ENDPOINT}/${productId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          timeout: 10000,
-        }
-      );
+      const response = await axios.delete(`${API_BASE}${WISHLIST_REMOVE_ENDPOINT}/${productId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (response.data.success) {
         setFavorites(prev => {
@@ -398,84 +344,44 @@ const SmartPicks = () => {
         throw new Error(response.data.message || 'Failed to remove from wishlist');
       }
     } catch (error) {
-      console.error('❌ Error removing from wishlist:', error);
+      console.error('Error removing from wishlist:', error);
       Alert.alert('Error', error.response?.data?.message || 'Failed to remove from wishlist');
       return false;
     }
   };
 
-  const handleCardPress = (productId) => {
-    console.log('Product pressed:', productId);
-  };
+  const handleCardPress = (productId) => { /* navigate to product detail if needed */ };
 
   const handleFavoritePress = async (productId) => {
     try {
       const product = filteredProducts.find(p => p.id === productId);
       if (!product) return;
-
       if (favorites.has(productId)) {
-        const success = await removeFromWishlist(product);
-        if (success) {
-          Alert.alert('Removed', 'Product removed from wishlist');
-        }
+        await removeFromWishlist(product);
       } else {
         await addToWishlist(product);
       }
-    } catch (error) {
-      console.error('Error in favorite press:', error);
-    }
+      // refresh wishlist set
+      fetchWishlist();
+    } catch (err) { console.error(err); }
   };
 
-  // Handle Add to Cart Button Press from ProductCard
   const handleAddToCart = async (productId) => {
-    try {
-      const product = filteredProducts.find(p => p.id === productId);
-      if (!product) return;
-
-      const productIdKey = product.productId || product.id;
-      
-      // Check if already in cart
-      if (cartItems[productIdKey]) {
-        // Already in cart, do nothing or show message
-        Alert.alert('Already in Cart', 'This product is already in your cart');
-        return;
-      }
-
-      await addToCart(product);
-    } catch (error) {
-      console.error('Error in add to cart:', error);
-    }
+    const product = filteredProducts.find(p => p.id === productId);
+    if (!product) return;
+    await addToCart(product);
   };
 
-  // Handle Quantity Change from ProductCard
   const handleQuantityChange = async (productId, change) => {
-    try {
-      const product = filteredProducts.find(p => p.id === productId);
-      if (!product) return;
-
-      const productIdKey = product.productId || product.id;
-      const currentQuantity = cartItems[productIdKey]?.quantity || 0;
-      const newQuantity = currentQuantity + change;
-
-      if (newQuantity < 0) return;
-
-      await updateCartQuantity(product, newQuantity);
-    } catch (error) {
-      console.error('Error in quantity change:', error);
-    }
-  };
-
-  const handleCategorySelect = (category) => {
-    setSelectedCategory(category);
-    toggleDropdown();
-    console.log('🎯 Selected category:', category);
+    const product = filteredProducts.find(p => p.id === productId);
+    if (!product) return;
+    await updateCartQuantity(product, (cartItems[product.productId]?.quantity || 0) + change);
   };
 
   const renderProductCard = useCallback(({ item }) => {
     const productIdKey = item.productId || item.id;
-    const cartItem = cartItems[productIdKey];
-    const inCart = !!cartItem;
-    const quantity = cartItem?.quantity || 0;
+    const inCart = !!cartItems[productIdKey];
+    const quantity = cartItems[productIdKey]?.quantity || 0;
 
     return (
       <View style={styles.cardWrapper}>
@@ -502,12 +408,6 @@ const SmartPicks = () => {
     );
   }, [favorites, filteredProducts, cartItems]);
 
-  const getItemLayout = useCallback((data, index) => ({
-    length: 138,
-    offset: 138 * index,
-    index,
-  }), []);
-
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
@@ -521,43 +421,19 @@ const SmartPicks = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Smart Picks</Text>
-        
-        {/* Dropdown Container */}
+
         <View style={styles.filterWrapper}>
-          <TouchableOpacity
-            style={styles.filterBtn}
-            onPress={toggleDropdown}
-          >
+          <TouchableOpacity style={styles.filterBtn} onPress={toggleDropdown}>
             <View style={styles.filterExpand}>
               <Text style={styles.filterText}>{selectedCategory}</Text>
               <Ionicons name="chevron-down" size={16} color="#666" />
             </View>
           </TouchableOpacity>
 
-          <Animated.View
-            style={[
-              styles.dropdown,
-              {
-                height: dropdownHeight,
-                borderWidth: borderWidth,
-              },
-            ]}
-          >
+          <Animated.View style={[styles.dropdown, { height: animation.interpolate({ inputRange:[0,1], outputRange:[0,240] }), borderWidth: animation.interpolate({ inputRange:[0,1], outputRange:[0,1] }) }]}>
             {categories.map((category) => (
-              <TouchableOpacity
-                key={category}
-                style={[
-                  styles.dropdownItem,
-                  selectedCategory === category && styles.selectedDropdownItem
-                ]}
-                onPress={() => handleCategorySelect(category)}
-              >
-                <Text style={[
-                  styles.dropdownText,
-                  selectedCategory === category && styles.selectedDropdownText
-                ]}>
-                  {category}
-                </Text>
+              <TouchableOpacity key={category} style={[styles.dropdownItem, selectedCategory === category && styles.selectedDropdownItem]} onPress={() => { setSelectedCategory(category); toggleDropdown(); }}>
+                <Text style={[styles.dropdownText, selectedCategory === category && styles.selectedDropdownText]}>{category}</Text>
               </TouchableOpacity>
             ))}
           </Animated.View>
@@ -572,43 +448,14 @@ const SmartPicks = () => {
         contentContainerStyle={styles.listContainer}
         showsHorizontalScrollIndicator={false}
         style={styles.flatListStyle}
-        refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={() => {
-              fetchProducts(true);
-              fetchCart();
-            }} 
-          />
-        }
-        ListEmptyComponent={
-          !loading && (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
-                {selectedCategory === 'All' 
-                  ? 'No products available right now.' 
-                  : `No ${selectedCategory} products available.`
-                }
-              </Text>
-              <TouchableOpacity 
-                style={styles.showAllButton}
-                onPress={() => handleCategorySelect('All')}
-              >
-                <Text style={styles.showAllButtonText}>Show All Products</Text>
-              </TouchableOpacity>
-            </View>
-          )
-        }
-        removeClippedSubviews={true}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { fetchProducts(true); fetchCart(); }} />}
+        ListEmptyComponent={!loading && (<View style={styles.emptyContainer}><Text style={styles.emptyText}>No products available.</Text></View>)}
         initialNumToRender={5}
-        maxToRenderPerBatch={5}
-        windowSize={5}
-        getItemLayout={getItemLayout}
-        decelerationRate="fast"
       />
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

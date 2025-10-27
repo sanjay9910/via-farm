@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
+  DeviceEventEmitter,
   Dimensions,
   Image,
   Modal,
@@ -30,10 +31,10 @@ const MyCart = () => {
   const [authToken, setAuthToken] = useState(null);
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [vendorDetails, SetVendorsDetails] = useState('')
-  const [slot, setSlot] = useState({ date: '', startTime: '', endTime: '' })
+  const [vendorDetails, SetVendorsDetails] = useState('');
+  const [slot, setSlot] = useState({ date: '', startTime: '', endTime: '' });
 
-  // Price summary from API
+  // Price summary from API (server may provide these; we will treat them as authoritative but compute subtotal locally too)
   const [priceDetails, setPriceDetails] = useState({
     totalMRP: 0,
     couponDiscount: 0,
@@ -61,20 +62,6 @@ const MyCart = () => {
     { code: 'FREESHIP', discount: 50, type: 'fixed' },
   ];
 
-  // Calculate coupon discount
-  const calculateCouponDiscount = () => {
-    if (!appliedCoupon) return 0;
-
-    if (appliedCoupon.type === 'percentage') {
-      return (priceDetails.totalAmount * appliedCoupon.discount) / 100;
-    } else {
-      return Math.min(appliedCoupon.discount, priceDetails.totalAmount);
-    }
-  };
-
-  const couponDiscount = calculateCouponDiscount();
-  const finalAmount = priceDetails.totalAmount + priceDetails.deliveryCharge - couponDiscount;
-
   // --- Fetch Token ---
   const getAuthToken = async () => {
     try {
@@ -95,7 +82,7 @@ const MyCart = () => {
         if (!token) return;
 
         const response = await fetch(
-          "https://393rb0pp-5000.inc1.devtunnels.ms/api/buyer/pickup/68d63155abec554d6931b766?buyerLat=19.076&buyerLng=72.8777",
+          `${BASE_URL}/api/buyer/pickup/68d63155abec554d6931b766?buyerLat=19.076&buyerLng=72.8777`,
           {
             method: "GET",
             headers: {
@@ -107,7 +94,6 @@ const MyCart = () => {
 
         const data = await response.json();
         if (data.success) {
-          console.log("Vendor Details:", data.data.vendor);
           SetVendorsDetails(data.data.vendor);
         } else {
           console.warn("Failed to fetch vendor details:", data.message);
@@ -120,11 +106,6 @@ const MyCart = () => {
     fetchVendorDetails();
   }, []);
   // fetch Vendors Details end
-   
-  // vendors Slot time
-
-
-  // vendors Slot end
 
   // --- Fetch Cart ---
   const fetchCartItems = useCallback(async (token) => {
@@ -142,23 +123,24 @@ const MyCart = () => {
       if (res.ok && json.success) {
         const items = json.data.items || [];
         const transformed = items.map(item => ({
-          id: item.id,
+          id: item.id || item._id,
           title: item.name,
           subtitle: item.subtitle,
-          mrp: item.mrp,
-          price: item.mrp,
+          mrp: Number(item.mrp) || 0,
+          price: Number(item.mrp) || 0,
           image: item.imageUrl,
-          quantity: item.quantity,
+          quantity: item.quantity || 1,
           deliveryDate: item.deliveryText || 'Sep 27',
         }));
         setCartItems(transformed);
 
+        // Use server-provided summary if present, but keep numeric defaults
         const summary = json.data.priceDetails || {};
         setPriceDetails({
-          totalMRP: summary.totalMRP || 0,
-          couponDiscount: summary.couponDiscount || 0,
-          deliveryCharge: summary.deliveryCharge || 0,
-          totalAmount: summary.totalAmount || 0,
+          totalMRP: Number(summary.totalMRP ?? transformed.reduce((s, i) => s + i.price * i.quantity, 0)),
+          couponDiscount: Number(summary.couponDiscount ?? 0),
+          deliveryCharge: Number(summary.deliveryCharge ?? 0),
+          totalAmount: Number(summary.totalAmount ?? 0),
         });
       } else {
         setCartItems([]);
@@ -180,10 +162,21 @@ const MyCart = () => {
       if (token) fetchCartItems(token);
       else {
         setLoading(false);
-        Alert.alert('Login Required', 'Please log in to view your cart.');
+        // don't force an alert on mount; show login when user tries actions
       }
     };
     init();
+
+    // subscribe to cartUpdated events so this screen refreshes immediately
+    const sub = DeviceEventEmitter.addListener('cartUpdated', () => {
+      getAuthToken().then((token) => {
+        if (token) fetchCartItems(token);
+      });
+    });
+
+    return () => {
+      sub.remove();
+    };
   }, [fetchCartItems]);
 
   // --- Update Quantity ---
@@ -257,7 +250,7 @@ const MyCart = () => {
     }
   };
 
-  // Apply coupon function
+  // Apply coupon function (client-side fallback; server should ideally handle)
   const applyCoupon = () => {
     setCouponError('');
     const coupon = availableCoupons.find(c => c.code === couponCode.toUpperCase());
@@ -276,7 +269,30 @@ const MyCart = () => {
     setCouponError('');
   };
 
-  // Modal functions
+  // --- Totals calculation (clean, no double counting) ---
+  // Subtotal (recompute from cartItems to be safe)
+  const subtotal = cartItems.reduce((s, i) => s + (Number(i.price) || 0) * (i.quantity || 0), 0);
+
+  // Coupon discount calculation base on subtotal
+  const calculateCouponDiscount = () => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.type === 'percentage') {
+      return (subtotal * appliedCoupon.discount) / 100;
+    } else {
+      // fixed discount, can't exceed subtotal
+      return Math.min(appliedCoupon.discount, subtotal);
+    }
+  };
+
+  const couponDiscount = calculateCouponDiscount();
+
+  // deliveryCharge: prefer server value, otherwise fallback to 0
+  const deliveryCharge = Number(priceDetails.deliveryCharge || 0);
+
+  // final amount = subtotal - couponDiscount + deliveryCharge
+  const finalAmount = Number((subtotal - couponDiscount + deliveryCharge).toFixed(2));
+
+  // Modal pan responders & open/close (unchanged)
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onPanResponderMove: (evt, gestureState) => {
@@ -335,7 +351,7 @@ const MyCart = () => {
   };
 
   const handleOptionSelect = (option) => {
-    navigation.navigate("ReviewOrder")
+    navigation.navigate("ReviewOrder");
     setSelectedOption(option);
     closeModal();
   };
@@ -362,9 +378,13 @@ const MyCart = () => {
     });
   };
 
+  // Navigate to ReviewOrder and pass totalAmount so Payment flow uses same amount
   const goReviewPage = () => {
-    navigation.navigate("ReviewOrder")
-  }
+    navigation.navigate("ReviewOrder", {
+      totalAmount: finalAmount,
+      totalItems: cartItems.reduce((s, i) => s + (i.quantity || 0), 0).toString(),
+    });
+  };
 
   // Cart Card Component
   const CartCard = ({ item }) => (
@@ -377,7 +397,7 @@ const MyCart = () => {
           <Text style={styles.productSubtitle}>{item.subtitle}</Text>
 
           <View style={styles.priceContainer}>
-            <Text style={styles.priceText}>₹{item.price}</Text>
+            <Text style={styles.priceText}>₹{Number(item.price).toFixed(2)}</Text>
           </View>
 
           <Text style={styles.deliveryText}>Delivery by {item.deliveryDate}</Text>
@@ -394,7 +414,7 @@ const MyCart = () => {
       <View style={styles.quantityContainer}>
         <TouchableOpacity
           style={styles.quantityButton}
-          onPress={() => updateQuantity(item.id, item.quantity - 1)}
+          onPress={() => updateQuantity(item.id, (item.quantity || 1) - 1)}
         >
           <Text style={styles.quantityButtonText}>-</Text>
         </TouchableOpacity>
@@ -405,7 +425,7 @@ const MyCart = () => {
 
         <TouchableOpacity
           style={styles.quantityButton}
-          onPress={() => updateQuantity(item.id, item.quantity + 1)}
+          onPress={() => updateQuantity(item.id, (item.quantity || 1) + 1)}
         >
           <Text style={styles.quantityButtonText}>+</Text>
         </TouchableOpacity>
@@ -497,22 +517,22 @@ const MyCart = () => {
 
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>Total MRP</Text>
-                <Text style={styles.priceValue}>₹{priceDetails.totalMRP}</Text>
+                <Text style={styles.priceValue}>₹{Number(subtotal).toFixed(2)}</Text>
               </View>
 
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>Coupon Discount</Text>
-                <Text style={styles.discountValue}>-₹{couponDiscount}</Text>
+                <Text style={styles.discountValue}>-₹{Number(couponDiscount).toFixed(2)}</Text>
               </View>
 
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>Delivery Charges</Text>
-                <Text style={styles.priceValue}>₹{priceDetails.deliveryCharge}</Text>
+                <Text style={styles.priceValue}>₹{Number(deliveryCharge).toFixed(2)}</Text>
               </View>
 
               <View style={[styles.priceRow, styles.totalRow]}>
                 <Text style={styles.totalLabel}>Total Amount</Text>
-                <Text style={styles.totalValue}>₹{finalAmount}</Text>
+                <Text style={styles.totalValue}>₹{Number(finalAmount).toFixed(2)}</Text>
               </View>
             </View>
           )}
