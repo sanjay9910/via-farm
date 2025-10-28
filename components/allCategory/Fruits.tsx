@@ -4,6 +4,7 @@ import axios from "axios";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   StyleSheet,
@@ -14,10 +15,14 @@ import {
 
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
 
-// ✅ Reusable Product Card (same as NewSeason)
-const ProductCard = ({ name, image }) => {
+// ✅ Touchable Product Card
+const ProductCard = ({ id, name, image, onPress }) => {
   return (
-    <View style={cardStyles.container}>
+    <TouchableOpacity
+      style={cardStyles.container}
+      activeOpacity={0.85}
+      onPress={() => onPress && onPress(id)}
+    >
       <View style={cardStyles.card}>
         <Image
           source={{
@@ -30,7 +35,7 @@ const ProductCard = ({ name, image }) => {
       <Text style={cardStyles.name} numberOfLines={2}>
         {name}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -63,20 +68,21 @@ const Fruits = () => {
         }
       );
 
-      console.log("🍎 Fruits API Response:", response.data);
+      // console.log("🍎 Fruits API Response:", response.data);
 
-      if (response.data && response.data.success) {
+      if (response.data && response.data.success && Array.isArray(response.data.data)) {
         const formattedData = response.data.data.map((item, index) => ({
           id: item._id || `fruit-${index}`,
-          name: item.name,
+          name: item.name || 'Unnamed',
           image:
             item.images && item.images.length > 0
               ? item.images[0]
               : "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
+          raw: item,
         }));
         setData(formattedData);
-        // console.log(`✅ Loaded ${formattedData.length} fruits`);
       } else {
+        setData([]);
         setError("No fruits found in your area");
       }
     } catch (err) {
@@ -109,6 +115,28 @@ const Fruits = () => {
 
   const handleLogin = () => {
     navigation.navigate("login");
+  };
+
+  // Try to navigate to product detail. First attempt "ViewProduct", fallback to "ViewOrderProduct".
+  const openProductDetails = (productId) => {
+    if (!productId) {
+      console.warn("openProductDetails: missing productId");
+      Alert.alert("Error", "Product id missing");
+      return;
+    }
+
+    try {
+      // primary target (as you asked: ViewProduct)
+      navigation.navigate("ViewProduct", { productId });
+    } catch (e1) {
+      // fallback if route not registered
+      try {
+        navigation.navigate("ViewOrderProduct", { productId });
+      } catch (e2) {
+        console.error("Navigation error:", e1, e2);
+        Alert.alert("Navigation Error", "Could not open product detail screen. Check route names.");
+      }
+    }
   };
 
   // ⏳ Loading
@@ -148,7 +176,7 @@ const Fruits = () => {
               <Text style={styles.buttonText}>Try Again</Text>
             </TouchableOpacity>
 
-            {error.includes("login") && (
+            {error.toLowerCase().includes("login") && (
               <TouchableOpacity
                 style={styles.loginButton}
                 onPress={handleLogin}
@@ -175,12 +203,12 @@ const Fruits = () => {
       {data.length > 0 ? (
         <FlatList
           data={data}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => String(item.id)}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 10 }}
           renderItem={({ item }) => (
-            <ProductCard name={item.name} image={item.image} />
+            <ProductCard id={item.id} name={item.name} image={item.image} onPress={openProductDetails} />
           )}
         />
       ) : (

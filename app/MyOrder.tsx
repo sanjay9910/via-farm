@@ -351,7 +351,7 @@ const submitReview = async () => {
     // Handle order item press
     const handleOrderPress = (orderId) => {
         try {
-            navigation.navigate('ViewProduct', { orderId: orderId });
+            navigation.navigate('ViewOrderProduct', { orderId: orderId });
         } catch (error) {
             console.error('Navigation error:', error);
             Alert.alert('Error', 'Unable to open order details. Please try again.');

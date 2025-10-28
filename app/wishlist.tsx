@@ -34,7 +34,6 @@ const MyWishlist = () => {
             setLoading(true);
             setError(null);
 
-            // Get token from AsyncStorage
             const token = await AsyncStorage.getItem("userToken");
             console.log("📦 Retrieved Token:", token);
 
@@ -42,7 +41,6 @@ const MyWishlist = () => {
                 throw new Error("No token found. Please login again.");
             }
 
-            // Fetch wishlist data from API
             const response = await fetch(`${API_BASE}${API_ENDPOINT}`, {
                 method: "GET",
                 headers: {
@@ -61,12 +59,12 @@ const MyWishlist = () => {
 
             const items = json?.data?.items || [];
 
-            // Map the API data to match your screenshot card structure
+            // Map the API data to match your card structure
             const mappedData = items.map((item, index) => {
-                console.log(`Item ${index}:`, item);
+                const mappedId = item.id || item._id || item.productId || `tmp-${index}`;
                 return {
-                    id: item.id || item._id || item.productId,
-                    productId: item.productId || item.id, // Add productId specifically
+                    id: mappedId,
+                    productId: item.productId || item.id || item._id || mappedId, // ensure productId exists
                     image: item.image,
                     name: item.name,
                     variety: item.variety,
@@ -76,7 +74,7 @@ const MyWishlist = () => {
                     unit: `/${item.unit}`,
                     pricePerUnit: item.pricePerUnit || `${item.price} /kg`,
                     rating: item.rating || "4.5",
-                    inCart: item.inCart || false,
+                    inCart: !!item.inCart,
                     category: item.category || 'Fruits'
                 };
             });
@@ -98,19 +96,14 @@ const MyWishlist = () => {
         fetchWishlistData();
     }, []);
 
-    // Function to remove item from wishlist via API - FIXED
+    // Remove from wishlist (API) and local state
     const handleRemoveFromWishlist = async (item) => {
         try {
             const token = await AsyncStorage.getItem("userToken");
+            if (!token) throw new Error("No token found. Please login again.");
 
-            if (!token) {
-                throw new Error("No token found. Please login again.");
-            }
-
-            // Use productId instead of id for removal
             const itemId = item.productId || item.id;
-            console.log("🗑️ Removing wishlist item:", item);
-            console.log("🗑️ Using ID for removal:", itemId);
+            console.log("🗑️ Removing wishlist item:", item, "using id:", itemId);
 
             const response = await fetch(`${API_BASE}/api/buyer/wishlist/${itemId}`, {
                 method: "DELETE",
@@ -127,16 +120,9 @@ const MyWishlist = () => {
                 throw new Error(json.message || `Failed to remove item`);
             }
 
-            // Remove item from local state
-            const updatedData = wishlistData.filter(wishlistItem =>
-                wishlistItem.id !== item.id
-            );
-            const updatedFilteredData = filteredData.filter(wishlistItem =>
-                wishlistItem.id !== item.id
-            );
-
-            setWishlistData(updatedData);
-            setFilteredData(updatedFilteredData);
+            // Remove item from local state by mapped id
+            setWishlistData(prev => prev.filter(w => String(w.id) !== String(item.id)));
+            setFilteredData(prev => prev.filter(w => String(w.id) !== String(item.id)));
 
             Alert.alert('Success', 'Item removed from wishlist successfully');
         } catch (error) {
@@ -145,24 +131,18 @@ const MyWishlist = () => {
         }
     };
 
-    // Function to handle add to cart via API
+    // Add to cart (optimistic update)
     const handleAddToCart = async (item) => {
+        const productId = item.productId || item.id;
+        // Optimistically update UI
+        setWishlistData(prev => prev.map(w => (String(w.id) === String(item.id) ? { ...w, inCart: true } : w)));
+        setFilteredData(prev => prev.map(w => (String(w.id) === String(item.id) ? { ...w, inCart: true } : w)));
+
         try {
             const token = await AsyncStorage.getItem("userToken");
+            if (!token) throw new Error("No token found. Please login again.");
 
-            if (!token) {
-                throw new Error("No token found. Please login again.");
-            }
-
-            console.log("🛒 Adding to cart:", item);
-
-            const requestBody = {
-                productId: item.productId || item.id,
-                quantity: 1 // Default quantity, you can modify this as needed
-            };
-
-            console.log("🛒 Add to Cart Request Body:", requestBody);
-
+            const requestBody = { productId, quantity: 1 };
             const response = await fetch(`${API_BASE}/api/buyer/cart/add`, {
                 method: "POST",
                 headers: {
@@ -176,27 +156,13 @@ const MyWishlist = () => {
             console.log("🛒 Add to Cart Response:", json);
 
             if (!response.ok || !json.success) {
+                // rollback UI
+                setWishlistData(prev => prev.map(w => (String(w.id) === String(item.id) ? { ...w, inCart: false } : w)));
+                setFilteredData(prev => prev.map(w => (String(w.id) === String(item.id) ? { ...w, inCart: false } : w)));
                 throw new Error(json.message || `Failed to add item to cart`);
             }
 
-            // Update local state to show item is in cart
-            const updatedData = wishlistData.map(wishlistItem => {
-                if (wishlistItem.id === item.id) {
-                    return { ...wishlistItem, inCart: true };
-                }
-                return wishlistItem;
-            });
-            
-            const updatedFilteredData = filteredData.map(wishlistItem => {
-                if (wishlistItem.id === item.id) {
-                    return { ...wishlistItem, inCart: true };
-                }
-                return wishlistItem;
-            });
-
-            setWishlistData(updatedData);
-            setFilteredData(updatedFilteredData);
-
+            // success already reflected in UI
             Alert.alert('Success', 'Item added to cart successfully');
         } catch (error) {
             console.error('❌ Error adding to cart:', error);
@@ -204,19 +170,18 @@ const MyWishlist = () => {
         }
     };
 
-    // Function to handle remove from cart via API
+    // Remove from cart (optimistic update)
     const handleRemoveFromCart = async (item) => {
+        const productId = item.productId || item.id;
+        // Optimistically update UI
+        setWishlistData(prev => prev.map(w => (String(w.id) === String(item.id) ? { ...w, inCart: false } : w)));
+        setFilteredData(prev => prev.map(w => (String(w.id) === String(item.id) ? { ...w, inCart: false } : w)));
+
         try {
             const token = await AsyncStorage.getItem("userToken");
+            if (!token) throw new Error("No token found. Please login again.");
 
-            if (!token) {
-                throw new Error("No token found. Please login again.");
-            }
-
-            console.log("🗑️ Removing from cart:", item);
-
-            const itemId = item.productId || item.id;
-            const response = await fetch(`${API_BASE}/api/buyer/cart/${itemId}`, {
+            const response = await fetch(`${API_BASE}/api/buyer/cart/${productId}`, {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
@@ -228,26 +193,11 @@ const MyWishlist = () => {
             console.log("🗑️ Remove from Cart Response:", json);
 
             if (!response.ok || !json.success) {
+                // rollback UI
+                setWishlistData(prev => prev.map(w => (String(w.id) === String(item.id) ? { ...w, inCart: true } : w)));
+                setFilteredData(prev => prev.map(w => (String(w.id) === String(item.id) ? { ...w, inCart: true } : w)));
                 throw new Error(json.message || `Failed to remove item from cart`);
             }
-
-            // Update local state to show item is not in cart
-            const updatedData = wishlistData.map(wishlistItem => {
-                if (wishlistItem.id === item.id) {
-                    return { ...wishlistItem, inCart: false };
-                }
-                return wishlistItem;
-            });
-            
-            const updatedFilteredData = filteredData.map(wishlistItem => {
-                if (wishlistItem.id === item.id) {
-                    return { ...wishlistItem, inCart: false };
-                }
-                return wishlistItem;
-            });
-
-            setWishlistData(updatedData);
-            setFilteredData(updatedFilteredData);
 
             Alert.alert('Success', 'Item removed from cart successfully');
         } catch (error) {
@@ -256,27 +206,18 @@ const MyWishlist = () => {
         }
     };
 
-    // Function to handle move to cart (toggle between add/remove)
+    // Toggle add/remove cart with confirmation for removal
     const handleCartAction = (item) => {
         if (item.inCart) {
-            // If item is already in cart, remove it
             Alert.alert(
                 'Remove from Cart',
                 'Are you sure you want to remove this item from your cart?',
                 [
-                    {
-                        text: 'Cancel',
-                        style: 'cancel',
-                    },
-                    {
-                        text: 'Remove',
-                        style: 'destructive',
-                        onPress: () => handleRemoveFromCart(item),
-                    },
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Remove', style: 'destructive', onPress: () => handleRemoveFromCart(item) },
                 ]
             );
         } else {
-            // If item is not in cart, add it
             handleAddToCart(item);
         }
     };
@@ -291,7 +232,7 @@ const MyWishlist = () => {
 
     const dropdownHeight = animation.interpolate({
         inputRange: [0, 1],
-        outputRange: [0, 180], // Increased height for more options
+        outputRange: [0, 180],
     });
 
     const borderWidth = animation.interpolate({
@@ -304,9 +245,8 @@ const MyWishlist = () => {
     const handleSelect = (option) => {
         setSelectedOption(option);
 
-        // Apply filter based on selected option
         if (option === 'All') {
-            setFilteredData(wishlistData); // Show all items
+            setFilteredData(wishlistData);
         } else {
             const filtered = wishlistData.filter(item =>
                 item.category?.toLowerCase().includes(option.toLowerCase()) ||
@@ -318,29 +258,19 @@ const MyWishlist = () => {
         toggleDropdown();
     };
 
-    // Confirm remove from wishlist
     const confirmRemove = (item) => {
         Alert.alert(
             'Remove from Wishlist',
             'Are you sure you want to remove this item from your wishlist?',
             [
-                {
-                    text: 'Cancel',
-                    style: 'cancel',
-                },
-                {
-                    text: 'Remove',
-                    style: 'destructive',
-                    onPress: () => handleRemoveFromWishlist(item),
-                },
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Remove', style: 'destructive', onPress: () => handleRemoveFromWishlist(item) },
             ]
         );
     };
 
-    // Render each card item
     const renderCard = ({ item, index }) => (
         <View style={styles.card}>
-            {/* Close button */}
             <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => confirmRemove(item)}
@@ -348,7 +278,6 @@ const MyWishlist = () => {
                 <Text style={styles.closeButtonText}>×</Text>
             </TouchableOpacity>
 
-            {/* Product Image */}
             {item.image ? (
                 <Image
                     source={{ uri: item.image }}
@@ -361,7 +290,6 @@ const MyWishlist = () => {
                 </View>
             )}
 
-            {/* Product Details */}
             <View style={styles.productInfo}>
                 <Text style={styles.productName}>
                     {item.name} {item.variety}
@@ -380,7 +308,6 @@ const MyWishlist = () => {
                 </Text>
             </View>
 
-            {/* Add to Cart / Remove from Cart Button */}
             <TouchableOpacity
                 style={[
                     styles.cartButton,
@@ -389,13 +316,12 @@ const MyWishlist = () => {
                 onPress={() => handleCartAction(item)}
             >
                 <Text style={styles.cartButtonText}>
-                    {item.inCart ? 'Remove from Cart' : 'Add to Cart'}
+                    {item.inCart ? 'Move to Cart' : 'Add to Cart'}
                 </Text>
             </TouchableOpacity>
         </View>
     );
 
-    // Loading component
     const renderLoading = () => (
         <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color="#4CAF50" />
@@ -403,7 +329,6 @@ const MyWishlist = () => {
         </View>
     );
 
-    // Error component
     const renderError = () => (
         <View style={styles.centerContainer}>
             <Text style={styles.errorText}>Error: {error}</Text>
@@ -416,7 +341,6 @@ const MyWishlist = () => {
         </View>
     );
 
-    // Empty wishlist component
     const renderEmptyWishlist = () => (
         <View style={styles.centerContainer}>
             <Image
@@ -472,7 +396,6 @@ const MyWishlist = () => {
                 </View>
             </View>
 
-            {/* Conditional rendering based on state */}
             {loading ? (
                 renderLoading()
             ) : error ? (
@@ -492,11 +415,10 @@ const MyWishlist = () => {
                     </View>
                 )
             ) : (
-                /* FlatList with 2 cards per row */
                 <FlatList
                     data={filteredData}
                     renderItem={renderCard}
-                    keyExtractor={(item) => item.id.toString()}
+                    keyExtractor={(item) => String(item.id ?? item.productId ?? Math.random())}
                     numColumns={2}
                     contentContainerStyle={styles.flatListContent}
                     showsVerticalScrollIndicator={false}
@@ -507,7 +429,6 @@ const MyWishlist = () => {
         </SafeAreaView>
     );
 };
-
 
 const styles = StyleSheet.create({
     container: {
@@ -588,10 +509,7 @@ const styles = StyleSheet.create({
         position: 'relative',
         overflow: 'hidden',
         shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 5,
@@ -608,10 +526,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 10,
         shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
+        shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.2,
         shadowRadius: 2,
         elevation: 2,
@@ -671,7 +586,7 @@ const styles = StyleSheet.create({
     addButton: {
         backgroundColor: 'rgba(76, 175, 80, 1)',
     },
-    moveButton: {
+    removeButton: {
         backgroundColor: '#4CAF50',
     },
     cartButtonText: {

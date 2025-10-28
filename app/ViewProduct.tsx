@@ -1,907 +1,414 @@
 import SuggestionCard from '@/components/myCard/SuggestionCard';
-import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-import { useLocalSearchParams, useNavigation } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import { useLocalSearchParams, useNavigation } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
+  Alert,
+  Dimensions,
   FlatList,
   Image,
-  Modal,
-  PanResponder,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
+  View,
+} from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
+const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
+const { width: SCREEN_W } = Dimensions.get("window");
 
-// --- UPDATED PickupLocationCard Component ---
-const PickupLocationCard = ({ vendorAddress, distance, onPressNavigation }) => {
-  // Constructing the full address string from vendorAddress object
-  const fullVendorAddress = vendorAddress?.houseNumber || vendorAddress?.locality || vendorAddress?.city
-    ? `${vendorAddress.houseNumber || ''}${vendorAddress.houseNumber && vendorAddress.locality ? ', ' : ''}${vendorAddress.locality || ''}${vendorAddress.locality && vendorAddress.city ? ', ' : ''}${vendorAddress.city || ''}`
-    : 'Vendor Location not available';
-
-  const displayAddress = fullVendorAddress.trim() || 'Vendor Location not available';
-
-  return (
-    <View style={pickupStyles.container}>
-      <View style={pickupStyles.leftContent}>
-        {/* <Ionicons name="location-sharp" size={20} color="#555" style={pickupStyles.icon} /> */}
-        <View style={pickupStyles.textContainer}>
-          <Text style={pickupStyles.locationText} numberOfLines={1}>
-            <Ionicons name="location-sharp" size={20} color="#555" style={pickupStyles.icon} /> Pickup Location - {displayAddress}
-          </Text>
-          <Text style={pickupStyles.distanceText}>
-            ({distance})
-          </Text>
-        </View>
-      </View>
-      <TouchableOpacity onPress={onPressNavigation} style={pickupStyles.navigationButton}>
-        <Image source={require("../assets/via-farm-img/icons/mapDirection.png")} />
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-const pickupStyles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    marginTop: 10,
-    marginBottom: 10,
-    padding: 5,
-    backgroundColor: 'whitesmock',
-  },
-
-  icon: {
-    // marginRight: 10,
-    color: '#666',
-  },
-  textContainer: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  locationText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    alignItems: 'center',
-  },
-  distanceText: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
-  },
-  navigationButton: {
-    padding: 5,
-    borderRadius: 20,
-  },
-});
-// ------------------------------------------
-
-const ProductDetailScreen = () => {
-  const [pincode, setPincode] = useState('110015');
-  const [coupon, setCoupon] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [product, setProduct] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [inWishlist, setInWishlist] = useState(false);
-  const [addresses, setAddresses] = useState([]);
-  const [inCart, setInCart] = useState(false);
-  const [selectedAddress, setSelectedAddress] = useState({
-    id: 0,
-    name: 'Default',
-    pincode: '110015',
-    address: '182/3, Vinod Nagar, Delhi',
-  });
-  const [vendorExpanded, setVendorExpanded] = useState(false);
-  const slideAnim = useState(new Animated.Value(300))[0];
+export default function ProductDetailScreen() {
+  const { productId } = useLocalSearchParams();
   const navigation = useNavigation();
-  const { orderId } = useLocalSearchParams();
 
-const fetchBuyerAddress = async () => {
-  try {
-    const token = await AsyncStorage.getItem('userToken');
-    if (!token) {
-      console.log('No token found');
-      return [];
-    }
+  const [loading, setLoading] = useState(true);
+  const [product, setProduct] = useState(null); 
+  const [vendor, setVendor] = useState(null);
+  const [recommended, setRecommended] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [inCart, setInCart] = useState(false);
+  const [inWishlist, setInWishlist] = useState(false);
+  const [pincode, setPincode] = useState("110015");
+  const [coupon, setCoupon] = useState("");
+  const [addresses, setAddresses] = useState([]);
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [vendorExpanded, setVendorExpanded] = useState(false);
 
-    const res = await axios.get(
-      `${API_BASE}/api/buyer/addresses`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    if (res.data.success) {
-      const apiAddresses = res.data.addresses.map(addr => ({
-        id: addr.id,
-        name: addr.name || 'Unknown User',
-        pincode: addr.pinCode || '',
-        address: `${addr.houseNumber || ''}, ${addr.locality || ''}, ${addr.city || ''}, ${addr.district || ''}, ${addr.state || ''}`.replace(/,\s*,/g, ','),
-        isDefault: addr.isDefault || false,
-      }));
-
-      // console.log('Fetched Addresses:', apiAddresses);
-      return apiAddresses;
-    } else {
-      console.log('Failed to fetch addresses:', res.data.message);
-      return [];
-    }
-  } catch (error) {
-    console.error('Error fetching buyer addresses:', error);
-    return [];
-  }
-};
-
-useEffect(() => {
-  const loadAddresses = async () => {
-    const data = await fetchBuyerAddress();
-    setAddresses(data);
-  };
-  loadAddresses();
-}, []);
-
-  useEffect(() => {
-    fetchOrderDetails();
-  }, [orderId]);
-
-  // ✅ Fetch order details + set product
-  const fetchOrderDetails = async () => {
+  const fetchProduct = useCallback(async (id) => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) throw new Error('Login required');
+      const token = await AsyncStorage.getItem("userToken");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await axios.get(`${API_BASE}/api/buyer/products/${id}`, { headers, timeout: 10000 });
 
-      const response = await axios.get(`${API_BASE}/api/buyer/orders/${orderId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.data.success && response.data.order) {
-        const orderData = response.data.order;
-
-        // Transform each item
-        const transformedItems = orderData.items.map(item => ({
-          id: item.id || '',
-          name: item.name || 'Unknown Product',
-          description: item.description || 'No description available.',
-          category: item.category || 'Unknown Category',
-          variety: item.subtext || 'Unknown Variety',
-          quantity: item.quantity || 0,
-          price: item.price || 0,
-          unit: item.unit || 'pc',
-          image: item.image || 'https://via.placeholder.com/400x220.png?text=Product',
-          reviews: (item.reviews || []).map(r => ({
-            id: r.id,
-            rating: r.rating,
-            comment: r.comment || '',
-            images: r.images || [],
-            createdAt: r.createdAt,
-            user: {
-              id: r.user._id,
-              name: r.user.name,
-              profilePicture: r.user.profilePicture
-            }
-          }))
-        }));
-
-        // Vendor info
-        const vendorDetails = orderData.vendorDetails || {};
-        const vendorAddress = vendorDetails.address || {};
-
-        const transformedProduct = {
-          id: transformedItems[0]?.id || '',
-          name: transformedItems[0]?.name || 'Unknown Product',
-          image: transformedItems[0]?.image || 'https://via.placeholder.com/400x220.png?text=Product',
-          rating: 4.5, // You can calculate avg rating if needed
-          price: transformedItems[0]?.price || orderData.totalPrice || 0,
-          category: transformedItems[0]?.category || 'Unknown Category',
-          variety: transformedItems[0]?.variety || 'Unknown Variety',
-          description: transformedItems[0]?.description || 'No description available.',
-          vendor: vendorDetails.name || 'Unknown Vendor',
-          vendorId: orderData.vendor || '',
-          deliveryDate: orderData.deliveryDate || 'N/A',
-          items: transformedItems,
-          vendorDetails: {
-            name: vendorDetails.name || 'Unknown Vendor',
-            mobileNumber: vendorDetails.mobileNumber || 'N/A',
-            profilePicture: vendorDetails.profilePicture || 'https://via.placeholder.com/80x80.png?text=Vendor',
-            about: vendorDetails.about || 'No information available.',
-            address: {
-              houseNumber: vendorAddress.houseNumber || '',
-              street: vendorAddress.street || '',
-              locality: vendorAddress.locality || '',
-              city: vendorAddress.city || '',
-              district: vendorAddress.district || '',
-              state: vendorAddress.state || '',
-              zip: vendorAddress.zip || '',
-              pinCode: vendorAddress.pinCode || '',
-              latitude: vendorAddress.latitude || '',
-              longitude: vendorAddress.longitude || ''
-            }
-          },
-          shippingAddress: orderData.shippingAddress
-            ? {
-              id: orderData.shippingAddress._id,
-              name: 'User',
-              pincode: orderData.shippingAddress.pinCode,
-              address: `${orderData.shippingAddress.houseNumber}, ${orderData.shippingAddress.locality}, ${orderData.shippingAddress.city}, ${orderData.shippingAddress.state}`
-            }
-            : null,
-          totalPrice: orderData.totalPrice,
-          paymentMethod: orderData.paymentMethod,
-          comments: orderData.comments,
-          donation: orderData.donation,
-          orderStatus: orderData.orderStatus,
-          transactionId: orderData.transactionId
-        };
-
-        setProduct(transformedProduct);
-
-        // Set selected address
-        if (transformedProduct.shippingAddress) {
-          setSelectedAddress(transformedProduct.shippingAddress);
-          setPincode(transformedProduct.shippingAddress.pincode);
+      if (res.data?.success && res.data?.data?.product) {
+        const p = res.data.data.product;
+        setProduct(p);
+        setVendor(res.data.data.vendor ?? p.vendor ?? null);
+        setRecommended(res.data.data.recommendedProducts ?? []);
+        setReviews(res.data.data.reviews?.list ?? []);
+        // default shipping address if present in response
+        if (res.data.data.shippingAddress) {
+          setSelectedAddress(res.data.data.shippingAddress);
+          setPincode(res.data.data.shippingAddress.pinCode ?? pincode);
         }
-
-        // Check cart & wishlist
-        checkIfInCart(transformedProduct.id, token);
-        checkIfInWishlist(transformedProduct.id, token);
-
+        // check cart/wishlist if token available
+        if (token) checkCartWishlist(p._id, token);
       } else {
-        throw new Error('Order not found');
+        Alert.alert("Error", "Product not found");
+        navigation.back?.();
       }
-    } catch (error) {
-      console.log('Order fetch error:', error.response?.data || error.message);
-      alert('Failed to load order details.');
+    } catch (err) {
+      console.error("fetchProduct error:", err?.response?.data ?? err.message);
+      Alert.alert("Error", "Failed to load product");
+      navigation.back?.();
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigation, pincode]);
 
+  useEffect(() => {
+    if (!productId) {
+      Alert.alert("Error", "Product id missing");
+      return;
+    }
+    fetchProduct(productId);
+  }, [productId, fetchProduct]);
 
-
-  const checkIfInCart = async (productId, token) => {
+  const checkCartWishlist = async (prodId, token) => {
     try {
-      const res = await axios.get(`${API_BASE}/api/buyer/cart`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.data.success && res.data.cartItems) {
-        const exists = res.data.cartItems.some(item => item.productId === productId);
-        setInCart(exists);
-      }
-    } catch (error) {
-      console.log('Check cart error:', error.response?.data || error.message);
+      const cartRes = await axios.get(`${API_BASE}/api/buyer/cart`, { headers: { Authorization: `Bearer ${token}` } });
+      const items = cartRes.data?.data?.items ?? cartRes.data?.data?.cartItems ?? cartRes.data?.cartItems ?? [];
+      setInCart(Array.isArray(items) && items.some(it => String(it.productId ?? it.product?._id) === String(prodId)));
+    } catch (e) {
+      console.warn("checkCart err", e?.message ?? e);
+    }
+    try {
+      const wishRes = await axios.get(`${API_BASE}/api/buyer/wishlist`, { headers: { Authorization: `Bearer ${token}` } });
+      const items = wishRes.data?.data?.items ?? wishRes.data?.wishlistItems ?? [];
+      setInWishlist(Array.isArray(items) && items.some(it => String(it.productId ?? it._id ?? it.id) === String(prodId)));
+    } catch (e) {
+      console.warn("checkWishlist err", e?.message ?? e);
     }
   };
 
-  const checkIfInWishlist = async (productId, token) => {
+  const toggleWishlist = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/api/buyer/wishlist`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.data.success && res.data.wishlistItems) {
-        const exists = res.data.wishlistItems.some(item => item.productId === productId);
-        setInWishlist(exists);
-      }
-    } catch (error) {
-      console.log('Check wishlist error:', error.response?.data || error.message);
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) { Alert.alert("Login required", "Please login to manage wishlist"); return; }
+      const res = await axios.post(`${API_BASE}/api/buyer/wishlist/add`, { productId: product._id }, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.data?.success) setInWishlist(prev => !prev);
+      Alert.alert(res.data?.message ?? (inWishlist ? "Removed from wishlist" : "Added to wishlist"));
+    } catch (err) {
+      console.error("toggleWishlist", err?.response?.data ?? err.message);
+      Alert.alert("Error", "Could not update wishlist");
+    }
+  };
+
+  const addToCart = async (quantity = 1) => {
+    try {
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) { Alert.alert("Login required", "Please login to add items to cart"); return; }
+      const payload = { productId: product._id, quantity, vendorId: vendor?.id ?? vendor?._id ?? product.vendor?._id ?? product.vendor };
+      const res = await axios.post(`${API_BASE}/api/buyer/cart/add`, payload, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.data?.success) { setInCart(true); Alert.alert(res.data.message ?? "Added to cart"); }
+      else Alert.alert(res.data?.message ?? "Could not add to cart");
+    } catch (err) {
+      console.error("addToCart", err?.response?.data ?? err.message);
+      Alert.alert("Error", "Could not add to cart");
+    }
+  };
+
+  const removeFromCart = async () => {
+    try {
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) { Alert.alert("Login required"); return; }
+      // best-effort delete by product id (backend may require cartItemId)
+      const res = await axios.delete(`${API_BASE}/api/buyer/cart/${product._id}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.data?.success) { setInCart(false); Alert.alert(res.data.message ?? "Removed from cart"); }
+      else Alert.alert(res.data?.message ?? "Could not remove from cart");
+    } catch (err) {
+      console.error("removeFromCart", err?.response?.data ?? err.message);
+      Alert.alert("Error", "Could not remove from cart");
     }
   };
 
   const handleCartToggle = async () => {
-    try {
-      const token = await AsyncStorage.getItem("userToken");
-      if (!token) return alert("Login required");
-      if (!product?.id) return alert("Product not loaded");
-
-      if (!inCart) {
-        const payload = { productId: product.id, quantity: 1, vendorId: product.vendorId };
-        const res = await axios.post(`${API_BASE}/api/buyer/cart/add`, payload, { headers: { Authorization: `Bearer ${token}` } });
-        if (res.data.success) setInCart(true);
-        alert(res.data.message || "Added to cart!");
-      } else {
-        const res = await axios.delete(`${API_BASE}/api/buyer/cart/${product.id}`, { headers: { Authorization: `Bearer ${token}` } });
-        if (res.data.success) setInCart(false);
-        alert(res.data.message || "Removed from cart!");
-      }
-    } catch (error) {
-      console.log('Cart error:', error.response?.data || error.message);
-      alert(error.response?.data?.message || "Error updating cart");
-    }
+    if (!product) return;
+    if (inCart) await removeFromCart();
+    else await addToCart(1);
   };
 
-  const handleWishlistToggle = async () => {
-    try {
-      const token = await AsyncStorage.getItem("userToken");
-      if (!token) return alert("Login required");
-      if (!product?.id) return alert("Product not loaded");
-
-      const payload = { productId: product.id };
-      const res = await axios.post(`${API_BASE}/api/buyer/wishlist/add`, payload, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.data.success) setInWishlist(!inWishlist);
-      alert(res.data.message || (inWishlist ? "Removed from wishlist" : "Added to wishlist"));
-    } catch (error) {
-      console.log('Wishlist error:', error.response?.data || error.message);
-      alert(error.response?.data?.message || "Error updating wishlist");
-    }
+  const openVendorMap = () => {
+    Alert.alert("Comming Soon...");
   };
 
-  const openModal = () => {
-    setModalVisible(true);
-    Animated.timing(slideAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start();
+  const openRecommended = (id) => {
+    if (!id) return;
+    // navigate to same screen with new productId
+    navigation.push?.({ pathname: '/ViewOrderProduct', params: { productId: id } }) || navigation.navigate?.('ViewOrderProduct', { productId: id });
   };
 
-  const closeModal = () => {
-    Animated.timing(slideAnim, { toValue: 300, duration: 300, useNativeDriver: true }).start(() => setModalVisible(false));
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.center}>
+        <ActivityIndicator size="large" color="#22c55e" />
+      </SafeAreaView>
+    );
+  }
+  if (!product) {
+    return (
+      <SafeAreaView style={styles.center}>
+        <Text>Product not found</Text>
+      </SafeAreaView>
+    );
+  }
+
+  // Formatting vendor address for display
+  const vendorAddr = vendor?.address ?? product.vendor?.address ?? {};
+  const pickupAddress = `${vendorAddr.houseNumber ? vendorAddr.houseNumber + ', ' : ''}${vendorAddr.locality ?? vendorAddr.street ?? ''}${vendorAddr.city ? ', ' + vendorAddr.city : ''}`;
+
+  // --- NEW: headerWishlistPress navigates to wishlist screen (no toggle)
+  const headerWishlistPress = () => {
+    navigation.navigate('wishlist');
   };
-
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onPanResponderMove: (_, gestureState) => { if (gestureState.dy > 0) slideAnim.setValue(gestureState.dy); },
-    onPanResponderRelease: (_, gestureState) => { if (gestureState.dy > 100) closeModal(); else Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true }).start(); }
-  });
-
-  const handleAddressSelect = (address) => { setSelectedAddress(address); setPincode(address.pincode); closeModal(); };
-  const MoveToNewAddress = () => { setModalVisible(false); navigation.navigate("AddNewAddress"); };
-  const backOrderPage = () => navigation.navigate("MyOrder");
-  const handleNavigate = () => alert(`Navigating to Vendor Location: ${product.vendorDetails?.address?.city || 'Unknown'}`); // Placeholder function
-
-  if (loading) return (<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" color="green" /></View>);
-  if (!product) return (<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>Product not found</Text></View>);
 
   return (
-    <SafeAreaView style={styles.mainContainer}>
+    <SafeAreaView style={styles.page}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={backOrderPage} style={styles.headerLeft}><Image source={require('../assets/via-farm-img/icons/groupArrow.png')} /></TouchableOpacity>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.back?.()}>
+          <Ionicons name="arrow-back" size={22} color="#333" />
+        </TouchableOpacity>
+
         <Text style={styles.headerTitle} numberOfLines={1}>{product.name}</Text>
+
         <View style={styles.headerRight}>
-          <TouchableOpacity style={{ marginRight: 15 }} onPress={() => navigation.navigate("wishlist")} >
-            <Ionicons name={inWishlist ? "heart" : "heart-outline"} size={24} color={inWishlist ? "red" : "black"} />
+          {/* HEADER heart now navigates to Wishlist screen (no toggle) */}
+          <TouchableOpacity onPress={headerWishlistPress} style={{ marginRight: 12 }}>
+            <Ionicons name={"heart-outline"} size={24} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate("myCard")}>
-            <Image source={require("../assets/via-farm-img/icons/shoppinCard.png")} />
+          <TouchableOpacity onPress={() => navigation.navigate?.('myCard')}>
+            <Ionicons name="cart" size={22} color="#333" />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Scrollable Content */}
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <Image source={{ uri: product.image }} style={styles.productImage} />
-        <TouchableOpacity style={{ right: 10, top: 10, position: 'absolute' }} onPress={handleWishlistToggle}>
-          <Ionicons name={inWishlist ? "heart" : "heart-outline"} size={27} color={inWishlist ? "red" : "white"} />
+        {/* Large image */}
+        <Image source={{ uri: product.images?.[0] }} style={styles.heroImage} />
+
+        {/* Floating wishlist heart (top-right over image) */}
+        {/* KEEP this as the real toggle for wishlist add/remove */}
+        <TouchableOpacity style={styles.favButton} onPress={toggleWishlist}>
+          <Ionicons name={inWishlist ? "heart" : "heart-outline"} size={26} color={inWishlist ? "red" : "white"} />
         </TouchableOpacity>
 
-        <View style={styles.productInfo}>
+        {/* Info Card */}
+        <View style={styles.infoCard}>
           <View style={styles.rowBetween}>
-            <Text style={styles.productTitle}>{product.name}</Text>
-            <View style={styles.rating}><Ionicons name="star" size={14} color="gold" /><Text style={styles.ratingText}>{product.rating}</Text></View>
-          </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-            <Text style={styles.sectionTitle}>About the product</Text>
-            <Text style={styles.price}>MRP ₹{product.price}/pc</Text>
-          </View>
-          <Text style={styles.subText}>Category : {product.category}</Text>
-          <Text style={styles.subText}>Variety : {product.variety}</Text>
-          <Text style={styles.description}>{product.description}</Text>
-        </View>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Text style={styles.title}>{product.name}</Text>
+              <Text style={styles.smallText}>{product.category} · {product.variety}</Text>
+            </View>
 
-        {/* Vendor Section with Dropdown */}
-        <TouchableOpacity
-          onPress={() => setVendorExpanded(!vendorExpanded)}
-          style={styles.vendorSection}
-          activeOpacity={0.7}
-        >
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, }}>
-            <Text style={styles.sectionTitle}>About the vendor</Text>
-            <Ionicons
-              name={vendorExpanded ? "chevron-up" : "chevron-down"}
-              size={20}
-              color="#666"
-            />
+            <View style={{ alignItems: "flex-end" }}>
+              <Text style={styles.mrp}>MRP ₹{product.price}/{product.unit ?? 'pc'}</Text>
+              <View style={styles.ratingPill}>
+                <Ionicons name="star" size={14} color="#FFD700" />
+                <Text style={{ marginLeft: 6, fontWeight: '700' }}>{product.rating ?? 0}</Text>
+              </View>
+            </View>
           </View>
+
+          <Text style={[styles.sectionTitle, { marginTop: 12 }]}>About the product</Text>
+          <Text style={styles.description}>{product.description}</Text>
+
+          {/* Nutritional short row (placeholder values if not present) */}
+
+          {/* Vendor toggle */}
+          <TouchableOpacity style={styles.vendorHeader} onPress={() => setVendorExpanded(v => !v)}>
+            <Text style={styles.sectionTitle}>About the vendor</Text>
+            <Ionicons name={vendorExpanded ? "chevron-up" : "chevron-down"} size={20} color="#666" />
+          </TouchableOpacity>
 
           {vendorExpanded && (
-            <View style={{ marginTop: 15, flexDirection: 'row', alignItems: 'flex-start', marginBottom: 15, }}>
-              <Image
-                source={{ uri: product.vendorDetails?.profilePicture || 'https://via.placeholder.com/80x80.png?text=Vendor' }}
-                style={{ width: 100, height: 100, borderRadius: 10, marginRight: 15 }}
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 4 }}>
-                  {product.vendorDetails?.name || product.vendor}
-                </Text>
-                <Text style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>
-                  {product.vendorDetails?.address?.houseNumber && product.vendorDetails?.address?.locality
-                    ? `Location - ${product.vendorDetails.address.houseNumber}, ${product.vendorDetails.address.locality}, ${product.vendorDetails.address.city}`
-                    : 'Location not available'}
-                </Text>
-                {product.vendorDetails?.mobileNumber && (
-                  <Text style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>
-                    Mobile: {product.vendorDetails.mobileNumber}
-                  </Text>
-                )}
-                <Text style={{ fontSize: 12, color: '#999', lineHeight: 18 }}>
-                  {product.vendorDetails?.about || 'No information available about this vendor.'}
-                </Text>
+            <View style={styles.vendorExpanded}>
+              <Image source={{ uri: vendor?.profilePicture ?? product.vendor?.profilePicture }} style={styles.vendorImage} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={{ fontWeight: '700' }}>{vendor?.name ?? product.vendor?.name}</Text>
+                <Text style={{ color: '#666', marginTop: 6 }}>{vendorAddr.houseNumber ? `${vendorAddr.houseNumber}, ` : ''}{vendorAddr.locality ?? vendorAddr.street ?? ''}{vendorAddr.city ? `, ${vendorAddr.city}` : ''}</Text>
+                {vendor?.mobileNumber && <Text style={{ color: '#666', marginTop: 6 }}>Mobile: {vendor.mobileNumber}</Text>}
+                <Text style={{ color: '#777', marginTop: 8 }}>{vendor?.about ?? ''}</Text>
               </View>
             </View>
           )}
-        </TouchableOpacity>
 
-        {/* --- PickupLocationCard Integration (Now uses Vendor Address) --- */}
-        <PickupLocationCard
-          vendorAddress={product.vendorDetails?.address}
-          distance="1.2 kms away" // STATIC Distance (Vendor's location from Buyer's selectedAddress)
-          onPressNavigation={handleNavigate}
-        />
-        {/* ----------------------------------------------------------------- */}
-
-
-        <View style={styles.deliverySection}>
-          <View style={styles.rowBetween}><Text style={styles.sectionTitle}>Delivery Address</Text></View>
-          <View style={styles.deliveryInput}>
-            <Text style={{ fontSize: 15 }}>{selectedAddress?.pincode}</Text>
-            <TouchableOpacity onPress={openModal}><Text style={styles.changeText}>Change ›</Text></TouchableOpacity>
+          {/* Pickup location */}
+          <View style={styles.pickupRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              <Ionicons name="location-sharp" size={18} color="#444" />
+              <View style={{ marginLeft: 10 }}>
+                <Text style={{ fontWeight: '600' }}>Pickup Location</Text>
+                <Text style={{ color: '#666', maxWidth: SCREEN_W - 120 }} numberOfLines={1}>{pickupAddress}</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={openVendorMap} style={{ padding: 8 }}>
+              <Image source={require("../assets/via-farm-img/icons/directionLocation.png")} />
+            </TouchableOpacity>
           </View>
-          <Text style={styles.deliveryDate}>Delivered by {product.deliveryDate}</Text>
-        </View>
 
-        <View style={styles.couponSection}>
-          <Text style={styles.couponTitle}>Have a Coupon ?</Text>
-          <Text style={styles.couponSub}>Apply now and Save Extra !</Text>
-          <TextInput style={styles.couponInput} placeholder="Enter your coupon code" value={coupon} onChangeText={setCoupon} />
-        </View>
+          {/* Delivery address */}
+          {/* <View style={styles.deliverySec}>
+            <View style={styles.rowBetween}>
+              <Text style={styles.sectionTitle}>Delivery Address</Text>
+              <TouchableOpacity onPress={() => Alert.alert('Change address', 'Open address picker')}>
+                <Text style={{ color: '#3b82f6', fontWeight: '700' }}>Change ›</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.deliveryBox}>
+              <Text style={{ fontSize: 14 }}>{selectedAddress?.pincode ?? pincode}</Text>
+              <Text style={{ color: '#777', marginTop: 6 }}>{selectedAddress?.address ?? 'Select delivery address'}</Text>
+            </View>
+            <Text style={{ color: '#777', marginTop: 8 }}>Delivered by {product.deliveryDate ?? 'Sep 20'}</Text>
+          </View> */}
 
-        {/* <RatingCardAlso /> */}
-
-
-        <View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 10, }}>
-            <View><Text>Rating & Reviews</Text></View>
-            {/* <TouchableOpacity>
-              <Text style={{color:'blue'}}>See All</Text>
-            </TouchableOpacity> */}
+          {/* Coupon */}
+          <View style={styles.coupon}>
+            <Text style={styles.couponTitle}>Have a Coupon ?</Text>
+            <Text style={styles.couponSub}>Apply now and Save Extra !</Text>
+            <TextInput style={styles.couponInput} placeholder="Enter your coupon code" value={coupon} onChangeText={setCoupon} />
           </View>
+
+          {/* Reviews images carousel (if any) */}
+          <View style={{ marginTop: 6 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4 }}>
+              <Text style={{ fontWeight: '700' }}>Ratings & Reviews</Text>
+              <TouchableOpacity onPress={() => navigation.navigate?.('Reviews', { productId: product._id })}>
+                <Text style={{ color: '#3b82f6' }}>See All</Text>
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={reviews.filter(r => r.images && r.images.length > 0)}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(it, idx) => String(it.id ?? idx)}
+              contentContainerStyle={{ paddingVertical: 10, paddingHorizontal: 12 }}
+              renderItem={({ item }) => (
+                <View style={{ marginRight: 10 }}>
+                  {item.images.map((img, i) => (
+                    <Image key={i} source={{ uri: img }} style={{ width: 120, height: 120, borderRadius: 8, marginBottom: 6 }} />
+                  ))}
+                </View>
+              )}
+            />
+          </View>
+
+          {/* Reviews list horizontal */}
           <FlatList
-            data={
-              product.items[0].reviews.filter(r => r.images && r.images.length > 0)
-            } // only reviews with images
-            keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+            data={reviews.filter(r => r.comment && r.comment.trim().length > 0)}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingHorizontal: 20, 
-              paddingVertical: 10,   
-            }}
+            keyExtractor={(it, idx) => String(it.id ?? idx)}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 18 }}
             renderItem={({ item }) => (
-              <View style={{ marginRight: 10 }}>
-                {item.images.map((imgUrl, index) => (
-                  <Image
-                    key={index}
-                    source={{ uri: imgUrl }}
-                    style={{ width: 120, height: 120, borderRadius: 8 }}
-                    resizeMode="cover"
-                  />
-                ))}
+              <View style={styles.reviewCard}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                  <Image source={{ uri: item.user?.profilePicture ?? 'https://cdn-icons-png.flaticon.com/512/149/149071.png' }} style={{ width: 40, height: 40, borderRadius: 20, marginRight: 10 }} />
+                  <View>
+                    <Text style={{ fontWeight: '700' }}>{item.user?.name ?? 'Anonymous'}</Text>
+                    <Text style={{ color: '#777', fontSize: 12 }}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                  <Ionicons name="star" size={14} color="#FFD700" />
+                  <Text style={{ marginLeft: 6 }}>{item.rating}/5</Text>
+                </View>
+                {item.comment ? <Text style={{ color: '#444' }}>{item.comment}</Text> : null}
+              </View>
+            )}
+            ListEmptyComponent={() => (
+              <View style={{ padding: 20 }}>
+                <Text style={{ color: '#777' }}>No reviews yet</Text>
               </View>
             )}
           />
+
+          {/* Suggestion Card component (your existing component) */}
+          <View style={{ marginTop: 8 }}>
+            <SuggestionCard />
+          </View>
+
         </View>
-
-
-<FlatList
-  data={
-    product.items[0].reviews.filter(
-      (r) => r.comment && r.comment.trim().length > 0
-    )
-  } // only reviews that actually have a comment
-  keyExtractor={(item, index) => item.id?.toString() || index.toString()}
-  showsHorizontalScrollIndicator={false}
-  horizontal
-  contentContainerStyle={{
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-    flexGrow: 1,
-    justifyContent: 'center',
-  }}
-  ListEmptyComponent={() => (
-    <View
-      style={{
-        alignItems: 'center',
-        justifyContent: 'center',
-        flex: 1,
-        height: 180,
-      }}
-    >
-      <Image
-        source={{
-          uri: 'https://cdn-icons-png.flaticon.com/512/4076/4076549.png',
-        }}
-        style={{ width: 80, height: 80, opacity: 0.7 }}
-        resizeMode="contain"
-      />
-      <Text style={{ color: '#777', marginTop: 6, fontSize: 14 }}>
-        No reviews yet
-      </Text>
-    </View>
-  )}
-  renderItem={({ item }) => (
-    <View
-      style={{
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 14,
-        marginBottom: 12,
-        marginTop:6,
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
-        marginRight:15,
-        width: 300,
-      }}
-    >
-      {/* Top Section - User Info */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          marginBottom: 10,
-          marginLeft:10,
-        }}
-      >
-        <Image
-          source={{
-            uri:
-              item.user?.profilePicture ||
-              'https://cdn-icons-png.flaticon.com/512/149/149071.png',
-          }}
-          style={{
-            width:45,
-            height: 45,
-            borderRadius: 25,
-            marginRight: 10,
-            backgroundColor: '#eee',
-          }}
-        />
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{
-              fontWeight: '600',
-              fontSize: 15,
-              color: '#222',
-            }}
-          >
-            {item.user?.name || 'Anonymous'}
-          </Text>
-          <Text style={{ fontSize: 12, color: '#777' }}>
-            {new Date(item.createdAt).toLocaleDateString()}
-          </Text>
-        </View>
-
-        {/* Rating */}
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="star" size={16} color="#FFD700" />
-          <Text style={{ marginLeft: 4, color: '#333', fontWeight: '600' }}>
-            {item.rating}/5
-          </Text>
-        </View>
-      </View>
-
-      {/* Comment */}
-      {item.comment ? (
-        <Text
-          style={{
-            fontSize: 14,
-            color: '#444',
-            lineHeight: 20,
-          }}
-        >
-          {item.comment}
-        </Text>
-      ) : null}
-    </View>
-  )}
-/>
-
-        <SuggestionCard />
       </ScrollView>
 
-      {/* Bottom Cart */}
-      <View style={styles.bottomCartSection}>
-        <View style={styles.priceSection}><Text style={styles.priceLabel}>Price</Text><Text style={styles.priceValue}>₹{product.price}</Text></View>
-        <TouchableOpacity style={styles.addToCartButton} onPress={handleCartToggle}>
-          <Image style={{ width: 20, height: 20, marginRight: 8, tintColor: '#fff' }} source={require('../assets/via-farm-img/icons/shoppinCard.png')} />
-          <Text style={styles.addToCartText}>{inCart ? 'Move to Cart' : 'Add to Cart'}</Text>
+      {/* Bottom bar */}
+      <View style={styles.bottomBar}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: '#666', fontSize: 12 }}>Price</Text>
+          <Text style={{ fontWeight: '800', fontSize: 18 }}>₹{product.price}</Text>
+        </View>
+
+        <TouchableOpacity style={styles.cartBtn} onPress={handleCartToggle}>
+          <Ionicons name="cart" size={18} color="#fff" />
+          <Text style={styles.cartBtnText}>{inCart ? 'Move to Cart' : 'Add to Cart'}</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Address Modal */}
-      <Modal visible={modalVisible} transparent animationType="none" onRequestClose={closeModal}>
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity style={styles.modalBackground} activeOpacity={1} onPress={closeModal} />
-          <Animated.View style={[styles.modalContainer, { transform: [{ translateY: slideAnim }] }]} {...panResponder.panHandlers}>
-            <View style={styles.dragHandle} />
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Delivery Location</Text>
-              <TouchableOpacity onPress={closeModal} style={styles.closeButton}><Ionicons name="close" size={24} color="#666" /></TouchableOpacity>
-            </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {addresses.map(address => (
-                <TouchableOpacity key={address.id} style={[styles.addressItem, selectedAddress?.id === address.id && styles.selectedAddressItem]} onPress={() => handleAddressSelect(address)}>
-                  <View style={styles.radioContainer}>
-                    <View style={[styles.radioOuter, selectedAddress?.id === address.id && styles.radioOuterSelected]}>
-                      {selectedAddress?.id === address.id && <View style={styles.radioInner} />}
-                    </View>
-                  </View>
-                  <View style={styles.addressDetails}><Text style={styles.addressName}>{address.name}, {address.pincode}</Text><Text style={styles.addressText}>{address.address}</Text></View>
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity style={styles.NewAddress} onPress={MoveToNewAddress}><Ionicons name="add" size={20} color="rgba(76, 175, 80, 1)" /><Text style={styles.addAddressButtonText}>Add New Address</Text></TouchableOpacity>
-            </ScrollView>
-          </Animated.View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#fff' },
+  page: { flex: 1, backgroundColor: '#fff' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 0.4, borderBottomColor: '#eee' },
+  iconBtn: { padding: 6 },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 16 },
+  headerRight: { flexDirection: 'row', alignItems: 'center' },
+
   container: { flex: 1 },
 
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#ddd',
-    backgroundColor: '#fff',
-  },
-  headerLeft: { width: 40, justifyContent: 'center', alignItems: 'flex-start' },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '600' },
-  headerRight: { flexDirection: 'row', width: 60, justifyContent: 'flex-end', alignItems: 'center' },
+  heroImage: { width: SCREEN_W, height: SCREEN_W * 0.7, backgroundColor: '#f3f3f3' },
+  favButton: { position: 'absolute', right: 18, top:6, backgroundColor: 'transparent' },
 
-  productImage: { width: '100%', height: 220, resizeMode: 'cover', backgroundColor: '#f9f9f9' },
-  productInfo: { padding: 15 },
+  infoCard: { backgroundColor: '#fff', marginTop: -18,  padding: 16, minHeight: 220 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  productTitle: { fontSize: 18, fontWeight: '600' },
-  rating: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f6f6f6', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
-  ratingText: { marginLeft: 3, fontSize: 12, fontWeight: '600' },
+  title: { fontSize: 18,  },
+  smallText: { color: '#666', marginTop: 4 },
+  mrp: { fontSize: 16,  },
+  ratingPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff4d9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, marginTop: 8 },
 
-  price: { fontSize: 16, fontWeight: '700', marginVertical: 8 },
-  sectionTitle: { fontSize: 15, fontWeight: '600', marginTop: 5 },
-  subText: { fontSize: 14, color: '#555', marginTop: 2 },
-  description: { fontSize: 13, color: '#666', marginTop: 6, lineHeight: 18 },
+  sectionTitle: { fontSize: 14, fontWeight: '700' },
+  description: { color: '#444', marginTop: 6, lineHeight: 20 },
 
-  vendorSection: { paddingHorizontal: 15, marginTop: 10 },
-  deliverySection: { paddingHorizontal: 15, marginTop: 15 },
-  deliveryInput: { flexDirection: 'row', justifyContent: 'space-between', borderWidth: 0.8, borderColor: '#ddd', borderRadius: 10, padding: 12, marginTop: 8 },
-  changeText: { color: '#3b82f6', fontWeight: '600' },
-  deliveryDate: { marginTop: 5, color: '#777' },
+  nutriRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
+  nutriCol: { alignItems: 'center', flex: 1 },
+  nutriLabel: { color: '#777', fontSize: 12 },
+  nutriVal: { fontWeight: '700', marginTop: 6 },
 
-  couponSection: { padding: 15, marginTop: 20, borderTopWidth: 0.5, borderTopColor: '#ddd' },
-  couponTitle: { fontWeight: '700', fontSize: 14 },
-  couponSub: { fontSize: 12, color: '#3b82f6', marginVertical: 4 },
-  couponInput: { borderWidth: 1, borderColor: '#3b82f6', borderRadius: 8, padding: 10, marginTop: 5 },
+  vendorHeader: { marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  vendorExpanded: { flexDirection: 'row', marginTop: 12, alignItems: 'center' },
+  vendorImage: { width: 90, height: 90, borderRadius: 10, backgroundColor: '#f3f3f3' },
 
-  // Bottom Cart
-  bottomCartSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 8,
-  },
-  priceSection: { flex: 1 },
-  priceLabel: { fontSize: 12, color: '#666', marginBottom: 2 },
-  priceValue: { fontSize: 18, fontWeight: '700', color: '#000' },
-  addToCartButton: {
-    flexDirection: 'row',
-    backgroundColor: '#22c55e',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addToCartText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  pickupRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, padding: 8, backgroundColor: '#fafafa', borderRadius: 8 },
 
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalBackground: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContainer: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    padding:10,
-    borderTopRightRadius: 20,
-    maxHeight: '95%',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 202, 40, 1)',
-  },
-  dragHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#ddd',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginVertical: 8,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  searchSection: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  pincodeInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  pincodeInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginRight: 10,
-  },
-  checkButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  checkButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  locationButton: {
-    flexDirection: 'row',
-    marginBottom: 10,
-  },
-  locationButtonText: {
-    color: '#3b82f6',
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  searchLocationButton: {
-    flexDirection: 'row',
-    marginBottom: 15,
-    color: '#000',
-  },
-  searchLocationButtonText: {
-    color: 'blue',
-    marginLeft: 8,
-  },
-  orText: {
-    textAlign: 'center',
-    color: '#666',
-    fontSize: 14,
-  },
-  addressList: {
-    maxHeight: 300,
-    paddingHorizontal:30,
-  },
-  addressItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderWidth: 2,
-    padding: 10,
-    borderColor: 'rgba(0, 0, 0, 0.2)',
-    marginBottom: 15,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-  },
-  selectedAddressItem: {
-    backgroundColor: '#fff',
-  },
-  radioContainer: {
-    marginRight: 12,
-    marginTop: 2,
-  },
-  radioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#ddd',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioOuterSelected: {
-    borderColor: '#3b82f6',
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#3b82f6',
-  },
-  addressDetails: {
-    flex: 1,
-  },
-  addressName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  addressText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-  addAddressButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 15,
-  },
-  NewAddress: {
-    borderWidth: 2,
-    borderColor: 'rgba(76, 175, 80, 1)',
-    flexDirection: 'row',
-    padding:10,
-    borderRadius: 10,
-    marginHorizontal:50,
-    marginVertical:10,
-    flex:1,
-    justifyContent:'center',
-    alignItems:'center',
-  },
-  addAddressButtonText: {
-    color: 'rgba(76, 175, 80, 1)',
-    fontWeight: '600',
-    fontSize: 16,
-    marginLeft: 8,
-  },
+  deliverySec: { marginTop: 12 },
+  deliveryBox: { marginTop: 8, borderWidth: 0.8, borderColor: '#eee', padding: 12, borderRadius: 10 },
+
+  coupon: { marginTop: 14, paddingTop: 8 },
+  couponTitle: { fontWeight: '700' },
+  couponSub: { color: '#3b82f6', marginTop: 4 },
+  couponInput: { borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 8, padding: 10, marginTop: 8 },
+
+  reviewCard: { width: 300, backgroundColor: '#fff', borderRadius: 12, padding: 14, marginRight: 12, elevation: 2 },
+
+  bottomBar: { flexDirection: 'row', alignItems: 'center', padding: 12, borderTopWidth: 0.6, borderTopColor: '#eee', backgroundColor: '#fff' },
+  cartBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#22c55e', paddingHorizontal: 18, paddingVertical: 12, borderRadius: 10 },
+  cartBtnText: { color: '#fff', fontWeight: '700', marginLeft: 8 },
 });
-
-export default ProductDetailScreen;

@@ -4,49 +4,50 @@ import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    FlatList,
+    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
 
 // ✅ Product Card with Wishlist & Cart functionality
-const ProductCard = ({ 
-  item, 
-  isFavorite, 
+const ProductCard = ({
+  item,
+  isFavorite,
   onToggleFavorite,
   cartQuantity,
   onAddToCart,
   onUpdateQuantity,
-  onPress // <-- added: handler to call when card pressed
+  onPress, // <-- handler when card pressed
 }) => {
   const inCart = cartQuantity > 0;
 
   return (
     <View style={[cardStyles.container]}>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={cardStyles.card}
         activeOpacity={0.8}
-        onPress={() => onPress && onPress(item)} // pass full product object to handler
+        onPress={() => onPress && onPress(item)}
       >
         <View style={[cardStyles.imageContainer, { height: cardStyles.imageHeight }]}>
-          <Image 
+          <Image
             source={{
-              uri: item.images && item.images.length > 0 
-                ? item.images[0] 
-                : "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
-            }} 
-            style={cardStyles.productImage} 
+              uri:
+                item.images && item.images.length > 0
+                  ? item.images[0]
+                  : "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
+            }}
+            style={cardStyles.productImage}
           />
-          
+
           {/* Wishlist Icon */}
           <TouchableOpacity
             style={cardStyles.favoriteButton}
@@ -62,7 +63,7 @@ const ProductCard = ({
               color={isFavorite ? '#ff4444' : '#666'}
             />
           </TouchableOpacity>
-          
+
           {/* Rating */}
           <View style={cardStyles.ratingContainer}>
             <Ionicons name="star" size={12} color="#FFD700" />
@@ -72,13 +73,19 @@ const ProductCard = ({
           </View>
 
           {/* Status Badge */}
-          <View style={[
-            cardStyles.statusBadge,
-            { 
-              backgroundColor: item.status === "In Stock" ? "#4CAF50" : 
-                              item.status === "Out of Stock" ? "#f44336" : "#ff9800" 
-            }
-          ]}>
+          <View
+            style={[
+              cardStyles.statusBadge,
+              {
+                backgroundColor:
+                  item.status === "In Stock"
+                    ? "#4CAF50"
+                    : item.status === "Out of Stock"
+                    ? "#f44336"
+                    : "#ff9800",
+              },
+            ]}
+          >
             <Text style={cardStyles.statusText}>{item.status}</Text>
           </View>
         </View>
@@ -90,7 +97,7 @@ const ProductCard = ({
           <Text style={cardStyles.productSubtitle} numberOfLines={1}>
             by {item.vendor?.name || "Unknown Vendor"}
           </Text>
-          
+
           {/* Price and Unit in same line */}
           <View style={cardStyles.priceContainer}>
             <Text style={cardStyles.productPrice}>₹{item.price}</Text>
@@ -151,60 +158,72 @@ const ProductCard = ({
   );
 };
 
-const ViewAllFruits = () => {
+const ViewAllFressPop = () => {
   const navigation = useNavigation();
-  const [fruits, setFruits] = useState([]);
+  const [items, setItems] = useState([]); // fresh & popular items
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [favorites, setFavorites] = useState(new Set());
   const [cartItems, setCartItems] = useState({});
 
-  // Fetch Fruits
-  const fetchFruits = async () => {
+  // Fetch Fresh & Popular
+  const fetchFreshAndPopular = async () => {
     try {
       setLoading(true);
       setError(null);
 
       const token = await AsyncStorage.getItem("userToken");
       if (!token) {
-        setError("Please login first");
-        setLoading(false);
-        return;
+        // still attempt as some endpoints may be public — but show login message
+        // we'll continue without token but note it to user
+        console.warn("No user token found - calling endpoint without auth header");
       }
 
-      const response = await axios.get(
-        `${API_BASE}/api/buyer/products/by-category?category=Fruits`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          timeout: 10000,
-        }
-      );
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
-      if (response.data && response.data.success) {
-        setFruits(response.data.data || []);
+      const res = await axios.get(`${API_BASE}/api/buyer/fresh-and-popular`, {
+        headers,
+        timeout: 10000,
+      });
+
+      // Possible response shapes:
+      // 1) { success: true, data: [...] }
+      // 2) { data: [...] }
+      // 3) [...] (direct array)
+      let fetched = [];
+      if (!res || !res.data) {
+        fetched = [];
+      } else if (Array.isArray(res.data)) {
+        fetched = res.data;
+      } else if (res.data.success && Array.isArray(res.data.data)) {
+        fetched = res.data.data;
+      } else if (Array.isArray(res.data.data)) {
+        fetched = res.data.data;
+      } else if (Array.isArray(res.data?.data?.data)) {
+        fetched = res.data.data.data;
       } else {
-        setError("No fruits found in your area");
+        // fallback: try to pick 'data' if it's an object with 'data' array
+        fetched = res.data.data || [];
       }
+
+      setItems(fetched);
     } catch (err) {
-      console.error("Error fetching fruits:", err);
+      console.error("Error fetching fresh & popular:", err);
       if (err.response?.status === 401) {
-        setError("Please login to view fruits");
+        setError("Please login to view items");
       } else if (err.code === "ECONNABORTED") {
         setError("Request timeout. Please try again.");
       } else if (!err.response) {
-        setError("Network error. Please check your connection.");
+        setError("Network error. Check your connection.");
       } else {
-        setError("Failed to load fruits. Please try again.");
+        setError("Failed to load items. Please try again.");
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch Wishlist
+  // Wishlist and cart functions (reuse your existing endpoints)
   const fetchWishlist = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -214,11 +233,9 @@ const ViewAllFruits = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (response.data.success) {
+      if (response.data?.success) {
         const wishlistItems = response.data.data?.items || [];
-        const favoriteIds = new Set(
-          wishlistItems.map(item => item.productId || item._id)
-        );
+        const favoriteIds = new Set(wishlistItems.map(item => item.productId || item._id));
         setFavorites(favoriteIds);
       }
     } catch (error) {
@@ -226,7 +243,6 @@ const ViewAllFruits = () => {
     }
   };
 
-  // Fetch Cart
   const fetchCart = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -236,7 +252,7 @@ const ViewAllFruits = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (response.data.success) {
+      if (response.data?.success) {
         const items = response.data.data?.items || [];
         const cartMap = {};
         items.forEach(item => {
@@ -254,12 +270,12 @@ const ViewAllFruits = () => {
   };
 
   useEffect(() => {
-    fetchFruits();
+    fetchFreshAndPopular();
     fetchWishlist();
     fetchCart();
   }, []);
 
-  // Add to Wishlist
+  // Add to / remove from wishlist
   const addToWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -267,39 +283,28 @@ const ViewAllFruits = () => {
         Alert.alert('Login Required', 'Please login to add items to wishlist');
         return;
       }
-
       const productId = product._id || product.id;
-
-      const wishlistData = {
-        productId: productId,
+      const payload = {
+        productId,
         name: product.name,
         image: product.images?.[0] || '',
         price: product.price,
-        category: product.category || 'Fruits',
-        variety: product.variety || 'Standard',
-        unit: product.unit || 'kg'
+        category: product.category || '',
+        variety: product.variety || '',
+        unit: product.unit || '',
       };
-
-      const response = await axios.post(
-        `${API_BASE}/api/buyer/wishlist/add`,
-        wishlistData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.data.success) {
-        // Update local state immediately
+      const res = await axios.post(`${API_BASE}/api/buyer/wishlist/add`, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
         setFavorites(prev => new Set(prev).add(productId));
         Alert.alert('Success', 'Added to wishlist!');
+      } else {
+        Alert.alert('Error', res.data?.message || 'Could not add to wishlist');
       }
-    } catch (error) {
-      console.error('Error adding to wishlist:', error);
-      if (error.response?.status === 400) {
-        // Already in wishlist
+    } catch (err) {
+      console.error('Error adding to wishlist:', err);
+      if (err.response?.status === 400) {
         const productId = product._id || product.id;
         setFavorites(prev => new Set(prev).add(productId));
         Alert.alert('Info', 'Already in wishlist');
@@ -309,40 +314,32 @@ const ViewAllFruits = () => {
     }
   };
 
-  // Remove from Wishlist
   const removeFromWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) return;
-
       const productId = product._id || product.id;
-
-      const response = await axios.delete(
-        `${API_BASE}/api/buyer/wishlist/${productId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.data.success) {
-        // Update local state immediately
+      const res = await axios.delete(`${API_BASE}/api/buyer/wishlist/${productId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
         setFavorites(prev => {
           const next = new Set(prev);
           next.delete(productId);
           return next;
         });
         Alert.alert('Removed', 'Removed from wishlist');
+      } else {
+        Alert.alert('Error', res.data?.message || 'Could not remove from wishlist');
       }
-    } catch (error) {
-      console.error('Error removing from wishlist:', error);
+    } catch (err) {
+      console.error('Error removing from wishlist:', err);
       Alert.alert('Error', 'Failed to remove from wishlist');
     }
   };
 
-  // Toggle Favorite
   const handleToggleFavorite = async (product) => {
     const productId = product._id || product.id;
-    
     if (favorites.has(productId)) {
       await removeFromWishlist(product);
     } else {
@@ -350,7 +347,7 @@ const ViewAllFruits = () => {
     }
   };
 
-  // Add to Cart
+  // Add to cart
   const handleAddToCart = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -358,46 +355,35 @@ const ViewAllFruits = () => {
         Alert.alert('Login Required', 'Please login to add items to cart');
         return;
       }
-
       const productId = product._id || product.id;
-
-      const cartData = {
-        productId: productId,
+      const payload = {
+        productId,
         name: product.name,
         image: product.images?.[0] || '',
         price: product.price,
         quantity: 1,
-        category: product.category || 'Fruits',
-        variety: product.variety || 'Standard',
-        unit: product.unit || 'kg'
+        category: product.category || '',
+        variety: product.variety || '',
+        unit: product.unit || ''
       };
-
-      const response = await axios.post(
-        `${API_BASE}/api/buyer/cart/add`,
-        cartData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.data.success) {
-        // Update local state immediately
+      const res = await axios.post(`${API_BASE}/api/buyer/cart/add`, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
         setCartItems(prev => ({
           ...prev,
           [productId]: {
             quantity: 1,
-            cartItemId: response.data.data?._id || productId
+            cartItemId: res.data.data?._id || productId
           }
         }));
         Alert.alert('Success', 'Added to cart!');
+      } else {
+        Alert.alert('Error', res.data?.message || 'Could not add to cart');
       }
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      if (error.response?.status === 400) {
-        // Already in cart, refresh to get current quantity
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      if (err.response?.status === 400) {
         await fetchCart();
         Alert.alert('Info', 'Product is already in cart');
       } else {
@@ -406,7 +392,7 @@ const ViewAllFruits = () => {
     }
   };
 
-  // Update Cart Quantity
+  // Update cart quantity
   const handleUpdateQuantity = async (product, change) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -419,15 +405,10 @@ const ViewAllFruits = () => {
       const newQuantity = currentItem.quantity + change;
 
       if (newQuantity < 1) {
-        // Remove from cart
-        const response = await axios.delete(
-          `${API_BASE}/api/buyer/cart/${currentItem.cartItemId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        if (response.data.success) {
+        const res = await axios.delete(`${API_BASE}/api/buyer/cart/${currentItem.cartItemId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data?.success) {
           setCartItems(prev => {
             const next = { ...prev };
             delete next[productId];
@@ -436,56 +417,37 @@ const ViewAllFruits = () => {
           Alert.alert('Removed', 'Item removed from cart');
         }
       } else {
-        // Update quantity optimistically
+        // optimistic
         setCartItems(prev => ({
           ...prev,
-          [productId]: {
-            ...currentItem,
-            quantity: newQuantity
-          }
+          [productId]: { ...currentItem, quantity: newQuantity }
         }));
 
-        // Update on server
-        const response = await axios.put(
-          `${API_BASE}/api/buyer/cart/${currentItem.cartItemId}/quantity`,
-          { quantity: newQuantity },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const res = await axios.put(`${API_BASE}/api/buyer/cart/${currentItem.cartItemId}/quantity`, { quantity: newQuantity }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
 
-        if (!response.data.success) {
-          // Revert on failure
-          setCartItems(prev => ({
-            ...prev,
-            [productId]: currentItem
-          }));
+        if (!res.data?.success) {
+          // rollback
+          setCartItems(prev => ({ ...prev, [productId]: currentItem }));
           Alert.alert('Error', 'Failed to update quantity');
         }
       }
-    } catch (error) {
-      console.error('Error updating quantity:', error);
-      // Refresh cart to get accurate data
+    } catch (err) {
+      console.error('Error updating quantity:', err);
       await fetchCart();
       Alert.alert('Error', 'Failed to update quantity');
     }
   };
 
-  // Navigation: open product details (sends both id and full product)
+  // Open product details
   const openProductDetails = (product) => {
     try {
       const productId = product?._id || product?.id;
-      console.log("openProductDetails called with:", productId, product);
       if (!productId) {
         Alert.alert("Error", "Product id missing");
         return;
       }
-
-      // Prefer the exact route name; if your app registers different name change here.
-      // We'll pass both productId and full product object so ViewProduct can use either.
       navigation.navigate("ViewProduct", { productId, product });
     } catch (err) {
       console.error("openProductDetails error:", err);
@@ -495,7 +457,7 @@ const ViewAllFruits = () => {
 
   const handleRetry = () => {
     setError(null);
-    fetchFruits();
+    fetchFreshAndPopular();
     fetchWishlist();
     fetchCart();
   };
@@ -510,7 +472,7 @@ const ViewAllFruits = () => {
             style={styles.backIcon}
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>All Fruits</Text>
+        <Text style={styles.headerTitle}>Fresh & Popular</Text>
         <View style={{ width: 50 }} />
       </View>
 
@@ -518,7 +480,7 @@ const ViewAllFruits = () => {
       {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFA500" />
-          <Text style={styles.loadingText}>Fetching fresh fruits...</Text>
+          <Text style={styles.loadingText}>Fetching fresh & popular items...</Text>
         </View>
       )}
 
@@ -532,10 +494,10 @@ const ViewAllFruits = () => {
         </View>
       )}
 
-      {/* Success - Fruits List */}
+      {/* Success - Items List */}
       {!loading && !error && (
         <FlatList
-          data={fruits}
+          data={items}
           keyExtractor={(item) => item._id || item.id || String(item?.name)}
           numColumns={2}
           showsVerticalScrollIndicator={false}
@@ -546,14 +508,14 @@ const ViewAllFruits = () => {
             const cartQuantity = cartItems[productId]?.quantity || 0;
 
             return (
-              <ProductCard 
+              <ProductCard
                 item={item}
                 isFavorite={isFavorite}
                 onToggleFavorite={handleToggleFavorite}
                 cartQuantity={cartQuantity}
                 onAddToCart={handleAddToCart}
                 onUpdateQuantity={handleUpdateQuantity}
-                onPress={openProductDetails} // <- important: pass handler
+                onPress={openProductDetails}
               />
             );
           }}
@@ -564,8 +526,7 @@ const ViewAllFruits = () => {
   );
 };
 
-
-export default ViewAllFruits;
+export default ViewAllFressPop;
 
 const styles = StyleSheet.create({
   header: {
@@ -579,10 +540,6 @@ const styles = StyleSheet.create({
   },
   backButtonContainer: {
     padding: 5,
-  },
-  riceContainer:{
-   flex:1,
-   gap:5,
   },
   backIcon: {
     width: 24,

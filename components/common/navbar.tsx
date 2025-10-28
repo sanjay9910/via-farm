@@ -208,11 +208,12 @@ export default function HeaderDesign() {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
+    height:190,
   },
   header: {
     backgroundColor: '#fff',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    // paddingVertical: 12,
     borderBottomColor: '#f0f0f0',
   },
   topRow: {

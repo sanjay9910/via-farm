@@ -15,61 +15,64 @@ import {
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
 
 // Custom Card Component with image inside and name below
-const ProductCard = ({ name, image }) => {
+const ProductCard = ({ item, onPress }) => {
+  const name = item?.name ?? 'Unnamed';
+  const image = (item?.images && item.images.length > 0) ? item.images[0] : 'https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image';
+
   return (
-    <View style={cardStyles.container}>
+    <TouchableOpacity style={cardStyles.container} activeOpacity={0.85} onPress={() => onPress && onPress(item)}>
       {/* Card - Sirf Image */}
       <View style={cardStyles.card}>
-        <Image 
-          source={{ uri: image }} 
+        <Image
+          source={{ uri: image }}
           style={cardStyles.image}
           resizeMode="cover"
         />
       </View>
-      
+
       {/* Name - Card ke niche */}
       <Text style={cardStyles.name} numberOfLines={2}>{name}</Text>
-    </View>
+    </TouchableOpacity>
   );
 };
 
 const FressPopular = () => {
   const navigation = useNavigation();
-  const [data, setData] = useState([]);
+  const [data, setData] = useState([]);            // store full product objects
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const fetchFreshPopular = async () => {
     try {
       setLoading(true);
+      setError(null);
+
       const token = await AsyncStorage.getItem('userToken');
-      
-      if (!token) {
-        setError("Please login first");
-        setLoading(false);
-        return;
-      }
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
       const response = await axios.get(`${API_BASE}/api/buyer/fresh-and-popular`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers,
+        timeout: 10000,
       });
 
-      if (response.data.success) {
-        const formattedData = response.data.data.map(item => ({
-          name: item.name,
-          image: item.images[0] || 'https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image'
-        }));
-        setData(formattedData);
-      } else {
-        setError("Failed to load data");
-      }
+      // normalize various possible response shapes
+      let items = [];
+      if (!response || !response.data) items = [];
+      else if (Array.isArray(response.data)) items = response.data;
+      else if (Array.isArray(response.data.data)) items = response.data.data;
+      else items = [];
+
+      setData(items);
     } catch (err) {
+      console.error("fetchFreshPopular error:", err);
       if (err.response?.status === 401) {
         setError("Please login to view products");
+      } else if (err.code === "ECONNABORTED") {
+        setError("Request timeout. Please try again.");
+      } else if (!err.response) {
+        setError("Network error. Please check your connection.");
       } else {
-        setError("Failed to fetch products");
+        setError("Failed to fetch products. Try again.");
       }
     } finally {
       setLoading(false);
@@ -87,6 +90,17 @@ const FressPopular = () => {
 
   const handleLogin = () => {
     navigation.navigate('login');
+  };
+
+  // navigate to ViewProduct with productId and the full product
+  const openProductDetails = (product) => {
+    const productId = product?._id || product?.id;
+    if (!productId) {
+      console.warn("openProductDetails: missing product id", product);
+      return;
+    }
+    // pass both productId and product to the target screen
+    navigation.navigate('ViewProduct', { productId, product });
   };
 
   // Loading state
@@ -115,20 +129,20 @@ const FressPopular = () => {
             <Text style={styles.link}>View All</Text>
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
-          
+
           <View style={styles.buttonContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.retryButton}
               onPress={handleRetry}
             >
               <Text style={styles.buttonText}>Try Again</Text>
             </TouchableOpacity>
-            
-            {error.includes('login') && (
-              <TouchableOpacity 
+
+            {error.toLowerCase().includes('login') && (
+              <TouchableOpacity
                 style={styles.loginButton}
                 onPress={handleLogin}
               >
@@ -145,22 +159,22 @@ const FressPopular = () => {
     <View style={{ marginVertical: 20 }}>
       <View style={styles.headerRow}>
         <Text style={styles.heading}>Fresh & Popular</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("AllCategory")}>
+        <TouchableOpacity onPress={() => navigation.navigate('ViewAllFressPop')}>
           <Text style={styles.link}>View All</Text>
         </TouchableOpacity>
       </View>
-      
+
       {data.length > 0 ? (
         <FlatList
           data={data}
-          keyExtractor={(item, index) => index.toString()}
+          keyExtractor={(item, index) => (item._id || item.id || String(index)).toString()}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 10 }}
           renderItem={({ item }) => (
-            <ProductCard 
-              name={item.name} 
-              image={item.image} 
+            <ProductCard
+              item={item}
+              onPress={openProductDetails}
             />
           )}
         />
@@ -171,7 +185,7 @@ const FressPopular = () => {
       )}
     </View>
   );
-}
+};
 
 export default FressPopular;
 
