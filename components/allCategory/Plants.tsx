@@ -58,7 +58,7 @@ const Plants = () => {
         }
       );
 
-      console.log("🌱 Plants API Response:", response.data);
+      // console.log("🌱 Plants API Response:", response.data);
 
       if (response.data && response.data.success) {
         const formattedData = response.data.data.map((item, index) => ({

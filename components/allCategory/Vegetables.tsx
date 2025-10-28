@@ -64,7 +64,7 @@ const Vegetables = () => {
         }
       );
 
-      console.log("🥦 Vegetables API Response:", response.data);
+      // console.log("🥦 Vegetables API Response:", response.data);
 
       if (response.data && response.data.success) {
         const formattedData = response.data.data.map((item, index) => ({

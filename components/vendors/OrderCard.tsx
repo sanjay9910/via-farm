@@ -4,21 +4,52 @@ import {
   Image,
   Platform,
   Pressable,
+  StyleSheet as RNStyleSheet,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
-const STATUS_OPTIONS = ["Completed", "Pending", "Cancelled", "In-process"];
-const LABEL_WIDTH = 110; // same as styles.label width
-const COLON_WIDTH = 10; // same as styles.colon width
-const CARD_PADDING = 10; // same as cardInner padding
+// Status lists: one for pickup, one for delivery
+const PICKUP_STATUS_OPTIONS = [
+  "In-process",
+  "Confirmed",
+  "Ready For Pickup",
+  "Completed",
+  "Cancelled",
+];
 
-const OrderCard = ({ order, onStatusChange }) => {
-  const [status, setStatus] = useState(order.status || "Pending");
+const DELIVERY_STATUS_OPTIONS = [
+  "In-process",
+  "Confirmed",
+  "Out For Delivery",
+  "Completed",
+  "Cancelled",
+];
+
+const LABEL_WIDTH = 110;
+const COLON_WIDTH = 10;
+const CARD_PADDING = 10;
+
+const OrderCard = ({ order = {}, onStatusChange }) => {
+  // choose initial status: prefer order.status, fallback to first appropriate option or "Pending"
+  const deliveryType = (order.deliveryType || order.orderType || "").toString().toLowerCase();
+  const statusList =
+    deliveryType === "pickup" || deliveryType === "pick-up" || deliveryType === "pick up"
+      ? PICKUP_STATUS_OPTIONS
+      : DELIVERY_STATUS_OPTIONS;
+
+  const initialStatus =
+    order.status && typeof order.status === "string"
+      ? order.status
+      : statusList.length
+      ? statusList[0]
+      : "Pending";
+
+  const [status, setStatus] = useState(initialStatus);
   const [dropdownVisible, setDropdownVisible] = useState(false);
-  const [statusBtnLayout, setStatusBtnLayout] = useState(null); // { x, y, width, height }
+  const [statusBtnLayout, setStatusBtnLayout] = useState(null);
 
   const openDropdown = () => setDropdownVisible(true);
   const closeDropdown = () => setDropdownVisible(false);
@@ -40,11 +71,11 @@ const OrderCard = ({ order, onStatusChange }) => {
     <View style={styles.wrapper}>
       <View style={styles.cardOuter}>
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>{order.orderType}</Text>
+          <Text style={styles.badgeText}>{order.orderType || order.deliveryType || ""}</Text>
         </View>
 
         <View style={styles.cardInner}>
-          <Text style={styles.orderTitle}>{order.orderId}</Text>
+          <Text style={styles.orderTitle}>{order.orderId || order.id || ""}</Text>
 
           <View style={styles.row}>
             <Text style={styles.label}>Buyer</Text>
@@ -99,11 +130,16 @@ const OrderCard = ({ order, onStatusChange }) => {
               activeOpacity={0.8}
               onLayout={(e) => {
                 const { x, y, width, height } = e.nativeEvent.layout;
+                // save layout (relative to cardInner)
                 setStatusBtnLayout({ x, y, width, height });
               }}
             >
-              <Text style={styles.dropdownText}>{status}</Text> 
-              <Text><Image source={require('../../assets/via-farm-img/icons/downArrow.png')} /></Text>
+              <Text style={styles.dropdownText}>{status}</Text>
+              <Image
+                source={require("../../assets/via-farm-img/icons/downArrow.png")}
+                style={styles.arrowIcon}
+                resizeMode="contain"
+              />
             </TouchableOpacity>
           </View>
 
@@ -114,20 +150,20 @@ const OrderCard = ({ order, onStatusChange }) => {
                 style={[
                   styles.dropdownPanel,
                   {
-                    // position relative to the cardInner: place just below the status button
-                    top: statusBtnLayout.y + statusBtnLayout.height + 4, // 4px gap
-                    left: statusBtnLayout.x, // align left edge to button's left
-                    width: statusBtnLayout.width, // match button width
+                    top: statusBtnLayout.y + statusBtnLayout.height + 6, // small gap
+                    left: statusBtnLayout.x,
+                    width: Math.max(statusBtnLayout.width, 140),
                   },
                 ]}
               >
-                {STATUS_OPTIONS.map((opt) => {
+                {statusList.map((opt) => {
                   const isSelected = opt === status;
                   return (
                     <TouchableOpacity
                       key={opt}
                       style={[styles.optionRow, isSelected && styles.optionSelected]}
                       onPress={() => handleSelectStatus(opt)}
+                      activeOpacity={0.7}
                     >
                       <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
                         {opt}
@@ -164,12 +200,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     padding: CARD_PADDING,
     position: "relative",
-    overflow: "visible", 
-    zIndex:0,
+    overflow: "visible",
+    zIndex: 0,
   },
   badge: {
     position: "absolute",
-    right: 0,
+    right:0,
     top: 10,
     backgroundColor: "#1F9A3F",
     paddingHorizontal: 12,
@@ -189,40 +225,40 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E6E6E6",
     paddingHorizontal: 10,
-    flexDirection:'row',
-    alignContent:'center',
-    justifyContent:'center',
-    gap:5,
+    flexDirection: "row",
+    alignContent: "center",
+    justifyContent: "center",
+    // gap not supported on all RN versions, use margin on children instead
     paddingVertical: 6,
     borderRadius: 8,
-    minWidth: 130,
+    minWidth: 150,
     alignItems: "center",
   },
-  dropdownText: { fontSize: 13, color: "#333", fontWeight: "600" },
+  dropdownText: { fontSize: 13, color: "#333", fontWeight: "600", marginRight: 6 },
+  arrowIcon: { width: 14, height: 14 },
 
-  /* Inline dropdown panel (absolute inside cardInner) */
+  /* backdrop covers the cardInner so clicks outside dropdownPanel close it */
   backdrop: {
-    position: "absolute",
-    top:20,
-    left:10,
-    right:0,
-    bottom:0,
+    ...RNStyleSheet.absoluteFillObject,
+    // keep transparent, but ensure it sits above card content
+    backgroundColor: "transparent",
+    zIndex: 998,
   },
   dropdownPanel: {
     position: "absolute",
     backgroundColor: "#fff",
-    borderRadius:5,
-    paddingVertical: 4,
+    borderRadius: 5,
     borderWidth: 1,
     borderColor: "#E6E6E6",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 8,
-    elevation: 20, 
-    zIndex: 9999,
+    elevation: 20,
+    zIndex: 999,
+    left:10,
   },
-  optionRow: { paddingVertical: 10, paddingHorizontal: 12, alignItems: "center" },
+  optionRow: { paddingVertical: 10, paddingHorizontal: 8, alignItems: "center" },
   optionSelected: { backgroundColor: "#f1f7ee" },
   optionText: { fontSize: 15, color: "#333", textAlign: "center" },
   optionTextSelected: { color: "#1F9A3F", fontWeight: "700" },

@@ -58,7 +58,7 @@ const Seeds = () => {
         }
       );
 
-      console.log("🌱 Seeds API Response:", response.data);
+      // console.log("🌱 Seeds API Response:", response.data);
 
       if (response.data && response.data.success) {
         const formattedData = response.data.data.map((item, index) => ({

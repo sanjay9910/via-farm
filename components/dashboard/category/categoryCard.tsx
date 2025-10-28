@@ -29,7 +29,7 @@ const CategoryCard = () => {
       }
 
       const data = await response.json();
-      console.log('Categories data:', data);
+      // console.log('Categories data:', data);
 
   
       const transformedData = data.map(category => ({

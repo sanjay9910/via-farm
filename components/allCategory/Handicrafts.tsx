@@ -58,7 +58,7 @@ const Handicrafts = () => {
         }
       );
 
-      console.log("🎨 Handicrafts API Response:", response.data);
+      // console.log("🎨 Handicrafts API Response:", response.data);
 
       if (response.data && response.data.success) {
         const formattedData = response.data.data.map((item, index) => ({
