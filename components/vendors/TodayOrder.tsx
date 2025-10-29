@@ -134,6 +134,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#333" },
-  seeAll: { color: "#0AA1FF", fontSize: 13 },
+  seeAll: { color: "rgba(1, 151, 218, 1)", fontSize: 13 },
   container: { paddingHorizontal: 12, paddingBottom: 30 },
 });

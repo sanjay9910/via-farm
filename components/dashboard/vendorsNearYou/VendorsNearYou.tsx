@@ -3,11 +3,12 @@ import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import ProfileCard from '../../common/VendorsCard';
 
@@ -78,15 +79,25 @@ const ViewVendors = () => {
     navigation.navigate('VendorsDetails', { vendorId });
   };
 
+  // helper component for header (keeps header consistent across states)
+  const Header = ({ title = 'Vendors Near You' }: { title?: string }) => (
+    <View style={styles.headerRow}>
+      <Text style={styles.heading}>{title}</Text>
+
+      {/* See All / View All: icon left, text right */}
+      <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("VendorsSeeAll")}>
+        <Text style={styles.link}>See All</Text>
+         <Image
+          source={require("../../../assets/via-farm-img/icons/see.png")}
+        />
+      </TouchableOpacity>
+    </View>
+  );
+
   if (loading) {
     return (
       <View>
-        <View style={styles.headerRow}>
-          <Text style={styles.heading}>Vendors Near You</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("VendorsSeeAll")}>
-            <Text style={styles.link}>View All</Text>
-          </TouchableOpacity>
-        </View>
+        <Header />
         <View style={styles.loader}>
           <ActivityIndicator size="large" color="#4CAF50" />
           <Text style={styles.loadingText}>Finding vendors near you...</Text>
@@ -98,12 +109,7 @@ const ViewVendors = () => {
   if (error && vendors.length === 0) {
     return (
       <View>
-        <View style={styles.headerRow}>
-          <Text style={styles.heading}>Vendors Near You</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("VendorsSeeAll")}>
-            <Text style={styles.link}>View All</Text>
-          </TouchableOpacity>
-        </View>
+        <Header />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
@@ -116,13 +122,8 @@ const ViewVendors = () => {
 
   return (
     <View>
-      <View style={styles.headerRow}>
-        <Text style={styles.heading}>Vendors Near You</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("VendorsSeeAll")}>
-          <Text style={styles.link}>View All</Text>
-        </TouchableOpacity>
-      </View>
-      
+      <Header />
+
       <ScrollView 
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
@@ -150,9 +151,6 @@ const ViewVendors = () => {
     </View>
   );
 };
-
-
-
 
 export default ViewVendors;
 
@@ -184,11 +182,29 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
+
+  // safer link style
   link: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#007bff',
+    color: 'rgba(1, 151, 218, 1)',
+    textAlign: 'center',
   },
+
+  // See All container + icon (compatible with older RN)
+  seeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap:5,
+  },
+  seeIcon: {
+    width: 18,
+    height: 18,
+    marginRight: 6,
+    resizeMode: 'contain',
+  },
+
   errorContainer: {
     padding: 20,
     alignItems: 'center',

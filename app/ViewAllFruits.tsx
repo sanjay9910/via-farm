@@ -85,22 +85,28 @@ const ProductCard = ({
 
         <View style={cardStyles.cardContent}>
           <Text style={cardStyles.productTitle} numberOfLines={1}>
-            {item.name}
+            {item.name} ({item.variety})
           </Text>
-          <Text style={cardStyles.productSubtitle} numberOfLines={1}>
+
+          <View style={{flexDirection:'row',alignItems:'center',gap:5, marginTop:6,marginBottom:6,}}>
+            <Image source={require("../assets/via-farm-img/icons/loca.png")} />
+            <Text>1.4km</Text>
+          </View>
+          {/* <Text style={cardStyles.productSubtitle} numberOfLines={1}>
             by {item.vendor?.name || "Unknown Vendor"}
-          </Text>
+          </Text> */}
           
           {/* Price and Unit in same line */}
           <View style={cardStyles.priceContainer}>
             <Text style={cardStyles.productPrice}>₹{item.price}</Text>
             <Text style={cardStyles.productUnit}>/{item.unit}</Text>
+            <Text style={{marginLeft:5,}}>{item.weightPerPiece}</Text>
           </View>
 
           {/* Variety */}
-          {item.variety && (
+          {/* {item.variety && (
             <Text style={cardStyles.varietyText}>Variety: {item.variety}</Text>
-          )}
+          )} */}
 
           {/* Add to Cart / Quantity Control */}
           <View style={cardStyles.buttonContainer}>
@@ -553,7 +559,7 @@ const ViewAllFruits = () => {
                 cartQuantity={cartQuantity}
                 onAddToCart={handleAddToCart}
                 onUpdateQuantity={handleUpdateQuantity}
-                onPress={openProductDetails} // <- important: pass handler
+                onPress={openProductDetails} 
               />
             );
           }}
@@ -572,13 +578,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal:10,
     paddingBottom: 10,
     paddingTop: 10,
     backgroundColor: '#fff',
   },
   backButtonContainer: {
-    padding: 5,
+    padding:1,
   },
   riceContainer:{
    flex:1,
@@ -641,12 +647,12 @@ const cardStyles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
     borderRadius: 8,
-    shadowColor: '#000',
+    shadowColor: 'grey',
     shadowOpacity: 0.1,
     shadowRadius: 4,
     borderWidth: 1,
-    borderColor: 'rgba(108, 59, 28, 1)',
-    elevation: 3,
+    borderColor: 'rgba(0, 0, 0, 0.2)',
+    elevation:5,
   },
   imageContainer: {
     position: 'relative',
@@ -723,7 +729,8 @@ const cardStyles = StyleSheet.create({
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginBottom: 4,
+    marginBottom:6,
+    marginTop:4,
   },
   productPrice: {
     fontSize: 14,

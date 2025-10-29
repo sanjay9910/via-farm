@@ -1,40 +1,51 @@
 // File: ProfileCard.tsx
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import React from "react";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface ProfileCardProps {
   image: string;
   name: string;
+  rating?: number;
   distance: string;
   category: string;
 }
 
-const ProfileCard: React.FC<ProfileCardProps> = ({ image, name, rating, distance, category }) => {
+const ProfileCard: React.FC<ProfileCardProps> = ({
+  image,
+  name,
+  rating,
+  distance,
+  category,
+}) => {
   return (
-    <View>
     <View style={styles.card}>
       {/* Profile Image */}
       <Image source={{ uri: image }} style={styles.profileImage} />
 
       {/* Content Section */}
       <View style={styles.contentSection}>
-        <View style={styles.header}>
-          <Text style={styles.name} numberOfLines={1}>{name}</Text>
-        </View>
+        {/* Name */}
+        <Text style={styles.name} numberOfLines={1}>
+          {name}
+        </Text>
 
         {/* Distance */}
         <View style={styles.distanceContainer}>
-          <Ionicons name="location-outline" size={20} color="rgba(66, 66, 66, 1)" />
+          <Ionicons
+            name="location-outline"
+            size={16}
+            color="rgba(66, 66, 66, 1)"
+          />
           <Text style={styles.distance}>{distance} away</Text>
-          {/* <Text style={styles.distance}> 2.1kms away</Text> */}
         </View>
 
         {/* Category */}
         <View style={styles.categoryContainer}>
-          <MaterialIcons name="local-grocery-store" size={20} color="#666" />
-          <Text style={styles.category}>{category}</Text>
-          {/* <Text style={styles.category}>(Fruits, Vegetable,Plants)</Text> */}
+          <MaterialIcons name="local-grocery-store" size={16} color="#666" />
+          <Text style={styles.category} numberOfLines={1}>
+            {category}
+          </Text>
         </View>
 
         {/* Action Buttons */}
@@ -48,139 +59,103 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ image, name, rating, distance
         </View>
       </View>
     </View>
-    </View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: "#ffffff",
     borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     borderWidth: 1,
-    borderColor: 'rgba(255, 202, 40, 1)',
+    borderColor: "rgba(255, 202, 40, 1)",
     marginBottom: 16,
-    overflow: 'hidden',
-    maxWidth: '100%',
-    minHeight: 159,
+    overflow: "hidden",
+    maxWidth: "100%",
+    minHeight: 140,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    // elevation: 2,
   },
   profileImage: {
-    width: 129,
-    height: 159,
+    width: 125,
+    height: 140,
     borderTopLeftRadius: 10,
     borderBottomLeftRadius: 10,
-    marginRight: 12,
-    flexShrink: 0,
   },
   contentSection: {
     flex: 1,
-    paddingTop: 12,
+    paddingVertical: 12,
     paddingRight: 12,
-    paddingBottom: 12,
-    paddingLeft: 0,
-    minWidth: 0,
-    maxWidth: '100%',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-    flexWrap: 'nowrap',
-    width: '100%',
+    paddingLeft: 10,
+    justifyContent: "center",
   },
   name: {
-    fontSize:12,
-    fontWeight: '600',
-    color: '#333',
-    flex: 1,
-    marginRight:3,
-    minWidth: 0,
-    flexShrink: 1,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.4)',
-    paddingHorizontal: 4,
-    paddingVertical: 3,
-    borderRadius: 4,
-    flexShrink: 0,
-    maxWidth: 50,
-    minWidth: 40,
-  },
-  rating: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#333',
-    marginLeft: 2,
-    flexShrink: 0,
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 6,
   },
   distanceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-    maxWidth: '100%',
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
   },
   distance: {
     fontSize: 13,
-    color: 'rgba(66, 66, 66, 1)',
-    marginLeft: 4,
-    flexShrink: 1,
-    flexWrap: 'wrap',
+    color: "rgba(66, 66, 66, 0.9)",
+    marginLeft: 5,
   },
   categoryContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    maxWidth: '100%',
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
   },
   category: {
     fontSize: 13,
-    color: 'rgba(66, 66, 66, 0.7)',
-    marginLeft: 4,
+    color: "rgba(66, 66, 66, 0.7)",
+    marginLeft: 5,
     flexShrink: 1,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   buttonContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'space-between',
-    maxWidth: '100%',
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop:5,
   },
   deliveryButton: {
-    backgroundColor: '#C6FFC8',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    backgroundColor: "#E3FCE4",
     borderWidth: 1,
-    paddingVertical: 5,
-    borderColor: 'rgba(0, 0, 0, 0.2)',
-    flex: 1,
-    marginRight: 4,
-    alignItems: 'center',
-  },
-  deliveryButtonText: {
-    color: '#000',
-    fontSize: 13,
-    textAlign: 'center',
+    borderColor: "#81C784",
+    borderRadius: 16,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
   pickupButton: {
-    backgroundColor: '#FFE9A8',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    backgroundColor: "#FFF8E1",
     borderWidth: 1,
-    paddingVertical: 5,
-    borderColor: 'rgba(0, 0, 0, 0.2)',
-    flex: 1,
-    marginLeft: 4,
-    alignItems: 'center',
+    borderColor: "#FFD54F",
+    borderRadius: 16,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deliveryButtonText: {
+    color: "#2E7D32",
+    fontWeight: "600",
+    fontSize: 13,
   },
   pickupButtonText: {
-    color: '#000',
+    color: "#9E7B00",
+    fontWeight: "600",
     fontSize: 13,
-    textAlign: 'center',
   },
 });
 

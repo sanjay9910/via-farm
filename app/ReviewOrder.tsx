@@ -42,6 +42,11 @@ const ReviewOrder = () => {
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
 
+  // Coupon states
+  const [couponCode, setCouponCode] = useState('');
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState(null); // { code: '', discount: 0 }
+
   // Fetch addresses from API
   useEffect(() => {
     fetchBuyerAddresses();
@@ -128,6 +133,13 @@ const ReviewOrder = () => {
         } else {
           setServerPriceDetails(null);
         }
+
+        // If backend returns currently applied coupon info, capture it
+        const applied = response.data.data?.appliedCoupon ?? response.data.data?.coupon ?? null;
+        if (applied) {
+          setAppliedCoupon({ code: applied.code || applied.couponCode || applied, discount: applied.discount || 0 });
+          setCouponCode(applied.code || applied.couponCode || applied);
+        }
       } else {
         Alert.alert('Error', response.data.message || 'Failed to load cart');
       }
@@ -167,6 +179,137 @@ const ReviewOrder = () => {
       totalAmount: Number(total.toFixed(2)),
       usedServer: false,
     };
+  };
+
+  // Apply coupon API integration
+  const applyCoupon = async () => {
+    if (!couponCode || couponCode.trim().length === 0) {
+      Alert.alert('Invalid', 'Please enter a coupon code');
+      return;
+    }
+
+    setApplyingCoupon(true);
+
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        Alert.alert('Error', 'Please login to apply coupon');
+        setApplyingCoupon(false);
+        return;
+      }
+
+      // Try multiple payload shapes because backend might expect different field names
+      const payloadCandidates = [
+        { couponCode: couponCode.trim() },
+        { coupon: couponCode.trim() },
+        { code: couponCode.trim() },
+        // you can add more variations if your API expects nested objects
+      ];
+
+      let successResponse = null;
+      let lastError = null;
+
+      for (let i = 0; i < payloadCandidates.length; i++) {
+        const payload = payloadCandidates[i];
+        try {
+          const res = await axios.post(
+            `${API_BASE}/api/buyer/cart/apply-coupon`,
+            payload,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          if (res?.data?.success) {
+            successResponse = res;
+            break;
+          } else {
+            // if API returns success: false, capture message and continue trying other shapes
+            lastError = new Error(res?.data?.message || 'Coupon rejected by server');
+            lastError.response = res;
+          }
+        } catch (err) {
+          // Save last error and continue trying other payload shapes
+          lastError = err;
+          // If server returned JSON body, log it for debugging
+          console.log('Coupon attempt error for payload', payload, err?.response?.status, err?.response?.data);
+        }
+      }
+
+      if (!successResponse) {
+        // All attempts failed — show useful message from server if available
+        const serverMsg = lastError?.response?.data?.message || lastError?.message || 'Failed to apply coupon';
+        Alert.alert('Coupon Error', serverMsg);
+        setApplyingCoupon(false);
+        return;
+      }
+
+      // Success — parse the returned pricing info defensively
+      const res = successResponse;
+      const priceDetails = res.data?.data?.priceDetails ?? res.data?.data?.price_detail ?? res.data?.data?.price ?? null;
+
+      if (priceDetails) {
+        setServerPriceDetails({
+          totalMRP: Number(priceDetails.totalMRP ?? priceDetails.subtotal ?? 0),
+          couponDiscount: Number(priceDetails.couponDiscount ?? priceDetails.couponDiscountAmount ?? priceDetails.discountAmount ?? 0),
+          deliveryCharge: Number(priceDetails.deliveryCharge ?? 0),
+          totalAmount: Number(priceDetails.totalAmount ?? priceDetails.total ?? 0),
+        });
+      } else {
+        // If backend returned updated cart instead of priceDetails, re-sync cart
+        await fetchCartProducts();
+      }
+
+      setAppliedCoupon({
+        code: couponCode.trim(),
+        discount: res.data?.data?.discountAmount ?? priceDetails?.couponDiscount ?? 0,
+      });
+
+      Alert.alert('Success', res.data?.message || 'Coupon applied successfully');
+    } catch (err) {
+      console.error('Unexpected error applying coupon:', err);
+      const message = err?.response?.data?.message || err?.message || 'Failed to apply coupon';
+      Alert.alert('Error', message);
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+  const removeCoupon = async () => {
+    // If your backend has a remove endpoint, call it. If not, re-fetch cart without coupon.
+    try {
+      setApplyingCoupon(true);
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        Alert.alert('Error', 'Please login');
+        setApplyingCoupon(false);
+        return;
+      }
+
+      // defensive: try delete endpoint first
+      try {
+        const res = await axios.delete(`${API_BASE}/api/buyer/cart/remove-coupon`, { headers: { Authorization: `Bearer ${token}` } });
+        if (res.data && res.data.success) {
+          setAppliedCoupon(null);
+          setCouponCode('');
+          // refresh cart to get fresh price details
+          await fetchCartProducts();
+          Alert.alert('Removed', 'Coupon removed');
+          return;
+        }
+      } catch (e) {
+        // ignore — fallback to re-fetch
+      }
+
+      // fallback: refetch cart (backend should not include coupon then)
+      setAppliedCoupon(null);
+      setCouponCode('');
+      await fetchCartProducts();
+      Alert.alert('Removed', 'Coupon removed');
+    } catch (err) {
+      console.error('Error removing coupon:', err);
+      Alert.alert('Error', 'Failed to remove coupon');
+    } finally {
+      setApplyingCoupon(false);
+    }
   };
 
   // Update quantity
@@ -291,7 +434,7 @@ const ReviewOrder = () => {
             <Image source={require('../assets/via-farm-img/icons/deleteBtn.png')} />
           </TouchableOpacity>
           <View style={styles.deliveryRow}>
-            <Text style={styles.deliveryText}>Delivery by {product.deliveryDate}</Text>
+            <Text style={styles.deliveryText}>{product.deliveryDate}</Text>
             <View style={styles.quantityContainer}>
               <TouchableOpacity style={styles.quantityButton} onPress={() => decreaseQuantity(product.id)}>
                 <Text style={styles.quantityText}>-</Text>
@@ -362,18 +505,41 @@ const ReviewOrder = () => {
           <ProductCard key={product.id} product={product} />
         ))}
 
-        {/* Coupon / promo area (kept UI; coupon logic not changed) */}
+        {/* Coupon / promo area (integrated) */}
         <View style={styles.couponSection}>
           <Image source={require('../assets/via-farm-img/icons/promo-code.png')} />
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.couponTitle}>Have a Coupon?</Text>
             <Text style={styles.couponSubtitle}>Apply now and Save Extra!</Text>
           </View>
         </View>
 
         <View style={styles.couponInputContainer}>
-          <TextInput style={styles.couponInput} placeholder="Enter your coupon code" placeholderTextColor="#999" />
+          <TextInput
+            style={styles.couponInput}
+            placeholder="Enter your coupon code"
+            placeholderTextColor="#999"
+            value={couponCode}
+            onChangeText={setCouponCode}
+            autoCapitalize="characters"
+          />
+
+          {!appliedCoupon ? (
+            <TouchableOpacity style={styles.Button} onPress={applyCoupon} disabled={applyingCoupon}>
+              {applyingCoupon ? <ActivityIndicator /> : <Text style={{color:'#fff'}} >Apply</Text>}
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.Button} onPress={removeCoupon} disabled={applyingCoupon}>
+              {applyingCoupon ? <ActivityIndicator /> : <Text style={{color:'#fff'}}>Remove</Text>}
+            </TouchableOpacity>
+          )}
         </View>
+
+        {appliedCoupon && (
+          <View style={styles.appliedCouponRow}>
+            <Text style={styles.appliedCouponText}>Applied: {appliedCoupon.code} {appliedCoupon.discount ? `- ₹${Number(appliedCoupon.discount).toFixed(2)}` : ''}</Text>
+          </View>
+        )}
 
         {/* Price details: prefer server values */}
         <View style={styles.priceSection}>
@@ -382,7 +548,7 @@ const ReviewOrder = () => {
           <View style={styles.priceRow}><Text style={styles.priceLabel}>Coupon Discount</Text><Text style={styles.priceValue}>₹{(-totalsForRender.couponDiscount).toFixed(2)}</Text></View>
           <View style={styles.priceRow}><Text style={styles.priceLabel}>Delivery Charge</Text><Text style={styles.priceValue}>₹{totalsForRender.deliveryCharge.toFixed(2)}</Text></View>
           <View style={styles.totalRow}><Text style={styles.totalLabel}>Total Amount</Text><Text style={styles.totalValue}>₹{totalsForRender.totalAmount.toFixed(2)}</Text></View>
-          {totalsForRender.usedServer && <Text style={{fontSize:12,color:'#666',marginTop:6}}>Using server-calculated charges</Text>}
+          {totalsForRender.usedServer && <Text style={{ fontSize: 12, color: '#666', marginTop: 6 }}>Using server-calculated charges</Text>}
         </View>
 
         <View style={styles.commentsSection}>
@@ -397,7 +563,7 @@ const ReviewOrder = () => {
       {/* Bottom Card */}
       <View style={styles.bottomPaymentCard}>
         <View style={styles.paymentLeft}>
-          <Text style={styles.priceLabelBottom}>Price</Text>
+          {/* <Text style={styles.priceLabelBottom}>Price</Text> */}
           <Text style={styles.totalPrice}>₹{totalsForRender.totalAmount.toFixed(2)}</Text>
         </View>
         <TouchableOpacity style={styles.proceedButton} onPress={handleProceedToPayment}>
@@ -467,7 +633,7 @@ const ReviewOrder = () => {
                               name: address.name || 'Buyer'
                             }
                           });
-                        }, 300); 
+                        }, 300);
                       }}
                     >
                       <Image source={require('../assets/via-farm-img/icons/editicon.png')} />
@@ -509,6 +675,9 @@ const ReviewOrder = () => {
     </SafeAreaView>
   );
 };
+
+
+
 
 export default ReviewOrder
 
@@ -639,22 +808,22 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   deliveryText: {
-    fontSize: 14,
+    fontSize: 11,
     color: '#666',
   },
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: 5,
     position: 'absolute',
     marginTop: 60,
     borderWidth: 1,
     borderColor: '#000',
   },
   quantityButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   quantityText: {
     fontSize: 16,
@@ -665,8 +834,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#000',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderLeftWidth: 1,
     borderRightWidth: 1,
   },
@@ -688,6 +857,10 @@ const styles = StyleSheet.create({
   },
   couponInputContainer: {
     marginBottom: 20,
+    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   couponInput: {
     borderWidth: 2,
@@ -695,6 +868,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
+    width: '80%',
+  },
+  Button: {
+    backgroundColor: '#28a745',
+    padding:14,
+    borderRadius: 10,
   },
   donationSection: {
     flexDirection: 'row',
@@ -795,8 +974,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingHorizontal: 30,
-    paddingVertical: 25,
+    paddingHorizontal: 10,
+    paddingVertical: 15,
     borderTopWidth: 1,
     borderTopColor: '#E5E5E5',
     shadowColor: '#000',
@@ -823,8 +1002,8 @@ const styles = StyleSheet.create({
   },
   proceedButton: {
     backgroundColor: '#28a745',
-    paddingHorizontal: 30,
-    paddingVertical: 16,
+    paddingHorizontal: 15,
+    paddingVertical: 13,
     borderRadius: 8,
     minWidth: 180,
     flexDirection: 'row',

@@ -1,7 +1,7 @@
 import Card from '@/components/common/card';
 import { useNavigation } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
 
@@ -100,10 +100,6 @@ const CategoryCard = () => {
     <View style={styles.container}>
       <View style={styles.Categoryheader}>
         <Text style={styles.heading}>All Categories</Text>
-        <TouchableOpacity style={styles.seeAll} onPress={gotoAllCategory}>
-          <Text style={styles.text}>See All</Text>
-          <Image style={styles.image} source={require('../../../assets/via-farm-img/icons/See_All.png')} />
-        </TouchableOpacity>
       </View>
       <FlatList
         data={categories}

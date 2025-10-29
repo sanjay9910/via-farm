@@ -195,8 +195,9 @@ const Fruits = () => {
     <View >
       <View style={styles.headerRow}>
         <Text style={styles.heading}>Fruits</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("ViewAllFruits")}>
-          <Text style={styles.link}>View All</Text>
+        <TouchableOpacity style={{flexDirection:'row', alignItems:'center',gap:5}} onPress={() => navigation.navigate("ViewAllFruits")}>
+          <Text style={styles.link}>See All</Text>
+          <Image source={require("../../assets/via-farm-img/icons/see.png")} />
         </TouchableOpacity>
       </View>
 
@@ -239,7 +240,7 @@ const styles = StyleSheet.create({
     paddingRight: 20,
   },
   link: {
-    color: "blue",
+    color: "rgba(1, 151, 218, 1)",
     fontWeight: "600",
   },
   loadingContainer: {

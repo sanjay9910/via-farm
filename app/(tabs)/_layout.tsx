@@ -1,7 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -71,22 +71,30 @@ export default function TabLayout() {
           tabBarLabel: 'Map',
         }}
       />
-      <Tabs.Screen
-        name="myCard"
-        options={{
-          title: 'My Card',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.activeIconContainer]}>
-              <Ionicons 
-                name="card" 
-                size={30} 
-                color={focused ? '#fff' : '#666'} 
-              />
-            </View>
-          ),
-          tabBarLabel: 'My Card',
-        }}
-      />
+  <Tabs.Screen
+  name="myCard"
+  options={{
+    title: 'My Card',
+    tabBarIcon: ({ color, focused }) => (
+      <View
+        style={[
+          styles.iconContainer,
+          focused && styles.activeIconContainer,
+        ]}
+      >
+        <Image
+          source={require("../../assets/via-farm-img/icons/Mycard.png")}
+          style={[
+            styles.myCardIcon,
+            { tintColor: focused ? '#fff' : '#666' },
+          ]}
+          resizeMode="contain"
+        />
+      </View>
+    ),
+    tabBarLabel: 'My Card',
+  }}
+/>
     </Tabs>
   );
 }
@@ -107,6 +115,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
+  myCardIcon: {
+  width: 28,
+  height: 28,
+  tintColor: '#666', // default inactive color
+},
   tabLabel: {
     fontSize: 11,
     fontWeight: '600',

@@ -109,7 +109,13 @@ const FressPopular = () => {
       <View style={{ marginVertical: 20, alignItems: 'center' }}>
         <View style={styles.headerRow}>
           <Text style={styles.heading}>Fresh & Popular</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("AllCategory")}>
+
+          {/* See All: icon on left, safe for older RN */}
+          <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("AllCategory")}>
+            <Image
+              source={require("../../../assets/via-farm-img/icons/see.png")}
+              style={styles.seeIcon}
+            />
             <Text style={styles.link}>View All</Text>
           </TouchableOpacity>
         </View>
@@ -125,8 +131,14 @@ const FressPopular = () => {
       <View style={{ marginVertical: 20, alignItems: 'center' }}>
         <View style={styles.headerRow}>
           <Text style={styles.heading}>Fresh & Popular</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("AllCategory")}>
-            <Text style={styles.link}>View All</Text>
+
+          {/* See All: icon on left */}
+          <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("AllCategory")}>
+            <Image
+              source={require("../../../assets/via-farm-img/icons/see.png")}
+              style={styles.seeIcon}
+            />
+            <Text style={styles.link}>See All</Text>
           </TouchableOpacity>
         </View>
 
@@ -159,8 +171,13 @@ const FressPopular = () => {
     <View style={{ marginVertical: 20 }}>
       <View style={styles.headerRow}>
         <Text style={styles.heading}>Fresh & Popular</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('ViewAllFressPop')}>
-          <Text style={styles.link}>View All</Text>
+
+        {/* Final See All usage: icon left */}
+        <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate('ViewAllFressPop')}>
+            <Text style={styles.link}>See All</Text>
+            <Image
+              source={require("../../../assets/via-farm-img/icons/see.png")}
+            />
         </TouchableOpacity>
       </View>
 
@@ -202,13 +219,28 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingRight: 20,
   },
+
+  // safer link style (removed flex to avoid layout issues)
   link: {
-    color: 'blue',
-    flex: 1,
-    justifyContent: 'center',
+    color: 'rgba(1, 151, 218, 1)',
+    fontWeight: '600',
     textAlign: 'center',
-    alignItems: 'center',
   },
+
+  // See All container + icon
+  seeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap:5,
+  },
+  seeIcon: {
+    width: 18,
+    height: 18,
+    marginRight: 6,
+    resizeMode: 'contain',
+  },
+
   errorContainer: {
     alignItems: 'center',
     padding: 20,
@@ -224,7 +256,8 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
-    gap: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   retryButton: {
     backgroundColor: '#1976d2',
@@ -237,6 +270,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,
+    marginLeft: 10, // spacing between buttons (compatible)
   },
   buttonText: {
     color: 'white',
@@ -273,7 +307,7 @@ const cardStyles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    marginBottom:5,
+    marginBottom: 5,
   },
   image: {
     width: '100%',

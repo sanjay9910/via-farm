@@ -342,8 +342,9 @@ const MyRecentListing = () => {
     <View style={styles.container}>
       <View style={styles.headerRowContainer}>
         <Text style={styles.headerTitle}>My Recent Listings</Text>
-        <TouchableOpacity onPress={viewAll}>
+        <TouchableOpacity onPress={viewAll} style={{flexDirection:'row',justifyContent:'center',alignItems:'center',gap:5,}}>
           <Text style={styles.seeAll}>See All</Text>
+          <Image  source={require("../../assets/via-farm-img/icons/see.png")} />
         </TouchableOpacity>
       </View>
 
@@ -463,7 +464,7 @@ const styles = StyleSheet.create({
   },
   seeAll: { 
     fontSize: 13, 
-    color: "#0AA1FF" 
+    color: "rgba(1, 151, 218, 1)" 
   },
   flatListContent: { 
     paddingHorizontal: 16 

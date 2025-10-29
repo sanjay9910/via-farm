@@ -427,7 +427,7 @@ const MyCart = () => {
   const EmptyCart = () => (
     <View style={styles.emptyCartContainer}>
       <Image
-        source={require("../../assets/via-farm-img/icons/emptyShoppingCard.jpg")}
+        source={require("../../assets/via-farm-img/icons/AddToCard.png")}
         style={styles.emptyCartImage}
       />
       <Text style={styles.emptyCartTitle}>Your Cart is Empty</Text>

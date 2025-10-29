@@ -8,12 +8,10 @@ import {
   Dimensions,
   FlatList,
   Image,
-  Modal,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ProductCard from '../components/common/ProductCard';
@@ -76,8 +74,8 @@ const VendorsDetails = () => {
         setReviews(data.data?.reviews?.list || []);
         setProducts(data.data?.listedProducts || []);
       } else throw new Error('Vendor not found');
-    } catch (e) {
-      setError(e.message);
+    } catch (e: any) {
+      setError(e.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -103,17 +101,21 @@ const VendorsDetails = () => {
 
   if (loading)
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#4CAF50" />
-        <Text>Loading...</Text>
+      <View style={styles.containerRoot}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#4CAF50" />
+          <Text style={{ marginTop: 8 }}>Loading...</Text>
+        </View>
       </View>
     );
 
   if (error || !vendor)
     return (
-      <View style={styles.center}>
-        <Text style={styles.errorHeader}>Error</Text>
-        <Text>{error}</Text>
+      <View style={styles.containerRoot}>
+        <View style={styles.center}>
+          <Text style={styles.errorHeader}>Error</Text>
+          <Text>{error}</Text>
+        </View>
       </View>
     );
 
@@ -134,7 +136,7 @@ const VendorsDetails = () => {
   }, []);
 
   const ListHeader = () => (
-    <View style={{ width: '100%', paddingBottom: 10 }}>
+    <View style={{ width: '100%', paddingBottom: 10, backgroundColor: '#fff' }}>
       {/* Header Image */}
       <View style={styles.imageBox}>
         <Image source={{ uri: image }} style={styles.image} />
@@ -177,8 +179,6 @@ const VendorsDetails = () => {
               }>
               <Text style={{ color: 'blue', fontWeight: '600', marginRight: 10, }}>See All</Text>
             </TouchableOpacity>
-
-
           </View>
           <FlatList
             data={allReviewImages}
@@ -208,10 +208,16 @@ const VendorsDetails = () => {
           />
         ) : (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', }}>
-            <Image style={{ width: 160, height: 160 }} source={require('../assets/via-farm-img/icons/emptyReview.png')} />
+            <Image style={{ width: 70, height: 70 }} source={require('../assets/via-farm-img/icons/empty.png')} />
+            <View style={{flexDirection:'row',justifyContent:'center',alignItems:'center',gap:5,}}>
+              <Image style={{ width:25, height:25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
+              <Image style={{ width:25, height:25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
+              <Image style={{ width:25, height:25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
+              <Image style={{ width:25, height:25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
+              <Image style={{ width:25, height:25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
+            </View>
             <Text style={styles.noReviewText}>No reviews yet.</Text>
           </View>
-
         )}
       </View>
 
@@ -229,62 +235,12 @@ const VendorsDetails = () => {
           <Ionicons name="chevron-down" size={20} color="#555" />
         </TouchableOpacity>
       </View>
-
-      {/* Modal for Dropdown */}
-      <Modal
-        visible={modalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setModalVisible(false)}>
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setModalVisible(false)}>
-          <View style={[
-            styles.modalContent,
-            {
-              position: 'absolute',
-              top: dropdownLayout.y + dropdownLayout.height + 5,
-              left: dropdownLayout.x,
-              width: dropdownLayout.width,
-            }
-          ]}>
-            <ScrollView
-              style={styles.modalScrollView}
-              showsVerticalScrollIndicator={false}
-              nestedScrollEnabled={true}>
-              {CATEGORIES.map(cat => (
-                <TouchableOpacity
-                  key={cat}
-                  style={[
-                    styles.modalItem,
-                    selectedCategory === cat && styles.modalItemSelected,
-                  ]}
-                  onPress={() => {
-                    setSelectedCategory(cat);
-                    setModalVisible(false);
-                  }}>
-                  <Text
-                    style={[
-                      styles.modalItemText,
-                      selectedCategory === cat && styles.modalItemTextSelected,
-                    ]}>
-                    {cat}
-                  </Text>
-                  {selectedCategory === cat && (
-                    <Ionicons name="checkmark" size={18} color="#4CAF50" />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
-      </Modal>
     </View>
   );
 
   return (
     <FlatList
+      style={styles.containerRoot}
       data={filteredProducts}
       ListHeaderComponent={<ListHeader />}
       renderItem={({ item }) => (
@@ -314,11 +270,15 @@ const VendorsDetails = () => {
 };
 
 const styles = StyleSheet.create({
+  containerRoot: {
+    flex: 1,
+    backgroundColor: '#fff', 
+  },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff', 
   },
   errorHeader: {
     fontSize: 18,

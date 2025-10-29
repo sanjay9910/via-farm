@@ -113,8 +113,17 @@ const LocalBest = () => {
       <View style={{ marginVertical: 20 }}>
         <View style={styles.headerRow}>
           <Text style={styles.heading}>Local Best</Text>
-          <TouchableOpacity onPress={() => router.push("/dashboard/localBest/LocalBestView")}>
-            <Text style={styles.link}>View All</Text>
+
+          {/* See All: icon on left */}
+          <TouchableOpacity
+            style={styles.seeButton}
+            onPress={() => router.push("/dashboard/localBest/LocalBestView")}
+          >
+            <Image
+              source={require("../../../assets/via-farm-img/icons/see.png")}
+              style={styles.seeIcon}
+            />
+            <Text style={styles.link}>See All</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.loadingContainer}>
@@ -131,8 +140,17 @@ const LocalBest = () => {
       <View style={{ marginVertical: 20 }}>
         <View style={styles.headerRow}>
           <Text style={styles.heading}>Local Best</Text>
-          <TouchableOpacity onPress={() => router.push("/dashboard/localBest/LocalBestView")}>
-            <Text style={styles.link}>View All</Text>
+
+          {/* See All: icon on left */}
+          <TouchableOpacity
+            style={styles.seeButton}
+            onPress={() => router.push("/dashboard/localBest/LocalBestView")}
+          >
+            <Image
+              source={require("../../../assets/via-farm-img/icons/see.png")}
+              style={styles.seeIcon}
+            />
+            <Text style={styles.link}>See All</Text>
           </TouchableOpacity>
         </View>
 
@@ -159,8 +177,14 @@ const LocalBest = () => {
     <View style={{ marginVertical: 20 }}>
       <View style={styles.headerRow}>
         <Text style={styles.heading}>Local Best</Text>
-        <TouchableOpacity onPress={() => router.push("LocalBestView")}>
-          <Text style={styles.link}>View All</Text>
+
+        {/* See All: icon on left */}
+        <TouchableOpacity style={styles.seeButton} onPress={() => router.push("LocalBestView")}>
+          
+          <Text style={styles.link}>See All</Text>
+          <Image
+            source={require("../../../assets/via-farm-img/icons/see.png")}
+          />
         </TouchableOpacity>
       </View>
 
@@ -193,7 +217,12 @@ export default LocalBest;
 const styles = StyleSheet.create({
   heading: { fontSize: 20, marginLeft: 20, fontWeight: "600" },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 15, paddingRight: 20 },
-  link: { color: "blue", fontWeight: "600" },
+  link: { color: "rgba(1, 151, 218, 1)", fontWeight: "600" },
+
+  // NEW: See All container + icon styles
+  seeButton: { flexDirection: "row", alignItems: "center" ,gap:5, },
+  seeIcon: { width: 18, height: 18, marginRight: 5, resizeMode: "contain" },
+
   loadingContainer: { alignItems: "center", padding: 20 },
   loadingText: { marginTop: 10, color: "#777" },
   errorContainer: { alignItems: "center", padding: 20, backgroundColor: "#ffebee", borderRadius: 8, marginHorizontal: 20 },
