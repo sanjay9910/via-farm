@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     alignItems: 'flex-start',
-    paddingHorizontal: 10,
+    paddingHorizontal:5,
     paddingVertical: 8,
   },
   flatListStyle: {

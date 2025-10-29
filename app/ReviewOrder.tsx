@@ -213,7 +213,7 @@ const ReviewOrder = () => {
         const payload = payloadCandidates[i];
         try {
           const res = await axios.post(
-            `${API_BASE}/api/buyer/cart/apply-coupon`,
+            `${API_BASE}/api/buyer/orders/place`,
             payload,
             { headers: { Authorization: `Bearer ${token}` } }
           );
@@ -874,6 +874,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#28a745',
     padding:14,
     borderRadius: 10,
+    // borderWidth:2,
+    // borderColor:'#28a745',
   },
   donationSection: {
     flexDirection: 'row',

@@ -1,3 +1,4 @@
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -31,7 +32,7 @@ const MyCart = () => {
   const [authToken, setAuthToken] = useState(null);
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [vendorDetails, SetVendorsDetails] = useState('');
+  const [vendorDetails, setVendorDetails] = useState(null);
   const [slot, setSlot] = useState({ date: '', startTime: '', endTime: '' });
 
   const [priceDetails, setPriceDetails] = useState({
@@ -73,39 +74,6 @@ const MyCart = () => {
     }
   };
 
-  // fetch Vendors Details start
-  useEffect(() => {
-    const fetchVendorDetails = async () => {
-      try {
-        const token = await getAuthToken(); // fetch token
-        if (!token) return;
-
-        const response = await fetch(
-          `${BASE_URL}/api/buyer/pickup/68d63155abec554d6931b766?buyerLat=19.076&buyerLng=72.8777`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        const data = await response.json();
-        if (data.success) {
-          SetVendorsDetails(data.data.vendor);
-        } else {
-          console.warn("Failed to fetch vendor details:", data.message);
-        }
-      } catch (error) {
-        console.error("Vendor Details Error:", error);
-      }
-    };
-
-    fetchVendorDetails();
-  }, []);
-  // fetch Vendors Details end
-
   // --- Fetch Cart ---
   const fetchCartItems = useCallback(async (token) => {
     if (!token) {
@@ -121,6 +89,23 @@ const MyCart = () => {
       const json = await res.json();
       if (res.ok && json.success) {
         const items = json.data.items || [];
+        
+        // Extract vendor details from first item
+        if (items.length > 0 && items[0].vendor) {
+          const vendor = items[0].vendor;
+          setVendorDetails({
+            id: vendor.id,
+            name: vendor.name,
+            phoneNo: vendor.mobileNumber,
+            profilePicture: vendor.profilePicture,
+            pickupLocationText: `${vendor.address?.houseNumber || ''} ${vendor.address?.street || ''}, ${vendor.address?.locality || ''}, ${vendor.address?.city || ''}`.trim(),
+            address: vendor.address,
+            about: vendor.about,
+            latitude: vendor.address?.latitude || vendor.geoLocation?.[1],
+            longitude: vendor.address?.longitude || vendor.geoLocation?.[0],
+          });
+        }
+
         const transformed = items.map(item => ({
           id: item.id || item._id,
           title: item.name,
@@ -133,7 +118,7 @@ const MyCart = () => {
         }));
         setCartItems(transformed);
 
-        // Use server-provided summary if present, but keep numeric defaults
+        // Use server-provided summary if present
         const summary = json.data.priceDetails || {};
         setPriceDetails({
           totalMRP: Number(summary.totalMRP ?? transformed.reduce((s, i) => s + i.price * i.quantity, 0)),
@@ -141,8 +126,18 @@ const MyCart = () => {
           deliveryCharge: Number(summary.deliveryCharge ?? 0),
           totalAmount: Number(summary.totalAmount ?? 0),
         });
+
+        // Set coupon code if available
+        if (json.data.couponCode) {
+          setCouponCode(json.data.couponCode);
+          setAppliedCoupon({
+            code: json.data.couponCode,
+            discount: Number(summary.couponDiscount ?? 0),
+          });
+        }
       } else {
         setCartItems([]);
+        setVendorDetails(null);
         setPriceDetails({ totalMRP: 0, couponDiscount: 0, deliveryCharge: 0, totalAmount: 0 });
         console.warn('Failed to fetch cart:', json.message);
       }
@@ -247,7 +242,7 @@ const MyCart = () => {
     }
   };
 
-  // Apply coupon function (client-side fallback; server should ideally handle)
+  // Apply coupon function
   const applyCoupon = () => {
     setCouponError('');
     const coupon = availableCoupons.find(c => c.code === couponCode.toUpperCase());
@@ -268,7 +263,6 @@ const MyCart = () => {
 
   const subtotal = cartItems.reduce((s, i) => s + (Number(i.price) || 0) * (i.quantity || 0), 0);
 
-
   const calculateCouponDiscount = () => {
     if (!appliedCoupon) return 0;
     if (appliedCoupon.type === 'percentage') {
@@ -279,9 +273,7 @@ const MyCart = () => {
   };
 
   const couponDiscount = calculateCouponDiscount();
-
   const deliveryCharge = Number(priceDetails.deliveryCharge || 0);
-
   const finalAmount = Number((subtotal - couponDiscount + deliveryCharge).toFixed(2));
 
   const panResponder = PanResponder.create({
@@ -583,8 +575,12 @@ const MyCart = () => {
                   <Image source={require('../../assets/via-farm-img/icons/loca.png')} />
                 </View>
                 <View style={styles.locationDetails}>
-                  <Text style={styles.locationAddress}>182/3, Vinod Nagar, Delhi</Text>
-                  <Text style={styles.locationDistance}>(1.2 kms away)</Text>
+                  <Text style={styles.locationAddress}>
+                    {vendorDetails?.pickupLocationText || 'Loading location...'}
+                  </Text>
+                  <Text style={styles.locationDistance}>
+                    {vendorDetails?.address?.locality || 'Location details'}
+                  </Text>
                 </View>
                 <TouchableOpacity style={styles.locationButton}>
                   <Image source={require('../../assets/via-farm-img/icons/directionLocation.png')} />
@@ -720,6 +716,8 @@ const MyCart = () => {
     </View>
   );
 };
+
+
 
 const styles = StyleSheet.create({
   emptyCartContainer: {
