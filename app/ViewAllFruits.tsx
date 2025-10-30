@@ -12,9 +12,10 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
 
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
 
@@ -85,28 +86,20 @@ const ProductCard = ({
 
         <View style={cardStyles.cardContent}>
           <Text style={cardStyles.productTitle} numberOfLines={1}>
-            {item.name} ({item.variety})
+            {item.name} 
+            {/* ({item.variety}) */}
           </Text>
 
           <View style={{flexDirection:'row',alignItems:'center',gap:5, marginTop:6,marginBottom:6,}}>
             <Image source={require("../assets/via-farm-img/icons/loca.png")} />
             <Text>1.4km</Text>
           </View>
-          {/* <Text style={cardStyles.productSubtitle} numberOfLines={1}>
-            by {item.vendor?.name || "Unknown Vendor"}
-          </Text> */}
-          
           {/* Price and Unit in same line */}
           <View style={cardStyles.priceContainer}>
             <Text style={cardStyles.productPrice}>₹{item.price}</Text>
             <Text style={cardStyles.productUnit}>/{item.unit}</Text>
             <Text style={{marginLeft:5,}}>{item.weightPerPiece}</Text>
           </View>
-
-          {/* Variety */}
-          {/* {item.variety && (
-            <Text style={cardStyles.varietyText}>Variety: {item.variety}</Text>
-          )} */}
 
           {/* Add to Cart / Quantity Control */}
           <View style={cardStyles.buttonContainer}>
@@ -510,15 +503,24 @@ const ViewAllFruits = () => {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonContainer}>
+        <TouchableOpacity onPress={() => navigation.goBack()} >
           <Image
             source={require("../assets/via-farm-img/icons/groupArrow.png")}
-            style={styles.backIcon}
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>All Fruits</Text>
         <View style={{ width: 50 }} />
       </View>
+      {/* <View>
+        <TouchableOpacity onPress={goBack}>
+          <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
+        </TouchableOpacity>
+        <View >
+          <TextInput
+            placeholder='search by name'
+          />
+        </View>
+      </View> */}
 
       {/* Loading */}
       {loading && (

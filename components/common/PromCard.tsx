@@ -1,73 +1,43 @@
 import React from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ImageBackground, StyleSheet, TouchableOpacity } from "react-native";
 
 interface PromoCardProps {
   image: string;
-  title: string;
-  buttonText: string;
   onPress: () => void;
 }
 
-const PromoCard: React.FC<PromoCardProps> = ({ image, title, buttonText, onPress }) => {
+const PromoCard: React.FC<PromoCardProps> = ({ image, onPress }) => {
   return (
-    <View style={styles.card}>
-      {/* Left Image */}
-      <Image source={{ uri: image }} style={styles.image} />
-
-      {/* Right Content */}
-      <View style={styles.content}>
-        <Text style={styles.title}>{title}</Text>
-        <TouchableOpacity style={styles.button} onPress={onPress}>
-          <Text style={styles.buttonText}>{buttonText}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
+      <ImageBackground
+        source={{ uri: image }}
+        style={styles.imageBackground}
+        imageStyle={styles.imageStyle}
+      />
+    </TouchableOpacity>
   );
 };
 
+export default PromoCard;
+
 const styles = StyleSheet.create({
   card: {
-    flexDirection: "row",
-    borderWidth: 1,
-    borderColor: "green",
-    borderRadius: 12,
-    backgroundColor: "#FFF8E1", 
+    width: "92%",
+    alignSelf: "center",
+    borderRadius: 16,
     overflow: "hidden",
-    margin: 12,
+    marginVertical: 12,
+    backgroundColor: "#E8F5E9", // fallback color while loading
+    elevation: 4,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
   },
-  image: {
-    width: 130,
-    height: "100%",
+  imageBackground: {
+    width: "100%",
+    height:140,
+  },
+  imageStyle: {
     resizeMode: "cover",
   },
-  content: {
-    flex: 1,
-    padding: 16,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#2E7D32", // dark green
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  button: {
-    backgroundColor: "#2E7D32", // green
-    paddingVertical: 10,
-    paddingHorizontal: 22,
-    borderRadius: 25,
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 15,
-    fontWeight: "600",
-  },
 });
-
-export default PromoCard;

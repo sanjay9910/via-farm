@@ -174,9 +174,9 @@ const Handicrafts = () => {
       ) : (
         <View style={[styles.noDataContainer, { paddingBottom: 5 }]}>
           <Text style={styles.noDataText}>No handicrafts available right now</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+          {/* <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
             <Text style={styles.buttonText}>Try Again</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       )}
     </View>

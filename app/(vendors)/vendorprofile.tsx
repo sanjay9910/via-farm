@@ -454,6 +454,7 @@ const VendorProfile = () => {
         const user = res.data.user;
         setUserInfo({
           name: user.name,
+          status:user.status,
           phone: user.mobileNumber,
           upiId: user.upiId,
           image: user.profilePicture,
@@ -529,6 +530,7 @@ const VendorProfile = () => {
               <Text style={styles.userName}>{userInfo?.name}</Text>
               <Text style={styles.userPhone}>+91 {userInfo?.phone}</Text>
               <Text style={styles.userRole}>{userInfo?.upiId}</Text>
+              <Text style={styles.userRole}>{userInfo?.status}</Text>
             </View>
             <TouchableOpacity 
               style={styles.editButtonContainer} 

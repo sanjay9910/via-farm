@@ -1,5 +1,5 @@
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -15,7 +15,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import SuggestionCard from './SuggestionCard';
 
@@ -34,6 +34,15 @@ const MyCart = () => {
   const [loading, setLoading] = useState(true);
   const [vendorDetails, setVendorDetails] = useState(null);
   const [slot, setSlot] = useState({ date: '', startTime: '', endTime: '' });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedStartTime, setSelectedStartTime] = useState(new Date());
+  const [selectedEndTime, setSelectedEndTime] = useState(new Date());
+  const [startAMPM, setStartAMPM] = useState('AM');
+  const [endAMPM, setEndAMPM] = useState('AM');
+  const [paymentMethod, setPaymentMethod] = useState('cash'); // default to cash
 
   const [priceDetails, setPriceDetails] = useState({
     totalMRP: 0,
@@ -49,6 +58,9 @@ const MyCart = () => {
 
   const [pickupModalVisible, setPickupModalVisible] = useState(false);
   const pickupSlideAnim = useRef(new Animated.Value(300)).current;
+
+  // Success modal for cash flow
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Coupon state
   const [couponCode, setCouponCode] = useState('');
@@ -89,8 +101,7 @@ const MyCart = () => {
       const json = await res.json();
       if (res.ok && json.success) {
         const items = json.data.items || [];
-        
-        // Extract vendor details from first item
+
         if (items.length > 0 && items[0].vendor) {
           const vendor = items[0].vendor;
           setVendorDetails({
@@ -118,7 +129,6 @@ const MyCart = () => {
         }));
         setCartItems(transformed);
 
-        // Use server-provided summary if present
         const summary = json.data.priceDetails || {};
         setPriceDetails({
           totalMRP: Number(summary.totalMRP ?? transformed.reduce((s, i) => s + i.price * i.quantity, 0)),
@@ -127,7 +137,6 @@ const MyCart = () => {
           totalAmount: Number(summary.totalAmount ?? 0),
         });
 
-        // Set coupon code if available
         if (json.data.couponCode) {
           setCouponCode(json.data.couponCode);
           setAppliedCoupon({
@@ -171,7 +180,6 @@ const MyCart = () => {
     };
   }, [fetchCartItems]);
 
-  // --- Update Quantity ---
   const updateQuantity = async (itemId, newQty) => {
     if (!authToken) {
       Alert.alert('Error', 'Token not found.');
@@ -182,7 +190,6 @@ const MyCart = () => {
 
     const prevItem = cartItems.find(i => i.id === itemId);
 
-    // Optimistic UI
     setCartItems(prev =>
       prev.map(i => (i.id === itemId ? { ...i, quantity: newQty } : i))
     );
@@ -216,7 +223,6 @@ const MyCart = () => {
     }
   };
 
-  // --- Remove Item ---
   const removeItem = async (itemId) => {
     if (!authToken) return Alert.alert('Error', 'Token not found.');
     const prevCart = [...cartItems];
@@ -242,7 +248,6 @@ const MyCart = () => {
     }
   };
 
-  // Apply coupon function
   const applyCoupon = () => {
     setCouponError('');
     const coupon = availableCoupons.find(c => c.code === couponCode.toUpperCase());
@@ -254,11 +259,55 @@ const MyCart = () => {
     }
   };
 
-  // Remove coupon function
   const removeCoupon = () => {
     setAppliedCoupon(null);
     setCouponCode('');
     setCouponError('');
+  };
+
+  const handleDateChange = (event, date) => {
+    if (event.type === 'set' && date) {
+      const formattedDate = date.toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+      setSlot({ ...slot, date: formattedDate });
+      setSelectedDate(date);
+    }
+    setShowDatePicker(false);
+  };
+
+  const convertTo12Hour = (date, ampm) => {
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    if (ampm === 'PM' && hours < 12) {
+      hours += 12;
+    } else if (ampm === 'AM' && hours >= 12) {
+      hours -= 12;
+    }
+
+    const display12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    return `${String(display12).padStart(2, '0')} : ${minutes}`;
+  };
+
+  const handleStartTimeChange = (event, time) => {
+    if (event.type === 'set' && time) {
+      const formattedTime = convertTo12Hour(time, startAMPM);
+      setSlot({ ...slot, startTime: formattedTime });
+      setSelectedStartTime(time);
+    }
+    setShowStartTimePicker(false);
+  };
+
+  const handleEndTimeChange = (event, time) => {
+    if (event.type === 'set' && time) {
+      const formattedTime = convertTo12Hour(time, endAMPM);
+      setSlot({ ...slot, endTime: formattedTime });
+      setSelectedEndTime(time);
+    }
+    setShowEndTimePicker(false);
   };
 
   const subtotal = cartItems.reduce((s, i) => s + (Number(i.price) || 0) * (i.quantity || 0), 0);
@@ -334,9 +383,14 @@ const MyCart = () => {
   };
 
   const handleOptionSelect = (option) => {
-    navigation.navigate("ReviewOrder");
-    setSelectedOption(option);
-    closeModal();
+    // stays same: open pickup modal for pickup option
+    if (option === 'pickup') {
+      openPickupModal();
+    } else {
+      navigation.navigate("ReviewOrder");
+      setSelectedOption(option);
+      closeModal();
+    }
   };
 
   const openPickupModal = () => {
@@ -361,10 +415,96 @@ const MyCart = () => {
     });
   };
 
+  // NEW: place order function used in Pickup modal's Place Order
+  const handlePlaceOrderPickup = async () => {
+  // Validation
+  if (!slot.date || !slot.startTime || !slot.endTime) {
+    Alert.alert('Error', 'Please select date and time slot');
+    return;
+  }
+  if (!paymentMethod) {
+    Alert.alert('Error', 'Please select a payment method');
+    return;
+  }
+
+  const orderPayload = {
+    deliveryType: 'Pickup',
+    pickupSlot: {
+      date: slot.date,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+    },
+    couponCode: appliedCoupon?.code || '',
+    paymentMethod: paymentMethod === 'online' ? 'Online' : 'Cash',
+    comments: '',
+  };
+
+  // If Online -> navigate to Payment screen with amount and payload
+  if (paymentMethod === 'online') {
+    closePickupModal();
+    setTimeout(() => {
+      navigation.navigate('Payment', {
+        amount: finalAmount,
+        orderPayload,
+      });
+    }, 300); // small delay ensures modal fully closes before navigating
+    return;
+  }
+
+  // If Cash -> call place-order API, show success modal after closing
+  try {
+    const token = authToken || (await getAuthToken());
+    if (!token) {
+      Alert.alert('Error', 'Please login to place order.');
+      return;
+    }
+
+    const res = await fetch(`${BASE_URL}/api/buyer/orders/place`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(orderPayload),
+    });
+
+    const json = await res.json();
+
+    if (res.ok && json.success) {
+      // Close pickup modal smoothly first
+      closePickupModal();
+
+      // ✅ Wait for modal close animation before showing success modal
+      setTimeout(() => {
+        setShowSuccessModal(true);
+
+        // Hide success modal after 2 seconds and navigate home
+        setTimeout(() => {
+          setShowSuccessModal(false);
+          navigation.navigate('index');
+        }, 3000);
+      }, 350); // matches pickup modal animation timing
+    } else {
+      console.warn('Place order failed:', json);
+      Alert.alert('Order Failed', json.message || 'Could not place order.');
+    }
+  } catch (err) {
+    console.error('Place order error:', err);
+    Alert.alert('Error', 'Network error while placing order.');
+  }
+};
+
   const goReviewPage = () => {
-    navigation.navigate("ReviewOrder", {
+    // deprecated for pickup; we now use handlePlaceOrderPickup for pickup flow
+    if (!slot.date || !slot.startTime || !slot.endTime) {
+      Alert.alert('Error', 'Please select date and time slot');
+      return;
+    }
+    navigation.navigate("index", {
       totalAmount: finalAmount,
       totalItems: cartItems.reduce((s, i) => s + (i.quantity || 0), 0).toString(),
+      pickupSlot: slot,
+      paymentMethod: paymentMethod,
     });
   };
 
@@ -555,105 +695,251 @@ const MyCart = () => {
               padding: 25,
               borderWidth: 2,
               borderColor: 'rgba(255, 202, 40, 1)',
-              maxHeight: '80%',
+              maxHeight: '90%',
               transform: [{ translateY: pickupSlideAnim }],
             }}
             {...pickupPanResponder.panHandlers}
           >
-            <View style={styles.dragHandle} />
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.dragHandle} />
 
-            <View style={styles.modalContainer}>
-              <View style={styles.modalHeader}>
-                <TouchableOpacity style={styles.backButton} onPress={closePickupModal}>
-                  <Image source={require('../../assets/via-farm-img/icons/groupArrow.png')} />
-                </TouchableOpacity>
-                <Text style={styles.modalHeaderTitle}>Pickup Location</Text>
-              </View>
-
-              <View style={styles.locationInfo}>
-                <View style={styles.locationIcon}>
-                  <Image source={require('../../assets/via-farm-img/icons/loca.png')} />
+              <View style={styles.modalContainer}>
+                <View style={styles.modalHeader}>
+                  <TouchableOpacity style={styles.backButton} onPress={closePickupModal}>
+                    <Image source={require('../../assets/via-farm-img/icons/groupArrow.png')} />
+                  </TouchableOpacity>
+                  <Text style={styles.modalHeaderTitle}>Pickup Location</Text>
                 </View>
-                <View style={styles.locationDetails}>
-                  <Text style={styles.locationAddress}>
-                    {vendorDetails?.pickupLocationText || 'Loading location...'}
-                  </Text>
-                  <Text style={styles.locationDistance}>
-                    {vendorDetails?.address?.locality || 'Location details'}
-                  </Text>
-                </View>
-                <TouchableOpacity style={styles.locationButton}>
-                  <Image source={require('../../assets/via-farm-img/icons/directionLocation.png')} />
-                </TouchableOpacity>
-              </View>
 
-              <View style={styles.slotSection}>
-                <Text style={styles.slotTitle}>Pick a slot</Text>
-
-                <View style={styles.dateRow}>
-                  <Text style={styles.dateLabel}>Date</Text>
-                  <TouchableOpacity style={styles.datePicker}>
-                    <Text style={styles.dateText}>
-                      {slot.date || 'Select Date'}
+                <View style={styles.locationInfo}>
+                  <View style={styles.locationIcon}>
+                    <Image source={require('../../assets/via-farm-img/icons/loca.png')} />
+                  </View>
+                  <View style={styles.locationDetails}>
+                    <Text style={styles.locationAddress}>
+                      {vendorDetails?.pickupLocationText || 'Loading location...'}
                     </Text>
-                    <Text style={styles.dateIcon}>📅</Text>
+                    <Text style={styles.locationDistance}>
+                      {vendorDetails?.address?.locality || 'Location details'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity style={styles.locationButton}>
+                    <Image source={require('../../assets/via-farm-img/icons/directionLocation.png')} />
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.timeRow}>
-                  <Text style={styles.timeLabel}>Between</Text>
-                  <View style={styles.timeContainer}>
-                    <View style={styles.timeInput}>
-                      <Text style={styles.timeText}>
-                        {slot.startTime || '--:--'}
+                <View style={styles.slotSection}>
+                  <Text style={styles.slotTitle}>Pick a slot</Text>
+
+                  <View style={styles.dateRow}>
+                    <Text style={styles.dateLabel}>Date</Text>
+                    <TouchableOpacity
+                      style={styles.datePicker}
+                      onPress={() => setShowDatePicker(true)}
+                    >
+                      <Text style={styles.dateText}>
+                        {slot.date || 'Select Date'}
                       </Text>
+                      <Text style={styles.dateIcon}>📅</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={selectedDate}
+                      mode="date"
+                      display="spinner"
+                      onChange={handleDateChange}
+                      minimumDate={new Date()}
+                    />
+                  )}
+
+                  <View style={styles.timeRow}>
+                    <Text style={styles.timeLabel}>Between</Text>
+                    <View style={styles.timeContainer}>
+                      <TouchableOpacity
+                        style={styles.timeInput}
+                        onPress={() => setShowStartTimePicker(true)}
+                      >
+                        <Text style={styles.timeText}>
+                          {slot.startTime || '--:--'}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.ampmButton}
+                        onPress={() => setStartAMPM(startAMPM === 'AM' ? 'PM' : 'AM')}
+                      >
+                        <Text style={styles.ampmText}>{startAMPM}</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.timeTo}>to</Text>
+                      <TouchableOpacity
+                        style={styles.timeInput}
+                        onPress={() => setShowEndTimePicker(true)}
+                      >
+                        <Text style={styles.timeText}>
+                          {slot.endTime || '--:--'}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.ampmButton}
+                        onPress={() => setEndAMPM(endAMPM === 'AM' ? 'PM' : 'AM')}
+                      >
+                        <Text style={styles.ampmText}>{endAMPM}</Text>
+                      </TouchableOpacity>
                     </View>
-                    <Text style={styles.timeTo}>to</Text>
-                    <View style={styles.timeInput}>
-                      <Text style={styles.timeText}>
-                        {slot.endTime || '--:--'}
-                      </Text>
+                  </View>
+
+                  {showStartTimePicker && (
+                    <DateTimePicker
+                      value={selectedStartTime}
+                      mode="time"
+                      display="spinner"
+                      onChange={handleStartTimeChange}
+                    />
+                  )}
+
+                  {showEndTimePicker && (
+                    <DateTimePicker
+                      value={selectedEndTime}
+                      mode="time"
+                      display="spinner"
+                      onChange={handleEndTimeChange}
+                    />
+                  )}
+                </View>
+
+                <View style={{ paddingBottom: 16, backgroundColor: '#fff', borderRadius: 10 }}>
+                  <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 15 }}>Payment Options</Text>
+
+                  {/* Pay by Cash */}
+                  <TouchableOpacity
+                    onPress={() => setPaymentMethod('cash')}
+                    activeOpacity={0.8}
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      paddingVertical: 12,
+                      paddingHorizontal: 10,
+                      borderWidth: 1,
+                      borderColor: paymentMethod === 'cash' ? '#FFA500' : '#ddd',
+                      borderRadius: 8,
+                      marginBottom: 10,
+                      backgroundColor: paymentMethod === 'cash' ? '#FFF8E1' : '#fff'
+                    }}
+                  >
+                    <Text style={{ fontSize: 16, color: '#333' }}>Pay by Cash</Text>
+                    <View
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: 11,
+                        borderWidth: 2,
+                        borderColor: paymentMethod === 'cash' ? '#FFA500' : '#ccc',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {paymentMethod === 'cash' && (
+                        <View
+                          style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: 5,
+                            backgroundColor: '#FFA500',
+                          }}
+                        />
+                      )}
                     </View>
+                  </TouchableOpacity>
+
+                  {/* Pay Online */}
+                  <TouchableOpacity
+                    onPress={() => setPaymentMethod('online')}
+                    activeOpacity={0.8}
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      paddingVertical: 12,
+                      paddingHorizontal: 10,
+                      borderWidth: 1,
+                      borderColor: paymentMethod === 'online' ? '#FFA500' : '#ddd',
+                      borderRadius: 8,
+                      backgroundColor: paymentMethod === 'online' ? '#FFF8E1' : '#fff'
+                    }}
+                  >
+                    <Text style={{ fontSize: 16, color: '#333' }}>Pay Online</Text>
+                    <View
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: 11,
+                        borderWidth: 2,
+                        borderColor: paymentMethod === 'online' ? '#FFA500' : '#ccc',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {paymentMethod === 'online' && (
+                        <View
+                          style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: 5,
+                            backgroundColor: '#FFA500',
+                          }}
+                        />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.vendorTitle}>Vendor's Details</Text>
+
+                <View style={styles.vendorInfo}>
+                  <Image
+                    borderRadius={10}
+                    style={{ width: 60, height: 60 }}
+                    source={{
+                      uri: vendorDetails?.profilePicture || "https://via.placeholder.com/60",
+                    }}
+                  />
+                  <View style={styles.vendorDetails}>
+                    <Text style={styles.vendorName}>
+                      {vendorDetails?.name || "Vendor Name"}
+                    </Text>
+                    <Text style={styles.vendorLocation}>
+                      {vendorDetails?.pickupLocationText || "Vendor Location"}
+                    </Text>
+                    <Text style={styles.vendorPhone}>
+                      Phone: {vendorDetails?.phoneNo || "N/A"}
+                    </Text>
                   </View>
                 </View>
               </View>
 
-              <Text style={styles.vendorTitle}>Vendor's Details</Text>
-
-              <View style={styles.vendorInfo}>
-                <Image
-                  borderRadius={10}
-                  style={{ width: 60, height: 60 }}
-                  source={{
-                    uri: vendorDetails?.profilePicture || "https://via.placeholder.com/60",
-                  }}
-                />
-                <View style={styles.vendorDetails}>
-                  <Text style={styles.vendorName}>
-                    {vendorDetails?.name || "Vendor Name"}
-                  </Text>
-                  <Text style={styles.vendorLocation}>
-                    {vendorDetails?.pickupLocationText || "Vendor Location"}
-                  </Text>
-                  <Text style={styles.vendorPhone}>
-                    Phone: {vendorDetails?.phoneNo || "N/A"}
-                  </Text>
-                </View>
+              <View style={styles.bottomProceed}>
+                <TouchableOpacity
+                  style={styles.proceedButtonStyle}
+                  onPress={handlePlaceOrderPickup}
+                >
+                  <Text style={styles.proceedButtonText}>Place Order</Text>
+                </TouchableOpacity>
               </View>
-            </View>
-
-            <View style={styles.bottomProceed}>
-              <TouchableOpacity
-                style={styles.proceedButtonStyle}
-                onPress={() => {
-                  closePickupModal();
-                  goReviewPage();
-                }}
-              >
-                <Text style={styles.proceedButtonText}>Proceed</Text>
-              </TouchableOpacity>
-            </View>
+            </ScrollView>
           </Animated.View>
+        </View>
+      </Modal>
+
+      {/* Success Modal (shown for Cash order success) */}
+      <Modal visible={showSuccessModal} transparent animationType="fade">
+        <View style={styles.successModalOverlay}>
+          <View style={styles.successModalBox}>
+            <Image source={require('../../assets/via-farm-img/icons/confirm.png')} style={{ width: 64, height: 64, marginBottom: 12 }} />
+            <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 6 }}>Order Placed</Text>
+            <Text style={{ color: '#555' }}>Your order was placed successfully!</Text>
+          </View>
         </View>
       </Modal>
 
@@ -688,7 +974,7 @@ const MyCart = () => {
             <View style={styles.optionsContainer}>
               <TouchableOpacity
                 style={styles.optionCard}
-                onPress={openPickupModal}
+                onPress={() => handleOptionSelect('pickup')}
               >
                 <View style={styles.optionContent}>
                   <Text style={styles.optionTitle}>Pickup your package from vendor's location</Text>
@@ -716,7 +1002,6 @@ const MyCart = () => {
     </View>
   );
 };
-
 
 
 const styles = StyleSheet.create({
@@ -1299,6 +1584,25 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
+  successModalOverlay: {
+  flex: 1,
+  backgroundColor: 'rgba(0,0,0,0.5)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+successModalBox: {
+  backgroundColor: '#fff',
+  width: '75%',
+  borderRadius: 16,
+  paddingVertical: 30,
+  paddingHorizontal: 20,
+  alignItems: 'center',
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.3,
+  shadowRadius: 5,
+  elevation: 10,
+},
 });
 
 export default MyCart;

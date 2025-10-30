@@ -172,9 +172,10 @@ const Fruits = () => {
           <Text style={styles.errorText}>{error}</Text>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+            
+            {/* <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
               <Text style={styles.buttonText}>Try Again</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             {error.toLowerCase().includes("login") && (
               <TouchableOpacity
@@ -215,9 +216,9 @@ const Fruits = () => {
       ) : (
         <View style={styles.noDataContainer}>
           <Text style={styles.noDataText}>No fruits available right now</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+          {/* <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
             <Text style={styles.buttonText}>Try Again</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       )}
     </View>

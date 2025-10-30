@@ -184,9 +184,9 @@ const Vegetables = () => {
       ) : (
         <View style={styles.noDataContainer}>
           <Text style={styles.noDataText}>No vegetables available right now</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+          {/* <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
             <Text style={styles.buttonText}>Try Again</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       )}
     </View>
