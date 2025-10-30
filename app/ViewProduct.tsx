@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useLocalSearchParams, useNavigation } from "expo-router";
+import { goBack } from 'expo-router/build/global-state/routing';
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -182,7 +183,7 @@ export default function ProductDetailScreen() {
     <SafeAreaView style={styles.page}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.back?.()}>
+        <TouchableOpacity style={styles.iconBtn} onPress={goBack}>
           <Ionicons name="arrow-back" size={22} color="#333" />
         </TouchableOpacity>
 

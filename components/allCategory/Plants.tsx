@@ -4,6 +4,7 @@ import axios from "axios";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   StyleSheet,
@@ -14,14 +15,20 @@ import {
 
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
 
-// ✅ Reusable Product Card (same as Fruits/Vegetables)
-const ProductCard = ({ name, image }) => {
+// ✅ Reusable Product Card (updated to accept onPress and product)
+const ProductCard = ({ id, name, image, onPress, product }) => {
   return (
-    <View style={cardStyles.container}>
+    <TouchableOpacity
+      style={cardStyles.container}
+      activeOpacity={0.85}
+      onPress={() => onPress && onPress(product)}
+    >
       <View style={cardStyles.card}>
         <Image
           source={{
-            uri: image || "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
+            uri:
+              image ||
+              "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
           }}
           style={cardStyles.image}
           resizeMode="cover"
@@ -30,7 +37,7 @@ const ProductCard = ({ name, image }) => {
       <Text style={cardStyles.name} numberOfLines={2}>
         {name}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -60,14 +67,16 @@ const Plants = () => {
 
       // console.log("🌱 Plants API Response:", response.data);
 
-      if (response.data && response.data.success) {
+      if (response.data && response.data.success && Array.isArray(response.data.data)) {
         const formattedData = response.data.data.map((item, index) => ({
           id: item._id || `plant-${index}`,
-          name: item.name,
+          name: item.name || "Unnamed",
           image:
             item.images && item.images.length > 0
               ? item.images[0]
-              : "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
+              : item.image ||
+                "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
+          raw: item, // keep original API item to pass to details screen
         }));
         setData(formattedData);
       } else {
@@ -102,6 +111,30 @@ const Plants = () => {
 
   const handleLogin = () => {
     navigation.navigate("login");
+  };
+
+  // OPEN DETAILS: receives full product object (formatted item)
+  const openProductDetails = (product) => {
+    if (!product) {
+      console.warn("openProductDetails: missing product");
+      Alert.alert("Error", "Product data missing");
+      return;
+    }
+
+    const productId = product.raw?._id || product.id || product.raw?.id;
+
+    try {
+      // send both id and full raw product to the detail screen
+      navigation.navigate("ViewProduct", { productId, product: product.raw ?? product });
+    } catch (e1) {
+      console.error("Navigation primary route failed:", e1);
+      try {
+        navigation.navigate("ViewOrderProduct", { productId, product: product.raw ?? product });
+      } catch (e2) {
+        console.error("Navigation fallback failed:", e2);
+        Alert.alert("Navigation Error", "Could not open product detail screen. Check route names.");
+      }
+    }
   };
 
   // ⏳ Loading
@@ -140,7 +173,7 @@ const Plants = () => {
               <Text style={styles.buttonText}>Try Again</Text>
             </TouchableOpacity>
 
-            {error.includes("login") && (
+            {String(error).toLowerCase().includes("login") && (
               <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
                 <Text style={styles.buttonText}>Go to Login</Text>
               </TouchableOpacity>
@@ -153,30 +186,38 @@ const Plants = () => {
 
   // ✅ Success
   return (
-    <View>
+    <View style={{ marginVertical: 10 }}>
       <View style={styles.headerRow}>
         <Text style={styles.heading}>Plants</Text>
-        <TouchableOpacity style={{flexDirection:'row',justifyContent:'center',alignItems:'center',gap:5}} onPress={() => navigation.navigate("ViewAllPlants")}>
+        <TouchableOpacity
+          style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 5 }}
+          onPress={() => navigation.navigate("ViewAllPlants")}
+        >
           <Text style={styles.link}>See All</Text>
-          <Image  source={require("../../assets/via-farm-img/icons/see.png")} />
+          <Image source={require("../../assets/via-farm-img/icons/see.png")} />
         </TouchableOpacity>
       </View>
 
       {data.length > 0 ? (
         <FlatList
           data={data}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => String(item.id)}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 5 }}
-          renderItem={({ item }) => <ProductCard name={item.name} image={item.image} />}
+          renderItem={({ item }) => (
+            <ProductCard
+              id={item.id}
+              name={item.name}
+              image={item.image}
+              product={item}
+              onPress={openProductDetails}
+            />
+          )}
         />
       ) : (
         <View style={[styles.noDataContainer, { paddingBottom: 5 }]}>
           <Text style={styles.noDataText}>No plants available right now</Text>
-          {/* <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-            <Text style={styles.buttonText}>Try Again</Text>
-          </TouchableOpacity> */}
         </View>
       )}
     </View>

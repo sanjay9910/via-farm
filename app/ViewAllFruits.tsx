@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -11,44 +11,54 @@ import {
   Image,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
 
-// ✅ Product Card with Wishlist & Cart functionality
-const ProductCard = ({ 
-  item, 
-  isFavorite, 
+// ----------------- ProductCard -----------------
+const ProductCard = ({
+  item,
+  isFavorite,
   onToggleFavorite,
   cartQuantity,
   onAddToCart,
   onUpdateQuantity,
-  onPress // <-- added: handler to call when card pressed
+  onPress
 }) => {
-  const inCart = cartQuantity > 0;
+  const inCart = (cartQuantity || 0) > 0;
+
+  const imageUri = item?.image
+    || (Array.isArray(item?.images) && item.images.length > 0 && item.images[0])
+    || "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image";
+
+  const distance =
+    item?.distanceFromVendor ??
+    item?.distance ??
+    item?.vendor?.distanceFromVendor ??
+    null;
+
+  const status = item?.status ?? (item?.stock === 0 ? "Out of Stock" : "In Stock");
+
+  const rating = (typeof item?.rating === "number") ? item.rating : (item?.rating ? Number(item.rating) : 0);
 
   return (
     <View style={[cardStyles.container]}>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={cardStyles.card}
-        activeOpacity={0.8}
-        onPress={() => onPress && onPress(item)} // pass full product object to handler
+        activeOpacity={0.85}
+        onPress={() => onPress && onPress(item)}
       >
         <View style={[cardStyles.imageContainer, { height: cardStyles.imageHeight }]}>
-          <Image 
-            source={{
-              uri: item.images && item.images.length > 0 
-                ? item.images[0] 
-                : "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
-            }} 
-            style={cardStyles.productImage} 
+          <Image
+            source={{ uri: imageUri }}
+            style={cardStyles.productImage}
+            resizeMode="cover"
           />
-          
-          {/* Wishlist Icon */}
+
           <TouchableOpacity
             style={cardStyles.favoriteButton}
             activeOpacity={0.7}
@@ -59,65 +69,69 @@ const ProductCard = ({
           >
             <Ionicons
               name={isFavorite ? 'heart' : 'heart-outline'}
-              size={25}
-              color={isFavorite ? '#ff4444' : '#666'}
+              size={22}
+              color={isFavorite ? '#ff4444' : '#fff'}
             />
           </TouchableOpacity>
-          
-          {/* Rating */}
+
           <View style={cardStyles.ratingContainer}>
             <Ionicons name="star" size={12} color="#FFD700" />
             <Text style={cardStyles.ratingText}>
-              {item.rating && item.rating > 0 ? Number(item.rating).toFixed(1) : "0.0"}
+              {rating ? Number(rating).toFixed(1) : "0.0"}
             </Text>
           </View>
 
-          {/* Status Badge */}
           <View style={[
             cardStyles.statusBadge,
-            { 
-              backgroundColor: item.status === "In Stock" ? "#4CAF50" : 
-                              item.status === "Out of Stock" ? "#f44336" : "#ff9800" 
+            {
+              backgroundColor: status === "In Stock" ? "#4CAF50" :
+                status === "Out of Stock" ? "#f44336" : "#ff9800"
             }
           ]}>
-            <Text style={cardStyles.statusText}>{item.status}</Text>
+            <Text style={cardStyles.statusText}>{status}</Text>
           </View>
         </View>
 
         <View style={cardStyles.cardContent}>
           <Text style={cardStyles.productTitle} numberOfLines={1}>
-            {item.name} 
-            {/* ({item.variety}) */}
+            {item?.name ?? "Unnamed product"}
           </Text>
 
-          <View style={{flexDirection:'row',alignItems:'center',gap:5, marginTop:6,marginBottom:6,}}>
-            <Image source={require("../assets/via-farm-img/icons/loca.png")} />
-            <Text>1.4km</Text>
-          </View>
-          {/* Price and Unit in same line */}
-          <View style={cardStyles.priceContainer}>
-            <Text style={cardStyles.productPrice}>₹{item.price}</Text>
-            <Text style={cardStyles.productUnit}>/{item.unit}</Text>
-            <Text style={{marginLeft:5,}}>{item.weightPerPiece}</Text>
+          <View style={{marginVertical:5,}}>
+            <Text numberOfLines={1} style={{color:'#444',fontSize:12}}>{item?.vendor?.name ?? ''}</Text>
           </View>
 
-          {/* Add to Cart / Quantity Control */}
+          <View style={{flexDirection:'row',alignItems:'center',gap:5,}}>
+            <Image
+              source={require("../assets/via-farm-img/icons/cardMap.png")}
+            />
+            <Text style={{fontSize:12,color:'#444'}}>
+              {distance ?? "0.0 km"}
+            </Text>
+          </View>
+
+          <View style={cardStyles.priceContainer}>
+            <Text style={cardStyles.productPrice}>₹{item?.price ?? "0"}</Text>
+            <Text style={cardStyles.productUnit}>/{item?.unit ?? "unit"}</Text>
+            {item?.weightPerPiece ? <Text style={cardStyles.weightText}>{item.weightPerPiece}</Text> : null}
+          </View>
+
           <View style={cardStyles.buttonContainer}>
             {!inCart ? (
               <TouchableOpacity
                 style={[
                   cardStyles.addToCartButton,
-                  item.status !== "In Stock" && cardStyles.disabledButton
+                  status !== "In Stock" && cardStyles.disabledButton
                 ]}
-                activeOpacity={0.7}
-                disabled={item.status !== "In Stock"}
+                activeOpacity={0.8}
+                disabled={status !== "In Stock"}
                 onPress={(e) => {
                   e.stopPropagation?.();
                   onAddToCart && onAddToCart(item);
                 }}
               >
                 <Text style={cardStyles.addToCartText}>
-                  {item.status === "In Stock" ? "Add to Cart" : item.status}
+                  {status === "In Stock" ? "Add to Cart" : status}
                 </Text>
               </TouchableOpacity>
             ) : (
@@ -150,6 +164,7 @@ const ProductCard = ({
   );
 };
 
+// ----------------- ViewAllFruits (parent) -----------------
 const ViewAllFruits = () => {
   const navigation = useNavigation();
   const [fruits, setFruits] = useState([]);
@@ -157,6 +172,7 @@ const ViewAllFruits = () => {
   const [error, setError] = useState(null);
   const [favorites, setFavorites] = useState(new Set());
   const [cartItems, setCartItems] = useState({});
+  const [query, setQuery] = useState("");
 
   // Fetch Fruits
   const fetchFruits = async () => {
@@ -183,7 +199,8 @@ const ViewAllFruits = () => {
       );
 
       if (response.data && response.data.success) {
-        setFruits(response.data.data || []);
+        const dataArray = response.data.data || response.data;
+        setFruits(Array.isArray(dataArray) ? dataArray : []);
       } else {
         setError("No fruits found in your area");
       }
@@ -213,10 +230,10 @@ const ViewAllFruits = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (response.data.success) {
+      if (response.data?.success) {
         const wishlistItems = response.data.data?.items || [];
         const favoriteIds = new Set(
-          wishlistItems.map(item => item.productId || item._id)
+          wishlistItems.map(item => item.productId || item._id || item.id)
         );
         setFavorites(favoriteIds);
       }
@@ -235,11 +252,11 @@ const ViewAllFruits = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (response.data.success) {
+      if (response.data?.success) {
         const items = response.data.data?.items || [];
         const cartMap = {};
         items.forEach(item => {
-          const productId = item.productId || item._id;
+          const productId = item.productId || item._id || item.id;
           cartMap[productId] = {
             quantity: item.quantity || 1,
             cartItemId: item._id || item.id
@@ -258,7 +275,19 @@ const ViewAllFruits = () => {
     fetchCart();
   }, []);
 
-  // Add to Wishlist
+  // client-side filter by name (case-insensitive)
+  const filteredFruits = useMemo(() => {
+    const q = (query || "").trim().toLowerCase();
+    if (!q) return fruits;
+    return fruits.filter(f =>
+      (f?.name ?? "")
+        .toString()
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [fruits, query]);
+
+  // Add/Remove wishlist, add to cart, update quantity... (same as before)
   const addToWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -272,7 +301,7 @@ const ViewAllFruits = () => {
       const wishlistData = {
         productId: productId,
         name: product.name,
-        image: product.images?.[0] || '',
+        image: product.images?.[0] || product.image || '',
         price: product.price,
         category: product.category || 'Fruits',
         variety: product.variety || 'Standard',
@@ -290,15 +319,13 @@ const ViewAllFruits = () => {
         }
       );
 
-      if (response.data.success) {
-        // Update local state immediately
+      if (response.data?.success) {
         setFavorites(prev => new Set(prev).add(productId));
         Alert.alert('Success', 'Added to wishlist!');
       }
     } catch (error) {
       console.error('Error adding to wishlist:', error);
       if (error.response?.status === 400) {
-        // Already in wishlist
         const productId = product._id || product.id;
         setFavorites(prev => new Set(prev).add(productId));
         Alert.alert('Info', 'Already in wishlist');
@@ -308,7 +335,6 @@ const ViewAllFruits = () => {
     }
   };
 
-  // Remove from Wishlist
   const removeFromWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -323,8 +349,7 @@ const ViewAllFruits = () => {
         }
       );
 
-      if (response.data.success) {
-        // Update local state immediately
+      if (response.data?.success) {
         setFavorites(prev => {
           const next = new Set(prev);
           next.delete(productId);
@@ -338,10 +363,8 @@ const ViewAllFruits = () => {
     }
   };
 
-  // Toggle Favorite
   const handleToggleFavorite = async (product) => {
     const productId = product._id || product.id;
-    
     if (favorites.has(productId)) {
       await removeFromWishlist(product);
     } else {
@@ -349,7 +372,6 @@ const ViewAllFruits = () => {
     }
   };
 
-  // Add to Cart
   const handleAddToCart = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -363,7 +385,7 @@ const ViewAllFruits = () => {
       const cartData = {
         productId: productId,
         name: product.name,
-        image: product.images?.[0] || '',
+        image: product.images?.[0] || product.image || '',
         price: product.price,
         quantity: 1,
         category: product.category || 'Fruits',
@@ -382,8 +404,7 @@ const ViewAllFruits = () => {
         }
       );
 
-      if (response.data.success) {
-        // Update local state immediately
+      if (response.data?.success) {
         setCartItems(prev => ({
           ...prev,
           [productId]: {
@@ -396,7 +417,6 @@ const ViewAllFruits = () => {
     } catch (error) {
       console.error('Error adding to cart:', error);
       if (error.response?.status === 400) {
-        // Already in cart, refresh to get current quantity
         await fetchCart();
         Alert.alert('Info', 'Product is already in cart');
       } else {
@@ -405,7 +425,6 @@ const ViewAllFruits = () => {
     }
   };
 
-  // Update Cart Quantity
   const handleUpdateQuantity = async (product, change) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -418,7 +437,6 @@ const ViewAllFruits = () => {
       const newQuantity = currentItem.quantity + change;
 
       if (newQuantity < 1) {
-        // Remove from cart
         const response = await axios.delete(
           `${API_BASE}/api/buyer/cart/${currentItem.cartItemId}`,
           {
@@ -426,7 +444,7 @@ const ViewAllFruits = () => {
           }
         );
 
-        if (response.data.success) {
+        if (response.data?.success) {
           setCartItems(prev => {
             const next = { ...prev };
             delete next[productId];
@@ -435,16 +453,11 @@ const ViewAllFruits = () => {
           Alert.alert('Removed', 'Item removed from cart');
         }
       } else {
-        // Update quantity optimistically
         setCartItems(prev => ({
           ...prev,
-          [productId]: {
-            ...currentItem,
-            quantity: newQuantity
-          }
+          [productId]: { ...currentItem, quantity: newQuantity }
         }));
 
-        // Update on server
         const response = await axios.put(
           `${API_BASE}/api/buyer/cart/${currentItem.cartItemId}/quantity`,
           { quantity: newQuantity },
@@ -456,35 +469,25 @@ const ViewAllFruits = () => {
           }
         );
 
-        if (!response.data.success) {
-          // Revert on failure
-          setCartItems(prev => ({
-            ...prev,
-            [productId]: currentItem
-          }));
+        if (!response.data?.success) {
+          setCartItems(prev => ({ ...prev, [productId]: currentItem }));
           Alert.alert('Error', 'Failed to update quantity');
         }
       }
     } catch (error) {
       console.error('Error updating quantity:', error);
-      // Refresh cart to get accurate data
       await fetchCart();
       Alert.alert('Error', 'Failed to update quantity');
     }
   };
 
-  // Navigation: open product details (sends both id and full product)
   const openProductDetails = (product) => {
     try {
       const productId = product?._id || product?.id;
-      console.log("openProductDetails called with:", productId, product);
       if (!productId) {
         Alert.alert("Error", "Product id missing");
         return;
       }
-
-      // Prefer the exact route name; if your app registers different name change here.
-      // We'll pass both productId and full product object so ViewProduct can use either.
       navigation.navigate("ViewProduct", { productId, product });
     } catch (err) {
       console.error("openProductDetails error:", err);
@@ -501,26 +504,32 @@ const ViewAllFruits = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-      {/* Header */}
+      {/* Header with Search */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} >
           <Image
             source={require("../assets/via-farm-img/icons/groupArrow.png")}
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>All Fruits</Text>
-        <View style={{ width: 50 }} />
-      </View>
-      {/* <View>
-        <TouchableOpacity onPress={goBack}>
-          <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
-        </TouchableOpacity>
-        <View >
+
+        <View style={styles.searchWrapper}>
+          <Ionicons name="search" size={18} color="#888" style={{marginRight:8}} />
           <TextInput
-            placeholder='search by name'
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search fruits by name..."
+            placeholderTextColor="#999"
+            style={styles.searchInput}
+            returnKeyType="search"
+            autoCorrect={false}
           />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={() => setQuery("")} style={styles.clearButton}>
+              <Ionicons name="close-circle" size={18} color="#888" />
+            </TouchableOpacity>
+          )}
         </View>
-      </View> */}
+      </View>
 
       {/* Loading */}
       {loading && (
@@ -542,31 +551,39 @@ const ViewAllFruits = () => {
 
       {/* Success - Fruits List */}
       {!loading && !error && (
-        <FlatList
-          data={fruits}
-          keyExtractor={(item) => item._id || item.id || String(item?.name)}
-          numColumns={2}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 20 }}
-          renderItem={({ item }) => {
-            const productId = item._id || item.id;
-            const isFavorite = favorites.has(productId);
-            const cartQuantity = cartItems[productId]?.quantity || 0;
+        <>
+          {filteredFruits.length === 0 ? (
+            <View style={{padding:20, alignItems:'center'}}>
+              <Text style={{color:'#444'}}>No fruits match “{query}”</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredFruits}
+              keyExtractor={(item) => item._id || item.id || String(item?.name)}
+              numColumns={2}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 20 }}
+              renderItem={({ item }) => {
+                const productId = item._id || item.id;
+                const isFavorite = favorites.has(productId);
+                const cartQuantity = cartItems[productId]?.quantity || 0;
 
-            return (
-              <ProductCard 
-                item={item}
-                isFavorite={isFavorite}
-                onToggleFavorite={handleToggleFavorite}
-                cartQuantity={cartQuantity}
-                onAddToCart={handleAddToCart}
-                onUpdateQuantity={handleUpdateQuantity}
-                onPress={openProductDetails} 
-              />
-            );
-          }}
-          columnWrapperStyle={{ justifyContent: "space-between" }}
-        />
+                return (
+                  <ProductCard
+                    item={item}
+                    isFavorite={isFavorite}
+                    onToggleFavorite={handleToggleFavorite}
+                    cartQuantity={cartQuantity}
+                    onAddToCart={handleAddToCart}
+                    onUpdateQuantity={handleUpdateQuantity}
+                    onPress={openProductDetails}
+                  />
+                );
+              }}
+              columnWrapperStyle={{ justifyContent: "space-between" }}
+            />
+          )}
+        </>
       )}
     </SafeAreaView>
   );
@@ -576,14 +593,30 @@ const ViewAllFruits = () => {
 export default ViewAllFruits;
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal:10,
-    paddingBottom: 10,
-    paddingTop: 10,
-    backgroundColor: '#fff',
+    header: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  searchWrapper: {
+    flex: 1,
+    marginHorizontal: 8,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(252, 252, 252, 1)',
+    paddingVertical:10,
+    borderWidth:1,
+    borderColor:'rgba(0, 0, 0, 0.1)',
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    borderRadius:5,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#222',
+    paddingVertical: 0
   },
   backButtonContainer: {
     padding:1,
@@ -649,6 +682,7 @@ const cardStyles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
     borderRadius: 8,
+    padding:5,
     shadowColor: 'grey',
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -712,14 +746,12 @@ const cardStyles = StyleSheet.create({
     fontWeight: '500',
   },
   cardContent: {
-    padding: 8,
+    padding:5,
   },
   productTitle: {
     fontSize: 15,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 2,
-    height: 22,
   },
   productSubtitle: {
     fontSize: 14,
@@ -794,4 +826,5 @@ const cardStyles = StyleSheet.create({
     fontWeight: '600',
     marginHorizontal: 6,
   },
+  
 });

@@ -117,7 +117,6 @@ const Fruits = () => {
     navigation.navigate("login");
   };
 
-  // Try to navigate to product detail. First attempt "ViewProduct", fallback to "ViewOrderProduct".
   const openProductDetails = (productId) => {
     if (!productId) {
       console.warn("openProductDetails: missing productId");
@@ -126,10 +125,8 @@ const Fruits = () => {
     }
 
     try {
-      // primary target (as you asked: ViewProduct)
       navigation.navigate("ViewProduct", { productId });
     } catch (e1) {
-      // fallback if route not registered
       try {
         navigation.navigate("ViewOrderProduct", { productId });
       } catch (e2) {
@@ -173,10 +170,6 @@ const Fruits = () => {
 
           <View style={styles.buttonContainer}>
             
-            {/* <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-              <Text style={styles.buttonText}>Try Again</Text>
-            </TouchableOpacity> */}
-
             {error.toLowerCase().includes("login") && (
               <TouchableOpacity
                 style={styles.loginButton}
@@ -216,9 +209,6 @@ const Fruits = () => {
       ) : (
         <View style={styles.noDataContainer}>
           <Text style={styles.noDataText}>No fruits available right now</Text>
-          {/* <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-            <Text style={styles.buttonText}>Try Again</Text>
-          </TouchableOpacity> */}
         </View>
       )}
     </View>

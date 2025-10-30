@@ -1,3 +1,4 @@
+import AllAroundIndia from '@/components/dashboard/AllAroundIndia/AllAroundIndia';
 import CannactNow from '@/components/dashboard/connactNow/CannactNow';
 import ExploreNow from '@/components/dashboard/exploreNow/ExploreNow';
 import BannerGet from '@/components/dashboard/getNow/bannerGet';
@@ -21,6 +22,7 @@ const index = () => {
       <FressPopular/>
       <BannerGet/>
       <NewSeason/>
+      <AllAroundIndia/>
       <ExploreNow/>
       <SmartPicks/>
       <CannactNow/>

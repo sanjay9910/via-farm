@@ -1,23 +1,25 @@
+// File: components/dashboard/allAround/ViewAllAroundIndia.tsx
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    FlatList,
+    Image,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
+const API_PATH = "/api/buyer/all-around-india";
 
 // ----------------- ProductCard (same design + functionality) -----------------
 const ProductCard = ({
@@ -149,18 +151,18 @@ const ProductCard = ({
   );
 };
 
-// ----------------- ViewAllHandicrafts (parent) -----------------
-const ViewAllHandicrafts = () => {
+// ----------------- ViewAllAroundIndia (parent) -----------------
+const ViewAllAroundIndia = () => {
   const navigation = useNavigation();
-  const [handicrafts, setHandicrafts] = useState([]);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [favorites, setFavorites] = useState(new Set());
   const [cartItems, setCartItems] = useState({});
   const [query, setQuery] = useState("");
 
-  // Fetch items
-  const fetchHandicrafts = async () => {
+  // Fetch all-around-india
+  const fetchAllAround = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -172,29 +174,30 @@ const ViewAllHandicrafts = () => {
         return;
       }
 
-      const response = await axios.get(`${API_BASE}/api/buyer/products/by-category?category=Handicrafts`, {
+      const resp = await axios.get(`${API_BASE}${API_PATH}`, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         timeout: 10000,
       });
 
-      if (response.data && response.data.success) {
-        const arr = response.data.data || [];
-        setHandicrafts(Array.isArray(arr) ? arr : []);
+      if (resp.data && resp.data.success) {
+        const arr = Array.isArray(resp.data.data) ? resp.data.data : [];
+        setItems(arr);
       } else {
-        setHandicrafts([]);
-        setError("No handicrafts found in your area");
+        setItems([]);
+        setError(resp.data?.message || "No products found");
       }
     } catch (err) {
-      console.error("Error fetching handicrafts:", err);
+      console.error("Error fetching all-around-india:", err);
       if (err.response?.status === 401) {
-        setError("Please login to view handicrafts");
+        setError("Please login to view products");
       } else if (err.code === "ECONNABORTED") {
         setError("Request timeout. Please try again.");
       } else if (!err.response) {
         setError("Network error. Please check your connection.");
       } else {
-        setError("Failed to load handicrafts. Please try again.");
+        setError("Failed to load products. Please try again.");
       }
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -205,12 +208,12 @@ const ViewAllHandicrafts = () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) return;
-      const res = await axios.get(`${API_BASE}/api/buyer/wishlist`, {
+      const resp = await axios.get(`${API_BASE}/api/buyer/wishlist`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.data?.success) {
-        const items = res.data.data?.items || [];
-        const favIds = new Set(items.map((i) => i.productId || i._id || i.id));
+      if (resp.data?.success) {
+        const list = resp.data.data?.items || [];
+        const favIds = new Set(list.map((i) => i.productId || i._id || i.id));
         setFavorites(favIds);
       }
     } catch (err) {
@@ -223,15 +226,15 @@ const ViewAllHandicrafts = () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) return;
-      const res = await axios.get(`${API_BASE}/api/buyer/cart`, {
+      const resp = await axios.get(`${API_BASE}/api/buyer/cart`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.data?.success) {
-        const items = res.data.data?.items || [];
+      if (resp.data?.success) {
+        const list = resp.data.data?.items || [];
         const map = {};
-        items.forEach((i) => {
-          const pid = i.productId || i._id || i.id;
-          map[pid] = { quantity: i.quantity || 1, cartItemId: i._id || i.id };
+        list.forEach((it) => {
+          const pid = it.productId || it._id || it.id;
+          map[pid] = { quantity: it.quantity || 1, cartItemId: it._id || it.id };
         });
         setCartItems(map);
       }
@@ -241,17 +244,17 @@ const ViewAllHandicrafts = () => {
   };
 
   useEffect(() => {
-    fetchHandicrafts();
+    fetchAllAround();
     fetchWishlist();
     fetchCart();
   }, []);
 
-  // client-side filter by name (case-insensitive)
-  const filteredHandicrafts = useMemo(() => {
+  // client-side filter
+  const filtered = useMemo(() => {
     const q = (query || "").trim().toLowerCase();
-    if (!q) return handicrafts;
-    return handicrafts.filter((p) => (p?.name ?? "").toString().toLowerCase().includes(q));
-  }, [handicrafts, query]);
+    if (!q) return items;
+    return items.filter((p) => (p?.name ?? "").toString().toLowerCase().includes(q));
+  }, [items, query]);
 
   // wishlist handlers
   const addToWishlist = async (product) => {
@@ -267,7 +270,7 @@ const ViewAllHandicrafts = () => {
         name: product.name,
         image: product.images?.[0] || product.image || "",
         price: product.price,
-        category: product.category || "Handicrafts",
+        category: product.category || "AllAroundIndia",
         variety: product.variety || "Standard",
         unit: product.unit || "kg",
       };
@@ -313,7 +316,7 @@ const ViewAllHandicrafts = () => {
   };
 
   const handleToggleFavorite = async (product) => {
-    const productId = product.__id || product.id;
+    const productId = product._id || product.id;
     if (favorites.has(productId)) {
       await removeFromWishlist(product);
     } else {
@@ -336,7 +339,7 @@ const ViewAllHandicrafts = () => {
         image: product.images?.[0] || product.image || "",
         price: product.price,
         quantity: 1,
-        category: product.category || "Handicrafts",
+        category: product.category || "AllAroundIndia",
         variety: product.variety || "Standard",
         unit: product.unit || "kg",
       };
@@ -383,6 +386,7 @@ const ViewAllHandicrafts = () => {
           Alert.alert("Removed", "Item removed from cart");
         }
       } else {
+        // optimistic UI
         setCartItems((prev) => ({ ...prev, [productId]: { ...current, quantity: newQty } }));
         const r = await axios.put(
           `${API_BASE}/api/buyer/cart/${current.cartItemId}/quantity`,
@@ -418,7 +422,7 @@ const ViewAllHandicrafts = () => {
 
   const handleRetry = () => {
     setError(null);
-    fetchHandicrafts();
+    fetchAllAround();
     fetchWishlist();
     fetchCart();
   };
@@ -436,7 +440,7 @@ const ViewAllHandicrafts = () => {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search handicrafts by name..."
+            placeholder="Search products..."
             placeholderTextColor="#999"
             style={styles.searchInput}
             returnKeyType="search"
@@ -456,7 +460,7 @@ const ViewAllHandicrafts = () => {
       {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFA500" />
-          <Text style={styles.loadingText}>Fetching handicrafts...</Text>
+          <Text style={styles.loadingText}>Fetching products all around India...</Text>
         </View>
       )}
 
@@ -473,28 +477,27 @@ const ViewAllHandicrafts = () => {
       {/* Success - List */}
       {!loading && !error && (
         <>
-          {filteredHandicrafts.length === 0 ? (
+          {filtered.length === 0 ? (
             <View style={{ padding: 20, alignItems: "center" }}>
-              <Text style={{ color: "#444" }}>No handicrafts match “{query}”</Text>
+              <Text style={{ color: "#444" }}>No products match “{query}”</Text>
             </View>
           ) : (
             <FlatList
-              data={filteredHandicrafts}
+              data={filtered}
               keyExtractor={(item) => item._id || item.id || String(item?.name)}
               numColumns={2}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 20 }}
+              contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 30 }}
               renderItem={({ item }) => {
                 const productId = item._id || item.id;
                 const isFavorite = favorites.has(productId);
-                const cartQuantity = cartItems[productId]?.quantity || 0;
-
+                const cartQty = cartItems[productId]?.quantity || 0;
                 return (
                   <ProductCard
                     item={item}
                     isFavorite={isFavorite}
                     onToggleFavorite={handleToggleFavorite}
-                    cartQuantity={cartQuantity}
+                    cartQuantity={cartQty}
                     onAddToCart={handleAddToCart}
                     onUpdateQuantity={handleUpdateQuantity}
                     onPress={openProductDetails}
@@ -510,7 +513,7 @@ const ViewAllHandicrafts = () => {
   );
 };
 
-export default ViewAllHandicrafts;
+export default ViewAllAroundIndia;
 
 // ----------------- styles -----------------
 const styles = StyleSheet.create({
@@ -583,7 +586,7 @@ const styles = StyleSheet.create({
   },
 });
 
-// ✅ Card Styles - same as Fruits card
+// ✅ Card Styles - same as your other pages
 const cardStyles = StyleSheet.create({
   container: {
     width: Dimensions.get("window").width / 2 - 25,
@@ -665,12 +668,6 @@ const cardStyles = StyleSheet.create({
     fontWeight: "600",
     color: "#333",
   },
-  productSubtitle: {
-    fontSize: 14,
-    color: "#888",
-    marginBottom: 8,
-    height: 20,
-  },
   priceContainer: {
     flexDirection: "row",
     alignItems: "baseline",
@@ -687,10 +684,10 @@ const cardStyles = StyleSheet.create({
     color: "#666",
     marginLeft: 2,
   },
-  varietyText: {
+  weightText: {
     fontSize: 12,
     color: "#666",
-    marginBottom: 8,
+    marginLeft: 6,
   },
   buttonContainer: {
     minHeight: 36,
@@ -730,11 +727,5 @@ const cardStyles = StyleSheet.create({
     fontSize: 16,
     color: "#fff",
     fontWeight: "600",
-  },
-  quantityCount: {
-    fontSize: 14,
-    color: "#fff",
-    fontWeight: "600",
-    marginHorizontal: 6,
   },
 });

@@ -440,6 +440,10 @@ export default function HeaderDesign() {
     }
   }, [fetchBuyerAddress]);
 
+  const notification = () =>{
+    navigation.navigate("Notification")
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#fff" barStyle="dark-content" />
@@ -455,7 +459,7 @@ export default function HeaderDesign() {
 
           {/* Notification and Profile Section */}
           <View style={styles.rightSection}>
-            <TouchableOpacity style={styles.notificationButton}>
+            <TouchableOpacity style={styles.notificationButton} onPress={notification}>
               <Image source={require('../../assets/via-farm-img/icons/notification.png')} />
             </TouchableOpacity>
 
