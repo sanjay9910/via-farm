@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
   Modal,
   ScrollView,
@@ -12,11 +13,12 @@ import {
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View
+  View,
 } from "react-native";
 import ProductModal from "../components/vendors/ProductEditModel";
 
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
+const { width } = Dimensions.get("window");
 
 const AllRecently = () => {
   const [listingsData, setListingsData] = useState([]);
@@ -69,8 +71,10 @@ const AllRecently = () => {
           name: product.name,
           price: product.price,
           quantity: product.quantity,
+          unit: product.unit || "",
+          weightPerPiece: product.weightPerPiece || "",
           uploadedOn: new Date(product.datePosted).toLocaleDateString(),
-          image: product.images[0] || "",
+          image: product.images && product.images.length ? product.images[0] : "",
           status: product.status || "In Stock",
           category: product.category || "Fruits",
         }));
@@ -131,8 +135,8 @@ const AllRecently = () => {
   const openStockDropdown = (productId) => {
     const ref = stockButtonRefs.current[productId];
     if (ref) {
-      ref.measureInWindow((x, y, width, height) => {
-        setStockDropdownPosition({ x: x - 60, y: y + height + 5 });
+      ref.measureInWindow((x, y, w, h) => {
+        setStockDropdownPosition({ x: x - 60, y: y + h + 5 });
         setCurrentProductId(productId);
         setIsStockDropdownOpen(true);
       });
@@ -142,8 +146,8 @@ const AllRecently = () => {
   // Category dropdown
   const openCategoryDropdown = () => {
     if (categoryButtonRef.current) {
-      categoryButtonRef.current.measureInWindow((x, y, width, height) => {
-        setCategoryDropdownPosition({ x: x, y: y + height + 5 });
+      categoryButtonRef.current.measureInWindow((x, y, w, h) => {
+        setCategoryDropdownPosition({ x: x, y: y + h + 5 });
         setIsCategoryDropdownOpen(true);
       });
     }
@@ -158,8 +162,8 @@ const AllRecently = () => {
   const openActionMenu = (productId) => {
     const ref = actionMenuRefs.current[productId];
     if (ref) {
-      ref.measureInWindow((x, y, width, height) => {
-        setActionMenuPosition({ x: x - 100, y: y + height + 5 });
+      ref.measureInWindow((x, y, w, h) => {
+        setActionMenuPosition({ x: x - 100, y: y + h + 5 });
         setCurrentProductId(productId);
         setIsActionMenuOpen(true);
       });
@@ -167,7 +171,7 @@ const AllRecently = () => {
   };
 
   const handleEdit = () => {
-    const product = listingsData.find(item => item.id === currentProductId);
+    const product = listingsData.find((item) => item.id === currentProductId);
     if (product) {
       openModal(product);
     }
@@ -186,7 +190,7 @@ const AllRecently = () => {
         {
           text: "Cancel",
           style: "cancel",
-          onPress: () => setIsActionMenuOpen(false)
+          onPress: () => setIsActionMenuOpen(false),
         },
         {
           text: "Delete",
@@ -208,9 +212,9 @@ const AllRecently = () => {
 
               if (response.data.success) {
                 Alert.alert("Success", "Product deleted successfully");
-                // Remove from local state
-                const updatedList = listingsData.filter(item => item.id !== currentProductId);
+                const updatedList = listingsData.filter((item) => item.id !== currentProductId);
                 setListingsData(updatedList);
+                setFilteredData((prev) => prev.filter((i) => i.id !== currentProductId));
               } else {
                 Alert.alert("Error", "Failed to delete product");
               }
@@ -221,12 +225,13 @@ const AllRecently = () => {
               setIsActionMenuOpen(false);
               setCurrentProductId(null);
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
 
+  // Stock change (tries multiple endpoints as before)
   const handleStockChange = async (newStatus) => {
     if (!currentProductId) {
       Alert.alert("Error", "No product selected");
@@ -248,7 +253,7 @@ const AllRecently = () => {
       let response = null;
       let lastError = null;
 
-      // Method 1: PATCH /status
+      // Method 1
       try {
         response = await axios.patch(
           `${API_BASE}/api/vendor/products/${currentProductId}/status`,
@@ -257,8 +262,7 @@ const AllRecently = () => {
         );
       } catch (err) {
         lastError = err;
-
-        // Method 2: PATCH /products/:id
+        // Method 2
         try {
           response = await axios.patch(
             `${API_BASE}/api/vendor/products/${currentProductId}`,
@@ -267,8 +271,7 @@ const AllRecently = () => {
           );
         } catch (err2) {
           lastError = err2;
-
-          // Method 3: PUT /products/:id
+          // Method 3
           try {
             response = await axios.put(
               `${API_BASE}/api/vendor/products/${currentProductId}`,
@@ -286,6 +289,7 @@ const AllRecently = () => {
           item.id === currentProductId ? { ...item, status: newStatus } : item
         );
         setListingsData(updatedList);
+        setFilteredData((prev) => prev.map((i) => (i.id === currentProductId ? { ...i, status: newStatus } : i)));
         Alert.alert("Success", `Product marked as ${newStatus}`);
       } else {
         throw lastError || new Error("Failed to update status");
@@ -305,38 +309,48 @@ const AllRecently = () => {
     }
   };
 
+  // Render card — DESIGN MATCHED to MyRecentListing card style
   const renderCard = (item) => {
-    const circleColor = item.status.toLowerCase() === "in stock" ? "#22c55e" : "#ef4444";
+    const circleColor = item.status?.toLowerCase() === "in stock" ? "#22c55e" : "#ef4444";
     const isCurrentlyUpdating = updatingStock && currentProductId === item.id;
 
     return (
       <View key={item.id} style={styles.listingCard}>
         <View style={styles.cardContent}>
           <View style={styles.imageContainer}>
-            <Image source={{ uri: item.image }} style={styles.itemImage} resizeMode="cover" />
+            {item.image ? (
+              <Image source={{ uri: item.image }} style={styles.itemImage} resizeMode="cover" />
+            ) : (
+              <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                <Text style={{ color: "#999" }}>No image</Text>
+              </View>
+            )}
           </View>
+
           <View style={styles.textContainer}>
             <View style={styles.headerRow}>
               <Text style={styles.itemName} numberOfLines={1}>
                 {item.name}
               </Text>
+
               <View style={styles.priceQuantityContainer}>
-                <Text style={styles.priceText}>₹{item.price}</Text>
-                <Text style={styles.quantity}>{item.quantity} units</Text>
+                <Text style={styles.priceText}>₹{item.price}/{item.unit}</Text>
+                <Text style={styles.quantity}>{item.weightPerPiece}</Text>
               </View>
             </View>
+
             <View style={styles.detailsContainer}>
               <Text style={styles.uploadLabel}>Uploaded on:</Text>
               <Text style={styles.uploadValue}>{item.uploadedOn}</Text>
             </View>
-            <View style={styles.categoryContainer}>
-              <Text style={styles.categoryLabel}>Category:</Text>
-              <Text style={styles.categoryValue}>{item.category}</Text>
-            </View>
+
             <View style={styles.startAllIndia}>
+              <Image source={require("../assets/via-farm-img/icons/satar.png")} />
               <Text style={styles.txetAll}>All India Delivery</Text>
             </View>
+
             <View style={styles.editBtn}>
+              {/* Stock dropdown trigger */}
               <TouchableOpacity
                 ref={(ref) => {
                   stockButtonRefs.current[item.id] = ref;
@@ -356,9 +370,11 @@ const AllRecently = () => {
                     <Text style={[styles.statusText, { color: circleColor }]}>{item.status}</Text>
                   </View>
                 )}
+
+                <Image source={require("../assets/via-farm-img/icons/downArrow.png")} />
               </TouchableOpacity>
 
-              {/* Three Dots Menu Button */}
+              {/* Three dots (action menu) */}
               <TouchableOpacity
                 ref={(ref) => {
                   actionMenuRefs.current[item.id] = ref;
@@ -379,9 +395,9 @@ const AllRecently = () => {
     <View style={styles.header}>
       <View style={styles.headerLeft}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backIcon}>←</Text>
+          <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Recent Products</Text>
+        <Text style={styles.headerTitle}>Recent Products</Text>
       </View>
 
       <TouchableOpacity ref={categoryButtonRef} style={styles.categoryDropdownButton} onPress={openCategoryDropdown}>
@@ -538,7 +554,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#e0e0e0",
-    paddingTop: 80,
     backgroundColor: "#fff",
   },
   headerLeft: {
@@ -549,16 +564,9 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
     marginRight: 12,
-    borderRadius: 20,
-    backgroundColor: "#f8f9fa",
-  },
-  backIcon: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "600",
     color: "#333",
   },
@@ -571,15 +579,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "#e0e0e0",
-    minWidth: 140,
+    minWidth: 100,
   },
   categoryDropdownText: {
     fontSize: 14,
     fontWeight: "500",
     color: "#333",
     marginRight: 8,
-    minWidth: 140,
-    maxWidth: 140,
+    minWidth: 100,
+    maxWidth: 100,
   },
   dropdownArrow: {
     fontSize: 14,
@@ -587,35 +595,34 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-  // Card Styles
+  // Card Styles (DESIGN MATCHED)
   listingCard: {
     backgroundColor: "#fff",
-    borderRadius: 16,
+    borderRadius: 8,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "rgba(255, 202, 40, 0.3)",
-    width: "100%",
-    elevation: 4,
+    borderColor: "rgba(255, 202, 40, 1)",
+    width: width * 0.9,
+    alignSelf: "center",
   },
   cardContent: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 12,
   },
   imageContainer: {
-    width: 160,
-    height: 190,
-    backgroundColor: "#f8f9fa",
+    width: 120,
+    height:144,
   },
   itemImage: {
     width: "100%",
     height: "100%",
-    borderTopLeftRadius: 16,
-    borderBottomLeftRadius: 16,
+    borderTopLeftRadius: 6,
+    borderBottomLeftRadius: 6,
   },
   textContainer: {
     flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingRight: 12,
   },
   headerRow: {
     flexDirection: "row",
@@ -645,8 +652,8 @@ const styles = StyleSheet.create({
   },
   detailsContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 6,
+    gap: 4,
+    marginBottom: 4,
   },
   uploadLabel: {
     fontSize: 12,
@@ -657,24 +664,11 @@ const styles = StyleSheet.create({
     color: "#000",
     fontWeight: "500",
   },
-  categoryContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  categoryLabel: {
-    fontSize: 12,
-    color: "#666",
-  },
-  categoryValue: {
-    fontSize: 12,
-    color: "#000",
-    fontWeight: "500",
-  },
   startAllIndia: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 6,
+    gap: 5,
+    marginVertical: 4,
   },
   txetAll: {
     fontSize: 13,
@@ -684,25 +678,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 8,
   },
   dropdownBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(0,0,0,0.2)",
-    backgroundColor: "#fff",
-    minWidth: 120,
+    padding: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "rgba(0, 0, 0, 0.3)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   dropdownBtnDisabled: {
     opacity: 0.6,
-    borderColor: "rgba(0,0,0,0.1)",
+    borderColor: "rgba(0, 0, 0, 0.15)",
   },
   statusRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
+    minWidth: 80,
   },
   statusCircle: {
     width: 10,
@@ -723,7 +718,6 @@ const styles = StyleSheet.create({
   threeDotsButton: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: "#f8f9fa",
     width: 40,
     height: 40,
     justifyContent: "center",
@@ -733,35 +727,34 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     color: "#333",
-    transform: [{ rotate: '90deg' }],
+    transform: [{ rotate: "180deg" }],
   },
 
-  // Modal Styles
+  // Modal Styles (stock/category/action)
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
   },
   stockDropdown: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    minWidth: 160,
+    borderRadius: 8,
+    minWidth: 150,
     paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: "rgba(255, 202, 40, 0.3)",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255, 202, 40, 1)",
+    zIndex: 1000,
   },
   stockOption: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    gap: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    gap: 8,
   },
   stockOptionText: {
     fontSize: 14,
@@ -769,9 +762,9 @@ const styles = StyleSheet.create({
     color: "#374151",
   },
   stockDivider: {
-    height: StyleSheet.hairlineWidth,
+    height: 1,
     backgroundColor: "#f3f4f6",
-    marginHorizontal: 12,
+    marginHorizontal: 8,
   },
   stockDot: {
     width: 8,

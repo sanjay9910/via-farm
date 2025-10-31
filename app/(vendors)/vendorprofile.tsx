@@ -24,35 +24,122 @@ const { height } = Dimensions.get('window');
 const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
 
 // ---------------- EditProfileModal ----------------
-const EditProfileModal = ({ visible, onClose, initialData, onUpdate }) => {
-  const [name, setName] = useState(initialData?.name || '');
-  const [mobileNumber, setMobileNumber] = useState(initialData?.phone || '');
-  const [upiId, setUpiId] = useState(initialData?.upiId || '');
-  const [profileImageUri, setProfileImageUri] = useState(initialData?.image || null);
-  const [loading, setLoading] = useState(false);
 
+const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
+  const [name, setName] = useState(initialData?.name || '');
+  const [mobileNumber, setMobileNumber] = useState(initialData?.phone || initialData?.mobileNumber || '');
+  const [upiId, setUpiId] = useState(initialData?.upiId || '');
+  const [status, SetStatus] = useState(initialData?.status || 'Active');
+  const [about, SetAbout] = useState(initialData?.about || '');
+  const [profileImageUri, setProfileImageUri] = useState(initialData?.profilePicture || initialData?.image || null);
+
+  // farmImages stored as array of { uri } objects
+  const [farmImages, SetFarmImages] = useState(() => {
+    const fromInitial = initialData?.farmImages || initialData?.images || [];
+    if (!fromInitial) return [];
+    if (Array.isArray(fromInitial)) return fromInitial.map(u => (typeof u === 'string' ? { uri: u } : u));
+    if (typeof fromInitial === 'string') return [{ uri: fromInitial }];
+    return [];
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [showStatusPicker, setShowStatusPicker] = useState(false);
+
+  useEffect(() => {
+    setName(initialData?.name || '');
+    setMobileNumber(initialData?.phone || initialData?.mobileNumber || '');
+    setUpiId(initialData?.upiId || '');
+    SetStatus(initialData?.status || 'Active');
+    SetAbout(initialData?.about || '');
+    setProfileImageUri(initialData?.profilePicture || initialData?.image || null);
+
+    const fromInitial = initialData?.farmImages || initialData?.images || [];
+    if (!fromInitial) SetFarmImages([]);
+    else if (Array.isArray(fromInitial)) SetFarmImages(fromInitial.map(u => (typeof u === 'string' ? { uri: u } : u)));
+    else if (typeof fromInitial === 'string') SetFarmImages([{ uri: fromInitial }]);
+  }, [initialData]);
+
+  // Helper: safe mediaTypes option across expo-image-picker versions
+  const getMediaTypesOption = () => {
+    // prefer MediaType.Image, else fallback to MediaTypeOptions.Images, else undefined
+    return ImagePicker?.MediaType?.Image || ImagePicker?.MediaTypeOptions?.Images || undefined;
+  };
+
+  // Single profile image picker
   const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      Alert.alert('Permission required', 'Permission to access gallery is required!');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-    if (!result.canceled) {
-      setProfileImageUri(result.assets[0].uri);
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission required', 'Permission to access gallery is required!');
+        return;
+      }
+
+      const mediaTypesOption = getMediaTypesOption();
+      const options = {
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      };
+      if (mediaTypesOption) options.mediaTypes = mediaTypesOption;
+
+      const result = await ImagePicker.launchImageLibraryAsync(options);
+
+      if (!result.canceled && Array.isArray(result.assets) && result.assets[0]) {
+        setProfileImageUri(result.assets[0].uri);
+      }
+    } catch (err) {
+      console.log('pickImage error', err);
+      Alert.alert('Error', 'Could not pick image. Try again.');
     }
   };
 
+  // Multiple farm images picker (up to 5)
+  const ImageFarm = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission required', 'Permission to access gallery is required!');
+        return;
+      }
+
+      const mediaTypesOption = getMediaTypesOption();
+      const pickerOptions = { allowsMultipleSelection: true, quality: 0.7 };
+      if (mediaTypesOption) pickerOptions.mediaTypes = mediaTypesOption;
+
+      const result = await ImagePicker.launchImageLibraryAsync(pickerOptions);
+
+      if (!result.canceled && Array.isArray(result.assets)) {
+        const picked = result.assets.map(a => ({ uri: a.uri }));
+
+        SetFarmImages(prev => {
+          const prevArr = Array.isArray(prev) ? prev : [];
+          const combined = [...prevArr, ...picked];
+          // dedupe by uri and cap to 5
+          const unique = Array.from(new Map(combined.map(item => [item.uri, item])).values());
+          return unique.slice(0, 5);
+        });
+      }
+    } catch (err) {
+      console.log('ImageFarm error', err);
+      Alert.alert('Error', 'Could not pick images. Try again.');
+    }
+  };
+
+  const removeImage = (index) => {
+    SetFarmImages(prev => {
+      const arr = Array.isArray(prev) ? [...prev] : [];
+      arr.splice(index, 1);
+      return arr;
+    });
+  };
+
+  // Submit handler — IMPORTANT: do NOT set Content-Type header manually
   const handleSubmit = async () => {
     if (!name || !mobileNumber || !upiId) {
       Alert.alert('Error', 'Please fill all required fields.');
       return;
     }
+
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -61,47 +148,89 @@ const EditProfileModal = ({ visible, onClose, initialData, onUpdate }) => {
         setLoading(false);
         return;
       }
+
       const formData = new FormData();
       formData.append('name', name);
       formData.append('mobileNumber', mobileNumber);
       formData.append('upiId', upiId);
+      formData.append('status', status);
+      formData.append('about', about);
 
+      // profile picture
       if (profileImageUri) {
         const filename = profileImageUri.split('/').pop();
         const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : `image`;
+        const type = match ? `image/${match[1]}` : 'image';
         formData.append('profilePicture', {
           uri: Platform.OS === 'android' ? profileImageUri : profileImageUri.replace('file://', ''),
           name: filename,
           type,
-        } as any);
+        });
       }
 
+      // farm images (multiple) — validate URIs before appending
+      if (farmImages && Array.isArray(farmImages) && farmImages.length > 0) {
+        farmImages.forEach((imgObj, index) => {
+          const imgUri = typeof imgObj === 'string' ? imgObj : imgObj?.uri;
+          if (!imgUri) return;
+          const filename = imgUri.split('/').pop() || `farm_${index}.jpg`;
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1]}` : 'image';
+
+          // Many backends accept repeated 'farmImages' keys. If your backend expects
+          // farmImages[] (PHP/Laravel style) change the key to 'farmImages[]' below.
+          formData.append('farmImages', {
+            uri: Platform.OS === 'android' ? imgUri : imgUri.replace('file://', ''),
+            name: filename,
+            type,
+          });
+        });
+      }
+
+      // IMPORTANT: Do not set Content-Type manually — Axios will set correct multipart boundary
       const response = await axios.put(`${API_BASE}/api/vendor/profile`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
         },
       });
 
-      if (response.data.success) {
+      console.log('upload response', response.status, response.data);
+
+      if (response.data?.success) {
+        const payload = response.data?.user || response.data?.data || response.data;
         onUpdate({
-          name: response.data.data.name,
-          mobileNumber: response.data.data.mobileNumber,
-          upiId: response.data.data.upiId,
-          profileImageUri: response.data.data.profilePicture,
+          name: payload?.name || name,
+          mobileNumber: payload?.mobileNumber || mobileNumber,
+          upiId: payload?.upiId || upiId,
+          status: payload?.status || status,
+          about: payload?.about || about,
+          profileImageUri: payload?.profilePicture || payload?.profileImage || profileImageUri,
+          farmImages: Array.isArray(payload?.farmImages) ? payload.farmImages : (payload?.farmImages ? [payload.farmImages] : farmImages.map(i => i.uri)),
         });
         Alert.alert('Success', 'Profile updated successfully!');
         onClose();
       } else {
-        Alert.alert('Error', response.data.message || 'Something went wrong!');
+        console.log('server returned success:false', response.data);
+        Alert.alert('Error', response.data?.message || 'Something went wrong!');
       }
-    } catch (error) {
-      console.log('Profile update error:', error);
-      Alert.alert('Error', 'Failed to update profile. Please try again.');
+    } catch (err) {
+      // Detailed logging for debugging 500
+      console.error('Profile update error (full):', err);
+      if (err?.response) {
+        console.error('Server response status:', err.response.status);
+        console.error('Server response data:', err.response.data);
+        Alert.alert('Server error', err.response.data?.message || `Status ${err.response.status}`);
+      } else {
+        Alert.alert('Error', 'Failed to update profile. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const selectStatus = (value) => {
+    SetStatus(value);
+    setShowStatusPicker(false);
   };
 
   return (
@@ -168,17 +297,111 @@ const EditProfileModal = ({ visible, onClose, initialData, onUpdate }) => {
                 autoCapitalize="none"
               />
             </View>
+
+            {/* Status dropdown */}
+            <View style={modalStyles.labelContainer}>
+              <Text style={modalStyles.label}>Status</Text>
+              <View>
+                <TouchableOpacity
+                  onPress={() => setShowStatusPicker(prev => !prev)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    borderWidth: 1,
+                    borderColor: '#ddd',
+                    borderRadius: 8,
+                    backgroundColor: '#fff',
+                  }}
+                >
+                  <Text style={{ color: '#333' }}>{status || 'Select status'}</Text>
+                  <Ionicons name={showStatusPicker ? 'chevron-up' : 'chevron-down'} size={20} color="#666" />
+                </TouchableOpacity>
+
+                {showStatusPicker && (
+                  <View
+                    style={{
+                      marginTop: 6,
+                      borderWidth: 1,
+                      borderColor: '#ddd',
+                      borderRadius: 8,
+                      backgroundColor: '#fff',
+                      zIndex: 9999,
+                      elevation: 6,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <TouchableOpacity onPress={() => selectStatus('Active')} style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' }}>
+                      <Text style={{ color: '#222' }}>Active</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => selectStatus('Inactive')} style={{ padding: 12 }}>
+                      <Text style={{ color: '#222' }}>Inactive</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            <View style={modalStyles.labelContainer}>
+              <Text style={modalStyles.label}>About</Text>
+              <TextInput
+                style={modalStyles.textInput}
+                placeholder="e.g. Active"
+                placeholderTextColor="#999"
+                value={about}
+                onChangeText={SetAbout}
+                autoCapitalize="none"
+                multiline
+              />
+            </View>
+
+            {/* Multi-image */}
+            <View style={{ marginBottom: 12 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 8 }}>Add Images *</Text>
+
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  padding: 12,
+                  borderWidth: 1,
+                  borderColor: '#ddd',
+                  borderRadius: 8,
+                  backgroundColor: '#fff',
+                  opacity: (loading || (farmImages && farmImages.length >= 5)) ? 0.6 : 1,
+                }}
+                onPress={ImageFarm}
+                disabled={loading || (farmImages && farmImages.length >= 5)}
+              >
+                <Ionicons name="folder-outline" size={28} color="#777" />
+                <Text style={{ marginLeft: 12, color: '#333' }}>
+                  {farmImages && farmImages.length >= 5 ? 'Maximum 5 images reached' : `Add images (${farmImages ? farmImages.length : 0}/5)`}
+                </Text>
+              </TouchableOpacity>
+
+              {farmImages && farmImages.length > 0 && (
+                <ScrollView horizontal style={{ marginVertical: 8 }}>
+                  {farmImages.map((imgObj, idx) => (
+                    <View key={(imgObj.uri || '') + idx} style={{ marginRight: 8, position: 'relative', width: 90, height: 90, borderRadius: 8, overflow: 'hidden', backgroundColor: '#f3f3f3', justifyContent: 'center', alignItems: 'center' }}>
+                      <Image source={{ uri: imgObj.uri }} style={{ width: '100%', height: '100%' }} />
+                      {!loading && (
+                        <TouchableOpacity onPress={() => removeImage(idx)} style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#fff', borderRadius: 14, width: 28, height: 28, alignItems: 'center', justifyContent: 'center', elevation: 3 }}>
+                          <Ionicons name="close-circle" size={24} color="#ef4444" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+            {/* end multi-image */}
           </ScrollView>
 
           <TouchableOpacity style={modalStyles.updateButton} onPress={handleSubmit} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />
-            ) : (
-              <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
-            )}
-            <Text style={modalStyles.updateButtonText}>
-              {loading ? 'Updating...' : 'Update Details'}
-            </Text>
+            {loading ? <ActivityIndicator color="#fff" style={{ marginRight: 8 }} /> : <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight: 8 }} />}
+            <Text style={modalStyles.updateButtonText}>{loading ? 'Updating...' : 'Update Details'}</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>

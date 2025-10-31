@@ -1,7 +1,6 @@
-// File: components/dashboard/localBest/LocalBest.tsx
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import { useRouter } from "expo-router";
+import { useNavigation } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -15,29 +14,33 @@ import {
 
 const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
 
-// ✅ Reusable Product Card
-const ProductCard = ({ name, image }) => {
+// Reusable Product Card (image on top, name below)
+const ProductCard = ({ item, onPress }) => {
+  const name = item?.name ?? "Unnamed";
+  const image =
+    (item?.images && item.images.length > 0)
+      ? item.images[0]
+      : item?.image ?? "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image";
+
   return (
-    <View style={cardStyles.container}>
+    <TouchableOpacity
+      style={cardStyles.container}
+      activeOpacity={0.85}
+      onPress={() => onPress && onPress(item)}
+    >
       <View style={cardStyles.card}>
-        <Image
-          source={{
-            uri: image || "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
-          }}
-          style={cardStyles.image}
-          resizeMode="cover"
-        />
+        <Image source={{ uri: image }} style={cardStyles.image} resizeMode="cover" />
       </View>
       <Text style={cardStyles.name} numberOfLines={2}>
         {name}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 };
 
 const LocalBest = () => {
-  const router = useRouter();
-  const [data, setData] = useState([]);
+  const navigation = useNavigation();
+  const [data, setData] = useState([]); // store full product objects
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -47,46 +50,35 @@ const LocalBest = () => {
       setError(null);
 
       const token = await AsyncStorage.getItem("userToken");
-      if (!token) {
-        setError("Please login to view local products");
-        setLoading(false);
-        return;
-      }
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const response = await axios.get(
-        `${API_BASE}/api/buyer/local-best?lat=19.0760&lng=72.8777&maxDistance=50000`,
+      const resp = await axios.get(
+        `${API_BASE}/api/buyer/local-best?lat=28.6139&lng=77.2090`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+          headers,
           timeout: 10000,
         }
       );
 
-      // console.log("📦 Local Best API Response:", response.data);
+      // normalize response shapes
+      let items = [];
+      if (!resp || !resp.data) items = [];
+      else if (Array.isArray(resp.data)) items = resp.data;
+      else if (Array.isArray(resp.data.data)) items = resp.data.data;
+      else if (Array.isArray(resp.data.items)) items = resp.data.items;
+      else items = [];
 
-      if (response.data && response.data.success) {
-        const formattedData = response.data.data.map((item, index) => ({
-          id: item._id || `local-best-${index}`,
-          name: item.name,
-          image: item.image,
-        }));
-        setData(formattedData);
-      } else {
-        setError("No local products found in your area");
-      }
+      setData(items);
     } catch (err) {
-      console.error("❌ Error fetching local best:", err);
-
+      console.error("fetchLocalBest error:", err);
       if (err.response?.status === 401) {
-        setError("Unauthorized. Please login to view local products");
+        setError("Please login to view local products");
       } else if (err.code === "ECONNABORTED") {
         setError("Request timeout. Please try again.");
       } else if (!err.response) {
         setError("Network error. Please check your connection.");
       } else {
-        setError("Failed to load local products. Please try again.");
+        setError("Failed to fetch local products. Try again.");
       }
       setData([]);
     } finally {
@@ -104,52 +96,45 @@ const LocalBest = () => {
   };
 
   const handleLogin = () => {
-    router.push("/login");
+    navigation.navigate("login");
   };
 
-  // ⏳ Loading
+  // navigate to ViewProduct with productId and the full product
+  const openProductDetails = (product) => {
+    const productId = product?._id || product?.id;
+    if (!productId) {
+      console.warn("openProductDetails: missing product id", product);
+      return;
+    }
+    navigation.navigate("ViewProduct", { productId, product });
+  };
+
+  // Loading
   if (loading) {
     return (
-      <View style={{ marginVertical: 20 }}>
+      <View style={{ marginVertical: 20, alignItems: "center" }}>
         <View style={styles.headerRow}>
           <Text style={styles.heading}>Local Best</Text>
-
-          {/* See All: icon on left */}
-          <TouchableOpacity
-            style={styles.seeButton}
-            onPress={() => router.push("/dashboard/localBest/LocalBestView")}
-          >
-            <Image
-              source={require("../../../assets/via-farm-img/icons/see.png")}
-              style={styles.seeIcon}
-            />
+          <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("LocalBestView")}>
+            <Image source={require("../../../assets/via-farm-img/icons/see.png")} style={styles.seeIcon} />
             <Text style={styles.link}>See All</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4CAF50" />
-          <Text style={styles.loadingText}>Discovering local products...</Text>
-        </View>
+
+        <ActivityIndicator size="large" color="#4CAF50" />
+        <Text style={{ marginTop: 10, color: "#666" }}>Discovering local products...</Text>
       </View>
     );
   }
 
-  // ⚠️ Error
+  // Error
   if (error) {
     return (
-      <View style={{ marginVertical: 20 }}>
+      <View style={{ marginVertical: 20, alignItems: "center" }}>
         <View style={styles.headerRow}>
           <Text style={styles.heading}>Local Best</Text>
-
-          {/* See All: icon on left */}
-          <TouchableOpacity
-            style={styles.seeButton}
-            onPress={() => router.push("/dashboard/localBest/LocalBestView")}
-          >
-            <Image
-              source={require("../../../assets/via-farm-img/icons/see.png")}
-              style={styles.seeIcon}
-            />
+          <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("LocalBestView")}>
+            <Image source={require("../../../assets/via-farm-img/icons/see.png")} style={styles.seeIcon} />
             <Text style={styles.link}>See All</Text>
           </TouchableOpacity>
         </View>
@@ -161,7 +146,7 @@ const LocalBest = () => {
               <Text style={styles.buttonText}>Try Again</Text>
             </TouchableOpacity>
 
-            {error.includes("login") && (
+            {error.toLowerCase().includes("login") && (
               <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
                 <Text style={styles.buttonText}>Go to Login</Text>
               </TouchableOpacity>
@@ -172,39 +157,29 @@ const LocalBest = () => {
     );
   }
 
-  // ✅ Success
+  // Success
   return (
     <View style={{ marginVertical: 20 }}>
       <View style={styles.headerRow}>
         <Text style={styles.heading}>Local Best</Text>
-
-        {/* See All: icon on left */}
-        <TouchableOpacity style={styles.seeButton} onPress={() => router.push("LocalBestView")}>
-          
+        <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("LocalBestView")}>
           <Text style={styles.link}>See All</Text>
-          <Image
-            source={require("../../../assets/via-farm-img/icons/see.png")}
-          />
+          <Image source={require("../../../assets/via-farm-img/icons/see.png")}  />
         </TouchableOpacity>
       </View>
 
       {data.length > 0 ? (
         <FlatList
           data={data}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => (item._id || item.id || String(index)).toString()}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 10 }}
-          renderItem={({ item }) => (
-            <ProductCard name={item.name} image={item.image} />
-          )}
+          renderItem={({ item }) => <ProductCard item={item} onPress={openProductDetails} />}
         />
       ) : (
         <View style={styles.noDataContainer}>
           <Text style={styles.noDataText}>No local products found near you</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-            <Text style={styles.buttonText}>Try Again</Text>
-          </TouchableOpacity>
         </View>
       )}
     </View>

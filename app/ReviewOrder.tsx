@@ -42,6 +42,11 @@ const ReviewOrder = () => {
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
 
+
+
+  const [wantDonation, setWantDonation] = useState(false);
+  const [amount, setAmount] = useState("");
+
   // Coupon states
   const [couponCode, setCouponCode] = useState('');
   const [applyingCoupon, setApplyingCoupon] = useState(false);
@@ -505,6 +510,82 @@ const ReviewOrder = () => {
           <ProductCard key={product.id} product={product} />
         ))}
 
+
+        {/* Donatio */}
+        <View
+          style={{
+            marginVertical: 16,
+            padding: 12,
+            borderWidth: 1,
+            borderColor: "#ddd",
+            borderRadius: 10,
+            backgroundColor: "#fff",
+          }}
+        >
+          {/* Title + Radio */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Text style={{ fontSize: 16, color: "#333", flex: 1 }}>
+              Do you want to donate?
+            </Text>
+
+            {/* Radio Button */}
+            <TouchableOpacity
+              onPress={() => setWantDonation(!wantDonation)}
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: 12,
+                borderWidth: 2,
+                borderColor: wantDonation ? "#4CAF50" : "#999",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {wantDonation && (
+                <View
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: 6,
+                    backgroundColor: "#4CAF50",
+                  }}
+                />
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Donation amount input (only if checked) */}
+          {wantDonation && (
+            <View style={{ marginTop: 12 }}>
+              <Text style={{ fontSize: 14, color: "#555", marginBottom: 4 }}>
+                Enter donation amount
+              </Text>
+              <TextInput
+                placeholder="Enter amount (₹)"
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="numeric"
+                style={{
+                  borderWidth: 1,
+                  borderColor: "#ccc",
+                  borderRadius: 8,
+                  paddingHorizontal: 10,
+                  paddingVertical: 8,
+                  fontSize: 16,
+                  color: "#333",
+                }}
+              />
+            </View>
+          )}
+        </View>
+
+
         {/* Coupon / promo area (integrated) */}
         <View style={styles.couponSection}>
           <Image source={require('../assets/via-farm-img/icons/promo-code.png')} />
@@ -526,11 +607,11 @@ const ReviewOrder = () => {
 
           {!appliedCoupon ? (
             <TouchableOpacity style={styles.Button} onPress={applyCoupon} disabled={applyingCoupon}>
-              {applyingCoupon ? <ActivityIndicator /> : <Text style={{color:'#fff'}} >Apply</Text>}
+              {applyingCoupon ? <ActivityIndicator /> : <Text style={{ color: '#fff' }} >Apply</Text>}
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.Button} onPress={removeCoupon} disabled={applyingCoupon}>
-              {applyingCoupon ? <ActivityIndicator /> : <Text style={{color:'#fff'}}>Remove</Text>}
+              {applyingCoupon ? <ActivityIndicator /> : <Text style={{ color: '#fff' }}>Remove</Text>}
             </TouchableOpacity>
           )}
         </View>
@@ -872,7 +953,7 @@ const styles = StyleSheet.create({
   },
   Button: {
     backgroundColor: '#28a745',
-    padding:14,
+    padding: 14,
     borderRadius: 10,
     // borderWidth:2,
     // borderColor:'#28a745',

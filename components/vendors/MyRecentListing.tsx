@@ -283,6 +283,7 @@ const MyRecentListing = () => {
                 onPress={() => openStockDropdown(item.id)}
                 disabled={isCurrentlyUpdating}
               >
+      
                 {isCurrentlyUpdating ? (
                   <View style={styles.statusRow}>
                     <ActivityIndicator size="small" color="rgba(255,202,40,1)" />
@@ -294,6 +295,7 @@ const MyRecentListing = () => {
                     <Text style={[styles.statusText, { color: circleColor }]}>{item.status}</Text>
                   </View>
                 )}
+                 <Image source={require("../../assets/via-farm-img/icons/downArrow.png")} />
               </TouchableOpacity>
 
               {/* Edit button */}
@@ -475,7 +477,7 @@ const styles = StyleSheet.create({
     marginRight: 15, 
     borderWidth: 1, 
     borderColor: "rgba(255, 202, 40, 1)", 
-    width: width * 0.8 
+    width: width * 0.9 
   },
   cardContent: { 
     flexDirection: "row", 
@@ -484,7 +486,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: { 
     width: 120, 
-    height: 140 
+    height: 140, 
   },
   itemImage: { 
     width: "100%", 
@@ -495,7 +497,7 @@ const styles = StyleSheet.create({
   textContainer: { 
     flex: 1, 
     paddingRight: 12, 
-    paddingVertical: 8 
+    paddingVertical:1 
   },
   headerRow: { 
     flexDirection: "row", 
@@ -553,10 +555,13 @@ const styles = StyleSheet.create({
     marginTop: 8 
   },
   dropdownBtn: { 
-    padding: 6, 
+    padding:3, 
     borderRadius: 6, 
     borderWidth: 1, 
-    borderColor: "rgba(0, 0, 0, 0.3)" 
+    borderColor: "rgba(0, 0, 0, 0.3)" ,
+    flexDirection:'row',
+    alignItems:'center',
+    gap:5,
   },
   dropdownBtnDisabled: {
     opacity: 0.6,
@@ -566,7 +571,7 @@ const styles = StyleSheet.create({
     flexDirection: "row", 
     alignItems: "center", 
     gap: 6,
-    minWidth: 90,
+    minWidth:80,
   },
   statusCircle: { 
     width: 10, 

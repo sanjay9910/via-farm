@@ -2,13 +2,12 @@
 import React, { useState } from "react";
 import {
   Image,
-  Platform,
   Pressable,
   StyleSheet as RNStyleSheet,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 // Status lists: one for pickup, one for delivery
@@ -183,20 +182,15 @@ const OrderCard = ({ order = {}, onStatusChange }) => {
 export default OrderCard;
 
 const styles = StyleSheet.create({
-  wrapper: { paddingHorizontal: 12 },
+  wrapper: { paddingHorizontal:5},
   cardOuter: {
-    marginTop: 12,
-    borderRadius: 18,
-    borderWidth: 2,
+    marginTop:15,
+    borderRadius:20,
+    borderWidth:1,
     borderColor: "rgba(255, 202, 40, 1)",
-    backgroundColor: "transparent",
-    ...Platform.select({
-      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3 },
-      android: { elevation: 1 },
-    }),
   },
   cardInner: {
-    borderRadius: 14,
+    borderRadius:20,
     backgroundColor: "#fff",
     padding: CARD_PADDING,
     position: "relative",

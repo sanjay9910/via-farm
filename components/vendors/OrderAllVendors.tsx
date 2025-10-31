@@ -239,7 +239,8 @@ const fetchOrders = async () => {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: "#fff" 
+    backgroundColor: "#fff" ,
+    marginBottom:60,
   },
   headerContainer: {
     backgroundColor: "#fff",
@@ -258,7 +259,7 @@ const styles = StyleSheet.create({
   ordersContainer: { 
     padding: 12, 
     paddingBottom: 20,
-    paddingTop: 8, // Add some top padding
+    paddingTop: 8, 
   },
   center: { 
     flexDirection:'row', 

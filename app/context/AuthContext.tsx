@@ -9,8 +9,8 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [address, setAddress] = useState([])
 
-  const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms/api/auth';
-  const API_BUYER_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms/api/buyer';
+  const API_BASE = 'https://viafarm-1.onrender.com/api/auth';
+  const API_BUYER_BASE = 'https://viafarm-1.onrender.com/api/buyer';
 
   useEffect(() => {
     const loadUser = async () => {
