@@ -17,7 +17,7 @@ import {
 import ProfileCard from './../components/common/VendorsCard';
 
 const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
-const API_ENDPOINT = '/api/buyer/allvendors?lat=19.0760&lng=72.877';
+const API_ENDPOINT = '/api/buyer/allvendors';
 
 const ViewVendors = () => {
   const [vendors, setVendors] = useState<any[]>([]);

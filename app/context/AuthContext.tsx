@@ -157,7 +157,6 @@ export const AuthProvider = ({ children }) => {
       }
     }
     
-    console.log("check", res);
 
     return res.data;
   };

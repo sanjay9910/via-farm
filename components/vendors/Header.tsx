@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+import { useNavigation } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -10,6 +11,7 @@ const API_ENDPOINT = "/api/vendor/update-location";
 const Header = () => {
   const [address, setAddress] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigation = useNavigation();
 
   useEffect(() => {
     fetchVendorAddress();
@@ -49,6 +51,10 @@ const Header = () => {
     );
   }
 
+  const notification = ()=>{
+    navigation.navigate('Notification')
+  }
+
   return (
     <View style={styles.container}>
       {/* Left: Location info */}
@@ -67,7 +73,7 @@ const Header = () => {
       </View>
 
       {/* Right: Notification bell */}
-      <TouchableOpacity style={styles.bellWrapper}>
+      <TouchableOpacity style={styles.bellWrapper} onPress={notification}>
         <Ionicons name="notifications-outline" size={22} color="#555" />
       </TouchableOpacity>
     </View>

@@ -1,3 +1,4 @@
+
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -35,10 +36,12 @@ const MyOrdersScreen = () => {
     // Review Modal States
     const [reviewModalVisible, setReviewModalVisible] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState(null);
+    const [selectedProductId, setSelectedProductId] = useState(null);
     const [reviewRating, setReviewRating] = useState(0);
     const [reviewText, setReviewText] = useState('');
     const [uploadedImages, setUploadedImages] = useState([]);
     const [slideAnim] = useState(new Animated.Value(SCREEN_HEIGHT));
+    const [submitLoading, setSubmitLoading] = useState(false);
 
     const navigation = useNavigation();
 
@@ -68,22 +71,25 @@ const MyOrdersScreen = () => {
     // Transform API data to component format
     const transformOrderData = (apiOrders) => {
         return apiOrders.map(order => {
-            const firstItem = order.items && order.items.length > 0 ? order.items[0] : null;
-            
             return {
                 id: order._id,
                 orderId: order.orderId,
                 status: getStatusDisplay(order.orderStatus),
                 date: formatDate(order.createdAt),
-                productName: firstItem?.product?.name || 'Unknown Product',
-                productDescription: `${firstItem?.quantity || 0} items • ₹${order.totalPrice}`,
-                productImage: firstItem?.product?.images?.[0] || 'https://via.placeholder.com/150',
-                rating: 0,
-                canReview: order.orderStatus === 'Paid' || order.orderStatus === 'In-process',
-                orderType: order.orderType,
+                orderStatus: order.orderStatus,
                 totalPrice: order.totalPrice,
-                vendorName: firstItem?.vendor?.name || 'Unknown Vendor',
-                allItems: order.items || []
+                orderType: order.orderType,
+                items: (order.items || []).map(item => ({
+                    id: item._id,
+                    productName: item.product?.name || 'Unknown Product',
+                    productImage: item.product?.images?.[0] || 'https://via.placeholder.com/150',
+                    quantity: item.quantity || 0,
+                    price:item.product?.price|| 10,
+                    productId: item.product?._id,
+                    vendorName: item.vendor?.name || 'Unknown Vendor',
+                    canReview: order.orderStatus === 'Paid' || order.orderStatus === 'In-process',
+                    rating: 0
+                }))
             };
         });
     };
@@ -125,7 +131,6 @@ const MyOrdersScreen = () => {
                     { text: 'OK', onPress: () => navigation.navigate('login') }
                 ]);
             } else if (error.response?.status === 404) {
-                // No orders found is not an error
                 setOrders([]);
             } else {
                 setError(error.message || 'Failed to fetch orders');
@@ -148,11 +153,19 @@ const MyOrdersScreen = () => {
         fetchOrders();
     };
 
-    // Handle star rating
-    const handleStarRating = (orderId, starIndex) => {
+    // Handle star rating for product
+    const handleStarRating = (orderId, itemId, starIndex) => {
         const updatedOrders = orders.map(order => {
             if (order.id === orderId) {
-                return { ...order, rating: starIndex + 1 };
+                return {
+                    ...order,
+                    items: order.items.map(item => {
+                        if (item.id === itemId) {
+                            return { ...item, rating: starIndex + 1 };
+                        }
+                        return item;
+                    })
+                };
             }
             return order;
         });
@@ -161,8 +174,9 @@ const MyOrdersScreen = () => {
     };
 
     // Open Review Modal
-    const openReviewModal = (orderId) => {
+    const openReviewModal = (orderId, productId) => {
         setSelectedOrderId(orderId);
+        setSelectedProductId(productId);
         setReviewModalVisible(true);
         Animated.timing(slideAnim, {
             toValue: 0,
@@ -183,6 +197,7 @@ const MyOrdersScreen = () => {
             setReviewText('');
             setUploadedImages([]);
             setSelectedOrderId(null);
+            setSelectedProductId(null);
         });
     };
 
@@ -192,69 +207,92 @@ const MyOrdersScreen = () => {
     };
 
     // Submit Review
-const submitReview = async () => {
-    if (reviewRating === 0) {
-        Alert.alert('Rating Required', 'Please select a rating before submitting.');
-        return;
+    const submitReview = async () => {
+  if (reviewRating === 0) {
+    Alert.alert('Rating Required', 'Please select a rating before submitting.');
+    return;
+  }
+
+  try {
+    setSubmitLoading(true);
+
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      Alert.alert('Error', 'User not logged in. Please log in again.');
+      setSubmitLoading(false);
+      return;
     }
 
-    try {
-        const token = await AsyncStorage.getItem('userToken');
-        if (!token) {
-            Alert.alert('Error', 'User not logged in. Please log in again.');
-            return;
-        }
-
-        // ✅ Find selected order and product
-        const selectedOrder = orders.find(order => order.id === selectedOrderId);
-        if (!selectedOrder) {
-            Alert.alert('Error', 'Could not find selected order.');
-            return;
-        }
-
-        // ✅ Get first product from that order (you can expand later for multiple)
-        const firstItem = selectedOrder.allItems[0];
-        const productId = firstItem?.product?._id;
-
-        if (!productId) {
-            Alert.alert('Error', 'No product found for this order.');
-            return;
-        }
-
-        // ✅ Prepare data dynamically
-        const reviewData = {
-            orderId: selectedOrderId,
-            productId: productId,
-            rating: reviewRating,
-            text: reviewText,
-            images: uploadedImages.map(img => img.uri),
-        };
-
-        // console.log('Submitting review:', reviewData);
-
-        // ✅ Dynamic product review API endpoint
-        const response = await axios.post(
-            `${API_BASE}/api/buyer/reviews/${productId}`,
-            reviewData,
-            {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            }
-        );
-
-        if (response.status === 200 || response.status === 201) {
-            Alert.alert('Review Submitted', 'Thank you for your review!');
-            closeReviewModal();
-        } else {
-            Alert.alert('Error', 'Failed to submit review. Please try again.');
-        }
-    } catch (error) {
-        console.error('Error submitting review:', error.response?.data || error.message);
-        Alert.alert('Error', 'Failed to submit review. Please try again.');
+    // Ensure we have a product id: use selectedProductId or fallback from selectedOrderId
+    let productId = selectedProductId;
+    if (!productId && selectedOrderId) {
+      const selectedOrder = orders.find(o => o.id === selectedOrderId || o.orderId === selectedOrderId);
+      const firstItem = selectedOrder?.allItems?.[0] || selectedOrder?.items?.[0];
+      productId = firstItem?.product?._id ?? firstItem?.product?.id ?? firstItem?.productId;
     }
+
+    if (!productId) {
+      Alert.alert('Error', 'Product id missing. Cannot submit review.');
+      setSubmitLoading(false);
+      return;
+    }
+
+    // Build FormData (works for images & text)
+    const form = new FormData();
+    form.append('orderId', selectedOrderId || '');
+    form.append('productId', productId);
+    form.append('rating', String(reviewRating));
+    form.append('comment', reviewText || '');
+
+    if (Array.isArray(uploadedImages) && uploadedImages.length > 0) {
+      uploadedImages.forEach((img) => {
+        const uri = img.uri || img.uriString || (img.assets && img.assets[0]?.uri);
+        if (!uri) return;
+        const filename = uri.split('/').pop().split('?')[0];
+        const match = /\.(\w+)$/.exec(filename);
+        const ext = match ? match[1].toLowerCase() : 'jpg';
+        const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'png' ? 'image/png' : `image/${ext}`;
+
+        form.append('images', {
+          uri,
+          name: filename,
+          type: mime,
+        });
+      });
+    }
+
+    const response = await axios.post(
+      `${API_BASE}/api/buyer/reviews/${productId}`,
+      form,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 30000,
+      }
+    );
+
+    console.log('Kya Ja raha hai REview me (response):', response.data);
+
+    if (response.status === 200 || response.status === 201 || response.data?.success) {
+      Alert.alert('Review Submitted', 'Thank you for your review!');
+      closeReviewModal();
+    } else {
+      console.warn('Review API returned non-success:', response.data);
+      Alert.alert('Error', response.data?.message || 'Failed to submit review. Please try again.');
+    }
+  } catch (err) {
+    console.error('Error submitting review:', err.response?.data ?? err.message ?? err);
+    const serverMsg = err.response?.data?.message || (typeof err.response?.data === 'string' ? err.response.data : null);
+    Alert.alert('Error', serverMsg || 'Failed to submit review. Please try again.');
+  } finally {
+    setSubmitLoading(false);
+  }
 };
+
+
+
 
     // Request camera and gallery permissions
     const requestPermissions = async () => {
@@ -344,17 +382,17 @@ const submitReview = async () => {
     };
 
     // Handle write review
-    const handleWriteReview = (orderId) => {
-        openReviewModal(orderId);
+    const handleWriteReview = (orderId, productId) => {
+        openReviewModal(orderId, productId);
     };
 
-    // Handle order item press
-    const handleOrderPress = (orderId) => {
+    // Handle product item press
+    const handleProductPress = (orderId, productId) => {
         try {
-            navigation.navigate('ViewOrderProduct', { orderId: orderId });
+            navigation.navigate('ViewOrderProduct', { orderId: orderId, productId: productId });
         } catch (error) {
             console.error('Navigation error:', error);
-            Alert.alert('Error', 'Unable to open order details. Please try again.');
+            Alert.alert('Error', 'Unable to open product details. Please try again.');
         }
     };
 
@@ -364,13 +402,16 @@ const submitReview = async () => {
             return orders;
         }
 
+        const searchLower = searchQuery.toLowerCase().trim();
+        
         return orders.filter(order => {
-            const searchLower = searchQuery.toLowerCase().trim();
             return (
-                order.productName.toLowerCase().includes(searchLower) ||
-                order.productDescription.toLowerCase().includes(searchLower) ||
+                order.orderId.toLowerCase().includes(searchLower) ||
                 order.status.toLowerCase().includes(searchLower) ||
-                order.orderId.toLowerCase().includes(searchLower)
+                order.items.some(item => 
+                    item.productName.toLowerCase().includes(searchLower) ||
+                    item.vendorName.toLowerCase().includes(searchLower)
+                )
             );
         });
     }, [orders, searchQuery]);
@@ -400,8 +441,8 @@ const submitReview = async () => {
         setSearchQuery('');
     };
 
-    // Render star rating
-    const renderStarRating = (order) => {
+    // Render star rating for each product
+    const renderStarRating = (order, item) => {
         return (
             <View style={styles.ratingContainer}>
                 <Text style={styles.rateText}>Rate this Item <Text style={styles.required}>*</Text> </Text>
@@ -410,13 +451,13 @@ const submitReview = async () => {
                         {[0, 1, 2, 3, 4].map((starIndex) => (
                             <TouchableOpacity
                                 key={starIndex}
-                                onPress={() => handleStarRating(order.id, starIndex)}
+                                onPress={() => handleStarRating(order.id, item.id, starIndex)}
                                 style={styles.starButton}
                             >
                                 <Ionicons 
-                                    name={starIndex < order.rating ? "star" : "star-outline"} 
+                                    name={starIndex < item.rating ? "star" : "star-outline"} 
                                     size={24} 
-                                    color={starIndex < order.rating ? "#FFD700" : "#E0E0E0"} 
+                                    color={starIndex < item.rating ? "#FFD700" : "#E0E0E0"} 
                                 />
                             </TouchableOpacity>
                         ))}
@@ -424,7 +465,7 @@ const submitReview = async () => {
 
                     <TouchableOpacity
                         style={styles.reviewButton}
-                        onPress={() => handleWriteReview(order.id)}
+                        onPress={() => handleWriteReview(order.id, item.productId)}
                     >
                         <Text style={styles.reviewButtonText}>Write a review</Text>
                         <Ionicons name="chevron-forward" size={16} color="#2196F3" />
@@ -455,38 +496,69 @@ const submitReview = async () => {
         );
     };
 
-    // Render single order item
-    const renderOrderItem = ({ item }) => (
-        <View style={styles.orderCard}>
-            {/* Status and Date */}
-            <View style={styles.orderHeader}>
+    // Render single product item within an order
+const renderProductItem = ({ item: order, index: orderIndex }) => (
+  <View key={order.id || order.orderId} style={styles.orderCard}>
+    {/* Products List */}
+    <View>
+      {Array.isArray(order.items) && order.items.length > 0 ? (
+        order.items.map((product, productIndex) => (
+          <View key={product.id || product.productId || `${order.id || order.orderId}_p_${productIndex}`}>
+            {/* --- Order Header: show only once, before the first product of this order --- */}
+            {productIndex === 0 && (
+              <View style={styles.orderHeader}>
                 <View>
-                    <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-                        {item.status}
-                    </Text>
-                    <Text style={styles.orderIdText}>{item.orderId}</Text>
+                  <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>
+                    {order.status}
+                  </Text>
+                  <Text style={styles.orderIdText}>{order.orderId}</Text>
                 </View>
-                <Text style={styles.dateText}>{item.date}</Text>
-            </View>
+                <Text style={styles.dateText}>{order.date}</Text>
+              </View>
+            )}
 
             {/* Product Info */}
             <TouchableOpacity
-                style={styles.productContainer}
-                onPress={() => handleOrderPress(item.id)}
+              style={styles.productContainer}
+              onPress={() => handleProductPress(order.id || order.orderId, product.productId)}
+              activeOpacity={0.9}
             >
-                <Image source={{ uri: item.productImage }} style={styles.productImage} />
-                <View style={styles.productInfo}>
-                    <Text style={styles.productName}>{item.productName}</Text>
-                    <Text style={styles.productDescription}>{item.productDescription}</Text>
-                    <Text style={styles.vendorName}>By: {item.vendorName}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#666" />
+              <Image source={{ uri: product.productImage || 'https://via.placeholder.com/150' }} style={styles.productImage} />
+              <View style={styles.productInfo}>
+                <Text style={styles.productDescription} numberOfLines={1}>
+                  {product.productName || product.name || 'Unnamed product'}
+                </Text>
+                <Text style={styles.productDescription}>Price: ₹{product.price ?? '0'}</Text>
+                <Text style={styles.productDescription}>Qty: {product.quantity ?? product.qty ?? 1}</Text>
+                {/* vendor name if present */}
+                {product.vendorName ? <Text style={styles.vendorName}>By: {product.vendorName}</Text> : null}
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#666" />
             </TouchableOpacity>
 
-            {/* Rating Section */}
-            {item.canReview && renderStarRating(item)}
+            {/* Rating Section (if product-level review is allowed). 
+                Using your existing renderStarRating signature — you passed (order, product) earlier */}
+            {product.canReview && renderStarRating(order, product)}
+
+            {/* Separator between products (except after last product) */}
+            {productIndex < (order.items.length - 1) && <View style={styles.productSeparator} />}
+          </View>
+        ))
+      ) : (
+        // fallback when order has no items
+        <View style={{ paddingVertical: 8 }}>
+          <Text style={{ color: '#666' }}>No products in this order</Text>
         </View>
-    );
+      )}
+    </View>
+
+    {/* Price Info - shown after all products for this order */}
+    <View style={styles.priceContainer}>
+      <Text style={styles.priceLabel}>Total Price:</Text>
+      <Text style={styles.priceValue}>₹{order.totalPrice ?? 0}</Text>
+    </View>
+  </View>
+);
 
     // Loading component
     if (loading && !refreshing) {
@@ -538,9 +610,6 @@ const submitReview = async () => {
                         </TouchableOpacity>
                     )}
                 </View>
-                {/* <TouchableOpacity style={styles.filterButton}>
-                    <Ionicons name="options" size={20} color="#666" />
-                </TouchableOpacity> */}
             </View>
 
             {/* Search Results Counter */}
@@ -592,7 +661,7 @@ const submitReview = async () => {
             ) : (
                 <FlatList
                     data={filteredOrders}
-                    renderItem={renderOrderItem}
+                    renderItem={({ item, index }) => renderProductItem({ item, index })}
                     keyExtractor={(item) => item.id.toString()}
                     contentContainerStyle={styles.listContainer}
                     showsVerticalScrollIndicator={false}
@@ -633,8 +702,8 @@ const submitReview = async () => {
                                 <View style={styles.modalProductImageContainer}>
                                     <Image
                                         source={{
-                                            uri: selectedOrderId ?
-                                                orders.find(order => order.id === selectedOrderId)?.productImage :
+                                            uri: selectedOrderId && selectedProductId ?
+                                                orders.find(order => order.id === selectedOrderId)?.items.find(item => item.productId === selectedProductId)?.productImage :
                                                 'https://via.placeholder.com/150'
                                         }}
                                         style={styles.modalProductImage}
@@ -851,8 +920,8 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     productImage: {
-        width: 50,
-        height: 50,
+        width:60,
+        height:60,
         borderRadius: 3,
         marginRight: 12,
     },
@@ -866,7 +935,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     productDescription: {
-        fontSize: 12,
+        fontSize:15,
         color: '#666',
     },
 
@@ -1120,6 +1189,35 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
     },
+    priceContainer: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  paddingVertical: 10,
+  paddingHorizontal: 8,
+  marginTop: 12,
+  backgroundColor: '#fafafa',    // subtle background to separate section
+  borderRadius: 8,
+  borderWidth: 1,
+  borderColor: '#f0f0f0',
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.03,
+  shadowRadius: 4,
+  elevation: 1,
+},
+
+priceLabel: {
+  fontSize: 14,
+  color: '#666',
+  fontWeight: '500',
+},
+
+priceValue: {
+  fontSize: 16,
+  color: '#222',
+  fontWeight: '700',
+},
 });
 
 export default MyOrdersScreen;

@@ -22,13 +22,12 @@ const { width } = Dimensions.get("window");
 
 const BASE_URL = "https://393rb0pp-5000.inc1.devtunnels.ms";
 const NOTIFICATIONS_ENDPOINT = "/api/notifications";
-const PLACEHOLDER_IMAGE = "https://i.imgur.com/8Km9tLL.png";
 
 const NotificationCard = ({ item, onPressCta }) => (
   <View style={styles.cardContainer}>
     <View style={styles.cardInner}>
       <Image
-        source={{ uri: item.image || PLACEHOLDER_IMAGE }}
+        source={require("../assets/via-farm-img/icons/notificationIcon.png")}
         style={styles.cardImage}
         resizeMode="cover"
       />
@@ -145,10 +144,7 @@ export default function NotificationsScreen() {
       const mapped = arr.map((n, idx) => mapServerNotificationToItem(n, idx));
       setNotifications(mapped);
     } catch (err) {
-      // Non-401 errors come here (network, parse etc.)
       console.error("fetchNotifications error:", (err && err.message) || err);
-      // optionally show a small alert (uncomment if you want)
-      // Alert.alert("Network error", "Could not load notifications.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -164,8 +160,6 @@ export default function NotificationsScreen() {
     if (item.ctaType === "order") {
       const orderIds = item.raw?.data?.orderIds ?? [];
       if (orderIds.length > 0) {
-        // Example navigation - adjust to your app route
-        // router.push(`/orders/${orderIds[0]}`);
         console.log("Open order:", orderIds[0]);
       }
     } else {

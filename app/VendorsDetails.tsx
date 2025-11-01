@@ -24,9 +24,29 @@ const CARD_MARGIN = 10;
 const CARD_COLUMNS = 2;
 const CARD_WIDTH = (width - CARD_MARGIN * (CARD_COLUMNS * 2)) / CARD_COLUMNS;
 
-const CATEGORIES = ['All', 'Fruits', 'Vegetables', 'Seeds', 'Plants', 'Handicrafts'];
+/** Robust FarmImage - unchanged */
+const FarmImage = ({ item }: { item: any }) => {
+  let uri: string | null = null;
+  if (!item) uri = 'https://via.placeholder.com/120';
+  else if (typeof item === 'string') uri = item;
+  else if (item?.url) uri = item.url;
+  else if (item?.image) uri = item.image;
+  else if (item?.src) uri = item.src;
+  else if (item?.path) uri = item.path;
+  else uri = 'https://via.placeholder.com/120';
 
-const ReviewCard = ({ item }) => (
+  return (
+    <TouchableOpacity style={{ marginRight: 8 }} activeOpacity={0.85}>
+      <Image
+        source={{ uri }}
+        style={{ width: 120, height: 120, borderRadius: 8, backgroundColor: '#eee' }}
+        resizeMode="cover"
+      />
+    </TouchableOpacity>
+  );
+};
+
+const ReviewCard = ({ item }: { item: any }) => (
   <TouchableOpacity style={styles.reviewCard} activeOpacity={0.8}>
     <View style={styles.header}>
       <Image
@@ -35,10 +55,10 @@ const ReviewCard = ({ item }) => (
       />
       <View style={{ flex: 1, marginLeft: 10 }}>
         <Text style={styles.name}>{item?.user?.name || 'Anonymous'}</Text>
-        <Text style={styles.rating}>⭐ {item?.rating || 'N/A'}</Text>
+        <Text style={styles.rating}>⭐ {item?.rating ?? 'N/A'}</Text>
       </View>
       <Text style={styles.date}>
-        {new Date(item?.createdAt).toLocaleDateString('en-GB')}
+        {item?.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB') : ''}
       </Text>
     </View>
     {item?.comment && <Text style={styles.comment}>{item.comment}</Text>}
@@ -51,54 +71,247 @@ const VendorsDetails = () => {
   const { params } = useRoute();
   const vendorId = params?.vendorId;
 
-  const [vendor, setVendor] = useState(null);
-  const [reviews, setReviews] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [vendor, setVendor] = useState<any>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [farmImage, setFarmImage] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // wishlist & cart state
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [cartItems, setCartItems] = useState<Record<string, { quantity: number; cartItemId?: string }>>({});
 
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [modalVisible, setModalVisible] = useState(false);
-  const [dropdownLayout, setDropdownLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const dropdownButtonRef = useRef<any>(null);
 
-  const dropdownButtonRef = useRef(null);
-
+  // ----- fetch vendor & product data -----
   const fetchVendor = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const token = await AsyncStorage.getItem('userToken');
-      const { data } = await axios.get(`${API}/api/buyer/vendor/${vendorId}${COORDS}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const resp = await axios.get(`${API}/api/buyer/vendor/${vendorId}${COORDS}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
-      if (data.success && data.data?.vendor) {
-        setVendor(data.data.vendor);
-        setReviews(data.data?.reviews?.list || []);
-        setProducts(data.data?.listedProducts || []);
-      } else throw new Error('Vendor not found');
+      const data = resp?.data ?? {};
+
+      const vendorData = data?.data?.vendor ?? data?.vendor ?? null;
+      const reviewsList = data?.data?.reviews?.list ?? data?.data?.reviews ?? data?.reviews?.list ?? data?.reviews ?? [];
+      const farmImagesList = vendorData?.farmImages ?? data?.data?.farmImages ?? data?.farmImages ?? [];
+      const listedProducts = data?.data?.listedProducts ?? data?.listedProducts ?? [];
+
+      if (!vendorData) throw new Error('Vendor not found');
+
+      setVendor(vendorData);
+      setReviews(Array.isArray(reviewsList) ? reviewsList : []);
+      setFarmImage(Array.isArray(farmImagesList) ? farmImagesList : []);
+      setProducts(Array.isArray(listedProducts) ? listedProducts : []);
     } catch (e: any) {
-      setError(e.message || 'Something went wrong');
+      setError(e?.message ?? 'Something went wrong');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchVendor();
-  }, [vendorId]);
-
-  const handleDropdownPress = () => {
-    if (dropdownButtonRef.current) {
-      dropdownButtonRef.current.measure((x, y, width, height, pageX, pageY) => {
-        setDropdownLayout({
-          x: pageX,
-          y: pageY,
-          width,
-          height,
-        });
-        setModalVisible(true);
+  // ----- wishlist endpoints -----
+  const fetchWishlist = async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
+      const res = await axios.get(`${API}/api/buyer/wishlist`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
+      if (res.data?.success) {
+        const wishlistItems = res.data.data?.items ?? [];
+        const favoriteIds = new Set(wishlistItems.map((it: any) => it.productId || it._id || it.id));
+        setFavorites(favoriteIds);
+      }
+    } catch (err) {
+      console.error('fetchWishlist error', err);
     }
   };
 
+  // ----- cart endpoints -----
+  const fetchCart = async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
+      const res = await axios.get(`${API}/api/buyer/cart`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
+        const items = res.data.data?.items ?? [];
+        const map: Record<string, any> = {};
+        items.forEach((it: any) => {
+          const productId = it.productId || it._id || it.id;
+          map[productId] = { quantity: it.quantity || 1, cartItemId: it._id || it.id };
+        });
+        setCartItems(map);
+      }
+    } catch (err) {
+      console.error('fetchCart error', err);
+    }
+  };
+
+  useEffect(() => {
+    if (vendorId) {
+      fetchVendor();
+      fetchWishlist();
+      fetchCart();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vendorId]);
+
+  // ----- wishlist handlers -----
+  const addToWishlist = async (product: any) => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        // prefer non-blocking UI alert; keep consistent with your app
+        return alert('Please login to add items to wishlist');
+      }
+      const productId = product._id || product.id;
+      const body = {
+        productId,
+        name: product.name,
+        image: product.images?.[0] || product.image || '',
+        price: product.price,
+        category: product.category || 'Uncategorized',
+        variety: product.variety || 'Standard',
+        unit: product.unit || 'kg'
+      };
+      const res = await axios.post(`${API}/api/buyer/wishlist/add`, body, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      if (res.data?.success) {
+        setFavorites(prev => new Set(prev).add(productId));
+      }
+    } catch (err: any) {
+      console.error('addToWishlist error', err);
+      if (err.response?.status === 400) {
+        const productId = product._id || product.id;
+        setFavorites(prev => new Set(prev).add(productId));
+      } else {
+        alert('Failed to add to wishlist');
+      }
+    }
+  };
+
+  const removeFromWishlist = async (product: any) => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
+      const productId = product._id || product.id;
+      const res = await axios.delete(`${API}/api/buyer/wishlist/${productId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
+        setFavorites(prev => {
+          const next = new Set(prev);
+          next.delete(productId);
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error('removeFromWishlist error', err);
+      alert('Failed to remove from wishlist');
+    }
+  };
+
+  const handleToggleFavorite = async (product: any) => {
+    const productId = product._id || product.id;
+    if (favorites.has(productId)) await removeFromWishlist(product);
+    else await addToWishlist(product);
+  };
+
+  // ----- cart handlers -----
+  const handleAddToCart = async (product: any) => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        return alert('Please login to add items to cart');
+      }
+      const productId = product._id || product.id;
+      const body = {
+        productId,
+        name: product.name,
+        image: product.images?.[0] || product.image || '',
+        price: product.price,
+        quantity: 1,
+        category: product.category || 'Uncategorized',
+        variety: product.variety || 'Standard',
+        unit: product.unit || 'kg'
+      };
+      const res = await axios.post(`${API}/api/buyer/cart/add`, body, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      if (res.data?.success) {
+        setCartItems(prev => ({ ...prev, [productId]: { quantity: 1, cartItemId: res.data.data?._id || productId } }));
+      }
+    } catch (err: any) {
+      console.error('handleAddToCart error', err);
+      if (err.response?.status === 400) {
+        // already in cart: refresh
+        await fetchCart();
+      } else {
+        alert('Failed to add to cart');
+      }
+    }
+  };
+
+  const handleUpdateQuantity = async (product: any, change: number) => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        return alert('Please login to update cart');
+      }
+      const productId = product._id || product.id;
+      const current = cartItems[productId];
+      if (!current) return;
+      const newQty = current.quantity + change;
+
+      if (newQty < 1) {
+        // remove from cart
+        const res = await axios.delete(`${API}/api/buyer/cart/${current.cartItemId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data?.success) {
+          setCartItems(prev => {
+            const next = { ...prev };
+            delete next[productId];
+            return next;
+          });
+        }
+      } else {
+        // optimistic update
+        setCartItems(prev => ({ ...prev, [productId]: { ...current, quantity: newQty } }));
+        const res = await axios.put(`${API}/api/buyer/cart/${current.cartItemId}/quantity`, { quantity: newQty }, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        });
+        if (!res.data?.success) {
+          // rollback
+          setCartItems(prev => ({ ...prev, [productId]: current }));
+          alert('Failed to update quantity');
+        }
+      }
+    } catch (err) {
+      console.error('handleUpdateQuantity error', err);
+      await fetchCart();
+      alert('Failed to update quantity');
+    }
+  };
+
+  // ----- navigation to product details -----
+  const openProductDetails = (product: any) => {
+    const productId = product?._id || product?.id;
+    if (!productId) {
+      return alert('Product id missing');
+    }
+    navigation.navigate('ViewProduct' as any, { productId, product });
+  };
+
+  // ---- small helpers & UI guards ----
   if (loading)
     return (
       <View style={styles.containerRoot}>
@@ -122,54 +335,78 @@ const VendorsDetails = () => {
   const v = vendor;
   const image = v.profilePicture || 'https://picsum.photos/800/600';
 
-  // Filter products
   const filteredProducts =
     selectedCategory === 'All'
       ? products
-      : products.filter(p => p.category === selectedCategory);
+      : products.filter((p: any) => p.category === selectedCategory);
 
-  const allReviewImages = reviews.reduce((acc, review) => {
-    if (review.images && Array.isArray(review.images)) {
-      return [...acc, ...review.images];
+  const allReviewImages: string[] = reviews.reduce((acc: string[], review: any) => {
+    const imgs = review?.images;
+    if (!imgs) return acc;
+    if (Array.isArray(imgs)) {
+      imgs.forEach((it) => {
+        if (typeof it === 'string') acc.push(it);
+        else if (it?.url) acc.push(it.url);
+        else if (it?.image) acc.push(it.image);
+      });
     }
     return acc;
   }, []);
 
   const ListHeader = () => (
     <View style={{ width: '100%', paddingBottom: 10, backgroundColor: '#fff' }}>
-      {/* Header Image */}
       <View style={styles.imageBox}>
         <Image source={{ uri: image }} style={styles.image} />
         <TouchableOpacity
           style={[styles.backBtn, { top: insets.top + 10 }]}
-          onPress={() => navigation.goBack()}>
+          onPress={() => (navigation as any).goBack()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
 
-      {/* Vendor Info */}
       <View style={styles.cardContainer}>
         <View style={styles.rowBetween}>
           <Text style={styles.vendorName}>{v.name}</Text>
           <View style={styles.ratingBox}>
-            <Text style={styles.ratingText}>{v.rating?.toFixed(1) || 'N/A'}</Text>
+            <Text style={styles.ratingText}>{v.rating?.toFixed?.(1) ?? 'N/A'}</Text>
           </View>
         </View>
         <View style={styles.row}>
           <Ionicons name="location-sharp" size={16} color="#757575" />
           <Text style={styles.location}>
-            {v.locationText || 'Unknown'} ({v.distance || 'N/A'})
+            {v.locationText ?? 'Unknown'} ({v.distance ?? 'N/A'})
           </Text>
         </View>
         <Text style={styles.aboutHeader}>About</Text>
-        <Text style={styles.about}>{v.about || 'No information available.'}</Text>
+        <Text style={styles.about}>{v.about ?? 'No information available.'}</Text>
       </View>
+
+
+      {/* FarmImage */}
+      <View style={{ backgroundColor: '#fff', paddingVertical: 10, marginTop: allReviewImages.length > 0 ? 0 : 10 }}>
+        {farmImage.length > 0 ? (
+          <FlatList
+            data={farmImage}
+            renderItem={({ item }) => <FarmImage item={item} />}
+            keyExtractor={(item, index) =>
+              typeof item === 'string' ? item : item?._id ? item._id.toString() : index.toString()
+            }
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 10 }}
+          />
+        ) : (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={styles.noReviewText}>No farm images.</Text>
+          </View>
+        )}
+      </View>
+
 
       {allReviewImages.length > 0 && (
         <View style={{ backgroundColor: '#fff', paddingVertical: 10, paddingLeft: 10 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', }}>
-            <Text style={styles.sectionHeader}>Reviews ( {reviews.length} reviews)</Text>
-
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.sectionHeader}>Reviews ({reviews.length} reviews)</Text>
             <TouchableOpacity
               onPress={() =>
                 navigation.navigate('SeeAllReview', {
@@ -177,7 +414,10 @@ const VendorsDetails = () => {
                   reviews,
                 })
               }>
-              <Text style={{ color: 'blue', fontWeight: '600', marginRight: 10, }}>See All</Text>
+              <View style={{flexDirection:'row',alignItems:'center',gap:5,paddingRight:5,}}>
+                <Text style={{ color: 'rgba(1, 151, 218, 1)', fontWeight: '600', }}>See All</Text>
+                <Image source={require("../assets/via-farm-img/icons/see.png")} />
+                </View>
             </TouchableOpacity>
           </View>
           <FlatList
@@ -185,15 +425,13 @@ const VendorsDetails = () => {
             horizontal
             keyExtractor={(item, idx) => `review-img-${idx}`}
             renderItem={({ item }) => (
-              <Image
-                source={{ uri: item }}
-                style={{ width: 120, height: 120, marginRight: 8, borderRadius: 8 }}
-              />
+              <Image source={{ uri: item }} style={{ width: 120, height: 120, marginRight: 8, borderRadius: 8 }} />
             )}
             showsHorizontalScrollIndicator={false}
           />
         </View>
       )}
+
 
       {/* Reviews */}
       <View style={{ backgroundColor: '#fff', paddingVertical: 10, marginTop: allReviewImages.length > 0 ? 0 : 10 }}>
@@ -201,36 +439,34 @@ const VendorsDetails = () => {
           <FlatList
             data={reviews}
             renderItem={({ item }) => <ReviewCard item={item} />}
-            keyExtractor={item => item._id.toString()}
+            keyExtractor={(item, index) => (item?._id ? item._id.toString() : index.toString())}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 10 }}
           />
         ) : (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', }}>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <Image style={{ width: 70, height: 70 }} source={require('../assets/via-farm-img/icons/empty.png')} />
-            <View style={{flexDirection:'row',justifyContent:'center',alignItems:'center',gap:5,}}>
-              <Image style={{ width:25, height:25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
-              <Image style={{ width:25, height:25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
-              <Image style={{ width:25, height:25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
-              <Image style={{ width:25, height:25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
-              <Image style={{ width:25, height:25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
+            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
+              <Image style={{ width: 25, height: 25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
+              <Image style={{ width: 25, height: 25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
+              <Image style={{ width: 25, height: 25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
+              <Image style={{ width: 25, height: 25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
+              <Image style={{ width: 25, height: 25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
             </View>
             <Text style={styles.noReviewText}>No reviews yet.</Text>
           </View>
         )}
       </View>
 
-      {/* Products Header + Dropdown */}
       <View style={styles.productsHeaderContainer}>
         <Text style={[styles.sectionHeader, { marginLeft: 0, marginVertical: 0 }]}>
           Listing Product
         </Text>
-
         <TouchableOpacity
           ref={dropdownButtonRef}
           style={styles.dropdownButton}
-          onPress={handleDropdownPress}>
+          onPress={() => { /* your dropdown handler */ }}>
           <Text style={styles.dropdownButtonText}>{selectedCategory}</Text>
           <Ionicons name="chevron-down" size={20} color="#555" />
         </TouchableOpacity>
@@ -243,28 +479,42 @@ const VendorsDetails = () => {
       style={styles.containerRoot}
       data={filteredProducts}
       ListHeaderComponent={<ListHeader />}
-      renderItem={({ item }) => (
-        <ProductCard
-          id={item?._id}
-          title={item?.name || 'Unnamed Product'}
-          subtitle={item?.variety || ''}
-          price={item?.price || 0}
-          rating={item?.rating || 0}
-          image={item?.images?.[0] || 'https://via.placeholder.com/150'}
-          width={CARD_WIDTH}
-          onPress={() => console.log('Pressed product', item?._id)}
-          onAddToCart={() => console.log('Add to cart:', item?._id)}
-        />
-      )}
-      keyExtractor={(item, index) => item?._id?.toString() || index.toString()}
+      renderItem={({ item }) => {
+        const productId = item?._id || item?.id;
+        const isFavorite = favorites.has(productId);
+        const cartQuantity = cartItems[productId]?.quantity || 0;
+
+        // keep original ProductCard props (id/title/...) but pass handlers too
+        return (
+          <ProductCard
+            id={item?._id}
+            title={item?.name || 'Unnamed Product'}
+            subtitle={item?.variety || ''}
+            price={item?.price || 0}
+            rating={item?.rating || 0}
+            image={item?.images?.[0] || 'https://via.placeholder.com/150'}
+            width={CARD_WIDTH}
+            onPress={() => openProductDetails(item)}
+            onAddToCart={() => handleAddToCart(item)}
+            // pass advanced handlers if your ProductCard supports them
+            onToggleFavorite={() => handleToggleFavorite(item)}
+            onUpdateQuantity={(diff: number) => handleUpdateQuantity(item, diff)}
+            cartQuantity={cartQuantity}
+            isFavorite={isFavorite}
+          />
+        );
+      }}
+      keyExtractor={(item, index) => (item?._id ? item._id.toString() : index.toString())}
       numColumns={CARD_COLUMNS}
       columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: CARD_MARGIN }}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 40, backgroundColor: '#fff' }}
-      ListEmptyComponent={<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Image style={{ width: 120, height: 120, }} source={require('../assets/via-farm-img/icons/emptyProductList.png')} />
-        <Text>No products available.</Text>
-      </View>}
+      ListEmptyComponent={
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Image style={{ width: 120, height: 120 }} source={require('../assets/via-farm-img/icons/emptyProductList.png')} />
+          <Text>No products available.</Text>
+        </View>
+      }
     />
   );
 };
