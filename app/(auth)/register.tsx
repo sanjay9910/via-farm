@@ -1,6 +1,6 @@
 import { useNavigation, useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 
@@ -47,7 +47,7 @@ export default function RegisterScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.logoContainer}>
-        <Text style={styles.logoText}>LOGO</Text>
+        <Image style={{width:250,height:250}} source={require("../../assets/via-farm-img/icons/logo.png")} />
       </View>
       
       <View style={styles.formContainer}>
@@ -91,7 +91,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   logoContainer: {
     flex: 1,
