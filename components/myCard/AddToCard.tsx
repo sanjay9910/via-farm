@@ -3,25 +3,25 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert,
-  Animated,
-  DeviceEventEmitter,
-  Dimensions,
-  Image,
-  Modal,
-  PanResponder,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    Animated,
+    DeviceEventEmitter,
+    Dimensions,
+    Image,
+    Modal,
+    PanResponder,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import SuggestionCard from './SuggestionCard';
 
 const { width, height } = Dimensions.get('window');
 
-const BASE_URL = 'https://393rb0pp-5000.inc1.devtunnels.ms';
+const BASE_URL = 'https://viafarm-1.onrender.com';
 const GET_CART_ENDPOINT = '/api/buyer/cart';
 const ADD_UPDATE_CART_ENDPOINT = '/api/buyer/cart/add';
 const DELETE_CART_ITEM_ENDPOINT = '/api/buyer/cart/';

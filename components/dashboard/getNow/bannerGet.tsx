@@ -1,16 +1,16 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Linking,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    Linking,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import PromoCard from "../../common/PromCard";
 
-const BASE_URL = "https://393rb0pp-5000.inc1.devtunnels.ms";
+const BASE_URL = "https://viafarm-1.onrender.com";
 const ENDPOINT =
   "/api/admin/public/manage-app/banners/placement/HomePageBottomPromo";
 

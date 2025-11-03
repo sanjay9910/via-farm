@@ -7,26 +7,26 @@ import * as Location from 'expo-location';
 import { useRouter } from "expo-router";
 import React, { useContext, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Dimensions,
-  Image,
-  Modal,
-  Platform,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Dimensions,
+    Image,
+    Modal,
+    Platform,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "./context/AuthContext";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
-const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
+const API_BASE = 'https://viafarm-1.onrender.com';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();

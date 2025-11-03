@@ -3,22 +3,22 @@ import axios from "axios";
 import { useNavigation } from "expo-router";
 import React, { useEffect, useRef, useState, } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  FlatList,
-  Image,
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    FlatList,
+    Image,
+    Modal,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 import ProductModal from "../../components/vendors/ProductEditModel";
 
 
-const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
+const API_BASE = "https://viafarm-1.onrender.com";
 const { width } = Dimensions.get("window");
 
 const MyRecentListing = () => {

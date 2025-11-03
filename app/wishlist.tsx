@@ -25,7 +25,7 @@ const MyWishlist = () => {
     const [error, setError] = useState(null);
     const [filteredData, setFilteredData] = useState([]);
 
-    const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
+    const API_BASE = "https://viafarm-1.onrender.com";
     const API_ENDPOINT = "/api/buyer/wishlist";
 
     // Function to fetch data from your API

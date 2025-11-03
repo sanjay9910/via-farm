@@ -5,20 +5,20 @@ import axios from 'axios';
 import * as Location from 'expo-location';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ✅ Base URL
-const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
+const API_BASE = 'https://viafarm-1.onrender.com';
 
 const AddNewAddress = () => {
   const navigation = useNavigation();

@@ -5,18 +5,18 @@ import Checkbox from "expo-checkbox";
 import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator, Alert, Image,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator, Alert, Image,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
-const BASE_URL = "https://393rb0pp-5000.inc1.devtunnels.ms";
+const BASE_URL = "https://viafarm-1.onrender.com";
 
 const ProductModal = ({ visible, onClose, onSubmit, product }) => {
   const [name, setName] = useState("");

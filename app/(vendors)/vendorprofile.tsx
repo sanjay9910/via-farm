@@ -5,23 +5,23 @@ import * as ImagePicker from 'expo-image-picker';
 import { router, useNavigation } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Image,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Image,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { height } = Dimensions.get('window');
-const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
+const API_BASE = 'https://viafarm-1.onrender.com';
 
 // ---------------- EditProfileModal ----------------
 
@@ -348,7 +348,7 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
               <Text style={modalStyles.label}>About</Text>
               <TextInput
                 style={modalStyles.textInput}
-                placeholder="e.g. Active"
+                placeholder="tell us more about yourself"
                 placeholderTextColor="#999"
                 value={about}
                 onChangeText={SetAbout}
@@ -752,7 +752,7 @@ const VendorProfile = () => {
             <View style={styles.userInfo}>
               <Text style={styles.userName}>{userInfo?.name}</Text>
               <Text style={styles.userPhone}>+91 {userInfo?.phone}</Text>
-              <Text style={styles.userRole}>{userInfo?.upiId}</Text>
+              <Text style={styles.userPhone}>{userInfo?.upiId}</Text>
               <Text style={styles.userRole}>{userInfo?.status}</Text>
             </View>
             <TouchableOpacity 
@@ -876,9 +876,9 @@ const styles = StyleSheet.create({
   avatarImage: { width: 60, height: 60, borderRadius: 30 },
   avatarText: { fontSize: 24, fontWeight: '600', color: '#fff' },
   userInfo: { flex: 1, marginLeft: 15 },
-  userName: { fontSize: 18, fontWeight: '600', color: '#333' },
-  userPhone: { fontSize: 14, color: '#666' },
-  userRole: { fontSize: 12, color: '#4CAF50', fontWeight: '500', marginTop: 2 },
+  userName: { fontSize: 18, fontWeight: '600', color: '#333' ,paddingVertical:2 },
+  userPhone: { fontSize: 14, color: '#666',paddingVertical:1 },
+  userRole: { fontSize: 12, color: '#4CAF50', fontWeight: '500', marginTop: 2 ,paddingVertical:1},
   editButtonContainer: { padding: 8 },
   menuSection: { 
     backgroundColor: '#fff', 

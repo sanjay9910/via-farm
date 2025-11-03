@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
+const API_BASE = 'https://viafarm-1.onrender.com';
 
 const EditAddress = () => {
   const navigation = useNavigation();

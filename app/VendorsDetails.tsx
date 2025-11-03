@@ -4,20 +4,21 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import axios from 'axios';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Dimensions,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    FlatList,
+    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ProductCard from '../components/common/ProductCard';
 
 const { width } = Dimensions.get('window');
-const API = 'https://393rb0pp-5000.inc1.devtunnels.ms';
+const API = 'https://viafarm-1.onrender.com';
 const COORDS = '?buyerLat=28.70&buyerLng=77.22';
 
 const CARD_MARGIN = 10;
@@ -25,8 +26,8 @@ const CARD_COLUMNS = 2;
 const CARD_WIDTH = (width - CARD_MARGIN * (CARD_COLUMNS * 2)) / CARD_COLUMNS;
 
 /** Robust FarmImage - unchanged */
-const FarmImage = ({ item }: { item: any }) => {
-  let uri: string | null = null;
+const FarmImage = ({ item }) => {
+  let uri = null;
   if (!item) uri = 'https://via.placeholder.com/120';
   else if (typeof item === 'string') uri = item;
   else if (item?.url) uri = item.url;
@@ -39,14 +40,14 @@ const FarmImage = ({ item }: { item: any }) => {
     <TouchableOpacity style={{ marginRight: 8 }} activeOpacity={0.85}>
       <Image
         source={{ uri }}
-        style={{ width: 120, height: 120, borderRadius: 8, backgroundColor: '#eee' }}
+        style={{ width: 80, height: 80, borderRadius: 8, backgroundColor: '#eee' }}
         resizeMode="cover"
       />
     </TouchableOpacity>
   );
 };
 
-const ReviewCard = ({ item }: { item: any }) => (
+const ReviewCard = ({ item }) => (
   <TouchableOpacity style={styles.reviewCard} activeOpacity={0.8}>
     <View style={styles.header}>
       <Image
@@ -71,19 +72,28 @@ const VendorsDetails = () => {
   const { params } = useRoute();
   const vendorId = params?.vendorId;
 
-  const [vendor, setVendor] = useState<any>(null);
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [farmImage, setFarmImage] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const [vendor, setVendor] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [farmImage, setFarmImage] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   // wishlist & cart state
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [cartItems, setCartItems] = useState<Record<string, { quantity: number; cartItemId?: string }>>({});
+  const [favorites, setFavorites] = useState(new Set());
+  const [cartItems, setCartItems] = useState({});
 
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const dropdownButtonRef = useRef<any>(null);
+  const dropdownButtonRef = useRef(null);
+
+  // ----- helper function -----
+  const getVendorRating = (r) => {
+    const numeric = typeof r === 'string' ? parseFloat(r) : r;
+    if (numeric === null || numeric === undefined || numeric === 0 || Number.isNaN(numeric)) {
+      return 5.0;
+    }
+    return numeric;
+  };
 
   // ----- fetch vendor & product data -----
   const fetchVendor = async () => {
@@ -107,7 +117,7 @@ const VendorsDetails = () => {
       setReviews(Array.isArray(reviewsList) ? reviewsList : []);
       setFarmImage(Array.isArray(farmImagesList) ? farmImagesList : []);
       setProducts(Array.isArray(listedProducts) ? listedProducts : []);
-    } catch (e: any) {
+    } catch (e) {
       setError(e?.message ?? 'Something went wrong');
     } finally {
       setLoading(false);
@@ -124,7 +134,7 @@ const VendorsDetails = () => {
       });
       if (res.data?.success) {
         const wishlistItems = res.data.data?.items ?? [];
-        const favoriteIds = new Set(wishlistItems.map((it: any) => it.productId || it._id || it.id));
+        const favoriteIds = new Set(wishlistItems.map((it) => it.productId || it._id || it.id));
         setFavorites(favoriteIds);
       }
     } catch (err) {
@@ -142,8 +152,8 @@ const VendorsDetails = () => {
       });
       if (res.data?.success) {
         const items = res.data.data?.items ?? [];
-        const map: Record<string, any> = {};
-        items.forEach((it: any) => {
+        const map = {};
+        items.forEach((it) => {
           const productId = it.productId || it._id || it.id;
           map[productId] = { quantity: it.quantity || 1, cartItemId: it._id || it.id };
         });
@@ -160,16 +170,15 @@ const VendorsDetails = () => {
       fetchWishlist();
       fetchCart();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vendorId]);
 
   // ----- wishlist handlers -----
-  const addToWishlist = async (product: any) => {
+  const addToWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
-        // prefer non-blocking UI alert; keep consistent with your app
-        return alert('Please login to add items to wishlist');
+        Alert.alert('Login Required', 'Please login to add items to wishlist');
+        return;
       }
       const productId = product._id || product.id;
       const body = {
@@ -186,19 +195,21 @@ const VendorsDetails = () => {
       });
       if (res.data?.success) {
         setFavorites(prev => new Set(prev).add(productId));
+        Alert.alert('Success', 'Added to wishlist!');
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('addToWishlist error', err);
       if (err.response?.status === 400) {
         const productId = product._id || product.id;
         setFavorites(prev => new Set(prev).add(productId));
+        Alert.alert('Info', 'Already in wishlist');
       } else {
-        alert('Failed to add to wishlist');
+        Alert.alert('Error', 'Failed to add to wishlist');
       }
     }
   };
 
-  const removeFromWishlist = async (product: any) => {
+  const removeFromWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) return;
@@ -212,25 +223,30 @@ const VendorsDetails = () => {
           next.delete(productId);
           return next;
         });
+        Alert.alert('Removed', 'Removed from wishlist');
       }
     } catch (err) {
       console.error('removeFromWishlist error', err);
-      alert('Failed to remove from wishlist');
+      Alert.alert('Error', 'Failed to remove from wishlist');
     }
   };
 
-  const handleToggleFavorite = async (product: any) => {
+  const handleToggleFavorite = async (product) => {
     const productId = product._id || product.id;
-    if (favorites.has(productId)) await removeFromWishlist(product);
-    else await addToWishlist(product);
+    if (favorites.has(productId)) {
+      await removeFromWishlist(product);
+    } else {
+      await addToWishlist(product);
+    }
   };
 
   // ----- cart handlers -----
-  const handleAddToCart = async (product: any) => {
+  const handleAddToCart = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
-        return alert('Please login to add items to cart');
+        Alert.alert('Login Required', 'Please login to add items to cart');
+        return;
       }
       const productId = product._id || product.id;
       const body = {
@@ -248,23 +264,25 @@ const VendorsDetails = () => {
       });
       if (res.data?.success) {
         setCartItems(prev => ({ ...prev, [productId]: { quantity: 1, cartItemId: res.data.data?._id || productId } }));
+        Alert.alert('Success', 'Added to cart!');
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('handleAddToCart error', err);
       if (err.response?.status === 400) {
-        // already in cart: refresh
         await fetchCart();
+        Alert.alert('Info', 'Product is already in cart');
       } else {
-        alert('Failed to add to cart');
+        Alert.alert('Error', 'Failed to add to cart');
       }
     }
   };
 
-  const handleUpdateQuantity = async (product: any, change: number) => {
+  const handleUpdateQuantity = async (product, change) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
-        return alert('Please login to update cart');
+        Alert.alert('Login Required', 'Please login to update cart');
+        return;
       }
       const productId = product._id || product.id;
       const current = cartItems[productId];
@@ -272,7 +290,6 @@ const VendorsDetails = () => {
       const newQty = current.quantity + change;
 
       if (newQty < 1) {
-        // remove from cart
         const res = await axios.delete(`${API}/api/buyer/cart/${current.cartItemId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -282,33 +299,33 @@ const VendorsDetails = () => {
             delete next[productId];
             return next;
           });
+          Alert.alert('Removed', 'Item removed from cart');
         }
       } else {
-        // optimistic update
         setCartItems(prev => ({ ...prev, [productId]: { ...current, quantity: newQty } }));
         const res = await axios.put(`${API}/api/buyer/cart/${current.cartItemId}/quantity`, { quantity: newQty }, {
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
         if (!res.data?.success) {
-          // rollback
           setCartItems(prev => ({ ...prev, [productId]: current }));
-          alert('Failed to update quantity');
+          Alert.alert('Error', 'Failed to update quantity');
         }
       }
     } catch (err) {
       console.error('handleUpdateQuantity error', err);
       await fetchCart();
-      alert('Failed to update quantity');
+      Alert.alert('Error', 'Failed to update quantity');
     }
   };
 
   // ----- navigation to product details -----
-  const openProductDetails = (product: any) => {
+  const openProductDetails = (product) => {
     const productId = product?._id || product?.id;
     if (!productId) {
-      return alert('Product id missing');
+      Alert.alert('Error', 'Product id missing');
+      return;
     }
-    navigation.navigate('ViewProduct' as any, { productId, product });
+    navigation.navigate('ViewProduct', { productId, product });
   };
 
   // ---- small helpers & UI guards ----
@@ -338,9 +355,9 @@ const VendorsDetails = () => {
   const filteredProducts =
     selectedCategory === 'All'
       ? products
-      : products.filter((p: any) => p.category === selectedCategory);
+      : products.filter((p) => p.category === selectedCategory);
 
-  const allReviewImages: string[] = reviews.reduce((acc: string[], review: any) => {
+  const allReviewImages = reviews.reduce((acc, review) => {
     const imgs = review?.images;
     if (!imgs) return acc;
     if (Array.isArray(imgs)) {
@@ -359,7 +376,7 @@ const VendorsDetails = () => {
         <Image source={{ uri: image }} style={styles.image} />
         <TouchableOpacity
           style={[styles.backBtn, { top: insets.top + 10 }]}
-          onPress={() => (navigation as any).goBack()}>
+          onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -368,9 +385,12 @@ const VendorsDetails = () => {
         <View style={styles.rowBetween}>
           <Text style={styles.vendorName}>{v.name}</Text>
           <View style={styles.ratingBox}>
-            <Text style={styles.ratingText}>{v.rating?.toFixed?.(1) ?? 'N/A'}</Text>
+            <Text style={styles.ratingText}>
+              {getVendorRating(v.rating).toFixed(1)}
+            </Text>
           </View>
         </View>
+
         <View style={styles.row}>
           <Ionicons name="location-sharp" size={16} color="#757575" />
           <Text style={styles.location}>
@@ -380,7 +400,6 @@ const VendorsDetails = () => {
         <Text style={styles.aboutHeader}>About</Text>
         <Text style={styles.about}>{v.about ?? 'No information available.'}</Text>
       </View>
-
 
       {/* FarmImage */}
       <View style={{ backgroundColor: '#fff', paddingVertical: 10, marginTop: allReviewImages.length > 0 ? 0 : 10 }}>
@@ -402,7 +421,6 @@ const VendorsDetails = () => {
         )}
       </View>
 
-
       {allReviewImages.length > 0 && (
         <View style={{ backgroundColor: '#fff', paddingVertical: 10, paddingLeft: 10 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -414,10 +432,10 @@ const VendorsDetails = () => {
                   reviews,
                 })
               }>
-              <View style={{flexDirection:'row',alignItems:'center',gap:5,paddingRight:5,}}>
-                <Text style={{ color: 'rgba(1, 151, 218, 1)', fontWeight: '600', }}>See All</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingRight: 5 }}>
+                <Text style={{ color: 'rgba(1, 151, 218, 1)', fontWeight: '600' }}>See All</Text>
                 <Image source={require("../assets/via-farm-img/icons/see.png")} />
-                </View>
+              </View>
             </TouchableOpacity>
           </View>
           <FlatList
@@ -425,13 +443,12 @@ const VendorsDetails = () => {
             horizontal
             keyExtractor={(item, idx) => `review-img-${idx}`}
             renderItem={({ item }) => (
-              <Image source={{ uri: item }} style={{ width: 120, height: 120, marginRight: 8, borderRadius: 8 }} />
+              <Image source={{ uri: item }} style={{ width: 80, height: 80, marginRight: 8, borderRadius: 8 }} />
             )}
             showsHorizontalScrollIndicator={false}
           />
         </View>
       )}
-
 
       {/* Reviews */}
       <View style={{ backgroundColor: '#fff', paddingVertical: 10, marginTop: allReviewImages.length > 0 ? 0 : 10 }}>
@@ -484,7 +501,6 @@ const VendorsDetails = () => {
         const isFavorite = favorites.has(productId);
         const cartQuantity = cartItems[productId]?.quantity || 0;
 
-        // keep original ProductCard props (id/title/...) but pass handlers too
         return (
           <ProductCard
             id={item?._id}
@@ -496,9 +512,8 @@ const VendorsDetails = () => {
             width={CARD_WIDTH}
             onPress={() => openProductDetails(item)}
             onAddToCart={() => handleAddToCart(item)}
-            // pass advanced handlers if your ProductCard supports them
             onToggleFavorite={() => handleToggleFavorite(item)}
-            onUpdateQuantity={(diff: number) => handleUpdateQuantity(item, diff)}
+            onUpdateQuantity={(diff) => handleUpdateQuantity(item, diff)}
             cartQuantity={cartQuantity}
             isFavorite={isFavorite}
           />
@@ -522,13 +537,13 @@ const VendorsDetails = () => {
 const styles = StyleSheet.create({
   containerRoot: {
     flex: 1,
-    backgroundColor: '#fff', 
+    backgroundColor: '#fff',
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff', 
+    backgroundColor: '#fff',
   },
   errorHeader: {
     fontSize: 18,

@@ -2,14 +2,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Dimensions,
-  FlatList,
-  Image,
-  Linking,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Dimensions,
+    FlatList,
+    Image,
+    Linking,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -20,7 +20,7 @@ const ITEM_GAP = 10;
 // Width calculation: width - (2 * 10) = width - 20
 const VISIBLE_ITEM_WIDTH = width - (2 * SCREEN_PADDING); 
 
-const BASE_URL = 'https://393rb0pp-5000.inc1.devtunnels.ms';
+const BASE_URL = 'https://viafarm-1.onrender.com';
 const ENDPOINT = '/api/admin/public/manage-app/banners/placement/HomePageSlider';
 
 const BannerCard = () => {

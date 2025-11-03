@@ -3,17 +3,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { BarChart } from "react-native-gifted-charts";
 
-const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
+const API_BASE = "https://viafarm-1.onrender.com";
 const API_ENDPOINT = "/api/vendor/dashboard-analytics";
 
 const Chart = () => {

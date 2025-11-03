@@ -2,12 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import ProductCard from '../../components/common/ProductCard';
 
@@ -26,7 +26,7 @@ interface SuggestionCardProps {
   vendorId?: string; 
 }
 
-const API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
+const API_BASE = 'https://viafarm-1.onrender.com';
 const WISHLIST_ADD_ENDPOINT = '/api/buyer/wishlist/add';
 const WISHLIST_REMOVE_ENDPOINT = '/api/buyer/wishlist';
 const CART_ADD_ENDPOINT = '/api/buyer/cart/add';

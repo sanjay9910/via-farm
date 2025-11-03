@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
+const API_BASE = "https://viafarm-1.onrender.com";
 
 // ✅ Product Card with Wishlist & Cart functionality
 const ProductCard = ({
@@ -469,7 +469,6 @@ const ViewAllFressPop = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonContainer}>
           <Image
             source={require("../assets/via-farm-img/icons/groupArrow.png")}
-            style={styles.backIcon}
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Fresh & Popular</Text>

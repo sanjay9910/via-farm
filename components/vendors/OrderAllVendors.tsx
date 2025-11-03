@@ -5,7 +5,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-nat
 import OrderFilter from "../vendors/filter/OrderFilter";
 import OrderCard from "./OrderCard";
 
-const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
+const API_BASE = "https://viafarm-1.onrender.com";
 
 export default function AllOrders() {
   const [orders, setOrders] = useState([]);

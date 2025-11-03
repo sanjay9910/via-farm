@@ -4,20 +4,20 @@ import axios from "axios";
 import { useNavigation } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // --- API Configuration ---
-const API_BASE_URL = "https://393rb0pp-5000.inc1.devtunnels.ms";
+const API_BASE_URL = "https://viafarm-1.onrender.com";
 const API_ENDPOINTS = {
   GET_COUPONS: "/api/vendor/coupons",
   CREATE_COUPON: "/api/vendor/coupons/create",

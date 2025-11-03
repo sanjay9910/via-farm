@@ -2,16 +2,16 @@ import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
-const FORGET_API_BASE = 'https://393rb0pp-5000.inc1.devtunnels.ms';
+const FORGET_API_BASE = 'https://viafarm-1.onrender.com';
 
 const ForgetPassword = () => {
   const [mobileNumber, setMobileNumber] = useState('');

@@ -3,23 +3,23 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Dimensions,
-  FlatList,
-  Image,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Dimensions,
+    FlatList,
+    Image,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 import ProductModal from "../vendors/ProductEditModel";
 
-const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
+const API_BASE = "https://viafarm-1.onrender.com";
 const { width } = Dimensions.get("window");
 
 // --- ProductCard Component with Edit Modal ---
@@ -993,7 +993,7 @@ const cardStyles = StyleSheet.create({
     marginRight: 8,
   },
   menuButton: { padding: 4 },
-  row: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
+  row: { flexDirection: "row", alignItems: "center", marginBottom:6 },
   label: { fontSize: 14, color: "#6b7280", width: 80 },
   colon: { fontSize: 14, color: "#6b7280", marginHorizontal: 8 },
   value: { fontSize: 14, color: "#374151", fontWeight: "500", flex: 1 },

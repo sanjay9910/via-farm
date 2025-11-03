@@ -5,20 +5,20 @@ import Checkbox from "expo-checkbox";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
-const API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms/api/vendor";
+const API_BASE = "https://viafarm-1.onrender.comapi/vendor";
 
 const AddProduct = ({ refreshprops }) => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -362,7 +362,7 @@ const AddProduct = ({ refreshprops }) => {
                     style={styles.input}
                     value={weightPerPiece}
                     onChangeText={setWeightPerPiece}
-                    placeholder="e.g., 400gm or 0.4kg"
+                    placeholder="e.g., 400g or 0.4kg"
                     editable={!loading}
                   />
                   <Text style={styles.helperText}>

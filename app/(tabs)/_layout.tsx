@@ -92,7 +92,7 @@ export default function TabLayout() {
         />
       </View>
     ),
-    tabBarLabel: 'My Card',
+    tabBarLabel: 'My Cart',
   }}
 />
     </Tabs>

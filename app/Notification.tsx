@@ -4,23 +4,23 @@ import axios from "axios";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  FlatList,
-  Image,
-  RefreshControl,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    FlatList,
+    Image,
+    RefreshControl,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
-const BASE_URL = "https://393rb0pp-5000.inc1.devtunnels.ms";
+const BASE_URL = "https://viafarm-1.onrender.com";
 const NOTIFICATIONS_ENDPOINT = "/api/notifications";
 
 const NotificationCard = ({ item, onPressCta }) => (

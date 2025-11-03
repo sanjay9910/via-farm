@@ -3,18 +3,18 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import axios from "axios";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
-const FORGET_API_BASE = "https://393rb0pp-5000.inc1.devtunnels.ms";
+const FORGET_API_BASE = "https://viafarm-1.onrender.com";
 
 const SetPasswordAfterForget = () => {
   const [newPassword, setNewPassword] = useState("");

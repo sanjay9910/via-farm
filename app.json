@@ -4,7 +4,7 @@
     "slug": "viafarm",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/via-farm-img/icons/logo.png",
     "scheme": "viafarm",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

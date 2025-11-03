@@ -186,6 +186,7 @@ const styles = StyleSheet.create({
   cardOuter: {
     marginTop:15,
     borderRadius:20,
+    paddingVertical:2,
     borderWidth:1,
     borderColor: "rgba(255, 202, 40, 1)",
   },
@@ -210,8 +211,8 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: "#fff", fontSize: 12, fontWeight: "600" },
   orderTitle: { fontWeight: "700", marginBottom: 6, fontSize: 14, color: "#222" },
-  row: { flexDirection: "row", alignItems: "flex-start", marginVertical: 2 },
-  label: { width: LABEL_WIDTH, fontSize: 14, color: "#666", fontWeight: "600" },
+  row: { flexDirection: "row", alignItems: "flex-start", marginVertical: 3 },
+  label: { width: LABEL_WIDTH, fontSize: 14, color: "#666", },
   colon: { width: COLON_WIDTH, fontSize: 14, color: "#666", fontWeight: "600" },
   value: { flex: 1, fontSize: 14, color: "#222", fontWeight: "600" },
 
