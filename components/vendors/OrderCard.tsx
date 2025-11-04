@@ -1,6 +1,7 @@
 // components/OrderCard.js
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   Pressable,
   StyleSheet as RNStyleSheet,
@@ -40,17 +41,25 @@ const OrderCard = ({ order = {}, onStatusChange }) => {
       : DELIVERY_STATUS_OPTIONS;
 
   const initialStatus =
-    order.status && typeof order.status === "string"
+    (order.status && typeof order.status === "string")
       ? order.status
-      : statusList.length
-      ? statusList[0]
-      : "Pending";
+      : (statusList.length ? statusList[0] : "Pending");
 
   const [status, setStatus] = useState(initialStatus);
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [statusBtnLayout, setStatusBtnLayout] = useState(null);
 
-  const openDropdown = () => setDropdownVisible(true);
+  // When parent changes order.status externally, keep local value in sync
+  React.useEffect(() => {
+    if (order && order.status && order.status !== status) {
+      setStatus(order.status);
+    }
+  }, [order.status]);
+
+  const openDropdown = () => {
+    if (order.__updating) return; // don't open while updating
+    setDropdownVisible(true);
+  };
   const closeDropdown = () => setDropdownVisible(false);
 
   const handleSelectStatus = (newStatus) => {
@@ -59,7 +68,8 @@ const OrderCard = ({ order = {}, onStatusChange }) => {
 
     if (typeof onStatusChange === "function") {
       try {
-        onStatusChange(order.orderId || order.id || order._id, newStatus);
+        // prefer DB id (order.id) – parent will resolve endpoint with this id
+        onStatusChange(order.id || order.orderId || order._id, newStatus);
       } catch (e) {
         console.warn("onStatusChange error:", e);
       }
@@ -123,23 +133,30 @@ const OrderCard = ({ order = {}, onStatusChange }) => {
             <Text style={styles.label}>Status</Text>
             <Text style={styles.colon}>:</Text>
 
-            <TouchableOpacity
-              style={styles.dropdown}
-              onPress={openDropdown}
-              activeOpacity={0.8}
-              onLayout={(e) => {
-                const { x, y, width, height } = e.nativeEvent.layout;
-                // save layout (relative to cardInner)
-                setStatusBtnLayout({ x, y, width, height });
-              }}
-            >
-              <Text style={styles.dropdownText}>{status}</Text>
-              <Image
-                source={require("../../assets/via-farm-img/icons/downArrow.png")}
-                style={styles.arrowIcon}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
+            {/* while updating, show spinner + text */}
+            {order.__updating ? (
+              <View style={[styles.dropdown, { flexDirection: "row", alignItems: "center" }]}>
+                <ActivityIndicator size="small" color="#16a34a" style={{ marginRight: 8 }} />
+                <Text style={[styles.dropdownText, { opacity: 0.9 }]}>Updating...</Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.dropdown}
+                onPress={openDropdown}
+                activeOpacity={0.8}
+                onLayout={(e) => {
+                  const { x, y, width, height } = e.nativeEvent.layout;
+                  setStatusBtnLayout({ x, y, width, height });
+                }}
+              >
+                <Text style={styles.dropdownText}>{status}</Text>
+                <Image
+                  source={require("../../assets/via-farm-img/icons/downArrow.png")}
+                  style={styles.arrowIcon}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Inline dropdown panel shown directly under status button */}
@@ -149,7 +166,7 @@ const OrderCard = ({ order = {}, onStatusChange }) => {
                 style={[
                   styles.dropdownPanel,
                   {
-                    top: statusBtnLayout.y + statusBtnLayout.height + 6, // small gap
+                    top: statusBtnLayout.y + statusBtnLayout.height + 6,
                     left: statusBtnLayout.x,
                     width: Math.max(statusBtnLayout.width, 140),
                   },
@@ -223,7 +240,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignContent: "center",
     justifyContent: "center",
-    // gap not supported on all RN versions, use margin on children instead
     paddingVertical: 6,
     borderRadius: 8,
     minWidth: 150,
@@ -232,10 +248,8 @@ const styles = StyleSheet.create({
   dropdownText: { fontSize: 13, color: "#333", fontWeight: "600", marginRight: 6 },
   arrowIcon: { width: 14, height: 14 },
 
-  /* backdrop covers the cardInner so clicks outside dropdownPanel close it */
   backdrop: {
     ...RNStyleSheet.absoluteFillObject,
-    // keep transparent, but ensure it sits above card content
     backgroundColor: "transparent",
     zIndex: 998,
   },

@@ -4,17 +4,17 @@ import axios from "axios";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    FlatList,
-    Image,
-    RefreshControl,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  RefreshControl,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -27,7 +27,7 @@ const NotificationCard = ({ item, onPressCta }) => (
   <View style={styles.cardContainer}>
     <View style={styles.cardInner}>
       <Image
-        source={require("../assets/via-farm-img/icons/notificationIcon.png")}
+        source={require("../assets/via-farm-img/icons/logo.png")}
         style={styles.cardImage}
         resizeMode="cover"
       />

@@ -1,18 +1,18 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
-const API_BASE = 'https://viafarm-1.onrender.comapi/auth';
+const API_BASE = 'https://viafarm-1.onrender.com/api/auth';
 
 const LoginOtp = () => {
   const [mobileNumber, setMobileNumber] = useState('');

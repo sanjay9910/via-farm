@@ -1,14 +1,15 @@
+// screens/AllOrders.js
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import OrderCard from "../vendors/OrderCard";
 import OrderFilter from "../vendors/filter/OrderFilter";
-import OrderCard from "./OrderCard";
 
 const API_BASE = "https://viafarm-1.onrender.com";
 
 export default function AllOrders() {
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState([]); // raw formatted orders with internal flags
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
@@ -19,112 +20,205 @@ export default function AllOrders() {
     dateFilter: ""
   });
 
-const fetchOrders = async () => {
-  try {
-    setLoading(true);
-    const token = await AsyncStorage.getItem("userToken");
-    if (!token) {
-      console.log("No token found!");
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) {
+        console.log("No token found!");
+        setLoading(false);
+        return;
+      }
+
+      const res = await axios.get(`${API_BASE}/api/vendor/orders`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000
+      });
+
+      if (res.data && (res.data.success && Array.isArray(res.data.data) || Array.isArray(res.data.orders) || Array.isArray(res.data.data))) {
+        const source = Array.isArray(res.data.data) ? res.data.data : (Array.isArray(res.data.orders) ? res.data.orders : res.data.data);
+        const formattedOrders = (source || []).map((o) => {
+          const products = Array.isArray(o.products) ? o.products : (Array.isArray(o.items) ? o.items : []);
+
+          const itemNames = products.length
+            ? products
+                .map((p, idx) => {
+                  const prod = p.product || {};
+                  const name = prod.name || `Product-${idx + 1}`;
+                  const unit = prod.unit || "N/A";
+                  const qty = p.quantity ?? 0;
+                  return `${name} | ${qty} ${unit}`;
+                })
+                .join(", ")
+            : "N/A";
+
+          const uniqueUnits = Array.from(
+            new Set(
+              products
+                .map((p) => p.product?.unit || p.unit)
+                .filter(Boolean)
+            )
+          ).join(", ") || "N/A";
+
+          const totalQty = products.reduce((sum, p) => sum + (Number(p.quantity) || 0), 0);
+
+          return {
+            // primary id used for API calls should be DB _id
+            id: o._id || o.id || o.orderId || "N/A",
+            orderId: o.orderId || o._id,
+            buyer: (o.buyer && (o.buyer.name || o.buyer)) || (o.buyerName || "N/A"),
+            contact: (o.buyer && o.buyer.mobileNumber) || o.shippingAddress?.mobileNumber || o.contact || "N/A",
+            item: itemNames,
+            quantity: totalQty.toString(),
+            units: uniqueUnits,
+            price: o.totalPrice ? `₹${o.totalPrice}` : "₹0",
+            orderType: o.orderType || "N/A",
+            paymentMethod: o.paymentMethod || "N/A",
+            comments: o.comments || "",
+            totalPrice: o.totalPrice || Number(o.total) || 0,
+            deliveredAt: o.createdAt ? new Date(o.createdAt).toLocaleString() : "N/A",
+            status: o.orderStatus || o.status || "Pending",
+            productsRaw: products,
+            originalDate: o.createdAt || o.updatedAt || null,
+            __updating: false // flag used while updating status
+          };
+        });
+
+        setOrders(formattedOrders);
+        setFilteredOrders(formattedOrders);
+      } else {
+        // In some APIs result may be in other shapes
+        // console.log("Unexpected response shape:", res.data);
+        setOrders([]);
+        setFilteredOrders([]);
+      }
+    } catch (error) {
+      console.log("Error fetching orders:", error);
+      Alert.alert("Error", "Failed to fetch orders. Check console for details.");
+    } finally {
       setLoading(false);
+    }
+  };
+
+  // ========================
+  // Status update handler (PATCH with { status: "<value>" })
+  // ========================
+  const handleStatusChange = async (orderId, newStatus) => {
+    if (!orderId) {
+      console.warn("Missing orderId for status update");
       return;
     }
 
-    const res = await axios.get(`${API_BASE}/api/vendor/orders`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    // keep previous snapshot to revert on failure
+    const prevOrders = [...orders];
 
-    if (res.data && res.data.success && Array.isArray(res.data.data)) {
-      const formattedOrders = res.data.data.map((o) => {
-        const products = Array.isArray(o.products) ? o.products : [];
+    // optimistic update: set new status and __updating flag
+    const optimistic = (list) =>
+      list.map((o) => (o.id === orderId ? { ...o, status: newStatus, __updating: true } : o));
 
-        // build item details properly
-        const itemNames = products.length
-          ? products
-              .map((p, idx) => {
-                const prod = p.product || {};
-                const name = prod.name || `Product-${idx + 1}`;
-                const unit = prod.unit || "N/A";
-                const qty = p.quantity ?? 0;
-                return `${name} | ${qty} ${unit}`;
-              })
-              .join(", ")
-          : "N/A";
+    setOrders((prev) => optimistic(prev));
+    setFilteredOrders((prev) => optimistic(prev));
 
-        // collect unique units
-        const uniqueUnits = Array.from(
-          new Set(
-            products
-              .map((p) => p.product?.unit)
-              .filter(Boolean)
-          )
-        ).join(", ") || "N/A";
+    try {
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) throw new Error("User token missing");
 
-        // sum total quantity
-        const totalQty = products.reduce((sum, p) => sum + (Number(p.quantity) || 0), 0);
+      const url = `${API_BASE}/api/vendor/orders/${orderId}/update-status`;
+      const payload = { status: newStatus };
 
-        return {
-          id: o._id || o.orderId || "N/A",
-          orderId: o.orderId || o._id,
-          buyer: o.buyer?.name || "N/A",
-          contact: o.buyer?.mobileNumber || o.shippingAddress?.mobileNumber || "N/A",
-          item: itemNames, 
-          quantity: totalQty.toString(),
-          units: uniqueUnits, 
-          price: o.totalPrice ? `₹${o.totalPrice}` : "₹0",
-          orderType: o.orderType || "N/A",
-          paymentMethod: o.paymentMethod || "N/A",
-          comments: o.comments || "",
-          totalPrice: o.totalPrice || 0,
-          deliveredAt: o.createdAt ? new Date(o.createdAt).toLocaleString() : "N/A",
-          status: o.orderStatus || "Pending",
-          productsRaw: products, 
-        };
+      // console.log("[StatusUpdate] PATCH", url, "payload:", JSON.stringify(payload));
+
+      const resp = await axios.put(url, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        timeout: 10000
       });
 
-      setOrders(formattedOrders);
-      setFilteredOrders(formattedOrders);
-    } else {
-      console.log("Failed to fetch orders:", res.data?.message || "Unknown error");
+      // console.log("[StatusUpdate] response:", resp.status, resp.data);
+
+      if (!(resp && resp.status >= 200 && resp.status < 300 && (resp.data?.success || resp.data))) {
+        throw new Error("Unexpected server response");
+      }
+
+      // Pull status from server response (works with many shapes)
+      const updated = resp.data?.data ?? resp.data ?? {};
+      const serverStatus = updated.orderStatus ?? updated.status ?? newStatus;
+
+      // Clear updating flag and sync status with server
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderId ? { ...o, status: serverStatus, __updating: false } : o
+        )
+      );
+      setFilteredOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderId ? { ...o, status: serverStatus, __updating: false } : o
+        )
+      );
+
+    } catch (err) {
+      console.error("Status update error:", err);
+
+      // revert to previous state
+      setOrders(prevOrders);
+      setFilteredOrders(prevOrders);
+
+      // error messaging
+      if (err?.response) {
+        const status = err.response.status;
+        const msg = err.response.data?.message || JSON.stringify(err.response.data);
+        console.warn("Axios response status:", status, "data:", msg);
+        if (status === 401) {
+          Alert.alert("Authentication", "Session expired or unauthorized. Please login again.");
+        } else if (status === 403) {
+          Alert.alert("Forbidden", "You don't have permission to update this order.");
+        } else if (status === 404) {
+          Alert.alert("Not Found", "Order endpoint not found. Check server.");
+        } else {
+          Alert.alert("Update failed", `Server returned ${status}: ${msg}`);
+        }
+      } else if (err.code === "ECONNABORTED") {
+        Alert.alert("Timeout", "Request timed out. Try again.");
+      } else {
+        Alert.alert("Update failed", err.message || "Could not update order status");
+      }
     }
-  } catch (error) {
-    console.log("Error fetching orders:", error);
-  } finally {
-    setLoading(false);
-  }
-};
-  // Apply search and filters whenever they change
+  };
+
+  // ========================
+  // Filtering & searching
+  // ========================
   useEffect(() => {
     applyFiltersAndSearch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchText, filters, orders]);
 
   const applyFiltersAndSearch = () => {
     let result = [...orders];
 
-    // Apply search filter
     if (searchText.trim()) {
       const searchTerm = searchText.toLowerCase().trim();
-      result = result.filter(order => 
-        order.buyer.toLowerCase().includes(searchTerm) ||
-        order.contact.includes(searchTerm) ||
-        order.item.toLowerCase().includes(searchTerm)
+      result = result.filter(order =>
+        (order.buyer || "").toLowerCase().includes(searchTerm) ||
+        (order.contact || "").includes(searchTerm) ||
+        (order.item || "").toLowerCase().includes(searchTerm)
       );
     }
 
-    // Apply status filter
     if (filters.statusFilter) {
-      result = result.filter(order => 
-        order.status.toLowerCase().includes(filters.statusFilter.toLowerCase())
+      result = result.filter(order =>
+        (order.status || "").toLowerCase().includes(filters.statusFilter.toLowerCase())
       );
     }
 
-    // Apply price range filter
     if (filters.priceRange < 5000) {
-      result = result.filter(order => 
+      result = result.filter(order =>
         order.totalPrice <= filters.priceRange
       );
     }
 
-    // Apply date filter
     if (filters.dateFilter) {
       const now = new Date();
       let startDate = new Date();
@@ -157,7 +251,6 @@ const fetchOrders = async () => {
       }
     }
 
-    // Apply sorting
     if (filters.sortBy) {
       switch (filters.sortBy) {
         case 'Price - high to low':
@@ -167,10 +260,7 @@ const fetchOrders = async () => {
           result.sort((a, b) => a.totalPrice - b.totalPrice);
           break;
         case 'Newest Arrivals':
-          result.sort((a, b) => new Date(b.originalDate) - new Date(a.originalDate));
-          break;
         case 'Freshness':
-          // Assuming freshness means most recent
           result.sort((a, b) => new Date(b.originalDate) - new Date(a.originalDate));
           break;
         default:
@@ -181,13 +271,8 @@ const fetchOrders = async () => {
     setFilteredOrders(result);
   };
 
-  const handleSearchChange = (text) => {
-    setSearchText(text);
-  };
-
-  const handleFilterApply = (newFilters) => {
-    setFilters(newFilters);
-  };
+  const handleSearchChange = (text) => setSearchText(text);
+  const handleFilterApply = (newFilters) => setFilters(newFilters);
 
   useEffect(() => {
     fetchOrders();
@@ -203,32 +288,34 @@ const fetchOrders = async () => {
 
   return (
     <View style={styles.container}>
-      {/* Fixed Header with Search and Filter */}
       <View style={styles.headerContainer}>
-        <OrderFilter 
+        <OrderFilter
           onSearchChange={handleSearchChange}
           onFilterApply={handleFilterApply}
           searchText={searchText}
         />
       </View>
 
-      {/* Scrollable Orders List */}
       {filteredOrders.length === 0 ? (
         <View style={styles.center}>
           <Text style={styles.noOrdersText}>
-            {searchText || Object.values(filters).some(f => f) 
-              ? "No orders match your search/filters" 
+            {searchText || Object.values(filters).some(f => f)
+              ? "No orders match your search/filters"
               : "No orders found."}
           </Text>
         </View>
       ) : (
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.ordersContainer}
           showsVerticalScrollIndicator={true}
         >
           {filteredOrders.map((order) => (
-            <OrderCard key={order.id} order={order} />
+            <OrderCard
+              key={order.id}
+              order={order}
+              onStatusChange={handleStatusChange} // PASS handler here
+            />
           ))}
         </ScrollView>
       )}
@@ -237,39 +324,20 @@ const fetchOrders = async () => {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: "#fff" ,
-    marginBottom:60,
-  },
+  container: { flex: 1, backgroundColor: "#fff", marginBottom:60 },
   headerContainer: {
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
-    zIndex: 10, 
+    zIndex: 10,
     elevation: 5,
-    shadowColor: "#000", 
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
   },
-  scrollView: { 
-    flex: 1,
-  },
-  ordersContainer: { 
-    padding: 12, 
-    paddingBottom: 20,
-    paddingTop: 8, 
-  },
-  center: { 
-    flexDirection:'row', 
-    justifyContent: "center", 
-    alignItems: "center", 
-    backgroundColor:'#ffff',
-  },
-  noOrdersText: {
-    fontSize:20,
-    color: "#666",
-    textAlign: "center"
-  }
+  scrollView: { flex: 1 },
+  ordersContainer: { padding: 12, paddingBottom: 20, paddingTop: 8 },
+  center: { flexDirection:'row', justifyContent: "center", alignItems: "center", backgroundColor:'#fff' },
+  noOrdersText: { fontSize:20, color: "#666", textAlign: "center" }
 });
