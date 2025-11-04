@@ -399,12 +399,14 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    paddingTop: Platform.OS === "ios" ? 40 : 30,
-  },
+ container: {
+  flex: 1,
+  backgroundColor: "#fff",
+  alignItems: "center",
+  paddingTop: Platform.OS === "ios" ? 40 : 30,
+  paddingBottom: 0,
+  marginBottom: 0,
+},
 
   // logoImage: responsive, contained, and slightly overlaps the card for a modern look
   logoImage: {
@@ -420,8 +422,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 20,
     padding: 28,
-    marginTop: 40,
-    borderWidth: 1,
+    marginTop:60,
+    marginBottom:-35,
+    borderWidth:1,
     borderColor: "rgba(255, 202, 40, 1)",
     elevation: 6,
     shadowColor: "rgba(0,0,0,0.08)",

@@ -526,7 +526,7 @@ const VendorsDetails = () => {
       contentContainerStyle={{ paddingBottom: 40, backgroundColor: '#fff' }}
       ListEmptyComponent={
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Image style={{ width: 120, height: 120 }} source={require('../assets/via-farm-img/icons/emptyProductList.png')} />
+          {/* <Image style={{ width: 120, height: 120 }} source={require('../')} /> */}
           <Text>No products available.</Text>
         </View>
       }
