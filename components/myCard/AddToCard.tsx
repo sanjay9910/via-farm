@@ -24,7 +24,7 @@ const { width, height } = Dimensions.get('window');
 const BASE_URL = 'https://viafarm-1.onrender.com';
 const GET_CART_ENDPOINT = '/api/buyer/cart';
 const ADD_UPDATE_CART_ENDPOINT = '/api/buyer/cart/add';
-const DELETE_CART_ITEM_ENDPOINT = '/api/buyer/cart/';
+const DELETE_CART_ITEM_ENDPOINT = '/api/buyer/cart';
 
 const MyCart = () => {
   const navigation = useNavigation();

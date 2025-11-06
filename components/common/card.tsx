@@ -25,7 +25,6 @@ const { width } = Dimensions.get('window');
 const styles = StyleSheet.create({
   card: {
     width:128,
-    height:114,
     borderWidth:1,
     borderColor:'green',
     borderRadius: 10,

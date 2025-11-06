@@ -5,20 +5,20 @@ import Checkbox from "expo-checkbox";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
-const API_BASE = "https://viafarm-1.onrender.comapi/vendor";
+const API_BASE = "https://viafarm-1.onrender.com/api/vendor";
 
 const AddProduct = ({ refreshprops }) => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -139,7 +139,7 @@ const AddProduct = ({ refreshprops }) => {
 
         const file = {
           uri: uri,
-          type: `image/${fileType === "jpg" ? "jpeg" : fileType}`,
+          type: `image/${fileType === "jpg" ? "jpeg"  : fileType}`,
           name: fileName || `photo_${index}.${fileType}`,
         };
 

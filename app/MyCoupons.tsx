@@ -1612,6 +1612,7 @@ const createModalStyles = StyleSheet.create({
     position: "relative",
     zIndex: 100,
     width: "100%",
+    paddingBottom:300
   },
   discountInputGroup: {
     flexDirection: "row",
