@@ -5,18 +5,17 @@ import axios from 'axios';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Animated,
-    FlatList,
-    Image,
-    Modal,
-    PanResponder,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Animated,
+  FlatList,
+  Image,
+  Modal,
+  PanResponder,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -455,12 +454,12 @@ useEffect(() => {
           </View>
           <Text style={styles.deliveryDate}>Delivered by {product.deliveryDate}</Text>
         </View>
-
+{/* 
         <View style={styles.couponSection}>
           <Text style={styles.couponTitle}>Have a Coupon ?</Text>
           <Text style={styles.couponSub}>Apply now and Save Extra !</Text>
           <TextInput style={styles.couponInput} placeholder="Enter your coupon code" value={coupon} onChangeText={setCoupon} />
-        </View>
+        </View> */}
 
         {/* <RatingCardAlso /> */}
 

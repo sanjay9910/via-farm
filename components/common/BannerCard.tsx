@@ -2,14 +2,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Dimensions,
-    FlatList,
-    Image,
-    Linking,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Image,
+  Linking,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   container: {
     // Banner width: screen width - 20 (10 left padding + 10 right padding)
     width: VISIBLE_ITEM_WIDTH, 
-    height: 170,
+    height: 155,
     borderRadius: 15,
     overflow: 'hidden',
     shadowColor: '#000',

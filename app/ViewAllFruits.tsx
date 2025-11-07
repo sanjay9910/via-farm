@@ -4,16 +4,16 @@ import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -97,9 +97,15 @@ const ProductCard = ({
             {item?.name ?? "Unnamed product"}
           </Text>
 
+          <Text style={cardStyles.productVeriety} numberOfLines={1}>
+           Veriety :{item?.variety ?? "Unnamed product"}
+          </Text>
+
+          
+{/* 
           <View style={{marginVertical:5,}}>
             <Text numberOfLines={1} style={{color:'#444',fontSize:12}}>{item?.vendor?.name ?? ''}</Text>
-          </View>
+          </View> */}
 
           <View style={{flexDirection:'row',alignItems:'center',gap:5,}}>
             <Image
@@ -683,12 +689,12 @@ const cardStyles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 8,
     padding:5,
-    shadowColor: 'grey',
+    shadowColor: 'rgba(0, 0, 0, 0.2)',
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    borderWidth: 1,
+    borderWidth:2,
     borderColor: 'rgba(0, 0, 0, 0.2)',
-    elevation:5,
+    elevation:7,
   },
   imageContainer: {
     position: 'relative',
@@ -749,10 +755,17 @@ const cardStyles = StyleSheet.create({
     padding:5,
   },
   productTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#333',
   },
+ 
+  productVeriety:{
+    color:'rgba(66, 66, 66, 0.7)',
+    fontSize:12,
+    paddingVertical:1,
+  },
+
   productSubtitle: {
     fontSize: 14,
     color: '#888',

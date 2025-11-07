@@ -128,9 +128,9 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   heading: {
-    fontSize: 20,
+    fontSize:17,
     marginLeft: 20,
-    fontWeight: '600',
+    fontWeight: '500',
     marginBottom: 10,
   },
   Categoryheader:{

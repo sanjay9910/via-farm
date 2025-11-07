@@ -1,11 +1,15 @@
+// LocalBest_responsive.js
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useNavigation } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
   FlatList,
   Image,
+  PixelRatio,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -13,6 +17,27 @@ import {
 } from "react-native";
 
 const API_BASE = "https://viafarm-1.onrender.com";
+
+// ---------- Responsive helpers ----------
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+// base guideline (iPhone X)
+const guidelineBaseWidth = 375;
+const guidelineBaseHeight = 812;
+
+const scale = (size) => (SCREEN_WIDTH / guidelineBaseWidth) * size;
+const verticalScale = (size) => (SCREEN_HEIGHT / guidelineBaseHeight) * size;
+const moderateScale = (size, factor = 0.5) => size + (scale(size) - size) * factor;
+
+const normalizeFont = (size) => {
+  const newSize = moderateScale(size);
+  if (Platform.OS === "ios") {
+    return Math.round(PixelRatio.roundToNearestPixel(newSize));
+  } else {
+    // small compensation for Android rendering
+    return Math.round(PixelRatio.roundToNearestPixel(newSize)) - 1;
+  }
+};
+// -----------------------------------------
 
 // Reusable Product Card (image on top, name below)
 const ProductCard = ({ item, onPress }) => {
@@ -99,7 +124,6 @@ const LocalBest = () => {
     navigation.navigate("login");
   };
 
-  // navigate to ViewProduct with productId and the full product
   const openProductDetails = (product) => {
     const productId = product?._id || product?.id;
     if (!productId) {
@@ -112,7 +136,7 @@ const LocalBest = () => {
   // Loading
   if (loading) {
     return (
-      <View style={{ marginVertical: 20, alignItems: "center" }}>
+      <View style={{ marginVertical: verticalScale(20), alignItems: "center" }}>
         <View style={styles.headerRow}>
           <Text style={styles.heading}>Local Best</Text>
           <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("LocalBestView")}>
@@ -122,7 +146,7 @@ const LocalBest = () => {
         </View>
 
         <ActivityIndicator size="large" color="#4CAF50" />
-        <Text style={{ marginTop: 10, color: "#666" }}>Discovering local products...</Text>
+        <Text style={{ marginTop: verticalScale(10), color: "#666", fontSize: normalizeFont(12) }}>Discovering local products...</Text>
       </View>
     );
   }
@@ -130,7 +154,7 @@ const LocalBest = () => {
   // Error
   if (error) {
     return (
-      <View style={{ marginVertical: 20, alignItems: "center" }}>
+      <View style={{ marginVertical: verticalScale(20), alignItems: "center" }}>
         <View style={styles.headerRow}>
           <Text style={styles.heading}>Local Best</Text>
           <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("LocalBestView")}>
@@ -159,7 +183,7 @@ const LocalBest = () => {
 
   // Success
   return (
-    <View style={{ marginVertical: 20 }}>
+    <View style={{ marginVertical: verticalScale(20) }}>
       <View style={styles.headerRow}>
         <Text style={styles.heading}>Local Best</Text>
         <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("LocalBestView")}>
@@ -174,7 +198,7 @@ const LocalBest = () => {
           keyExtractor={(item, index) => (item._id || item.id || String(index)).toString()}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 10 }}
+          contentContainerStyle={{ paddingHorizontal: moderateScale(10) }}
           renderItem={({ item }) => <ProductCard item={item} onPress={openProductDetails} />}
         />
       ) : (
@@ -188,46 +212,43 @@ const LocalBest = () => {
 
 export default LocalBest;
 
-// ✅ Styles
+// ✅ Styles (responsive)
 const styles = StyleSheet.create({
-  heading: { fontSize: 20, marginLeft: 20, fontWeight: "600" },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 15, paddingRight: 20 },
-  link: { color: "rgba(1, 151, 218, 1)", fontWeight: "600" },
+  heading: { fontSize: normalizeFont(18), marginLeft: moderateScale(20), fontWeight: "600" },
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: verticalScale(15), paddingRight: moderateScale(20) },
+  link: { color: "rgba(1, 151, 218, 1)", fontWeight: "600", fontSize: normalizeFont(13) },
 
   // NEW: See All container + icon styles
-  seeButton: { flexDirection: "row", alignItems: "center" ,gap:5, },
-  seeIcon: { width: 18, height: 18, marginRight: 5, resizeMode: "contain" },
+  seeButton: { flexDirection: "row", alignItems: "center", gap: moderateScale(5) },
+  seeIcon: { width: moderateScale(18), height: moderateScale(18), marginRight: moderateScale(5), resizeMode: "contain" },
 
-  loadingContainer: { alignItems: "center", padding: 20 },
-  loadingText: { marginTop: 10, color: "#777" },
-  errorContainer: { alignItems: "center", padding: 20, backgroundColor: "#ffebee", borderRadius: 8, marginHorizontal: 20 },
-  errorText: { color: "#d32f2f", textAlign: "center", marginBottom: 15, fontSize: 16 },
-  buttonContainer: { flexDirection: "row", gap: 10 },
-  retryButton: { backgroundColor: "#1976d2", paddingVertical: 10, paddingHorizontal: 20, borderRadius: 5 },
-  loginButton: { backgroundColor: "#388e3c", paddingVertical: 10, paddingHorizontal: 20, borderRadius: 5 },
-  buttonText: { color: "white", fontWeight: "600" },
-  noDataContainer: { alignItems: "center", padding: 20 },
-  noDataText: { color: "#666", fontSize: 16 },
+  loadingContainer: { alignItems: "center", padding: moderateScale(20) },
+  loadingText: { marginTop: verticalScale(10), color: "#777", fontSize: normalizeFont(12) },
+  errorContainer: { alignItems: "center", padding: moderateScale(20), backgroundColor: "#ffebee", borderRadius: moderateScale(8), marginHorizontal: moderateScale(20) },
+  errorText: { color: "#d32f2f", textAlign: "center", marginBottom: moderateScale(15), fontSize: normalizeFont(14) },
+  buttonContainer: { flexDirection: "row", gap: moderateScale(10) },
+  retryButton: { backgroundColor: "#1976d2", paddingVertical: moderateScale(10), paddingHorizontal: moderateScale(20), borderRadius: moderateScale(5) },
+  loginButton: { backgroundColor: "#388e3c", paddingVertical: moderateScale(10), paddingHorizontal: moderateScale(20), borderRadius: moderateScale(5) },
+  buttonText: { color: "white", fontWeight: "600", fontSize: normalizeFont(14) },
+  noDataContainer: { alignItems: "center", padding: moderateScale(20) },
+  noDataText: { color: "#666", fontSize: normalizeFont(14) },
 });
 
+// Card styles responsive
 const cardStyles = StyleSheet.create({
-  container: { alignItems: "center", marginHorizontal: 8, width: 120 },
+  container: { alignItems: "center", marginHorizontal: moderateScale(8), width: moderateScale(120) },
   card: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    width: 120,
-    height: 120,
+    borderRadius: moderateScale(12),
+    width: moderateScale(120),
+    height: moderateScale(120),
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: moderateScale(5),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: moderateScale(2) },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginBottom: 5,
   },
-  image: { width: "100%", height: "100%", borderRadius: 8 },
-  name: { fontSize: 14, fontWeight: "500", color: "#333", textAlign: "center", marginTop: 4, flexWrap: "wrap", width: 100 },
+  image: { width: "100%", height: "100%", borderRadius: moderateScale(8) },
+  name: { fontSize: normalizeFont(14), fontWeight: "500", color: "#333", textAlign: "center", flexWrap: "wrap", width: moderateScale(100) },
 });

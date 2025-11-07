@@ -7,12 +7,15 @@ import {
   Alert,
   Animated,
   DeviceEventEmitter,
+  Dimensions,
   FlatList,
+  PixelRatio,
+  Platform,
   RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import ProductCard from '../../../components/common/ProductCard';
 
@@ -24,8 +27,28 @@ const CART_ADD_ENDPOINT = '/api/buyer/cart/add';
 
 const categories = ['All', 'Fruits', 'Vegetables', 'Plants', 'Seeds', 'Handicrafts'];
 
-const ITEM_CARD_WIDTH = 135; 
-const ITEM_HORIZONTAL_MARGIN = 8; 
+// ---------- Responsive helpers ----------
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const guidelineBaseWidth = 375;
+const guidelineBaseHeight = 812;
+
+const scale = (size) => (SCREEN_WIDTH / guidelineBaseWidth) * size;
+const verticalScale = (size) => (SCREEN_HEIGHT / guidelineBaseHeight) * size;
+const moderateScale = (size, factor = 0.5) => size + (scale(size) - size) * factor;
+
+const normalizeFont = (size) => {
+  const newSize = moderateScale(size);
+  if (Platform.OS === 'ios') {
+    return Math.round(PixelRatio.roundToNearestPixel(newSize));
+  } else {
+    return Math.round(PixelRatio.roundToNearestPixel(newSize)) - 1;
+  }
+};
+// -----------------------------------------
+
+// Make card slightly wider than before but responsive
+const ITEM_CARD_WIDTH = Math.round(moderateScale(150)); 
+const ITEM_HORIZONTAL_MARGIN = Math.round(moderateScale(8));
 const ITEM_FULL = ITEM_CARD_WIDTH + ITEM_HORIZONTAL_MARGIN * 2;
 
 const SmartPicks = () => {
@@ -36,7 +59,7 @@ const SmartPicks = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [favorites, setFavorites] = useState(new Set());
   const [showDropdown, setShowDropdown] = useState(false);
-  const [cartItems, setCartItems] = useState({}); 
+  const [cartItems, setCartItems] = useState({});
   const animation = useRef(new Animated.Value(0)).current;
 
   // Normalize API item to a stable shape
@@ -408,7 +431,7 @@ const SmartPicks = () => {
           width={ITEM_CARD_WIDTH}
           showRating
           showFavorite
-          imageHeight={120}
+          imageHeight={Math.round(moderateScale(120))}
         />
       </View>
     );
@@ -432,7 +455,7 @@ const SmartPicks = () => {
           <TouchableOpacity style={styles.filterBtn} onPress={toggleDropdown} activeOpacity={0.8}>
             <View style={styles.filterExpand}>
               <Text style={styles.filterText}>{selectedCategory}</Text>
-              <Ionicons name="chevron-down" size={16} color="#666" />
+              <Ionicons name="chevron-down" size={normalizeFont(14)} color="#666" />
             </View>
           </TouchableOpacity>
 
@@ -440,7 +463,7 @@ const SmartPicks = () => {
             style={[
               styles.dropdown,
               {
-                height: animation.interpolate({ inputRange: [0, 1], outputRange: [0, 240] }),
+                height: animation.interpolate({ inputRange: [0, 1], outputRange: [0, moderateScale(240)] }),
                 borderWidth: animation.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }),
               },
             ]}
@@ -479,16 +502,12 @@ const SmartPicks = () => {
         getItemLayout={(data, index) => ({ length: ITEM_FULL, offset: ITEM_FULL * index, index })}
         windowSize={5}
         maxToRenderPerBatch={6}
-        // iOS specific fixes:
         bounces={false}
         alwaysBounceHorizontal={false}
-        // disable automatic safe area adjustment which can shift content on iOS
         contentInsetAdjustmentBehavior="never"
-        // snapping for predictable movement (optional, comment out to test)
         snapToInterval={ITEM_FULL}
         snapToAlignment="start"
         decelerationRate="fast"
-        // small optimization
         scrollEventThrottle={16}
       />
     </View>
@@ -502,37 +521,37 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   loadingContainer: {
-    paddingVertical: 30,
+    paddingVertical: verticalScale(30),
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f8f9fa',
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 14,
+    marginTop: verticalScale(10),
+    fontSize: normalizeFont(13),
     color: '#666',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
-    paddingTop: 10,
-    paddingHorizontal: 13,
+    marginBottom: verticalScale(6),
+    paddingTop: verticalScale(10),
+    paddingHorizontal: moderateScale(13),
   },
   title: {
-    fontSize: 20,
+    fontSize: normalizeFont(18),
     fontWeight: '600',
     color: '#333',
   },
   filterWrapper: {
     position: 'relative',
-    minWidth: 120,
+    minWidth: moderateScale(120),
   },
   filterBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(8),
+    borderRadius: moderateScale(6),
     borderWidth: 1,
     borderColor: 'rgba(66, 66, 66, 0.7)',
   },
@@ -544,22 +563,22 @@ const styles = StyleSheet.create({
   filterText: {
     color: 'rgba(66, 66, 66, 0.7)',
     textAlign: 'center',
-    fontSize: 13,
-    marginRight: 6,
+    fontSize: normalizeFont(13),
+    marginRight: moderateScale(6),
   },
   dropdown: {
     overflow: 'hidden',
     backgroundColor: '#fff',
     borderColor: 'rgba(66, 66, 66, 0.7)',
-    borderRadius: 6,
+    borderRadius: moderateScale(6),
     position: 'absolute',
-    top: 35,
+    top: moderateScale(35),
     left: 0,
     right: 0,
     zIndex: 1000,
   },
   dropdownItem: {
-    padding: 12,
+    padding: moderateScale(12),
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(66, 66, 66, 0.7)',
   },
@@ -568,7 +587,7 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     color: 'rgba(66, 66, 66, 0.7)',
-    fontSize: 13,
+    fontSize: normalizeFont(13),
   },
   selectedDropdownText: {
     color: '#4CAF50',
@@ -576,34 +595,34 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     alignItems: 'flex-start',
-    paddingHorizontal:5,
-    paddingVertical: 8,
+    paddingHorizontal: moderateScale(5),
+    paddingVertical: verticalScale(8),
   },
   flatListStyle: {
-    paddingBottom: 10,
+    paddingBottom: moderateScale(10),
   },
   cardWrapper: {
     marginHorizontal: ITEM_HORIZONTAL_MARGIN,
   },
   emptyContainer: {
-    padding: 20,
+    padding: moderateScale(20),
     alignItems: 'center',
   },
   emptyText: {
     color: '#666',
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: verticalScale(10),
   },
   showAllButton: {
     backgroundColor: '#4CAF50',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: verticalScale(8),
+    borderRadius: moderateScale(6),
   },
   showAllButtonText: {
     color: 'white',
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     fontWeight: '600',
   },
 });

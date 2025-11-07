@@ -1,4 +1,9 @@
-// File: ProfileCard.tsx
+import {
+  moderateScale,
+  normalizeFont,
+  scale,
+  verticalScale,
+} from "@/app/Responsive";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -21,12 +26,16 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
   return (
     <View style={styles.card}>
       {/* Profile Image */}
-      <Image source={{ uri: image }} style={styles.profileImage} />
+      <Image
+        source={{ uri: image }}
+        style={styles.profileImage}
+        resizeMode="cover"
+      />
 
       {/* Content Section */}
       <View style={styles.contentSection}>
         {/* Name */}
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
           {name}
         </Text>
 
@@ -34,7 +43,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
         <View style={styles.distanceContainer}>
           <Ionicons
             name="location-outline"
-            size={16}
+            size={moderateScale(14)}
             color="rgba(66, 66, 66, 1)"
           />
           <Text style={styles.distance}>{distance} away</Text>
@@ -42,18 +51,22 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
 
         {/* Category */}
         <View style={styles.categoryContainer}>
-          <MaterialIcons name="local-grocery-store" size={16} color="#666" />
-          <Text style={styles.category} numberOfLines={1}>
+          <MaterialIcons
+            name="local-grocery-store"
+            size={moderateScale(14)}
+            color="#666"
+          />
+          <Text style={styles.category} numberOfLines={2} ellipsizeMode="tail">
             {category}
           </Text>
         </View>
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.deliveryButton}>
+          <TouchableOpacity style={styles.deliveryButton} activeOpacity={0.8}>
             <Text style={styles.deliveryButtonText}>Delivery</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.pickupButton}>
+          <TouchableOpacity style={styles.pickupButton} activeOpacity={0.8}>
             <Text style={styles.pickupButtonText}>Pickup</Text>
           </TouchableOpacity>
         </View>
@@ -65,97 +78,104 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#ffffff",
-    borderRadius: 12,
+    borderRadius: moderateScale(20),
     flexDirection: "row",
     alignItems: "flex-start",
-    borderWidth: 1,
+    borderWidth: moderateScale(1),
     borderColor: "rgba(255, 202, 40, 1)",
-    marginBottom: 16,
+    marginBottom: verticalScale(12),
     overflow: "hidden",
     maxWidth: "100%",
-    minHeight: 140,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    // elevation: 2,
+    padding: moderateScale(0), 
   },
+
   profileImage: {
-    width: 125,
-    height: 140,
-    borderTopLeftRadius: 10,
-    borderBottomLeftRadius: 10,
+    width: scale(130),
+    height: verticalScale(160),
+    borderTopLeftRadius: moderateScale(10),
+    borderBottomLeftRadius: moderateScale(10),
   },
+
   contentSection: {
     flex: 1,
-    paddingVertical: 12,
-    paddingRight: 12,
-    paddingLeft: 10,
+    paddingVertical: verticalScale(12),
+    paddingRight: moderateScale(12),
+    paddingLeft: moderateScale(10),
     justifyContent: "center",
   },
+
   name: {
-    fontSize: 15,
+    fontSize: normalizeFont(16),
     fontWeight: "700",
     color: "#333",
-    marginBottom: 6,
+    marginBottom: verticalScale(6),
   },
+
   distanceContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: verticalScale(6),
   },
+
   distance: {
-    fontSize: 13,
+    fontSize: normalizeFont(13),
     color: "rgba(66, 66, 66, 0.9)",
-    marginLeft: 5,
+    marginLeft: moderateScale(6),
   },
+
   categoryContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: verticalScale(8),
   },
+
   category: {
-    fontSize: 13,
+    fontSize: normalizeFont(13),
     color: "rgba(66, 66, 66, 0.7)",
-    marginLeft: 5,
+    marginLeft: moderateScale(6),
     flexShrink: 1,
-    flexWrap: "wrap",
   },
+
   buttonContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginTop:5,
+    gap: moderateScale(10), 
+    marginTop: verticalScale(6),
   },
+
   deliveryButton: {
     backgroundColor: "#E3FCE4",
-    borderWidth: 1,
+    borderWidth: moderateScale(1),
     borderColor: "#81C784",
-    borderRadius: 16,
-    paddingVertical: 4,
-    paddingHorizontal: 12,
+    borderRadius: moderateScale(8),
+    paddingVertical: verticalScale(6),
+    paddingHorizontal: moderateScale(12),
     alignItems: "center",
     justifyContent: "center",
+    marginRight: moderateScale(8),
   },
+
   pickupButton: {
     backgroundColor: "#FFF8E1",
-    borderWidth: 1,
+    borderWidth: moderateScale(1),
     borderColor: "#FFD54F",
-    borderRadius: 16,
-    paddingVertical: 4,
-    paddingHorizontal: 12,
+    borderRadius: moderateScale(8),
+    paddingVertical: verticalScale(6),
+    paddingHorizontal: moderateScale(12),
     alignItems: "center",
     justifyContent: "center",
   },
+
   deliveryButtonText: {
     color: "#2E7D32",
+    fontSize: normalizeFont(13),
     fontWeight: "600",
-    fontSize: 13,
   },
+
   pickupButtonText: {
     color: "#9E7B00",
-    fontWeight: "600",
-    fontSize: 13,
+    fontSize: normalizeFont(13),
+    fontWeight: "500",
   },
 });
 

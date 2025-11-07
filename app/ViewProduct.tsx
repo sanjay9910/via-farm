@@ -6,19 +6,21 @@ import { useLocalSearchParams, useNavigation } from "expo-router";
 import { goBack } from 'expo-router/build/global-state/routing';
 import React, { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    FlatList,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Responsive from './Responsive';
+
+const { moderateScale, scale, verticalScale ,normalizeFont} = Responsive;
 
 const API_BASE = "https://viafarm-1.onrender.com";
 const { width: SCREEN_W } = Dimensions.get("window");
@@ -214,17 +216,25 @@ export default function ProductDetailScreen() {
         <View style={styles.infoCard}>
           <View style={styles.rowBetween}>
             <View style={{ flex: 1, paddingRight: 8 }}>
-              <Text style={styles.title}>{product.name}</Text>
-              <Text style={styles.smallText}>{product.category} · {product.variety}</Text>
-            </View>
-
-            <View style={{ alignItems: "flex-end" }}>
-              <Text style={styles.mrp}>MRP ₹{product.price}/{product.unit ?? 'pc'}</Text>
-              <View style={styles.ratingPill}>
+              <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
+                <Text style={styles.title}>{product.name}</Text>
+                <View style={styles.ratingPill}>
                 <Ionicons name="star" size={14} color="#FFD700" />
                 <Text style={{ marginLeft: 6, fontWeight: '700' }}>{product.rating ?? 0}</Text>
               </View>
+              </View>
+              
+              <Text style={styles.smallText}>{product.category} · {product.variety}</Text>
+              <Text style={styles.mrp}>MRP <Text style={{fontWeight:700,color:"#000"}}>₹{product.price}/{product.unit ?? 'pc'}</Text></Text>
             </View>
+
+            {/* <View style={{ alignItems: "flex-end" }}> */}
+              {/* <Text style={styles.mrp}>MRP ₹{product.price}/{product.unit ?? 'pc'}</Text> */}
+              {/* <View style={styles.ratingPill}>
+                <Ionicons name="star" size={14} color="#FFD700" />
+                <Text style={{ marginLeft: 6, fontWeight: '700' }}>{product.rating ?? 0}</Text>
+              </View> */}
+            {/* </View> */}
           </View>
 
           <Text style={[styles.sectionTitle, { marginTop: 12 }]}>About the product</Text>
@@ -244,7 +254,7 @@ export default function ProductDetailScreen() {
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={{ fontWeight: '700' }}>{vendor?.name ?? product.vendor?.name}</Text>
                 <Text style={{ color: '#666', marginTop: 6 }}>{vendorAddr.houseNumber ? `${vendorAddr.houseNumber}, ` : ''}{vendorAddr.locality ?? vendorAddr.street ?? ''}{vendorAddr.city ? `, ${vendorAddr.city}` : ''}</Text>
-                {vendor?.mobileNumber && <Text style={{ color: '#666', marginTop: 6 }}>Mobile: {vendor.mobileNumber}</Text>}
+                {/* {vendor?.mobileNumber && <Text style={{ color: '#666', marginTop: 6 }}>Mobile: {vendor.mobileNumber}</Text>} */}
                 <Text style={{ color: '#777', marginTop: 8 }}>{vendor?.about ?? ''}</Text>
               </View>
             </View>
@@ -280,18 +290,19 @@ export default function ProductDetailScreen() {
           </View> */}
 
           {/* Coupon */}
-          <View style={styles.coupon}>
+          {/* <View style={styles.coupon}>
             <Text style={styles.couponTitle}>Have a Coupon ?</Text>
             <Text style={styles.couponSub}>Apply now and Save Extra !</Text>
             <TextInput style={styles.couponInput} placeholder="Enter your coupon code" value={coupon} onChangeText={setCoupon} />
-          </View>
+          </View> */}
 
           {/* Reviews images carousel (if any) */}
           <View style={{ marginTop: 6 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4 }}>
               <Text style={{ fontWeight: '700' }}>Ratings & Reviews</Text>
-              <TouchableOpacity onPress={() => navigation.navigate?.('Reviews', { productId: product._id })}>
-                <Text style={{ color: '#3b82f6' }}>See All</Text>
+              <TouchableOpacity onPress={() => navigation.navigate?.('Reviews', { productId: product._id })} style={{flexDirection:'row',alignItems:'center',gap:5}}>
+                <Text style={{ color: '#3b82f6',fontSize:normalizeFont(12) }}>See All</Text>
+                <Image source={require('../assets/via-farm-img/icons/see.png')} />
               </TouchableOpacity>
             </View>
 
@@ -370,7 +381,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 0.4, borderBottomColor: '#eee' },
   iconBtn: { padding: 6 },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 16 },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize:normalizeFont(16) },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
 
   container: { flex: 1 },
@@ -380,21 +391,21 @@ const styles = StyleSheet.create({
 
   infoCard: { backgroundColor: '#fff', marginTop: -18,  padding: 16, minHeight: 220 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 18,  },
-  smallText: { color: '#666', marginTop: 4 },
-  mrp: { fontSize: 16,  },
+  title: { fontSize:normalizeFont(15),fontWeight:600,  },
+  smallText: { color: '#666', fontSize:normalizeFont(13)},
+  mrp: { fontSize:normalizeFont(14), marginTop:5 },
   ratingPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff4d9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, marginTop: 8 },
 
-  sectionTitle: { fontSize: 14, fontWeight: '700' },
+  sectionTitle: { fontSize:normalizeFont(14), fontWeight: '600' },
   description: { color: '#444', marginTop: 6, lineHeight: 20 },
 
   nutriRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
   nutriCol: { alignItems: 'center', flex: 1 },
-  nutriLabel: { color: '#777', fontSize: 12 },
-  nutriVal: { fontWeight: '700', marginTop: 6 },
+  nutriLabel: { color: '#777', fontSize: normalizeFont(12) },
+  nutriVal: { fontWeight: '600', marginTop: 6 },
 
   vendorHeader: { marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  vendorExpanded: { flexDirection: 'row', marginTop: 12, alignItems: 'center' },
+  vendorExpanded: { flexDirection: 'row', marginTop:10, alignItems: 'center' },
   vendorImage: { width: 90, height: 90, borderRadius: 10, backgroundColor: '#f3f3f3' },
 
   pickupRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, padding: 8, backgroundColor: '#fafafa', borderRadius: 8 },
@@ -407,7 +418,7 @@ const styles = StyleSheet.create({
   couponSub: { color: '#3b82f6', marginTop: 4 },
   couponInput: { borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 8, padding: 10, marginTop: 8 },
 
-  reviewCard: { width: 300, backgroundColor: '#fff', borderRadius: 12, padding: 14, marginRight: 12, elevation: 2 },
+  reviewCard: { width:300, backgroundColor: '#fff', borderRadius: 12, padding: 14, marginRight: 12, elevation: 2 },
 
   bottomBar: { flexDirection: 'row', alignItems: 'center', padding: 12, borderTopWidth: 0.6, borderTopColor: '#eee', backgroundColor: '#fff' },
   cartBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#22c55e', paddingHorizontal: 18, paddingVertical: 12, borderRadius: 10 },

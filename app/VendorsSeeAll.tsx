@@ -5,16 +5,17 @@ import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import ProfileCard from './../components/common/VendorsCard';
+import { moderateScale } from './Responsive';
 
 const API_BASE = 'https://viafarm-1.onrender.com';
 const API_ENDPOINT = '/api/buyer/allvendors';
@@ -137,7 +138,6 @@ const ViewVendors = () => {
     <SafeAreaView style={styles.safeArea}>
         <View style={styles.mainContainer}>
             
-            {/* 🎯 Simplified Header with Back Arrow and Search Input */}
             <View style={styles.integratedHeader}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#333" />
@@ -276,9 +276,9 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize:moderateScale(12),
     color: '#333',
-    paddingVertical: 0, // Ensure height is controlled by wrapper
+    paddingVertical: 0, 
   },
   container: {
     paddingHorizontal: 16,

@@ -1,3 +1,4 @@
+import Responsive from '@/app/Responsive';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from 'expo-router';
@@ -25,6 +26,8 @@ const BASE_URL = 'https://viafarm-1.onrender.com';
 const GET_CART_ENDPOINT = '/api/buyer/cart';
 const ADD_UPDATE_CART_ENDPOINT = '/api/buyer/cart/add';
 const DELETE_CART_ITEM_ENDPOINT = '/api/buyer/cart';
+const { moderateScale, scale, verticalScale } = Responsive;
+
 
 const MyCart = () => {
   const navigation = useNavigation();
@@ -42,7 +45,7 @@ const MyCart = () => {
   const [selectedEndTime, setSelectedEndTime] = useState(new Date());
   const [startAMPM, setStartAMPM] = useState('AM');
   const [endAMPM, setEndAMPM] = useState('AM');
-  const [paymentMethod, setPaymentMethod] = useState('cash'); // default to cash
+  const [paymentMethod, setPaymentMethod] = useState('cash');
 
   const [priceDetails, setPriceDetails] = useState({
     totalMRP: 0,
@@ -417,82 +420,82 @@ const MyCart = () => {
 
   // NEW: place order function used in Pickup modal's Place Order
   const handlePlaceOrderPickup = async () => {
-  // Validation
-  if (!slot.date || !slot.startTime || !slot.endTime) {
-    Alert.alert('Error', 'Please select date and time slot');
-    return;
-  }
-  if (!paymentMethod) {
-    Alert.alert('Error', 'Please select a payment method');
-    return;
-  }
-
-  const orderPayload = {
-    deliveryType: 'Pickup',
-    pickupSlot: {
-      date: slot.date,
-      startTime: slot.startTime,
-      endTime: slot.endTime,
-    },
-    couponCode: appliedCoupon?.code || '',
-    paymentMethod: paymentMethod === 'online' ? 'Online' : 'Cash',
-    comments: '',
-  };
-
-  // If Online -> navigate to Payment screen with amount and payload
-  if (paymentMethod === 'online') {
-    closePickupModal();
-    setTimeout(() => {
-      navigation.navigate('Payment', {
-        amount: finalAmount,
-        orderPayload,
-      });
-    }, 300); // small delay ensures modal fully closes before navigating
-    return;
-  }
-
-  // If Cash -> call place-order API, show success modal after closing
-  try {
-    const token = authToken || (await getAuthToken());
-    if (!token) {
-      Alert.alert('Error', 'Please login to place order.');
+    // Validation
+    if (!slot.date || !slot.startTime || !slot.endTime) {
+      Alert.alert('Error', 'Please select date and time slot');
+      return;
+    }
+    if (!paymentMethod) {
+      Alert.alert('Error', 'Please select a payment method');
       return;
     }
 
-    const res = await fetch(`${BASE_URL}/api/buyer/orders/place`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+    const orderPayload = {
+      deliveryType: 'Pickup',
+      pickupSlot: {
+        date: slot.date,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
       },
-      body: JSON.stringify(orderPayload),
-    });
+      couponCode: appliedCoupon?.code || '',
+      paymentMethod: paymentMethod === 'online' ? 'Online' : 'Cash',
+      comments: '',
+    };
 
-    const json = await res.json();
-
-    if (res.ok && json.success) {
-      // Close pickup modal smoothly first
+    // If Online -> navigate to Payment screen with amount and payload
+    if (paymentMethod === 'online') {
       closePickupModal();
-
-      // ✅ Wait for modal close animation before showing success modal
       setTimeout(() => {
-        setShowSuccessModal(true);
-
-        // Hide success modal after 2 seconds and navigate home
-        setTimeout(() => {
-          setShowSuccessModal(false);
-          navigation.navigate('index');
-        }, 3000);
-      }, 350); // matches pickup modal animation timing
-    } else {
-      console.warn('Place order failed:', json);
-      Alert.alert('Order Failed', json.message || 'Could not place order.');
+        navigation.navigate('Payment', {
+          amount: finalAmount,
+          orderPayload,
+        });
+      }, 300); // small delay ensures modal fully closes before navigating
+      return;
     }
-  } catch (err) {
-    console.error('Place order error:', err);
-    Alert.alert('Error', 'Network error while placing order.');
-  }
-};
+
+    // If Cash -> call place-order API, show success modal after closing
+    try {
+      const token = authToken || (await getAuthToken());
+      if (!token) {
+        Alert.alert('Error', 'Please login to place order.');
+        return;
+      }
+
+      const res = await fetch(`${BASE_URL}/api/buyer/orders/place`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(orderPayload),
+      });
+
+      const json = await res.json();
+
+      if (res.ok && json.success) {
+        // Close pickup modal smoothly first
+        closePickupModal();
+
+        // ✅ Wait for modal close animation before showing success modal
+        setTimeout(() => {
+          setShowSuccessModal(true);
+
+          // Hide success modal after 2 seconds and navigate home
+          setTimeout(() => {
+            setShowSuccessModal(false);
+            navigation.navigate('index');
+          }, 3000);
+        }, 350); // matches pickup modal animation timing
+      } else {
+        console.warn('Place order failed:', json);
+        Alert.alert('Order Failed', json.message || 'Could not place order.');
+      }
+    } catch (err) {
+      console.error('Place order error:', err);
+      Alert.alert('Error', 'Network error while placing order.');
+    }
+  };
 
   const goReviewPage = () => {
     // deprecated for pickup; we now use handlePlaceOrderPickup for pickup flow
@@ -516,13 +519,13 @@ const MyCart = () => {
       <View style={styles.productDetails}>
         <View style={styles.productInfo}>
           <Text style={styles.productTitle}>{item.title}</Text>
-          <Text style={styles.productSubtitle}>{item.subtitle}</Text>
+          {/* <Text style={styles.productSubtitle}>{item.subtitle}</Text> */}
 
           <View style={styles.priceContainer}>
-            <Text style={styles.priceText}>₹{Number(item.price).toFixed(2)}</Text>
+            <Text style={styles.priceText}><Text style={{ color: 'rgba(66, 66, 66, 1)', fontWeight: 500 }}>MRP </Text>₹{Number(item.price).toFixed(2)}</Text>
           </View>
 
-          <Text style={styles.deliveryText}>Delivery by {item.deliveryDate}</Text>
+          <Text style={styles.deliveryText}>{item.deliveryDate}</Text>
         </View>
 
         <TouchableOpacity
@@ -599,8 +602,13 @@ const MyCart = () => {
           {/* Coupon Section */}
           {cartItems.length > 0 && (
             <View style={styles.couponSection}>
-              <Text style={styles.couponTitle}>Have a Coupon ?</Text>
+              <View style={{flexDirection:'row',alignItems:'center',gap:moderateScale(10)}}>
+                <Image source={require("../../assets/via-farm-img/icons/promo-code.png")} />
+              <View>
+                  <Text style={styles.couponTitle}>Have a Coupon ?</Text>
               <Text style={styles.couponSubtitle}>Apply now and Save Extra!</Text>
+              </View>
+              </View>
 
               <View style={styles.couponInputContainer}>
                 <TextInput
@@ -1059,13 +1067,12 @@ const styles = StyleSheet.create({
     borderColor: '#f0f0f0',
   },
   couponTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: 'rgba(1, 151, 218, 1)',
-    marginBottom: 4,
   },
   couponSubtitle: {
-    fontSize: 14,
+    fontSize:12,
     color: 'rgba(1, 151, 218, 1)',
     marginBottom: 12,
   },
@@ -1078,15 +1085,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginRight: 10,
-    fontSize: 14,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(10),
+    marginRight: moderateScale(10),
+    fontSize: moderateScale(14),
   },
   applyCouponButton: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(10),
     borderRadius: 8,
   },
   applyCouponText: {
@@ -1153,8 +1160,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   productImage: {
-    width: 127,
-    height: 135,
+    width: moderateScale(180),
+    height: moderateScale(148),
     borderRadius: 8,
     backgroundColor: '#f8f8f8',
   },
@@ -1168,10 +1175,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   productTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'rgba(66, 66, 66, 1)',
+    marginBottom: 10,
   },
   productSubtitle: {
     fontSize: 14,
@@ -1187,6 +1194,7 @@ const styles = StyleSheet.create({
     color: '#999',
     textDecorationLine: 'line-through',
     marginRight: 8,
+    fontWeight:300,
   },
   priceText: {
     fontSize: 16,
@@ -1195,8 +1203,8 @@ const styles = StyleSheet.create({
   },
   deliveryText: {
     fontSize: 12,
-    color: '#28a745',
-    marginTop: 4,
+    color: 'rgba(66, 66, 66, 1)',
+    marginTop: 14,
   },
   removeButton: {
     position: 'absolute',
@@ -1207,34 +1215,47 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   quantityContainer: {
+    position: 'absolute',
+    right: moderateScale(8),
+    bottom: moderateScale(15),
+    width: scale(94),
+    height: verticalScale(28),
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 7,
-    marginLeft: 150,
-    marginBottom: 16,
-    alignSelf: 'flex-end',
-    position: 'absolute',
-    borderWidth: 1,
+    justifyContent: 'space-between',
+    borderRadius: moderateScale(7),
+    borderWidth: moderateScale(1),
     borderColor: 'rgba(76, 175, 80, 1)',
+    backgroundColor: '#fff',
+    marginRight:moderateScale(65),
   },
+
   quantityButton: {
-    width: 22,
-    height: 22,
-    borderRadius: 5,
+    width: moderateScale(28),
+    height: verticalScale(28),
+    borderRadius: moderateScale(3),
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+  },
+
+  quantityText: {
+    width: moderateScale(28),
+    height: verticalScale(27),
+    textAlign:'center',
+    borderWidth:1,
+    borderColor: 'rgba(76, 175, 80, 1)',
+    fontSize: moderateScale(14),
+    fontWeight: '600',
+    color: 'rgba(76, 175, 80, 1)',
   },
   quantityButtonText: {
-    fontSize: 18,
+    fontSize: moderateScale(16),
     fontWeight: '600',
     color: 'rgba(76, 175, 80, 1)',
   },
-  quantityText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'rgba(76, 175, 80, 1)',
-  },
+
+
+
   priceSection: {
     backgroundColor: '#fff',
     margin: 8,
@@ -1244,7 +1265,7 @@ const styles = StyleSheet.create({
   },
   priceSectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#333',
     marginBottom: 16,
   },
@@ -1255,16 +1276,16 @@ const styles = StyleSheet.create({
   },
   priceLabel: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(66, 66, 66, 1)',
   },
   priceValue: {
     fontSize: 14,
-    color: '#333',
+    color: 'rgba(66, 66, 66, 1)',
     fontWeight: '500',
   },
   discountValue: {
     fontSize: 14,
-    color: '#28a745',
+    color: 'rgba(66, 66, 66, 1)',
     fontWeight: '500',
   },
   totalRow: {
@@ -1585,24 +1606,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   successModalOverlay: {
-  flex: 1,
-  backgroundColor: 'rgba(0,0,0,0.5)',
-  justifyContent: 'center',
-  alignItems: 'center',
-},
-successModalBox: {
-  backgroundColor: '#fff',
-  width: '75%',
-  borderRadius: 16,
-  paddingVertical: 30,
-  paddingHorizontal: 20,
-  alignItems: 'center',
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.3,
-  shadowRadius: 5,
-  elevation: 10,
-},
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  successModalBox: {
+    backgroundColor: '#fff',
+    width: '75%',
+    borderRadius: 16,
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 10,
+  },
 });
 
 export default MyCart;

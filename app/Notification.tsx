@@ -1,4 +1,4 @@
-// app/Notification.tsx
+// app/Notification.tsx (fixed JS version — no TS annotations, ctaText font fixed)
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useRouter } from "expo-router";
@@ -9,6 +9,8 @@ import {
   Dimensions,
   FlatList,
   Image,
+  PixelRatio,
+  Platform,
   RefreshControl,
   StatusBar,
   StyleSheet,
@@ -18,7 +20,21 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const { width } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+// guideline based on iPhone X (375 x 812)
+const guidelineBaseWidth = 375;
+const guidelineBaseHeight = 812;
+const scale = (size) => (SCREEN_WIDTH / guidelineBaseWidth) * size;
+const verticalScale = (size) => (SCREEN_HEIGHT / guidelineBaseHeight) * size;
+const moderateScale = (size, factor = 0.5) => size + (scale(size) - size) * factor;
+const normalizeFont = (size) => {
+  const newSize = moderateScale(size);
+  if (Platform.OS === "ios") {
+    return Math.round(PixelRatio.roundToNearestPixel(newSize));
+  } else {
+    return Math.round(PixelRatio.roundToNearestPixel(newSize)) - 1;
+  }
+};
 
 const BASE_URL = "https://viafarm-1.onrender.com";
 const NOTIFICATIONS_ENDPOINT = "/api/notifications";
@@ -34,11 +50,12 @@ const NotificationCard = ({ item, onPressCta }) => (
 
       <View style={styles.cardTextWrap}>
         <View style={styles.rowTop}>
-          <Text style={styles.cardTitle} numberOfLines={2}>
-            {item.title}
-          </Text>
           <Text style={styles.cardDate}>{item.date}</Text>
         </View>
+
+        <Text style={styles.cardTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
 
         <Text numberOfLines={2} style={styles.cardMessage}>
           {item.message}
@@ -47,7 +64,7 @@ const NotificationCard = ({ item, onPressCta }) => (
         {item.ctaText ? (
           <TouchableOpacity onPress={() => onPressCta(item)} activeOpacity={0.7}>
             <Text style={styles.ctaText}>
-              {item.ctaText} <Text style={{ fontSize: 16 }}>→</Text>
+              {item.ctaText} <Text style={{ fontSize: normalizeFont(16) }}>→</Text>
             </Text>
           </TouchableOpacity>
         ) : null}
@@ -78,7 +95,7 @@ export default function NotificationsScreen() {
 
   const mapServerNotificationToItem = (n, index) => {
     const baseId = n._id || n.id || `notif-${index}`;
-    const id = `${String(baseId)}-${index}`; // guaranteed unique
+    const id = `${String(baseId)}-${index}`;
     return {
       id,
       rawId: n._id || n.id || null,
@@ -93,40 +110,28 @@ export default function NotificationsScreen() {
   };
 
   const handleInvalidToken = async () => {
-    // remove token and go to login
     await AsyncStorage.removeItem("userToken");
     await AsyncStorage.removeItem("userData");
     Alert.alert("Session expired", "Please login again.");
-    // push to your login route - adjust path if your login route is different
     router.push("/login");
   };
 
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      // NOTE: your login stores token under 'userToken'
       const token = await AsyncStorage.getItem("userToken");
-
-      const config = {
-        timeout: 12_000,
-        headers: {},
-      };
-
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+      const config = { timeout: 12000, headers: {} };
+      if (token) config.headers.Authorization = `Bearer ${token}`;
 
       let res;
       try {
         res = await axios.get(`${BASE_URL}${NOTIFICATIONS_ENDPOINT}`, config);
       } catch (err) {
-        // If we sent a token and got 401, clear token and go to login
         if (err?.response?.status === 401) {
-          console.warn("Token appears invalid (401). Clearing token and redirecting to login.");
+          console.warn("Token invalid (401). Redirecting to login.");
           await handleInvalidToken();
-          return; // stop here
+          return;
         }
-        // any other network error -> throw so outer catch handles
         throw err;
       }
 
@@ -169,7 +174,7 @@ export default function NotificationsScreen() {
 
   const renderEmpty = () => (
     <View style={styles.empty}>
-      <Text style={{ color: "#999" }}>No notifications yet</Text>
+      <Text style={{ color: "#999", fontSize: normalizeFont(14) }}>No notifications yet</Text>
     </View>
   );
 
@@ -178,10 +183,14 @@ export default function NotificationsScreen() {
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Image source={require("..//assets/via-farm-img/icons/groupArrow.png")} />
+          <Image
+            source={require("../assets/via-farm-img/icons/groupArrow.png")}
+            style={styles.backIcon}
+            resizeMode="contain"
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: moderateScale(40) }} />
       </View>
 
       {loading && notifications.length === 0 ? (
@@ -206,37 +215,51 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#ffffff" },
   header: {
-    height: 60,
-    paddingHorizontal: 16,
+    height: moderateScale(60),
+    paddingHorizontal: moderateScale(16),
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
     borderBottomWidth: 0,
     backgroundColor: "#fff",
   },
-  backBtn: { width: 40, alignItems: "flex-start" },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: "#222", textAlign: "center" },
-  listContent: { padding: 16, paddingTop: 18, paddingBottom: 40 },
+  backIcon: {
+    width: moderateScale(22),
+    height: moderateScale(22),
+  },
+  headerTitle: {
+    fontSize: normalizeFont(14),
+    fontWeight: "700",
+    color: "#222",
+    textAlign: "center",
+  },
+  listContent: { padding: moderateScale(16), paddingTop: moderateScale(18), paddingBottom: moderateScale(40) },
   cardContainer: {
-    marginBottom: 16,
-    borderRadius: 10,
+    marginBottom: moderateScale(16),
+    borderRadius: moderateScale(10),
     borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.2)",
+    borderColor: "rgba(0, 0, 0, 0.08)",
     backgroundColor: "rgba(249, 249, 249, 1)",
     overflow: "hidden",
     shadowColor: "#000",
     shadowOpacity: 0.03,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: moderateScale(6),
+    shadowOffset: { width: 0, height: moderateScale(2) },
     elevation: 1,
   },
-  cardInner: { flexDirection: "row", padding: 10, alignItems: "center" },
-  cardImage: { width: 80, height: 80, borderRadius: 10, marginRight: 12, backgroundColor: "#f4f4f4" },
+  cardInner: { flexDirection: "row", padding: moderateScale(10), alignItems: "center" },
+  cardImage: {
+    width: moderateScale(80),
+    height: moderateScale(80),
+    borderRadius: moderateScale(10),
+    marginRight: moderateScale(12),
+    backgroundColor: "#f4f4f4",
+  },
   cardTextWrap: { flex: 1 },
-  rowTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 },
-  cardTitle: { fontSize: 14, fontWeight: "600", color: "#222", flex: 1, paddingRight: 8 },
-  cardDate: { fontSize: 12, color: "#9aa0a6", alignSelf: "flex-start" },
-  cardMessage: { fontSize: 13, color: "#9a9a9a", marginBottom: 10 },
-  ctaText: { color: "rgba(76, 175, 80, 1)", fontWeight: "600", marginTop: 0, marginRight: 0 },
-  empty: { marginTop: 40, alignItems: "center" },
+  rowTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: moderateScale(6) },
+  cardTitle: { fontSize: normalizeFont(12), fontWeight: "600", color: "#222", flex: 1, paddingRight: moderateScale(8) },
+  cardDate: { fontSize: normalizeFont(11), color: "#9aa0a6", alignSelf: "flex-start" },
+  cardMessage: { fontSize: normalizeFont(11), color: "#9a9a9a", marginBottom: moderateScale(10) },
+  ctaText: { color: "rgba(76, 175, 80, 1)", fontWeight: "600", marginTop: 0, marginRight: 0, fontSize: normalizeFont(12) },
+  empty: { marginTop: moderateScale(40), alignItems: "center" },
 });

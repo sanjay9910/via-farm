@@ -34,7 +34,7 @@ const ProductCard = ({
 
   const imageUri = item?.image
     || (Array.isArray(item?.images) && item.images.length > 0 && item.images[0])
-    || "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image";
+    || "https://media.licdn.com/dms/image/v2/D4E03AQFGq7-JPZSEYg/profile-displayphoto-shrink_200_200/B4EZdDeyJHGcAY-/0/1749183835222?e=2147483647&v=beta&t=qprTD0p_Mev28VSY-gb0DnzwPBIqQtRoZX24FfmMnQM";
 
   const distance =
     item?.distanceFromVendor ??
@@ -497,12 +497,12 @@ const ViewAllLocalBest = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonContainer}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Local Best Products</Text>
+        <Text style={styles.headerTitle}>Local Best</Text>
         <View style={{ width: 50 }} />
       </View>
 
       <View>
-        <ViewVendors />
+        <ViewVendors title="Vendors" />
       </View>
 
       <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 6 }}>

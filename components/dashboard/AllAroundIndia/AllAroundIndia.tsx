@@ -1,22 +1,43 @@
-// File: components/dashboard/localBest/AllAroundIndia.tsx
+// File: components/dashboard/localBest/AllAroundIndia_responsive.js
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  PixelRatio,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const API_BASE = "https://viafarm-1.onrender.com";
 
-// ✅ Touchable Product Card (same look as other cards)
+// ---------- Responsive helpers ----------
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const guidelineBaseWidth = 375;
+const guidelineBaseHeight = 812;
+
+const scale = (size) => (SCREEN_WIDTH / guidelineBaseWidth) * size;
+const verticalScale = (size) => (SCREEN_HEIGHT / guidelineBaseHeight) * size;
+const moderateScale = (size, factor = 0.5) => size + (scale(size) - size) * factor;
+
+const normalizeFont = (size) => {
+  const newSize = moderateScale(size);
+  if (Platform.OS === "ios") {
+    return Math.round(PixelRatio.roundToNearestPixel(newSize));
+  } else {
+    return Math.round(PixelRatio.roundToNearestPixel(newSize)) - 1;
+  }
+};
+// -----------------------------------------
+
 const ProductCard = ({ id, name, image, onPress }) => {
   return (
     <TouchableOpacity
@@ -121,7 +142,6 @@ const AllAroundIndia = () => {
       Alert.alert("Error", "Product id missing");
       return;
     }
-    // navigate to ViewProduct screen; ViewProduct should read route.params.productId
     try {
       navigation.navigate("ViewProduct", { productId });
     } catch (e1) {
@@ -156,7 +176,7 @@ const AllAroundIndia = () => {
   // Error
   if (error) {
     return (
-      <View style={{ marginVertical: 20 }}>
+      <View style={{ marginVertical: moderateScale(20) }}>
         <View style={styles.headerRow}>
           <Text style={styles.heading}>All Around India</Text>
           <TouchableOpacity onPress={() => navigation.navigate("ViewAllAroundIndia")}>
@@ -185,12 +205,14 @@ const AllAroundIndia = () => {
 
   // Success UI
   return (
-    <View >
+    <View>
       <View style={styles.headerRow}>
         <Text style={styles.heading}>All Around India</Text>
         <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("ViewAllAroundIndia")}>
           <Text style={styles.link}>See All</Text>
-          <Image source={require("../../../assets/via-farm-img/icons/see.png")} />
+          <Image
+            source={require("../../../assets/via-farm-img/icons/see.png")}
+          />
         </TouchableOpacity>
       </View>
 
@@ -200,7 +222,7 @@ const AllAroundIndia = () => {
           keyExtractor={(item) => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 10 }}
+          contentContainerStyle={{ paddingHorizontal: moderateScale(10) }}
           renderItem={({ item }) => (
             <ProductCard id={item.id} name={item.name} image={item.image} onPress={openProductDetails} />
           )}
@@ -220,48 +242,41 @@ const AllAroundIndia = () => {
 export default AllAroundIndia;
 
 const styles = StyleSheet.create({
-  heading: { fontSize: 20, marginLeft: 20, fontWeight: "600" },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 15, paddingRight: 20 },
-  link: { color: "rgba(1, 151, 218, 1)", fontWeight: "600" },
+  heading: { fontSize: normalizeFont(17), marginLeft: moderateScale(20), fontWeight: "600" },
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: verticalScale(15), paddingRight: moderateScale(20) },
+  link: { color: "rgba(1, 151, 218, 1)", fontWeight: "600", fontSize: normalizeFont(13) },
 
-  seeButton: { flexDirection: "row", alignItems: "center", gap: 5 },
-  seeIcon: { width: 18, height: 18, marginRight: 5, resizeMode: "contain" },
+  seeButton: { flexDirection: "row", alignItems: "center",gap:5 },
 
-  loadingContainer: { alignItems: "center", padding: 20 },
-  loadingText: { marginTop: 10, color: "#777" },
 
-  errorContainer: { alignItems: "center", padding: 20, backgroundColor: "#ffebee", borderRadius: 8, marginHorizontal: 20 },
-  errorText: { color: "#d32f2f", textAlign: "center", marginBottom: 15, fontSize: 16 },
+  loadingContainer: { alignItems: "center", padding: moderateScale(20) },
+  loadingText: { marginTop: verticalScale(10), color: "#777", fontSize: normalizeFont(12) },
 
-  buttonContainer: { flexDirection: "row", gap: 10 },
-  retryButton: { backgroundColor: "#1976d2", paddingVertical: 10, paddingHorizontal: 20, borderRadius: 5 },
-  loginButton: { backgroundColor: "#388e3c", paddingVertical: 10, paddingHorizontal: 20, borderRadius: 5 },
+  errorContainer: { alignItems: "center", padding: moderateScale(20), backgroundColor: "#ffebee", borderRadius: moderateScale(8), marginHorizontal: moderateScale(20) },
+  errorText: { color: "#d32f2f", textAlign: "center", marginBottom: moderateScale(15), fontSize: normalizeFont(14) },
 
-  buttonText: { color: "white", fontWeight: "600" },
+  buttonContainer: { flexDirection: "row" },
+  retryButton: { backgroundColor: "#1976d2", paddingVertical: moderateScale(10), paddingHorizontal: moderateScale(20), borderRadius: moderateScale(5), marginRight: moderateScale(10) },
+  loginButton: { backgroundColor: "#388e3c", paddingVertical: moderateScale(10), paddingHorizontal: moderateScale(20), borderRadius: moderateScale(5) },
 
-  noDataContainer: { alignItems: "center", padding: 20 },
-  noDataText: { color: "#666", fontSize: 16 },
+  buttonText: { color: "white", fontWeight: "600", fontSize: normalizeFont(14) },
+
+  noDataContainer: { alignItems: "center", padding: moderateScale(20) },
+  noDataText: { color: "#666", fontSize: normalizeFont(14) },
 });
 
-// Card styles matching your other components
 const cardStyles = StyleSheet.create({
-  container: { alignItems: "center", marginHorizontal: 8, width: 120 },
+  container: { alignItems: "center", marginHorizontal: moderateScale(8), width: moderateScale(120) },
   card: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    width: 120,
-    height: 120,
+    borderRadius: moderateScale(12),
+    width: moderateScale(120),
+    height: moderateScale(120),
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
     elevation: 3,
-    marginBottom: 5,
+    marginBottom: moderateScale(5),
   },
-  image: { width: "100%", height: "100%", borderRadius: 8 },
-  name: { fontSize: 14, fontWeight: "500", color: "#333", textAlign: "center", marginTop: 4, flexWrap: "wrap", width: 100 },
+  image: { width: "100%", height: "100%", borderRadius: moderateScale(8) },
+  name: { fontSize: normalizeFont(14), fontWeight: "500", color: "#333", textAlign: "center", flexWrap: "wrap", width: moderateScale(100) },
 });
