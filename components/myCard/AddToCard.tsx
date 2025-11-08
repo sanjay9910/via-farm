@@ -2,6 +2,7 @@ import Responsive from '@/app/Responsive';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from 'expo-router';
+import { goBack } from 'expo-router/build/global-state/routing';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -26,7 +27,7 @@ const BASE_URL = 'https://viafarm-1.onrender.com';
 const GET_CART_ENDPOINT = '/api/buyer/cart';
 const ADD_UPDATE_CART_ENDPOINT = '/api/buyer/cart/add';
 const DELETE_CART_ITEM_ENDPOINT = '/api/buyer/cart';
-const { moderateScale, scale, verticalScale } = Responsive;
+const { moderateScale, scale, verticalScale, normalizeFont } = Responsive;
 
 
 const MyCart = () => {
@@ -580,8 +581,11 @@ const MyCart = () => {
     <View style={{ flex: 1, backgroundColor: '#fff' }}>
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity onPress={goBack}>
+          <Image source={require("../../assets/via-farm-img/icons/groupArrow.png")} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>My Cart {loading && cartItems.length > 0 && '(Updating...)'}</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: scale(24) }} />
       </View>
 
       {/* Scrollable Content */}
@@ -602,12 +606,12 @@ const MyCart = () => {
           {/* Coupon Section */}
           {cartItems.length > 0 && (
             <View style={styles.couponSection}>
-              <View style={{flexDirection:'row',alignItems:'center',gap:moderateScale(10)}}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: moderateScale(10) }}>
                 <Image source={require("../../assets/via-farm-img/icons/promo-code.png")} />
-              <View>
+                <View>
                   <Text style={styles.couponTitle}>Have a Coupon ?</Text>
-              <Text style={styles.couponSubtitle}>Apply now and Save Extra!</Text>
-              </View>
+                  <Text style={styles.couponSubtitle}>Apply now and Save Extra!</Text>
+                </View>
               </View>
 
               <View style={styles.couponInputContainer}>
@@ -1072,7 +1076,7 @@ const styles = StyleSheet.create({
     color: 'rgba(1, 151, 218, 1)',
   },
   couponSubtitle: {
-    fontSize:12,
+    fontSize: 12,
     color: 'rgba(1, 151, 218, 1)',
     marginBottom: 12,
   },
@@ -1130,16 +1134,16 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingTop: 60,
-    paddingBottom: 16,
+    paddingHorizontal: moderateScale(16),
+    paddingTop: moderateScale(50),
+    paddingBottom: moderateScale(16),
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize:normalizeFont(18),
     fontWeight: '600',
     color: '#333',
   },
@@ -1150,12 +1154,12 @@ const styles = StyleSheet.create({
   },
   cartSection: {
     backgroundColor: '#fff',
-    marginTop: 8,
+    marginTop: moderateScale(8),
   },
   cartCard: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    padding: 16,
+    padding:moderateScale(16),
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
@@ -1167,7 +1171,7 @@ const styles = StyleSheet.create({
   },
   productDetails: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: moderateScale(12),
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
@@ -1175,36 +1179,36 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   productTitle: {
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     fontWeight: '500',
     color: 'rgba(66, 66, 66, 1)',
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
   productSubtitle: {
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     color: '#666',
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
   },
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   mrpText: {
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     color: '#999',
     textDecorationLine: 'line-through',
-    marginRight: 8,
-    fontWeight:300,
+    marginRight: moderateScale(8),
+    fontWeight: 300,
   },
   priceText: {
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     fontWeight: '700',
     color: '#333',
   },
   deliveryText: {
-    fontSize: 12,
+    fontSize: normalizeFont(12),
     color: 'rgba(66, 66, 66, 1)',
-    marginTop: 14,
+    marginTop: moderateScale(14),
   },
   removeButton: {
     position: 'absolute',
@@ -1227,11 +1231,11 @@ const styles = StyleSheet.create({
     borderWidth: moderateScale(1),
     borderColor: 'rgba(76, 175, 80, 1)',
     backgroundColor: '#fff',
-    marginRight:moderateScale(65),
+    marginRight: scale(65),
   },
 
   quantityButton: {
-    width: moderateScale(28),
+    width: scale(28),
     height: verticalScale(28),
     borderRadius: moderateScale(3),
     justifyContent: 'center',
@@ -1239,17 +1243,19 @@ const styles = StyleSheet.create({
   },
 
   quantityText: {
-    width: moderateScale(28),
-    height: verticalScale(27),
-    textAlign:'center',
-    borderWidth:1,
+    width: scale(28),
+    height: scale(27),
+    textAlign: 'center',
+    // borderWidth: 1,
+    borderLeftWidth:1,
+    borderRightWidth:1,
     borderColor: 'rgba(76, 175, 80, 1)',
-    fontSize: moderateScale(14),
+    fontSize: normalizeFont(14),
     fontWeight: '600',
     color: 'rgba(76, 175, 80, 1)',
   },
   quantityButtonText: {
-    fontSize: moderateScale(16),
+    fontSize: normalizeFont(16),
     fontWeight: '600',
     color: 'rgba(76, 175, 80, 1)',
   },
@@ -1258,49 +1264,49 @@ const styles = StyleSheet.create({
 
   priceSection: {
     backgroundColor: '#fff',
-    margin: 8,
-    marginTop: 16,
+    margin: moderateScale(8),
+    marginTop: moderateScale(16),
     borderRadius: 8,
-    padding: 16,
+    padding: moderateScale(16),
   },
   priceSectionTitle: {
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     fontWeight: '500',
     color: '#333',
-    marginBottom: 16,
+    marginBottom: moderateScale(16),
   },
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: moderateScale(12),
   },
   priceLabel: {
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     color: 'rgba(66, 66, 66, 1)',
   },
   priceValue: {
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     color: 'rgba(66, 66, 66, 1)',
     fontWeight: '500',
   },
   discountValue: {
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     color: 'rgba(66, 66, 66, 1)',
     fontWeight: '500',
   },
   totalRow: {
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
-    paddingTop: 12,
+    paddingTop: moderateScale(12),
     marginBottom: 0,
   },
   totalLabel: {
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     fontWeight: '600',
     color: '#333',
   },
   totalValue: {
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     fontWeight: '700',
     color: '#333',
   },
@@ -1309,7 +1315,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 10,
+    padding: moderateScale(10),
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#eee',
@@ -1317,14 +1323,14 @@ const styles = StyleSheet.create({
   checkoutButton: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
     borderRadius: 8,
-    padding: 16,
+    padding: moderateScale(16),
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 10,
+    gap: scale(10),
   },
   checkoutText: {
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     fontWeight: '600',
     color: '#fff',
   },
@@ -1347,8 +1353,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 202, 40, 1)',
   },
   dragHandle: {
-    width: 40,
-    height: 4,
+    width: scale(40),
+    height: scale(4),
     backgroundColor: '#ddd',
     borderRadius: 2,
     alignSelf: 'center',
@@ -1356,50 +1362,50 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   deliveryModalHeader: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingHorizontal: moderateScale(20),
+    paddingVertical: moderateScale(15),
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: normalizeFont(18),
     fontWeight: '600',
     color: '#333',
     textAlign: 'center',
   },
   optionsContainer: {
-    padding: 20,
+    padding: moderateScale(20),
   },
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    marginBottom: 16,
+    marginBottom: moderateScale(16),
     textAlign: 'center',
   },
   selectedOptionCard: {
     backgroundColor: '#fff',
   },
   optionIcon: {
-    marginRight: 12,
+    marginRight: moderateScale(12),
   },
   optionContent: {
     flex: 1,
   },
   optionTitle: {
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     fontWeight: '500',
     color: 'rgba(66, 66, 66, 0.7)',
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
   optionSubtitle: {
-    padding: 10,
-    marginBottom: 20,
+    padding: moderateScale(10),
+    marginBottom: moderateScale(20),
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     color: 'rgba(76, 175, 80, 1)',
     fontWeight: '600',
     backgroundColor: 'rgba(255, 250, 232, 1)',
@@ -1407,8 +1413,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   radioOuter: {
-    width: 20,
-    height: 20,
+    width: scale(20),
+    height: scale(20),
     borderRadius: 10,
     borderWidth: 2,
     borderColor: '#ddd',
@@ -1419,32 +1425,32 @@ const styles = StyleSheet.create({
     borderColor: '#3b82f6',
   },
   radioInner: {
-    width: 10,
-    height: 10,
+    width: scale(10),
+    height: scale(10),
     borderRadius: 5,
     backgroundColor: '#3b82f6',
   },
   text: {
     color: 'rgba(76, 175, 80, 1)',
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: normalizeFont(16),
   },
 
   // Pickup Modal Styles
   modalContainer: {
     backgroundColor: 'transparent',
-    paddingBottom: 20,
+    paddingBottom: moderateScale(20),
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: moderateScale(20),
   },
   backButton: {
-    marginRight: 15,
+    marginRight: moderateScale(15),
   },
   modalHeaderTitle: {
-    fontSize: 18,
+    fontSize: normalizeFont(18),
     fontWeight: '600',
     flex: 1,
     textAlign: 'center',
@@ -1452,67 +1458,67 @@ const styles = StyleSheet.create({
   locationInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 25,
-    paddingHorizontal: 10,
+    marginBottom: moderateScale(25),
+    paddingHorizontal: moderateScale(10),
   },
   locationIcon: {
-    marginRight: 10,
+    marginRight: moderateScale(10),
   },
   locationDetails: {
     flex: 1,
   },
   locationAddress: {
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     fontWeight: '500',
     color: '#333',
   },
   locationDistance: {
-    fontSize: 12,
+    fontSize: normalizeFont(12),
     color: '#888',
     marginTop: 2,
   },
   locationButton: {
-    marginLeft: 50,
+    marginLeft: moderateScale(50),
   },
   slotSection: {
     borderRadius: 12,
-    padding: 15,
-    marginBottom: 25,
+    padding: moderateScale(15),
+    marginBottom: moderateScale(25),
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.2)',
   },
   slotTitle: {
     color: '#000',
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     fontWeight: '600',
-    marginBottom: 15,
+    marginBottom: moderateScale(15),
   },
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 15,
+    marginBottom: moderateScale(15),
   },
   dateLabel: {
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     color: '#666',
   },
   datePicker: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(8),
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#ddd',
   },
   dateText: {
-    fontSize: 14,
-    marginRight: 8,
+    fontSize: normalizeFont(14),
+    marginRight: moderateScale(8),
   },
   dateIcon: {
-    fontSize: 12,
+    fontSize: normalizeFont(12),
   },
   timeRow: {
     flexDirection: 'row',
@@ -1520,7 +1526,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   timeLabel: {
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     color: '#666',
   },
   timeContainer: {
@@ -1529,43 +1535,43 @@ const styles = StyleSheet.create({
   },
   timeInput: {
     backgroundColor: 'white',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(6),
     borderRadius: 4,
     borderWidth: 1,
     borderColor: '#ddd',
   },
   timeText: {
-    fontSize: 14,
+    fontSize: normalizeFont(14),
   },
   timeUnit: {
-    fontSize: 12,
-    marginHorizontal: 8,
+    fontSize: normalizeFont(12),
+    marginHorizontal: moderateScale(8),
     color: '#666',
   },
   timeTo: {
-    fontSize: 14,
-    marginHorizontal: 8,
+    fontSize: normalizeFont(14),
+    marginHorizontal: moderateScale(8),
     color: '#666',
   },
   vendorTitle: {
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     fontWeight: '600',
     color: '#333',
-    marginBottom: 15,
+    marginBottom: moderateScale(15),
   },
   vendorInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 25,
-    gap: 10,
+    marginBottom: moderateScale(25),
+    gap: scale(10),
   },
   vendorImage: {
-    width: 30,
-    height: 30,
+    width: scale(30),
+    height: scale(30),
     borderRadius: 25,
     backgroundColor: '#ddd',
-    marginRight: 15,
+    marginRight: moderateScale(15),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1573,18 +1579,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   vendorName: {
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     fontWeight: '600',
     color: '#333',
     marginBottom: 2,
   },
   vendorLocation: {
-    fontSize: 12,
+    fontSize: normalizeFont(12),
     color: '#666',
     marginBottom: 1,
   },
   vendorPhone: {
-    fontSize: 12,
+    fontSize: normalizeFont(12),
     color: '#666',
   },
   bottomProceed: {
@@ -1592,10 +1598,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    marginTop: 20,
+    marginTop: moderateScale(20),
   },
   proceedButtonStyle: {
-    padding: 10,
+    padding: moderateScale(10),
     backgroundColor: 'rgba(76, 175, 80, 1)',
     borderRadius: 10,
     alignItems: 'center',
@@ -1615,8 +1621,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     width: '75%',
     borderRadius: 16,
-    paddingVertical: 30,
-    paddingHorizontal: 20,
+    paddingVertical: moderateScale(30),
+    paddingHorizontal: moderateScale(20),
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },

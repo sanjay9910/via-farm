@@ -4,16 +4,16 @@ import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -72,12 +72,12 @@ const ProductCard = ({
           </View>
 
           {/* status */}
-          <View style={[
+          {/* <View style={[
             cardStyles.statusBadge,
             { backgroundColor: status === "In Stock" ? "#4CAF50" : status === "Out of Stock" ? "#f44336" : "#ff9800" }
           ]}>
             <Text style={cardStyles.statusText}>{status}</Text>
-          </View>
+          </View> */}
         </View>
 
         <View style={cardStyles.cardContent}>

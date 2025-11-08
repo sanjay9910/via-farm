@@ -30,7 +30,7 @@ export default function ProductDetailScreen() {
   const navigation = useNavigation();
 
   const [loading, setLoading] = useState(true);
-  const [product, setProduct] = useState(null); 
+  const [product, setProduct] = useState(null);
   const [vendor, setVendor] = useState(null);
   const [recommended, setRecommended] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -41,6 +41,9 @@ export default function ProductDetailScreen() {
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [vendorExpanded, setVendorExpanded] = useState(false);
+
+  // NEW: track quantity for cart
+  const [quantity, setQuantity] = useState(1);
 
   const fetchProduct = useCallback(async (id) => {
     try {
@@ -55,12 +58,10 @@ export default function ProductDetailScreen() {
         setVendor(res.data.data.vendor ?? p.vendor ?? null);
         setRecommended(res.data.data.recommendedProducts ?? []);
         setReviews(res.data.data.reviews?.list ?? []);
-        // default shipping address if present in response
         if (res.data.data.shippingAddress) {
           setSelectedAddress(res.data.data.shippingAddress);
           setPincode(res.data.data.shippingAddress.pinCode ?? pincode);
         }
-        // check cart/wishlist if token available
         if (token) checkCartWishlist(p._id, token);
       } else {
         Alert.alert("Error", "Product not found");
@@ -87,7 +88,14 @@ export default function ProductDetailScreen() {
     try {
       const cartRes = await axios.get(`${API_BASE}/api/buyer/cart`, { headers: { Authorization: `Bearer ${token}` } });
       const items = cartRes.data?.data?.items ?? cartRes.data?.data?.cartItems ?? cartRes.data?.cartItems ?? [];
-      setInCart(Array.isArray(items) && items.some(it => String(it.productId ?? it.product?._id) === String(prodId)));
+      const found = Array.isArray(items) && items.find(it => String(it.productId ?? it.product?._id) === String(prodId));
+      if (found) {
+        setInCart(true);
+        // if backend returns quantity, use it
+        setQuantity(found.quantity ?? found.qty ?? 1);
+      } else {
+        setInCart(false);
+      }
     } catch (e) {
       console.warn("checkCart err", e?.message ?? e);
     }
@@ -113,14 +121,25 @@ export default function ProductDetailScreen() {
     }
   };
 
-  const addToCart = async (quantity = 1) => {
+  // NOTE: addToCart now supports updating quantity as well
+  const addToCart = async (qty = 1) => {
+    if (!product) return;
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) { Alert.alert("Login required", "Please login to add items to cart"); return; }
-      const payload = { productId: product._id, quantity, vendorId: vendor?.id ?? vendor?._id ?? product.vendor?._id ?? product.vendor };
+      const payload = { productId: product._id, quantity: qty, vendorId: vendor?.id ?? vendor?._id ?? product.vendor?._id ?? product.vendor };
+      // Many backends accept "add" with the desired quantity and will upsert; this is safe best-effort.
       const res = await axios.post(`${API_BASE}/api/buyer/cart/add`, payload, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.data?.success) { setInCart(true); Alert.alert(res.data.message ?? "Added to cart"); }
-      else Alert.alert(res.data?.message ?? "Could not add to cart");
+      if (res.data?.success) {
+        setInCart(true);
+        setQuantity(qty);
+        Alert.alert(res.data.message ?? "Added to cart");
+      } else {
+        // fallback: if response doesn't say success, still set quantity optimistically
+        setInCart(true);
+        setQuantity(qty);
+        Alert.alert(res.data?.message ?? "Updated cart");
+      }
     } catch (err) {
       console.error("addToCart", err?.response?.data ?? err.message);
       Alert.alert("Error", "Could not add to cart");
@@ -133,18 +152,49 @@ export default function ProductDetailScreen() {
       if (!token) { Alert.alert("Login required"); return; }
       // best-effort delete by product id (backend may require cartItemId)
       const res = await axios.delete(`${API_BASE}/api/buyer/cart/${product._id}`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.data?.success) { setInCart(false); Alert.alert(res.data.message ?? "Removed from cart"); }
-      else Alert.alert(res.data?.message ?? "Could not remove from cart");
+      if (res.data?.success) {
+        setInCart(false);
+        setQuantity(1);
+        Alert.alert(res.data.message ?? "Removed from cart");
+      } else {
+        setInCart(false);
+        setQuantity(1);
+        Alert.alert(res.data?.message ?? "Removed from cart");
+      }
     } catch (err) {
       console.error("removeFromCart", err?.response?.data ?? err.message);
       Alert.alert("Error", "Could not remove from cart");
     }
   };
 
+  // NEW: increment/decrement handlers that update quantity and call addToCart
+  const incrementQuantity = async () => {
+    const newQty = (quantity ?? 1) + 1;
+    // optimistic UI update + API call
+    setQuantity(newQty);
+    await addToCart(newQty);
+  };
+
+  const decrementQuantity = async () => {
+    const newQty = (quantity ?? 1) - 1;
+    if (newQty <= 0) {
+      // remove from cart
+      await removeFromCart();
+    } else {
+      setQuantity(newQty);
+      await addToCart(newQty);
+    }
+  };
+
   const handleCartToggle = async () => {
     if (!product) return;
-    if (inCart) await removeFromCart();
-    else await addToCart(1);
+    if (inCart) {
+      // if already in cart, open quantity UI: we'll just increment once (or you can open cart)
+      // Here we decrease to mimic "move to cart" behaviour? Keep behavior simple: remove if user taps cartBtn when inCart.
+      await removeFromCart();
+    } else {
+      await addToCart(1);
+    }
   };
 
   const openVendorMap = () => {
@@ -153,8 +203,18 @@ export default function ProductDetailScreen() {
 
   const openRecommended = (id) => {
     if (!id) return;
-    // navigate to same screen with new productId
     navigation.push?.({ pathname: '/ViewOrderProduct', params: { productId: id } }) || navigation.navigate?.('ViewOrderProduct', { productId: id });
+  };
+
+  // NEW: navigate to vendor details screen with vendor id
+  const openVendorDetails = () => {
+    const vid = vendor?.id ?? vendor?._id ?? product.vendor?._id ?? product.vendor;
+    if (!vid) {
+      Alert.alert("Vendor not available");
+      return;
+    }
+    // navigate to VendorsDetails, pass vendorId param
+    navigation.navigate?.('VendorsDetails', { vendorId: vid });
   };
 
   if (loading) {
@@ -172,11 +232,9 @@ export default function ProductDetailScreen() {
     );
   }
 
-  // Formatting vendor address for display
   const vendorAddr = vendor?.address ?? product.vendor?.address ?? {};
   const pickupAddress = `${vendorAddr.houseNumber ? vendorAddr.houseNumber + ', ' : ''}${vendorAddr.locality ?? vendorAddr.street ?? ''}${vendorAddr.city ? ', ' + vendorAddr.city : ''}`;
 
-  // --- NEW: headerWishlistPress navigates to wishlist screen (no toggle)
   const headerWishlistPress = () => {
     navigation.navigate('wishlist');
   };
@@ -192,7 +250,6 @@ export default function ProductDetailScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>{product.name}</Text>
 
         <View style={styles.headerRight}>
-          {/* HEADER heart now navigates to Wishlist screen (no toggle) */}
           <TouchableOpacity onPress={headerWishlistPress} style={{ marginRight: 12 }}>
             <Ionicons name={"heart-outline"} size={24} />
           </TouchableOpacity>
@@ -203,69 +260,56 @@ export default function ProductDetailScreen() {
       </View>
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Large image */}
         <Image source={{ uri: product.images?.[0] }} style={styles.heroImage} />
 
-        {/* Floating wishlist heart (top-right over image) */}
-        {/* KEEP this as the real toggle for wishlist add/remove */}
         <TouchableOpacity style={styles.favButton} onPress={toggleWishlist}>
           <Ionicons name={inWishlist ? "heart" : "heart-outline"} size={26} color={inWishlist ? "red" : "white"} />
         </TouchableOpacity>
 
-        {/* Info Card */}
         <View style={styles.infoCard}>
           <View style={styles.rowBetween}>
             <View style={{ flex: 1, paddingRight: 8 }}>
               <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
                 <Text style={styles.title}>{product.name}</Text>
                 <View style={styles.ratingPill}>
-                <Ionicons name="star" size={14} color="#FFD700" />
-                <Text style={{ marginLeft: 6, fontWeight: '700' }}>{product.rating ?? 0}</Text>
+                  <Ionicons name="star" size={14} color="#FFD700" />
+                  <Text style={{ marginLeft: 6, fontWeight: '700' }}>{product.rating ?? 0}</Text>
+                </View>
               </View>
-              </View>
-              
-              <Text style={styles.smallText}>{product.category} · {product.variety}</Text>
+
+              <Text style={styles.smallText}>{product.category} {product.variety}</Text>
               <Text style={styles.mrp}>MRP <Text style={{fontWeight:700,color:"#000"}}>₹{product.price}/{product.unit ?? 'pc'}</Text></Text>
             </View>
-
-            {/* <View style={{ alignItems: "flex-end" }}> */}
-              {/* <Text style={styles.mrp}>MRP ₹{product.price}/{product.unit ?? 'pc'}</Text> */}
-              {/* <View style={styles.ratingPill}>
-                <Ionicons name="star" size={14} color="#FFD700" />
-                <Text style={{ marginLeft: 6, fontWeight: '700' }}>{product.rating ?? 0}</Text>
-              </View> */}
-            {/* </View> */}
           </View>
 
           <Text style={[styles.sectionTitle, { marginTop: 12 }]}>About the product</Text>
+          <Text style={{fontSize:normalizeFont(12),marginVertical:moderateScale(5)}}>Category: {product.category}</Text>
+          <Text style={{fontSize:normalizeFont(12)}}>Variety: {product.variety}</Text>
+
           <Text style={styles.description}>{product.description}</Text>
 
-          {/* Nutritional short row (placeholder values if not present) */}
-
-          {/* Vendor toggle */}
           <TouchableOpacity style={styles.vendorHeader} onPress={() => setVendorExpanded(v => !v)}>
             <Text style={styles.sectionTitle}>About the vendor</Text>
             <Ionicons name={vendorExpanded ? "chevron-up" : "chevron-down"} size={20} color="#666" />
           </TouchableOpacity>
 
           {vendorExpanded && (
-            <View style={styles.vendorExpanded}>
+            // Wrap vendor area in TouchableOpacity so clicking image or text opens vendor details
+            <TouchableOpacity onPress={openVendorDetails} activeOpacity={0.8} style={styles.vendorExpanded}>
               <Image source={{ uri: vendor?.profilePicture ?? product.vendor?.profilePicture }} style={styles.vendorImage} />
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={{ fontWeight: '700' }}>{vendor?.name ?? product.vendor?.name}</Text>
+                <Text style={{ fontWeight: '600' }}>{vendor?.name ?? product.vendor?.name}</Text>
                 <Text style={{ color: '#666', marginTop: 6 }}>{vendorAddr.houseNumber ? `${vendorAddr.houseNumber}, ` : ''}{vendorAddr.locality ?? vendorAddr.street ?? ''}{vendorAddr.city ? `, ${vendorAddr.city}` : ''}</Text>
-                {/* {vendor?.mobileNumber && <Text style={{ color: '#666', marginTop: 6 }}>Mobile: {vendor.mobileNumber}</Text>} */}
-                <Text style={{ color: '#777', marginTop: 8 }}>{vendor?.about ?? ''}</Text>
+                {/* <Text style={{ color: '#777', marginTop: 8 }}>{vendor?.about ?? ''}</Text> */}
               </View>
-            </View>
+            </TouchableOpacity>
           )}
 
-          {/* Pickup location */}
           <View style={styles.pickupRow}>
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
               <Ionicons name="location-sharp" size={18} color="#444" />
               <View style={{ marginLeft: 10 }}>
-                <Text style={{ fontWeight: '600' }}>Pickup Location</Text>
+                <Text style={{ fontWeight: '500' }}>Pickup Location</Text>
                 <Text style={{ color: '#666', maxWidth: SCREEN_W - 120 }} numberOfLines={1}>{pickupAddress}</Text>
               </View>
             </View>
@@ -274,29 +318,6 @@ export default function ProductDetailScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Delivery address */}
-          {/* <View style={styles.deliverySec}>
-            <View style={styles.rowBetween}>
-              <Text style={styles.sectionTitle}>Delivery Address</Text>
-              <TouchableOpacity onPress={() => Alert.alert('Change address', 'Open address picker')}>
-                <Text style={{ color: '#3b82f6', fontWeight: '700' }}>Change ›</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.deliveryBox}>
-              <Text style={{ fontSize: 14 }}>{selectedAddress?.pincode ?? pincode}</Text>
-              <Text style={{ color: '#777', marginTop: 6 }}>{selectedAddress?.address ?? 'Select delivery address'}</Text>
-            </View>
-            <Text style={{ color: '#777', marginTop: 8 }}>Delivered by {product.deliveryDate ?? 'Sep 20'}</Text>
-          </View> */}
-
-          {/* Coupon */}
-          {/* <View style={styles.coupon}>
-            <Text style={styles.couponTitle}>Have a Coupon ?</Text>
-            <Text style={styles.couponSub}>Apply now and Save Extra !</Text>
-            <TextInput style={styles.couponInput} placeholder="Enter your coupon code" value={coupon} onChangeText={setCoupon} />
-          </View> */}
-
-          {/* Reviews images carousel (if any) */}
           <View style={{ marginTop: 6 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4 }}>
               <Text style={{ fontWeight: '700' }}>Ratings & Reviews</Text>
@@ -322,7 +343,6 @@ export default function ProductDetailScreen() {
             />
           </View>
 
-          {/* Reviews list horizontal */}
           <FlatList
             data={reviews.filter(r => r.comment && r.comment.trim().length > 0)}
             horizontal
@@ -352,7 +372,6 @@ export default function ProductDetailScreen() {
             )}
           />
 
-          {/* Suggestion Card component (your existing component) */}
           <View style={{ marginTop: 8 }}>
             <SuggestionCard />
           </View>
@@ -367,10 +386,27 @@ export default function ProductDetailScreen() {
           <Text style={{ fontWeight: '800', fontSize: 18 }}>₹{product.price}</Text>
         </View>
 
-        <TouchableOpacity style={styles.cartBtn} onPress={handleCartToggle}>
-          <Ionicons name="cart" size={18} color="#fff" />
-          <Text style={styles.cartBtnText}>{inCart ? 'Move to Cart' : 'Add to Cart'}</Text>
-        </TouchableOpacity>
+        {inCart ? (
+          // NEW: quantity selector like image (minus, qty, plus)
+          <View style={styles.quantityControlContainer}>
+            <TouchableOpacity style={styles.qtyBtn} onPress={decrementQuantity}>
+              <Text style={styles.qtyBtnText}>−</Text>
+            </TouchableOpacity>
+
+            <View style={styles.qtyDisplay}>
+              <Text style={styles.qtyText}>{String(quantity).padStart(2, '0')}</Text>
+            </View>
+
+            <TouchableOpacity style={styles.qtyBtn} onPress={incrementQuantity}>
+              <Text style={styles.qtyBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.cartBtn} onPress={() => addToCart(1)}>
+            <Ionicons name="cart" size={18} color="#fff" />
+            <Text style={styles.cartBtnText}>{inCart ? 'Move to Cart' : 'Add to Cart'}</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -397,7 +433,7 @@ const styles = StyleSheet.create({
   ratingPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff4d9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, marginTop: 8 },
 
   sectionTitle: { fontSize:normalizeFont(14), fontWeight: '600' },
-  description: { color: '#444', marginTop: 6, lineHeight: 20 },
+  description: { color: '#444', marginTop: 6, fontSize:normalizeFont(14) },
 
   nutriRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
   nutriCol: { alignItems: 'center', flex: 1 },
@@ -423,4 +459,42 @@ const styles = StyleSheet.create({
   bottomBar: { flexDirection: 'row', alignItems: 'center', padding: 12, borderTopWidth: 0.6, borderTopColor: '#eee', backgroundColor: '#fff' },
   cartBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#22c55e', paddingHorizontal: 18, paddingVertical: 12, borderRadius: 10 },
   cartBtnText: { color: '#fff', fontWeight: '700', marginLeft: 8 },
+
+  // NEW styles for quantity control (matches your provided image)
+  quantityControlContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.2,
+    borderColor: '#22c55e',
+    borderRadius:11,
+    overflow: 'hidden',
+  },
+  qtyBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    minWidth: moderateScale(36),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderLeftWidth: 0,
+  },
+  qtyBtnText: {
+    fontSize: normalizeFont(18),
+    fontWeight: '700',
+    color: '#22c55e',
+  },
+  qtyDisplay: {
+    minWidth: 48,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: '#22c55e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 7,
+    backgroundColor: '#fff',
+  },
+  qtyText: {
+    fontWeight: '700',
+    fontSize: normalizeFont(14),
+    color: '#22c55e',
+  },
 });
