@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const languages = [
@@ -10,6 +10,9 @@ const languages = [
   { id: 'de', name: 'German' },
   { id: 'zh', name: 'Chinese' },
 ];
+
+import { goBack } from 'expo-router/build/global-state/routing';
+import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const Language = () => {
   const [selectedLang, setSelectedLang] = useState('en');
@@ -35,9 +38,16 @@ const Language = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <View style={styles.container}>
+  <SafeAreaView style={{ flex: 1 ,backgroundColor:'#fff'}}>
+      <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',padding:moderateScale(10),paddingHorizontal:moderateScale(20)}}>
+        <TouchableOpacity onPress={goBack}>
+            <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
+        </TouchableOpacity>
+      
         <Text style={styles.title}>Select Language</Text>
+        <Text style={{width:10}}></Text>
+      </View>
+      <View style={styles.container}>
         <FlatList
           data={languages}
           keyExtractor={(item) => item.id}
@@ -56,18 +66,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: 40,
-    paddingHorizontal: 20,
+    paddingTop: moderateScale(40),
+    paddingHorizontal: moderateScale(20),
   },
   title: {
-    fontSize: 22,
+    fontSize: normalizeFont(15),
     fontWeight: '700',
-    marginBottom: 20,
     color: '#1f2937',
   },
   langItem: {
-    paddingVertical: 15,
-    paddingHorizontal: 20,
+    paddingVertical: moderateScale(15),
+    paddingHorizontal: moderateScale(20),
     borderRadius: 12,
     backgroundColor: '#f3f4f6',
   },
@@ -75,7 +84,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#22c55e',
   },
   langText: {
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     color: '#1f2937',
   },
   langTextSelected: {
@@ -83,6 +92,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   separator: {
-    height: 12,
+    height: scale(12),
   },
 });

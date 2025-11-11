@@ -1,13 +1,16 @@
-import { Ionicons } from '@expo/vector-icons';
+import { goBack } from 'expo-router/build/global-state/routing';
 import React from 'react';
 import {
+  Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const TermsAndConditions = ({ navigation }) => {
   return (
@@ -15,11 +18,17 @@ const TermsAndConditions = ({ navigation }) => {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => (navigation?.goBack ? navigation.goBack() : null)}
+          onPress={goBack}
         >
-          <Ionicons name="chevron-back" size={22} color="#1f2937" />
+          <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Terms & Conditions</Text>
+
+        <Text numberOfLines={1} style={styles.headerTitle}>
+          Terms & Conditions
+        </Text>
+
+        {/* spacer to visually balance header */}
+        <View style={styles.headerRightSpacer} />
       </View>
 
       <ScrollView
@@ -28,7 +37,7 @@ const TermsAndConditions = ({ navigation }) => {
       >
         <View style={styles.card}>
           <Text style={styles.title}>Terms & Conditions</Text>
-          
+
           <View style={styles.termsSection}>
             <View style={styles.termItem}>
               <Text style={styles.termNumber}>1.</Text>
@@ -36,14 +45,14 @@ const TermsAndConditions = ({ navigation }) => {
                 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
               </Text>
             </View>
-            
+
             <View style={styles.termItem}>
               <Text style={styles.termNumber}>2.</Text>
               <Text style={styles.termText}>
                 Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum.
               </Text>
             </View>
-            
+
             <View style={styles.termItem}>
               <Text style={styles.termNumber}>3.</Text>
               <Text style={styles.termText}>
@@ -53,7 +62,7 @@ const TermsAndConditions = ({ navigation }) => {
           </View>
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: moderateScale(40) }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -65,66 +74,94 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+    // small top padding for Android to match iOS safe area behaviour
+    paddingTop: Platform.OS === 'android' ? moderateScale(6) : 0,
   },
+
   header: {
-    height: 60,
+    height: scale(60),
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: moderateScale(12),
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#e6edf3',
     backgroundColor: '#fff',
+    // ensure content is vertically centered on taller devices
+    paddingVertical: moderateScale(6),
   },
+
   backButton: {
-    padding: 8,
-    marginRight: 6,
+    padding: moderateScale(8),
+    marginRight: moderateScale(6),
+    zIndex: 2,
   },
+
   headerTitle: {
-    fontSize: 18,
+    position: 'absolute',
+    left: moderateScale(0),
+    right: moderateScale(0),
+    textAlign: 'center',
+    fontSize: normalizeFont(16),
     fontWeight: '700',
     color: '#0f172a',
+    alignSelf: 'center',
+    zIndex: 1,
   },
+
+  // an invisible spacer to keep title centered visually
+  headerRightSpacer: {
+    width: moderateScale(36),
+  },
+
   contentContainer: {
-    padding: 16,
-    paddingBottom: 40,
+    padding: moderateScale(16),
+    paddingBottom: moderateScale(40),
   },
+
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: 14,
-    padding: 20,
+    borderRadius: moderateScale(14),
+    padding: moderateScale(20),
+    // iOS shadow
     shadowColor: '#000',
     shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: moderateScale(12),
+    shadowOffset: { width: 0, height: scale(6) },
+    // Android elevation
     elevation: 4,
   },
+
   title: {
-    fontSize: 22,
+    fontSize: normalizeFont(20),
     fontWeight: '800',
     color: '#06203a',
-    marginBottom: 20,
+    marginBottom: moderateScale(16),
     textAlign: 'center',
   },
+
   termsSection: {
     width: '100%',
   },
+
   termItem: {
     flexDirection: 'row',
-    marginBottom: 20,
+    marginBottom: moderateScale(20),
     alignItems: 'flex-start',
   },
+
   termNumber: {
-    fontSize: 16,
+    fontSize: normalizeFont(14),
     fontWeight: '600',
     color: '#0f172a',
-    marginRight: 8,
-    lineHeight: 22,
+    marginRight: moderateScale(8),
+    lineHeight: moderateScale(22),
   },
+
   termText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: normalizeFont(13),
     color: '#334155',
-    lineHeight: 20,
+    lineHeight: moderateScale(20),
     textAlign: 'left',
   },
 });

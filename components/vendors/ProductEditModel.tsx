@@ -5,16 +5,18 @@ import Checkbox from "expo-checkbox";
 import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator, Alert, Image,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator, Alert, Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
+
+import { moderateScale, normalizeFont } from "@/app/Responsive";
 
 const BASE_URL = "https://viafarm-1.onrender.com";
 
@@ -317,105 +319,122 @@ const handleUpdateProduct = async () => {
 
 export default ProductModal;
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "flex-end",
   },
+
   modalContainer: {
     maxHeight: "90%",
     backgroundColor: "#fff",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 16,
+    borderTopLeftRadius: moderateScale(16),
+    borderTopRightRadius: moderateScale(16),
+    padding: moderateScale(16),
   },
+
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
   },
+
   headerText: {
-    fontSize: 18,
+    fontSize: normalizeFont(16),
     fontWeight: "600",
     color: "#000",
   },
+
   smallNote: {
-    fontSize: 12,
+    fontSize: normalizeFont(12),
     color: "#777",
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
+
   label: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     fontWeight: "500",
-    marginTop: 10,
-    marginBottom: 4,
+    marginTop: moderateScale(10),
+    marginBottom: moderateScale(4),
     color: "#333",
   },
+
   input: {
-    borderWidth: 1,
+    borderWidth: moderateScale(1),
     borderColor: "#f0c96a",
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: moderateScale(10),
+    padding: moderateScale(12),
     backgroundColor: "#fff",
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
+    fontSize: normalizeFont(12),
   },
+
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 4,
+    marginBottom: moderateScale(4),
   },
+
   flex1: {
     flex: 1,
-    marginRight: 8,
+    marginRight: moderateScale(8),
   },
+
   checkboxRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 12,
+    marginTop: moderateScale(12),
   },
+
   updateDetails: {
     flexDirection: "row",
     justifyContent: "center",
     alignContent: "center",
   },
+
   submitBtn: {
     backgroundColor: "rgba(76, 175, 80, 1)",
     width: "70%",
-    borderRadius: 10,
-    paddingVertical: 14,
+    borderRadius: moderateScale(10),
+    paddingVertical: moderateScale(14),
     flexDirection: "row",
     justifyContent: "center",
     alignContent: "center",
-    gap: 5,
-    marginTop: 20,
+    gap: moderateScale(5),
+    marginTop: moderateScale(20),
     alignItems: "center",
   },
+
   submitText: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: normalizeFont(13),
   },
+
   imageUpload: {
-    borderWidth: 1,
+    borderWidth: moderateScale(1),
     borderColor: "#f0c96a",
-    borderRadius: 10,
-    padding: 16,
+    borderRadius: moderateScale(10),
+    padding: moderateScale(13),
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 4,
+    marginTop: moderateScale(4),
+    backgroundColor: "#fff",
   },
+
   imageUploadText: {
-    fontSize: 12,
+    fontSize: normalizeFont(11),
     color: "#777",
-    marginTop: 4,
+    marginTop: moderateScale(4),
     textAlign: "center",
   },
+
   previewImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 8,
+    width: moderateScale(70),
+    height: moderateScale(70),
+    borderRadius: moderateScale(8),
+    marginRight: moderateScale(8),
   },
 });

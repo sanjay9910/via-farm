@@ -6,6 +6,8 @@ import { ActivityIndicator, Dimensions, StyleSheet, Text, View } from "react-nat
 const API_BASE = "https://viafarm-1.onrender.com";
 const { width } = Dimensions.get('window');
 
+import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
+
 const Chart = () => {
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,37 +73,37 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    marginTop: 20,
+    paddingHorizontal:moderateScale(10),
+    marginTop: moderateScale(20),
   },
   cardsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     width: '100%',
-    maxWidth: 400, 
+    maxWidth: scale(500), 
   },
   card: {
     backgroundColor: "#f9f8f3",
-    paddingVertical: 20,
-    paddingHorizontal: 10,
+    paddingVertical: moderateScale(14),
+    paddingHorizontal: moderateScale(10),
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: scale(1),
     borderColor: "#5c3d2e",
     alignItems: "center",
     justifyContent: "center",
     flex: 1, 
-    marginHorizontal: 5,
-    minHeight: 80, 
+    marginHorizontal: moderateScale(5),
+    minHeight: scale(70), 
   },
   label: {
-    fontSize: width < 375 ? 12 : 14, 
+    fontSize:normalizeFont(12), 
     color: "#333",
-    marginBottom: 5,
+    marginBottom: scale(5),
     textAlign: 'center',
   },
   value: {
-    fontSize: width < 375 ? 16 : 18, 
+    fontSize:normalizeFont(12), 
     fontWeight: "bold",
     color: "#000",
     textAlign: 'center',

@@ -5,20 +5,21 @@ import * as ImagePicker from 'expo-image-picker';
 import { router, useNavigation } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    Image,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { moderateScale, normalizeFont, scale } from '../Responsive';
 
 const { height } = Dimensions.get('window');
 const API_BASE = 'https://viafarm-1.onrender.com';
@@ -239,7 +240,7 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
         <View style={modalStyles.modalContainer} onStartShouldSetResponder={() => true}>
           <View style={modalStyles.header}>
             <TouchableOpacity onPress={onClose} style={modalStyles.headerIcon}>
-              <Text style={modalStyles.iconText}>←</Text>
+              <Image source={require("../../assets/via-farm-img/icons/groupArrow.png")} />
             </TouchableOpacity>
             <Text style={modalStyles.headerTitle}>Edit Details</Text>
             <View style={{ width: 40 }} />
@@ -308,8 +309,8 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
+                    paddingHorizontal: moderateScale(12),
+                    paddingVertical: moderateScale(10),
                     borderWidth: 1,
                     borderColor: '#ddd',
                     borderRadius: 8,
@@ -323,7 +324,7 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
                 {showStatusPicker && (
                   <View
                     style={{
-                      marginTop: 6,
+                      marginTop: moderateScale(6),
                       borderWidth: 1,
                       borderColor: '#ddd',
                       borderRadius: 8,
@@ -333,10 +334,10 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
                       overflow: 'hidden',
                     }}
                   >
-                    <TouchableOpacity onPress={() => selectStatus('Active')} style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' }}>
+                    <TouchableOpacity onPress={() => selectStatus('Active')} style={{ padding: moderateScale(12), borderBottomWidth: 1, borderBottomColor: '#eee' }}>
                       <Text style={{ color: '#222' }}>Active</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => selectStatus('Inactive')} style={{ padding: 12 }}>
+                    <TouchableOpacity onPress={() => selectStatus('Inactive')} style={{ padding: moderateScale(12) }}>
                       <Text style={{ color: '#222' }}>Inactive</Text>
                     </TouchableOpacity>
                   </View>
@@ -358,14 +359,14 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
             </View>
 
             {/* Multi-image */}
-            <View style={{ marginBottom: 12 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 8 }}>Add Images *</Text>
+            <View style={{ marginBottom: moderateScale(12) }}>
+              <Text style={{ fontSize: normalizeFont(14), fontWeight: '600', marginBottom: moderateScale(8) }}>Add Images *</Text>
 
               <TouchableOpacity
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  padding: 12,
+                  padding: moderateScale(12),
                   borderWidth: 1,
                   borderColor: '#ddd',
                   borderRadius: 8,
@@ -376,7 +377,7 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
                 disabled={loading || (farmImages && farmImages.length >= 5)}
               >
                 <Ionicons name="folder-outline" size={28} color="#777" />
-                <Text style={{ marginLeft: 12, color: '#333' }}>
+                <Text style={{ marginLeft: moderateScale(12), color: '#333' }}>
                   {farmImages && farmImages.length >= 5 ? 'Maximum 5 images reached' : `Add images (${farmImages ? farmImages.length : 0}/5)`}
                 </Text>
               </TouchableOpacity>
@@ -384,10 +385,10 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
               {farmImages && farmImages.length > 0 && (
                 <ScrollView horizontal style={{ marginVertical: 8 }}>
                   {farmImages.map((imgObj, idx) => (
-                    <View key={(imgObj.uri || '') + idx} style={{ marginRight: 8, position: 'relative', width: 90, height: 90, borderRadius: 8, overflow: 'hidden', backgroundColor: '#f3f3f3', justifyContent: 'center', alignItems: 'center' }}>
+                    <View key={(imgObj.uri || '') + idx} style={{ marginRight: moderateScale(8), position: 'relative', width: scale(90), height: scale(90), borderRadius: 8, overflow: 'hidden', backgroundColor: '#f3f3f3', justifyContent: 'center', alignItems: 'center' }}>
                       <Image source={{ uri: imgObj.uri }} style={{ width: '100%', height: '100%' }} />
                       {!loading && (
-                        <TouchableOpacity onPress={() => removeImage(idx)} style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#fff', borderRadius: 14, width: 28, height: 28, alignItems: 'center', justifyContent: 'center', elevation: 3 }}>
+                        <TouchableOpacity onPress={() => removeImage(idx)} style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#fff', borderRadius: moderateScale(14), width: 28, height: 28, alignItems: 'center', justifyContent: 'center', elevation: 3 }}>
                           <Ionicons name="close-circle" size={24} color="#ef4444" />
                         </TouchableOpacity>
                       )}
@@ -742,25 +743,31 @@ const VendorProfile = () => {
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.profileSection}>
           <View style={styles.profileInfo}>
-            <View style={styles.avatarContainer}>
+            <TouchableOpacity style={styles.avatarContainer}>
               {userInfo?.image ? (
                 <Image source={{ uri: userInfo.image }} style={styles.avatarImage} />
               ) : (
                 <Text style={styles.avatarText}>{getAvatarLetter(userInfo?.name)}</Text>
               )}
-            </View>
+            </TouchableOpacity>
             <View style={styles.userInfo}>
               <Text style={styles.userName}>{userInfo?.name}</Text>
               <Text style={styles.userPhone}>+91 {userInfo?.phone}</Text>
               <Text style={styles.userPhone}>{userInfo?.upiId}</Text>
               <Text style={styles.userRole}>{userInfo?.status}</Text>
             </View>
+            <View>
+            <TouchableOpacity style={{borderWidth:1, borderColor:"rgba(0, 0, 0, 0.4)",paddingHorizontal:moderateScale(6),borderRadius:5,flexDirection:'row',alignItems:'center',gap:5,paddingVertical:moderateScale(3)}}>
+              <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
+              <Text >4.5</Text>
+            </TouchableOpacity>  
             <TouchableOpacity 
               style={styles.editButtonContainer} 
               onPress={() => setEditProfileModalVisible(true)}
             >
               <Image source={require("../../assets/via-farm-img/icons/editicon.png")} />
             </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -851,232 +858,220 @@ export default VendorProfile;
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff' },
   container: { flex: 1, backgroundColor: '#fff' },
-  profileSection: { 
-    backgroundColor: '#fff', 
-    marginHorizontal: 16, 
-    marginTop: 20, 
-    marginBottom: 10, 
-    borderRadius: 12, 
-    padding: 20, 
-    elevation: 2, 
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 1 }, 
-    shadowOpacity: 0.1, 
-    shadowRadius: 2 
+
+  profileSection: {
+    backgroundColor: '#fff',
+    marginHorizontal: scale(16),
+    marginTop: moderateScale(20),
+    marginBottom: moderateScale(10),
+    borderRadius: moderateScale(12),
+    borderWidth:1,
+    borderColor:'rgba(0, 0, 0, 0.1)',
+    padding: moderateScale(20),
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: moderateScale(1) },
+    shadowOpacity: 0.1,
+    shadowRadius: moderateScale(2),
   },
+
   profileInfo: { flexDirection: 'row', alignItems: 'center' },
-  avatarContainer: { 
-    width: 60, 
-    height: 60, 
-    borderRadius: 30, 
-    backgroundColor: '#FFB4A2', 
-    justifyContent: 'center', 
-    alignItems: 'center' 
+
+  avatarContainer: {
+    width: moderateScale(60),
+    height: moderateScale(60),
+    borderRadius: moderateScale(30),
+    backgroundColor: '#FFB4A2',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  avatarImage: { width: 60, height: 60, borderRadius: 30 },
-  avatarText: { fontSize: 24, fontWeight: '600', color: '#fff' },
-  userInfo: { flex: 1, marginLeft: 15 },
-  userName: { fontSize: 18, fontWeight: '600', color: '#333' ,paddingVertical:2 },
-  userPhone: { fontSize: 14, color: '#666',paddingVertical:1 },
-  userRole: { fontSize: 12, color: '#4CAF50', fontWeight: '500', marginTop: 2 ,paddingVertical:1},
-  editButtonContainer: { padding: 8 },
-  menuSection: { 
-    backgroundColor: '#fff', 
-    marginHorizontal: 16, 
-    marginVertical: 5, 
-    borderRadius: 12, 
-    elevation: 2, 
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 1 } 
+  avatarImage: { width: moderateScale(60), height: moderateScale(60), borderRadius: moderateScale(30) },
+  avatarText: { fontSize: normalizeFont(24), fontWeight: '600', color: '#fff' },
+
+  userInfo: { flex: 1, marginLeft: moderateScale(15) },
+  userName: { fontSize: normalizeFont(scale(15)), fontWeight: '600', color: '#333', paddingVertical: moderateScale(2) },
+  userPhone: { fontSize: normalizeFont(13), color: '#666', paddingVertical: moderateScale(1) },
+  userRole: { fontSize: normalizeFont(11), color: '#4CAF50', fontWeight: '500', marginTop: moderateScale(2), paddingVertical: moderateScale(1) },
+
+  editButtonContainer: { padding: moderateScale(8) },
+
+  menuSection: {
+    backgroundColor: '#fff',
+    marginHorizontal: scale(14),
+    marginVertical: moderateScale(5),
+    borderRadius: moderateScale(11),
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: moderateScale(1) },
   },
-  menuItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    paddingHorizontal: 20, 
-    paddingVertical: 16, 
-    borderBottomWidth: 0.5, 
-    borderBottomColor: '#f0f0f0' 
+
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: scale(15),
+    paddingVertical: moderateScale(14),
+    borderBottomWidth: scale(0.5),
+    borderBottomColor: '#f0f0f0',
   },
+
   menuItemLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  iconContainer: { 
-    width: 45, 
-    height: 45, 
-    borderRadius: 50, 
-    backgroundColor: 'rgba(141, 110, 99, 0.1)', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 15, 
-    borderWidth: 1, 
-    borderColor: 'rgba(141, 110, 99, 0.2)' 
+
+  iconContainer: {
+    width: moderateScale(45),
+    height: moderateScale(45),
+    borderRadius: moderateScale(50),
+    backgroundColor: 'rgba(141, 110, 99, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: moderateScale(15),
+    borderWidth: scale(1),
+    borderColor: 'rgba(141, 110, 99, 0.2)',
   },
+
   menuItemText: { flex: 1 },
-  menuItemTitle: { fontSize: 16, fontWeight: '500', color: '#333' },
-  menuItemSubtitle: { fontSize: 13, color: '#666' },
-  logoutSection: { 
-    paddingHorizontal: 16, 
-    paddingVertical: 20, 
-    marginBottom: 20, 
-    flexDirection: 'row', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginTop: 20 
+  menuItemTitle: { fontSize: normalizeFont(13), fontWeight: '500', color: '#333' },
+  menuItemSubtitle: { fontSize: normalizeFont(12), color: '#666' },
+
+  logoutSection: {
+    paddingHorizontal: scale(16),
+    paddingVertical: moderateScale(20),
+    marginBottom: moderateScale(20),
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: moderateScale(20),
   },
-  logoutButton: { 
-    backgroundColor: '#4CAF50', 
-    flexDirection: 'row', 
-    width: '70%', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    paddingVertical: 20, 
-    borderRadius: 12, 
-    elevation: 2, 
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.15, 
-    shadowRadius: 3 
+
+  logoutButton: {
+    backgroundColor: '#4CAF50',
+    flexDirection: 'row',
+    width:'70%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: moderateScale(18),
+    borderRadius: moderateScale(10),
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: moderateScale(2) },
+    shadowOpacity: 0.15,
+    shadowRadius: moderateScale(3),
   },
-  logoutIcon: { marginRight: 8 },
-  logoutText: { fontSize: 16, fontWeight: '600', color: '#fff' },
+
+  logoutIcon: { marginRight: moderateScale(8) },
+  logoutText: { fontSize: normalizeFont(15), fontWeight: '600', color: '#fff' },
 });
 
+// ---------- Responsive modalStyles ----------
 const modalStyles = StyleSheet.create({
-  modalOverlay: { 
-    flex: 1, 
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', 
-    justifyContent: 'flex-end' 
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
-  modalContainer: { 
-    width: '100%', 
-    backgroundColor: '#fff', 
-    borderTopLeftRadius: 20, 
-    borderTopRightRadius: 20, 
-    borderWidth: 2, 
-    borderColor: 'rgba(255, 202, 40, 0.2)', 
-    maxHeight: height - 80, 
-    paddingBottom: 15 
-  },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    paddingHorizontal: 20, 
-    paddingVertical: 15, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#ddd' 
-  },
-  headerIcon: { width: 40, justifyContent: 'center', alignItems: 'center' },
-  iconText: { fontSize: 22, color: '#4CAF50', fontWeight: '600' },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: '#333' },
-  scrollViewContent: { paddingVertical: 15, paddingHorizontal: 20 },
-  smallText: { fontSize: 12, color: '#999', marginBottom: 10 },
-
-  // Section Title
-  sectionTitle: { 
-    fontSize: 16, 
-    fontWeight: '600', 
-    color: '#333', 
-    marginBottom: 15, 
-    marginTop: 5 
+  modalContainer: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderTopLeftRadius: moderateScale(20),
+    borderTopRightRadius: moderateScale(20),
+    borderWidth: scale(2),
+    borderColor: 'rgba(255, 202, 40, 0.2)',
+    maxHeight: Math.max(moderateScale(200), height - moderateScale(80)),
+    paddingBottom: moderateScale(15),
   },
 
-  // Location Buttons
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: scale(20),
+    paddingVertical: moderateScale(15),
+    borderBottomWidth: scale(1),
+    borderBottomColor: '#ddd',
+  },
+  headerIcon: { width: moderateScale(40), justifyContent: 'center', alignItems: 'center' },
+  iconText: { fontSize: normalizeFont(22), color: '#4CAF50', fontWeight: '600' },
+  headerTitle: { fontSize: normalizeFont(16), fontWeight: '600', color: '#333' },
+
+  scrollViewContent: { paddingVertical: moderateScale(15), paddingHorizontal: scale(20) },
+  smallText: { fontSize: normalizeFont(10), color: '#999', marginBottom: moderateScale(10) },
+
+  sectionTitle: { fontSize: normalizeFont(14), fontWeight: '600', color: '#333', marginBottom: moderateScale(15), marginTop: moderateScale(5) },
+
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
+    paddingVertical: moderateScale(12),
+    paddingHorizontal: moderateScale(15),
+    borderRadius: moderateScale(8),
+    marginBottom: moderateScale(12),
+    borderWidth: scale(1),
     borderColor: '#e0e0e0',
   },
   locationButtonText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: '#00B0FF',
-    marginLeft: 10,
+    marginLeft: moderateScale(10),
     fontWeight: '500',
   },
 
-  labelContainer: { marginBottom: 15 },
-  label: { fontSize: 14, fontWeight: '500', color: '#333', marginBottom: 8 },
+  labelContainer: { marginBottom: moderateScale(15) },
+  label: { fontSize: normalizeFont(12), fontWeight: '500', color: '#333', marginBottom: moderateScale(8) },
 
-  textInput: { 
-    borderWidth: 1, 
-    borderColor: '#e0e0e0', 
-    borderRadius: 8, 
-    paddingHorizontal: 15, 
-    paddingVertical: 12, 
-    color: '#333', 
-    fontSize: 14, 
+  textInput: {
+    borderWidth: scale(1),
+    borderColor: '#e0e0e0',
+    borderRadius: moderateScale(8),
+    paddingHorizontal: moderateScale(15),
+    paddingVertical: moderateScale(12),
+    color: '#333',
+    fontSize: normalizeFont(14),
     backgroundColor: '#f9f9f9',
-    marginBottom: 15,
+    marginBottom: moderateScale(15),
   },
 
-  row: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  halfInput: { 
-    flex: 1,
-    marginBottom: 15,
-  },
+  row: { flexDirection: 'row', justifyContent: 'space-between', gap: moderateScale(10) },
+  halfInput: { flex: 1, marginBottom: moderateScale(15) },
 
-  // Delivery Region Row
   deliveryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: scale(2),
     borderColor: '#00B0FF',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 4,
+    borderRadius: moderateScale(8),
+    paddingHorizontal: moderateScale(15),
+    paddingVertical: moderateScale(4),
     backgroundColor: '#fff',
-    marginBottom: 20,
+    marginBottom: moderateScale(20),
   },
-  uptoText: {
-    fontSize: 14,
-    color: '#666',
-    marginRight: 10,
-  },
-  deliveryInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-    paddingVertical: 10,
-    textAlign: 'center',
-  },
-  kmsText: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 10,
-  },
+  uptoText: { fontSize: normalizeFont(12), color: '#666', marginRight: moderateScale(10) },
+  deliveryInput: { flex: 1, fontSize: normalizeFont(14), color: '#333', paddingVertical: moderateScale(10), textAlign: 'center' },
+  kmsText: { fontSize: normalizeFont(12), color: '#666', marginLeft: moderateScale(10) },
 
-  updateButton: { 
-    backgroundColor: '#4CAF50', 
-    flexDirection: 'row', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    paddingVertical: 15, 
-    borderRadius: 12, 
-    marginHorizontal: 20, 
-    marginBottom: 10,
-    marginTop: 10,
+  updateButton: {
+    backgroundColor: '#4CAF50',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: moderateScale(15),
+    borderRadius: moderateScale(12),
+    marginHorizontal: moderateScale(20),
+    marginBottom: moderateScale(10),
+    marginTop: moderateScale(10),
   },
-  updateButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  
-  profileUploadBox: { 
-    borderWidth: 1, 
-    borderColor: '#ccc', 
-    borderRadius: 12, 
-    height: 150, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    overflow: 'hidden' 
+  updateButtonText: { color: '#fff', fontSize: normalizeFont(14), fontWeight: '600' },
+
+  profileUploadBox: {
+    borderWidth: scale(1),
+    borderColor: '#ccc',
+    borderRadius: moderateScale(12),
+    height: moderateScale(150),
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
   },
-  uploadedImage: { width: '100%', height: '100%', borderRadius: 8 },
-  chooseFileText: { fontSize: 14, color: '#999', marginTop: 8 },
+  uploadedImage: { width: '100%', height: '100%', borderRadius: moderateScale(8) },
+  chooseFileText: { fontSize: normalizeFont(12), color: '#999', marginTop: moderateScale(8) },
 });

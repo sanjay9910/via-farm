@@ -1,3 +1,4 @@
+import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useNavigation } from "expo-router";
@@ -418,224 +419,227 @@ const MyRecentListing = () => {
 export default MyRecentListing;
 
 const styles = StyleSheet.create({
-  container: { 
-    paddingVertical: 16, 
-    backgroundColor: "#fff", 
-    flex: 1 
+  container: {
+    paddingVertical: moderateScale(16),
+    backgroundColor: "#fff",
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#666',
+    marginTop: moderateScale(12),
+    fontSize: normalizeFont(12),
+    color: "#666",
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingHorizontal: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: scale(20),
   },
   emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
+    fontSize: normalizeFont(12),
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: moderateScale(8),
   },
   emptySubText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
+    fontSize: normalizeFont(12),
+    color: "#666",
+    textAlign: "center",
   },
-  headerRowContainer: { 
-    flexDirection: "row", 
-    justifyContent: "space-between", 
-    alignItems: "center", 
-    paddingHorizontal: 16, 
-    marginBottom: 12 
+  headerRowContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: scale(16),
+    marginBottom: moderateScale(12),
   },
-  headerTitle: { 
-    fontSize: 18, 
-    fontWeight: "700", 
-    color: "#333" 
+  headerTitle: {
+    fontSize: normalizeFont(15),
+    fontWeight: "700",
+    color: "#333",
   },
-  seeAll: { 
-    fontSize: 13, 
-    color: "rgba(1, 151, 218, 1)" 
+  seeAll: {
+    fontSize: normalizeFont(12),
+    color: "rgba(1, 151, 218, 1)",
   },
-  flatListContent: { 
-    paddingHorizontal: 16 
+  flatListContent: {
+    paddingHorizontal: scale(12),
   },
-  listingCard: { 
-    backgroundColor: "#fff", 
-    borderRadius: 8, 
-    marginRight: 15, 
-    borderWidth: 1, 
-    borderColor: "rgba(255, 202, 40, 1)", 
-    width: width * 0.9 
+  listingCard: {
+    backgroundColor: "#fff",
+    borderRadius: moderateScale(8),
+    marginRight: scale(15),
+    borderWidth: 1,
+    borderColor: "rgba(255, 202, 40, 1)",
+    width: Math.min(width * 0.94, scale(520)), 
+    alignSelf: "center",
   },
-  cardContent: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    gap: 12 
+  cardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(12),
   },
-  imageContainer: { 
-    width: 120, 
-    height: 140, 
+  imageContainer: {
+    width: scale(110),
+    height: moderateScale(150),
   },
-  itemImage: { 
-    width: "100%", 
-    height: "100%", 
-    borderTopLeftRadius: 6, 
-    borderBottomLeftRadius: 6 
+  itemImage: {
+    width: "100%",
+    height: "100%",
+    borderTopLeftRadius: moderateScale(6),
+    borderBottomLeftRadius: moderateScale(6),
+    resizeMode: "cover",
   },
-  textContainer: { 
-    flex: 1, 
-    paddingRight: 12, 
-    paddingVertical:1 
+  textContainer: {
+    flex: 1,
+    paddingRight: scale(12),
+    paddingVertical: moderateScale(4),
   },
-  headerRow: { 
-    flexDirection: "row", 
-    justifyContent: "space-between", 
-    alignItems: "flex-start", 
-    marginBottom: 8 
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: moderateScale(8),
   },
-  itemName: { 
-    fontSize: 16, 
-    fontWeight: "600", 
-    color: "#424242", 
-    flex: 1, 
-    marginRight: 8 
+  itemName: {
+    fontSize: normalizeFont(12),
+    fontWeight: "600",
+    color: "#424242",
+    flex: 1,
+    marginRight: scale(8),
   },
-  priceQuantityContainer: { 
-    alignItems: "flex-end" 
+  priceQuantityContainer: {
+    alignItems: "flex-end",
   },
-  priceText: { 
-    fontSize: 16, 
-    fontWeight: "bold", 
-    color: "#2E7D32" 
+  priceText: {
+    fontSize: normalizeFont(12),
+    fontWeight: "700",
+    color: "#2E7D32",
   },
-  quantity: { 
-    fontSize: 12, 
-    color: "#666", 
-    marginTop: 2 
+  quantity: {
+    fontSize: normalizeFont(10),
+    color: "#666",
+    marginTop: moderateScale(2),
   },
-  detailsContainer: { 
-    flexDirection: "row", 
-    gap: 4, 
-    marginBottom: 4 
+  detailsContainer: {
+    flexDirection: "row",
+    gap: moderateScale(4),
+    marginBottom: moderateScale(4),
+    flexWrap: "wrap",
   },
-  uploadLabel: { 
-    fontSize: 12, 
-    color: "#666" 
+  uploadLabel: {
+    fontSize: normalizeFont(10),
+    color: "#666",
   },
-  uploadValue: { 
-    fontSize: 12, 
-    color: "#000", 
-    fontWeight: "500" 
+  uploadValue: {
+    fontSize: normalizeFont(12),
+    color: "#000",
+    fontWeight: "500",
   },
-  startAllIndia: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    gap: 5, 
-    marginVertical: 4 
+  startAllIndia: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(5),
+    marginVertical: moderateScale(4),
   },
-  txetAll: { 
-    fontSize: 13 
+  txetAll: {
+    fontSize: normalizeFont(10),
   },
-  editBtn: { 
-    flexDirection: "row", 
-    justifyContent: "space-between", 
-    alignItems: "center", 
-    marginTop: 8 
+  editBtn: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: moderateScale(8),
   },
-  dropdownBtn: { 
-    padding:3, 
-    borderRadius: 6, 
-    borderWidth: 1, 
-    borderColor: "rgba(0, 0, 0, 0.3)" ,
-    flexDirection:'row',
-    alignItems:'center',
-    gap:5,
+  dropdownBtn: {
+    padding: moderateScale(3),
+    borderRadius: moderateScale(6),
+    borderWidth: 1,
+    width:scale(89),
+    borderColor: "rgba(0, 0, 0, 0.3)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(5),
   },
   dropdownBtnDisabled: {
     opacity: 0.6,
     borderColor: "rgba(0, 0, 0, 0.15)",
   },
-  statusRow: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    gap: 6,
-    minWidth:80,
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(6),
   },
-  statusCircle: { 
-    width: 10, 
-    height: 10, 
-    borderRadius: 5 
+  statusCircle: {
+    width: moderateScale(10),
+    height: moderateScale(10),
+    borderRadius: moderateScale(5),
   },
-  statusText: { 
-    fontSize: 14, 
-    fontWeight: "500" 
+  statusText: {
+    fontSize: normalizeFont(11),
+    fontWeight: "500",
   },
   statusTextUpdating: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     fontWeight: "500",
     color: "#666",
   },
-  editButton: { 
-    padding: 6, 
-    borderRadius: 4 
+  editButton: {
+    padding: moderateScale(6),
+    borderRadius: moderateScale(4),
   },
-  editIcon: { 
-    width: 20, 
-    height: 20 
+  editIcon: {
+    width: scale(20),
+    height: scale(20),
   },
   editIconDisabled: {
     opacity: 0.4,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
   },
-  stockDropdown: { 
-    backgroundColor: "#fff", 
-    borderRadius: 8, 
-    minWidth: 150, 
-    paddingVertical: 8, 
-    shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 4 }, 
-    shadowOpacity: 0.3, 
-    shadowRadius: 12, 
-    elevation: 10, 
-    borderWidth: 1, 
+  stockDropdown: {
+    backgroundColor: "#fff",
+    borderRadius: moderateScale(8),
+    minWidth: scale(60),
+    paddingVertical: moderateScale(8),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: moderateScale(4) },
+    shadowOpacity: 0.3,
+    shadowRadius: moderateScale(12),
+    elevation: 10,
+    borderWidth: 1,
     borderColor: "rgba(255, 202, 40, 1)",
     zIndex: 1000,
   },
-  stockOption: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    paddingVertical: 8, 
-    paddingHorizontal: 12, 
-    gap: 8 
+  stockOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: moderateScale(8),
+    paddingHorizontal: moderateScale(12),
+    gap: moderateScale(8),
   },
-  stockOptionText: { 
-    fontSize: 14, 
+  stockOptionText: {
+    fontSize: normalizeFont(12),
     fontWeight: "500",
     color: "#374151",
   },
-  stockDivider: { 
-    height: 1, 
-    backgroundColor: "#f3f4f6", 
-    marginHorizontal: 8 
+  stockDivider: {
+    height: 1,
+    backgroundColor: "#f3f4f6",
+    marginHorizontal: moderateScale(8),
   },
-  stockDot: { 
-    width: 8, 
-    height: 8, 
-    borderRadius: 4 
+  stockDot: {
+    width: moderateScale(8),
+    height: moderateScale(8),
+    borderRadius: moderateScale(4),
   },
 });

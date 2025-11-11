@@ -1,3 +1,4 @@
+import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -99,7 +100,7 @@ const OrderFilter = ({ onSearchChange, onFilterApply, searchText }) => {
           <Image style={styles.searchIcon} source={require('../../../assets/via-farm-img/icons/search.png')} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by buyer name, mobile, or items..."
+            placeholder="Search..."
             placeholderTextColor="#9ca3af"
             value={searchText}
             onChangeText={handleSearchChange}
@@ -210,208 +211,215 @@ const OrderFilter = ({ onSearchChange, onFilterApply, searchText }) => {
 
 // Updated Styles
 const styles = StyleSheet.create({
-  container: { 
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    paddingBottom: 8
-  },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingHorizontal: 16, 
-    paddingVertical: 12, 
-    gap: 12 
-  },
-  title: { 
-    fontSize: 20, 
-    fontWeight: '700', 
-    color: '#1f2937' 
-  },
-  searchContainer: { 
-    flex: 1, 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: '#f9f9f9', 
-    borderRadius: 10, 
-    paddingHorizontal: 8, 
-    paddingVertical: 7, 
-    borderWidth: 1, 
-    borderColor: 'rgba(0, 0, 0, 0.1)' 
-  },
-  searchIcon: { 
-    marginRight: 8 
-  },
-  searchInput: { 
-    flex: 1, 
-    fontSize: 15, 
-    color: '#1f2937', 
-    padding: 0 
-  },
-  filterButton: { 
-    marginLeft: 8, 
-    padding: 6, 
-    borderRadius: 8, 
-    backgroundColor: '#f9fafb', 
-    borderWidth: 1, 
-    borderColor: '#e5e7eb' 
-  },
-  modalOverlay: { 
-    flex: 1, 
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', 
-    justifyContent: 'flex-end' 
-  },
-  modalContent: { 
-    position: 'absolute', 
-    right: 0, 
-    top: 120, 
-    bottom: 80, 
-    width: 250, 
-    backgroundColor: '#fff', 
-    borderTopLeftRadius: 20, 
-    borderBottomLeftRadius: 20, 
-    borderWidth: 2, 
-    borderColor: 'rgba(255, 202, 40, 1)', 
-    elevation: 10, 
-    shadowColor: '#000', 
-    shadowOffset: { width: -2, height: 0 }, 
-    shadowOpacity: 0.25, 
-    shadowRadius: 5 
-  },
-  modalHeader: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    padding: 20, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#f0f0f0' 
-  },
-  headerLeft: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 8 
-  },
-  filterIconContainer: { 
-    width: 20, 
-    height: 20, 
-    alignItems: 'center', 
-    justifyContent: 'center' 
-  },
-  modalTitle: { 
-    fontSize: 18, 
-    fontWeight: '600', 
-    color: '#333' 
-  },
-  closeButtonContainer: { 
-    padding: 0 
-  },
-  closeButton: { 
-    fontSize: 24, 
-    color: '#333', 
-    fontWeight: '400' 
-  },
-  modalBody: { 
-    flex: 1, 
-    backgroundColor: '#ffffff', 
-    padding: 20 
-  },
-  filterSection: { 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#f5f5f5' 
-  },
-  filterHeader: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    paddingVertical: 16, 
-    backgroundColor: '#ffffff' 
-  },
-  filterTitle: { 
-    fontSize: 16, 
-    fontWeight: '400', 
-    color: '#333' 
-  },
-  chevron: { 
-    fontSize: 16, 
-    color: '#666', 
-    fontWeight: '300', 
-    transform: [{ rotate: '0deg' }] 
-  },
-  chevronRotated: { 
-    transform: [{ rotate: '180deg' }] 
-  },
-  filterOptions: { 
-    paddingBottom: 16, 
-    backgroundColor: '#ffffff' 
-  },
-  radioOption: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingVertical: 12 
-  },
-  radioCircle: { 
-    width: 22, 
-    height: 22, 
-    borderRadius: 11, 
-    borderWidth: 2, 
-    borderColor: '#d1d5db', 
-    marginRight: 14, 
-    alignItems: 'center', 
-    justifyContent: 'center' 
-  },
-  radioCircleSelected: { 
-    borderColor: '#22c55e' 
-  },
-  radioSelected: { 
-    width: 12, 
-    height: 12, 
-    borderRadius: 6, 
-    backgroundColor: '#22c55e' 
-  },
-  optionText: { 
-    fontSize: 14, 
-    color: '#6b7280', 
-    fontWeight: '500' 
-  },
-  optionTextSelected: { 
-    color: '#1f2937', 
-    fontWeight: '600' 
-  },
-  modalFooter: { 
+  header: {
     flexDirection: 'row',
-    padding:10, 
-    backgroundColor: '#ffffff', 
-    borderTopWidth: 1, 
-    borderTopColor: '#f0f0f0', 
-    borderBottomLeftRadius: 20,
-    gap: 12
+    alignItems: 'center',
+    paddingHorizontal: scale(10),
+    paddingVertical: moderateScale(8),
+    gap: moderateScale(12),
+  },
+  title: {
+    fontSize: normalizeFont(14),
+    fontWeight: '700',
+    color: '#1f2937',
+  },
+  searchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: moderateScale(10),
+    paddingHorizontal: scale(8),
+    paddingVertical: moderateScale(7),
+    borderWidth: scale(1),
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  searchIcon: {
+    marginRight: scale(8),
+    width: moderateScale(15),
+    height: moderateScale(15),
+    resizeMode: 'contain',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: normalizeFont(12),
+    color: '#1f2937',
+    padding: 0,
+    minHeight: moderateScale(20),
+  },
+  filterButton: {
+    marginLeft: scale(8),
+    borderRadius: moderateScale(8),
+    backgroundColor: '#f9fafb',
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+
+  modalContent: {
+    position: 'absolute',
+    right: 0,
+    top: moderateScale(100),
+    bottom: moderateScale(80),
+    width: Math.min(scale(300), Math.max(scale(220), width * 0.72)),
+    backgroundColor: '#fff',
+    borderTopLeftRadius: moderateScale(20),
+    borderBottomLeftRadius: moderateScale(20),
+    borderWidth: scale(2),
+    borderColor: 'rgba(255, 202, 40, 1)',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: -scale(2), height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: moderateScale(5),
+    overflow: 'hidden',
+  },
+
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: scale(16),
+    paddingVertical: moderateScale(12),
+    borderBottomWidth: scale(1),
+    borderBottomColor: '#f0f0f0',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: moderateScale(8),
+  },
+  filterIconContainer: {
+    width: moderateScale(22),
+    height: moderateScale(22),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    fontSize: normalizeFont(18),
+    fontWeight: '600',
+    color: '#333',
+  },
+  closeButtonContainer: {
+    padding: moderateScale(4),
+  },
+  closeButton: {
+    fontSize: normalizeFont(20),
+    color: '#333',
+    fontWeight: '400',
+  },
+
+  modalBody: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: scale(14),
+    paddingVertical: moderateScale(12),
+  },
+
+  filterSection: {
+    borderBottomWidth: scale(1),
+    borderBottomColor: '#f5f5f5',
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: moderateScale(12),
+    backgroundColor: '#ffffff',
+  },
+  filterTitle: {
+    fontSize: normalizeFont(16),
+    fontWeight: '400',
+    color: '#333',
+  },
+  chevron: {
+    fontSize: normalizeFont(16),
+    color: '#666',
+    fontWeight: '300',
+    transform: [{ rotate: '0deg' }],
+  },
+  chevronRotated: {
+    transform: [{ rotate: '180deg' }],
+  },
+
+  filterOptions: {
+    paddingBottom: moderateScale(12),
+    backgroundColor: '#ffffff',
+  },
+
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: moderateScale(10),
+  },
+  radioCircle: {
+    width: moderateScale(20),
+    height: moderateScale(20),
+    borderRadius: moderateScale(10),
+    borderWidth: scale(2),
+    borderColor: '#d1d5db',
+    marginRight: scale(12),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioCircleSelected: {
+    borderColor: '#22c55e',
+  },
+  radioSelected: {
+    width: moderateScale(10),
+    height: moderateScale(10),
+    borderRadius: moderateScale(5),
+    backgroundColor: '#22c55e',
+  },
+
+  optionText: {
+    fontSize: normalizeFont(14),
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  optionTextSelected: {
+    color: '#1f2937',
+    fontWeight: '600',
+  },
+
+  modalFooter: {
+    flexDirection: 'row',
+    padding: moderateScale(10),
+    backgroundColor: '#ffffff',
+    borderTopWidth: scale(1),
+    borderTopColor: '#f0f0f0',
+    borderBottomLeftRadius: moderateScale(20),
+    gap: moderateScale(12),
   },
   clearButton: {
     flex: 1,
     backgroundColor: '#f3f4f6',
-    paddingVertical: 14,
-    borderRadius: 8,
+    paddingVertical: moderateScale(12),
+    borderRadius: moderateScale(8),
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e5e7eb'
+    borderWidth: scale(1),
+    borderColor: '#e5e7eb',
   },
   clearButtonText: {
     color: '#6b7280',
-    fontSize: 16,
-    fontWeight: '600'
+    fontSize: normalizeFont(15),
+    fontWeight: '600',
   },
-  applyButton: { 
+
+  applyButton: {
     flex: 1,
-    backgroundColor: 'rgba(76, 175, 80, 1)', 
-    paddingVertical: 14,
-    paddingHorizontal:2, 
-    borderRadius:5, 
-    alignItems: 'center' 
+    backgroundColor: 'rgba(76, 175, 80, 1)',
+    paddingVertical: moderateScale(12),
+    paddingHorizontal: moderateScale(6),
+    borderRadius: moderateScale(6),
+    alignItems: 'center',
   },
-  applyButtonText: { 
-    color: '#fff', 
-    fontSize:15, 
-    fontWeight: '600' 
+  applyButtonText: {
+    color: '#fff',
+    fontSize: normalizeFont(15),
+    fontWeight: '600',
   },
 });
 

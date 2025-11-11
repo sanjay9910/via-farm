@@ -1,10 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import OrderCard from "./OrderCard"; // path correct hona chahiye
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import OrderCard from "./OrderCard";
 
 const API_BASE = "https://viafarm-1.onrender.com";
+
+import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 
 export default function OrdersScreen() {
   const [orders, setOrders] = useState([]);
@@ -71,7 +73,7 @@ export default function OrdersScreen() {
             deliveredAt,
             status: o.orderStatus || o.status || "Pending",
             raw: o,
-            __updating: false, // used to show spinner on a particular order while updating
+            __updating: false, 
           };
         });
 
@@ -90,6 +92,8 @@ export default function OrdersScreen() {
   useEffect(() => {
     fetchOrders();
   }, []);
+
+
 
   // Status update flow: optimistic update + PATCH to backend
   const handleStatusChange = async (orderId, newStatus) => {
@@ -193,9 +197,10 @@ export default function OrdersScreen() {
       {/* Header */}
       <View style={styles.headerRow}>
         <Text style={styles.headerTitle}>Today’s Orders</Text>
-        <TouchableOpacity onPress={fetchOrders}>
-          <Text style={styles.seeAll}>Refresh</Text>
-        </TouchableOpacity>
+        {/* <TouchableOpacity onPress={ALLView} style={{flexDirection:'row',alignItems:'center',gap:5}}>
+          <Text style={styles.seeAll}>See All</Text>
+          <Image source={require("../../assets/via-farm-img/icons/see.png")} />
+        </TouchableOpacity> */}
       </View>
 
       {loading ? (
@@ -228,11 +233,39 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    marginBottom: 10,
+    paddingHorizontal: scale(16),
+    paddingTop: moderateScale(14),
+    marginBottom: moderateScale(10),
   },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: "#333" },
-  seeAll: { color: "rgba(1, 151, 218, 1)", fontSize: 13 },
-  container: { paddingHorizontal: 12, paddingBottom: 30 },
+  headerTitle: {
+    fontSize: normalizeFont(15),
+    fontWeight: "700",
+    color: "#333",
+    flexShrink: 1,
+  },
+  seeAll: {
+    color: "rgba(1, 151, 218, 1)",
+    fontSize: normalizeFont(12),
+  },
+  seeIcon: {
+    width: scale(18),
+    height: scale(18),
+    resizeMode: "contain",
+    marginLeft: scale(6),
+  },
+
+  container: {
+    paddingHorizontal: scale(12),
+    paddingBottom: scale(30),
+  },
+  smallText: {
+    fontSize: normalizeFont(12),
+  },
+  normalText: {
+    fontSize: normalizeFont(12),
+  },
+  boldText: {
+    fontSize: normalizeFont(12),
+    fontWeight: "700",
+  },
 });

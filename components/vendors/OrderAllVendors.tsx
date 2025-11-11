@@ -1,15 +1,17 @@
 // screens/AllOrders.js
+import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Dimensions, ScrollView, StyleSheet, Text, View, } from "react-native";
 import OrderCard from "../vendors/OrderCard";
 import OrderFilter from "../vendors/filter/OrderFilter";
 
 const API_BASE = "https://viafarm-1.onrender.com";
+const { width, height } = Dimensions.get("window");
 
 export default function AllOrders() {
-  const [orders, setOrders] = useState([]); // raw formatted orders with internal flags
+  const [orders, setOrders] = useState([]); 
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
@@ -80,15 +82,13 @@ export default function AllOrders() {
             status: o.orderStatus || o.status || "Pending",
             productsRaw: products,
             originalDate: o.createdAt || o.updatedAt || null,
-            __updating: false // flag used while updating status
+            __updating: false 
           };
         });
 
         setOrders(formattedOrders);
         setFilteredOrders(formattedOrders);
       } else {
-        // In some APIs result may be in other shapes
-        // console.log("Unexpected response shape:", res.data);
         setOrders([]);
         setFilteredOrders([]);
       }
@@ -314,7 +314,7 @@ export default function AllOrders() {
             <OrderCard
               key={order.id}
               order={order}
-              onStatusChange={handleStatusChange} // PASS handler here
+              onStatusChange={handleStatusChange}
             />
           ))}
         </ScrollView>
@@ -324,7 +324,13 @@ export default function AllOrders() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", marginBottom:60 },
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+    marginBottom: moderateScale(60),
+    paddingBottom: moderateScale(8),
+  },
+
   headerContainer: {
     backgroundColor: "#fff",
     borderBottomWidth: 1,
@@ -332,12 +338,41 @@ const styles = StyleSheet.create({
     zIndex: 10,
     elevation: 5,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: moderateScale(2) },
     shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowRadius: moderateScale(3),
+    paddingHorizontal: scale(12),
+    paddingVertical: moderateScale(8),
   },
-  scrollView: { flex: 1 },
-  ordersContainer: { padding: 12, paddingBottom: 20, paddingTop: 8 },
-  center: { flexDirection:'row', justifyContent: "center", alignItems: "center", backgroundColor:'#fff' },
-  noOrdersText: { fontSize:20, color: "#666", textAlign: "center" }
+
+  scrollView: {
+    flex: 1,
+  },
+
+  ordersContainer: {
+    paddingHorizontal: scale(12),
+    paddingBottom: moderateScale(20),
+    paddingTop: moderateScale(8),
+  },
+
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: scale(12),
+  },
+
+  noOrdersText: {
+    fontSize: normalizeFont(18),
+    color: "#666",
+    textAlign: "center",
+    lineHeight: normalizeFont(22),
+    paddingHorizontal: scale(8),
+  },
+
+  listItemFullWidth: {
+    width: Math.min(width - scale(24), scale(1100)),
+    alignSelf: "center",
+  },
 });

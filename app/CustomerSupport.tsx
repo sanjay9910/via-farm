@@ -1,15 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
+import { goBack } from 'expo-router/build/global-state/routing';
 import React from 'react';
 import {
   Alert,
+  Image,
   Linking,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { moderateScale, normalizeFont, scale } from './Responsive';
 
 
 const SUPPORT_EMAIL = 'abcd@gmail.com';
@@ -44,11 +47,12 @@ const CustomerSupport = ({ navigation }) => {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => (navigation?.goBack ? navigation.goBack() : null)}
+          onPress={goBack}
         >
-          <Ionicons name="chevron-back" size={22} color="#1f2937" />
+          <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Customer Support</Text>
+        <Text style={{width:10}}></Text>
       </View>
 
       <ScrollView
@@ -106,66 +110,67 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff' 
   },
   header: {
-    height: 60,
+    height: scale(60),
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    justifyContent:'space-between',
+    paddingHorizontal: moderateScale(12),
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#e6edf3',
     backgroundColor: '#fff',
   },
   backButton: { 
-    padding: 8, 
-    marginRight: 6 
+    padding: moderateScale(8), 
+    marginRight: moderateScale(6) 
   },
   headerTitle: { 
-    fontSize: 18, 
+    fontSize: normalizeFont(15), 
     fontWeight: '700', 
     color: '#0f172a' 
   },
   contentContainer: { 
     flex: 1,
     justifyContent: 'center',
-    padding: 16,
-    paddingBottom: 40 
+    padding: moderateScale(16),
+    paddingBottom: moderateScale(40) 
   },
   card: {
     backgroundColor: '#fff',
     borderRadius: 14,
-    padding: 24,
+    padding: moderateScale(24),
     shadowColor: '#000',
     shadowOpacity: 0.06,
     shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: scale(6) },
     elevation: 4,
     alignItems: 'center',
   },
   title: { 
-    fontSize: 18, 
+    fontSize: normalizeFont(15), 
     fontWeight: '600', 
     color: '#06203a', 
     marginBottom: 8, 
     textAlign: 'center' 
   },
   subtitle: { 
-    fontSize: 14, 
+    fontSize: normalizeFont(13), 
     color: '#64748b', 
     textAlign: 'center', 
-    lineHeight: 20, 
-    marginBottom: 32 
+    lineHeight: scale(20), 
+    marginBottom: moderateScale(32) 
   },
   contactSection: {
     width: '100%',
-    marginBottom: 32,
+    marginBottom: moderateScale(32),
   },
   contactItem: {
-    paddingVertical: 12,
+    paddingVertical: moderateScale(12),
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
     alignItems: 'center',
   },
   contactValue: {
-    fontSize: 16,
+    fontSize: normalizeFont(13),
     fontWeight: '500',
     color: '#0f172a',
   },
@@ -178,8 +183,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: moderateScale(12),
+    paddingHorizontal: moderateScale(16),
     borderRadius: 8,
     flex: 0.48,
   },
@@ -194,7 +199,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     fontWeight: '600',
   },
 });

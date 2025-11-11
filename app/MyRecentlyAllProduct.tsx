@@ -1,3 +1,4 @@
+import { moderateScale, normalizeFont } from "@/app/Responsive";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useNavigation } from "expo-router";
@@ -8,6 +9,7 @@ import {
   Dimensions,
   Image,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,9 +18,10 @@ import {
   View,
 } from "react-native";
 import ProductModal from "../components/vendors/ProductEditModel";
+const { width } = Dimensions.get("window");
 
 const API_BASE = "https://viafarm-1.onrender.com";
-const { width } = Dimensions.get("window");
+
 
 const AllRecently = () => {
   const [listingsData, setListingsData] = useState([]);
@@ -508,7 +511,7 @@ const AllRecently = () => {
 
 export default AllRecently;
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   container: {
     backgroundColor: "#fff",
     flex: 1,
@@ -520,29 +523,29 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
+    marginTop: moderateScale(12),
+    fontSize: normalizeFont(16),
     color: "#666",
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 50,
-    paddingHorizontal: 20,
+    paddingVertical: moderateScale(50),
+    paddingHorizontal: moderateScale(20),
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: normalizeFont(18),
     fontWeight: "600",
     color: "#333",
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
     textAlign: "center",
   },
   emptySubText: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: "#666",
     textAlign: "center",
-    lineHeight: 20,
+    // lineHeight: moderateScale(20),
   },
 
   // Header Styles
@@ -550,9 +553,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    marginTop:50,
-    paddingVertical: 12,
+    paddingHorizontal: moderateScale(13),
+    // marginTop: moderateScale(50),
+    paddingVertical: moderateScale(10),
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#e0e0e0",
     backgroundColor: "#fff",
@@ -563,11 +566,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   backButton: {
-    padding: 8,
-    marginRight: 12,
+    padding: moderateScale(8),
+    marginRight: moderateScale(12),
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: normalizeFont(12),
     fontWeight: "600",
     color: "#333",
   },
@@ -575,23 +578,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f8f9fa",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(10),
+    borderRadius: moderateScale(12),
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "#e0e0e0",
-    minWidth: 100,
+    minWidth: moderateScale(100),
   },
   categoryDropdownText: {
-    fontSize: 14,
+    fontSize: normalizeFont(10),
     fontWeight: "500",
     color: "#333",
-    marginRight: 8,
-    minWidth: 100,
-    maxWidth: 100,
+    marginRight: moderateScale(8),
+    minWidth: moderateScale(90),
+    maxWidth: moderateScale(90),
   },
   dropdownArrow: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: "#666",
     fontWeight: "bold",
   },
@@ -599,9 +602,9 @@ const styles = StyleSheet.create({
   // Card Styles (DESIGN MATCHED)
   listingCard: {
     backgroundColor: "#fff",
-    borderRadius: 8,
-    marginBottom: 16,
-    borderWidth: 1,
+    borderRadius: moderateScale(8),
+    marginBottom: moderateScale(16),
+    borderWidth: moderateScale(1),
     borderColor: "rgba(255, 202, 40, 1)",
     width: width * 0.9,
     alignSelf: "center",
@@ -609,86 +612,86 @@ const styles = StyleSheet.create({
   cardContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: moderateScale(12), 
   },
   imageContainer: {
-    width: 120,
-    height:144,
+    width: moderateScale(120),
+    height: moderateScale(170),
   },
   itemImage: {
     width: "100%",
     height: "100%",
-    borderTopLeftRadius: 6,
-    borderBottomLeftRadius: 6,
+    borderTopLeftRadius: moderateScale(6),
+    borderBottomLeftRadius: moderateScale(6),
   },
   textContainer: {
     flex: 1,
-    paddingRight: 12,
+    paddingRight: moderateScale(12),
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
   },
   itemName: {
-    fontSize: 16,
+    fontSize: normalizeFont(13),
     fontWeight: "600",
     color: "#424242",
     flex: 1,
-    marginRight: 8,
+    marginRight: moderateScale(8),
   },
   priceQuantityContainer: {
     alignItems: "flex-end",
   },
   priceText: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: normalizeFont(13),
+    fontWeight: "700",
     color: "#2E7D32",
   },
   quantity: {
-    fontSize: 12,
+    fontSize: normalizeFont(11),
     color: "#666",
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
   detailsContainer: {
     flexDirection: "row",
-    gap: 4,
-    marginBottom: 4,
+    gap: moderateScale(4),
+    marginBottom: moderateScale(4),
   },
   uploadLabel: {
-    fontSize: 12,
+    fontSize: normalizeFont(11),
     color: "#666",
   },
   uploadValue: {
-    fontSize: 12,
+    fontSize: normalizeFont(11),
     color: "#000",
     fontWeight: "500",
   },
   startAllIndia: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    marginVertical: 4,
+    gap: moderateScale(5),
+    marginVertical: moderateScale(4),
   },
   txetAll: {
-    fontSize: 13,
+    fontSize: normalizeFont(11),
     color: "#666",
   },
   editBtn: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 8,
+    marginTop: moderateScale(8),
   },
   dropdownBtn: {
-    padding: 3,
-    borderRadius: 6,
-    borderWidth: 1,
+    padding: moderateScale(3),
+    borderRadius: moderateScale(6),
+    borderWidth: moderateScale(1),
     borderColor: "rgba(0, 0, 0, 0.3)",
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: moderateScale(5),
   },
   dropdownBtnDisabled: {
     opacity: 0.6,
@@ -697,36 +700,36 @@ const styles = StyleSheet.create({
   statusRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    minWidth: 80,
+    gap: moderateScale(6),
+    minWidth: moderateScale(80),
   },
   statusCircle: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: moderateScale(10),
+    height: moderateScale(10),
+    borderRadius: moderateScale(5),
   },
   statusText: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     fontWeight: "500",
   },
   statusTextUpdating: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     fontWeight: "500",
     color: "#666",
   },
 
   // Three Dots Menu Styles
   threeDotsButton: {
-    padding: 8,
-    borderRadius: 8,
-    width: 40,
-    height: 40,
+    padding: moderateScale(8),
+    borderRadius: moderateScale(8),
+    width: moderateScale(35),
+    height: moderateScale(35),
     justifyContent: "center",
     alignItems: "center",
   },
   threeDotsText: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: normalizeFont(12),
+    fontWeight: "700",
     color: "#333",
     transform: [{ rotate: "180deg" }],
   },
@@ -738,61 +741,61 @@ const styles = StyleSheet.create({
   },
   stockDropdown: {
     backgroundColor: "#fff",
-    borderRadius: 8,
-    minWidth: 150,
-    paddingVertical: 8,
+    borderRadius: moderateScale(8),
+    minWidth: moderateScale(140),
+    paddingVertical: moderateScale(8),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 10,
-    borderWidth: 1,
+    shadowOffset: { width: 0, height: moderateScale(4) },
+    shadowOpacity: Platform.OS === "ios" ? 0.3 : 0.36,
+    shadowRadius: moderateScale(12),
+    elevation: moderateScale(10),
+    borderWidth: moderateScale(1),
     borderColor: "rgba(255, 202, 40, 1)",
     zIndex: 1000,
   },
   stockOption: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    gap: 8,
+    paddingVertical: moderateScale(8),
+    paddingHorizontal: moderateScale(12),
+    gap: moderateScale(8),
   },
   stockOptionText: {
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     fontWeight: "500",
     color: "#374151",
   },
   stockDivider: {
-    height: 1,
+    height: moderateScale(1),
     backgroundColor: "#f3f4f6",
-    marginHorizontal: 8,
+    marginHorizontal: moderateScale(8),
   },
   stockDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: moderateScale(8),
+    height: moderateScale(8),
+    borderRadius: moderateScale(4),
   },
 
   // Action Menu Styles
   actionMenu: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    minWidth: 140,
-    paddingVertical: 8,
-    borderWidth: 1,
+    borderRadius: moderateScale(12),
+    minWidth: moderateScale(140),
+    paddingVertical: moderateScale(8),
+    borderWidth: moderateScale(1),
     borderColor: "rgba(255, 202, 40, 0.3)",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: moderateScale(2) },
+    shadowOpacity: Platform.OS === "ios" ? 0.1 : 0.18,
+    shadowRadius: moderateScale(4),
+    elevation: moderateScale(5),
   },
   actionOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: moderateScale(12),
+    paddingHorizontal: moderateScale(16),
   },
   actionOptionText: {
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     fontWeight: "500",
     color: "#374151",
   },
@@ -802,32 +805,32 @@ const styles = StyleSheet.create({
   actionDivider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: "#f3f4f6",
-    marginHorizontal: 12,
+    marginHorizontal: moderateScale(12),
   },
 
   // Category Dropdown Styles
   categoryDropdown: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    minWidth: 180,
-    paddingVertical: 8,
-    borderWidth: 1,
+    borderRadius: moderateScale(12),
+    minWidth: moderateScale(180),
+    paddingVertical: moderateScale(8),
+    borderWidth: moderateScale(1),
     borderColor: "rgba(255, 202, 40, 0.3)",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: moderateScale(2) },
+    shadowOpacity: Platform.OS === "ios" ? 0.1 : 0.18,
+    shadowRadius: moderateScale(4),
+    elevation: moderateScale(5),
   },
   categoryOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: moderateScale(12),
+    paddingHorizontal: moderateScale(16),
   },
   categoryOptionSelected: {
     backgroundColor: "rgba(255, 202, 40, 0.1)",
   },
   categoryOptionText: {
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     fontWeight: "500",
     color: "#374151",
   },
@@ -838,6 +841,6 @@ const styles = StyleSheet.create({
   categoryDivider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: "#f3f4f6",
-    marginHorizontal: 12,
+    marginHorizontal: moderateScale(12),
   },
 });

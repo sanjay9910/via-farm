@@ -1,3 +1,4 @@
+import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -9,6 +10,7 @@ import {
   Alert,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +19,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
 const API_BASE = "https://viafarm-1.onrender.com/api/vendor";
 
@@ -325,8 +330,8 @@ const AddProduct = ({ refreshprops }) => {
                     onPress={() => setIsUnitDropdownOpen(!isUnitDropdownOpen)}
                     disabled={loading}
                   >
-                    <Text>{unit || "Select Unit"}</Text>
-                    <Ionicons name={isUnitDropdownOpen ? "chevron-up" : "chevron-down"} size={20} color="#000" />
+                    <Text style={{fontSize:moderateScale(10)}}>{unit || "Select Unit"}</Text>
+                    <Ionicons name={isUnitDropdownOpen ? "chevron-up" : "chevron-down"} size={15} color="#000" />
                   </TouchableOpacity>
 
                   {/* Dropdown list (shown just below input) */}
@@ -429,7 +434,7 @@ const AddProduct = ({ refreshprops }) => {
                   onValueChange={setAllIndiaDelivery}
                   disabled={loading}
                 />
-                <Text style={{ marginLeft: 8 }}>All India Delivery</Text>
+                <Text style={{ marginLeft: 8 ,fontSize:normalizeFont(12)}}>All India Delivery</Text>
               </View>
 
               <View style={styles.submitContainer}>
@@ -462,124 +467,215 @@ const AddProduct = ({ refreshprops }) => {
 
 export default AddProduct;
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: "#fff",
-    borderWidth: 2,
+    borderWidth: moderateScale(3),
     borderColor: "#22c55e",
-    borderRadius: 16,
-    padding: 16,
-    margin: 16,
+    borderRadius: moderateScale(16),
+    padding: moderateScale(12),
+    margin: moderateScale(12),
     shadowColor: "#22c55e",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: moderateScale(2) },
+    shadowOpacity: Platform.OS === "ios" ? 0.1 : 0.3,
+    shadowRadius: moderateScale(4),
     elevation: 3,
   },
-  content: { flex: 1, paddingRight: 12 },
-  title: { fontSize: 18, fontWeight: "700", color: "#1f2937", marginBottom: 6 },
-  subtitle: { fontSize: 14, color: "#6b7280", lineHeight: 20 },
+
+  content: { flex: 1, paddingRight: moderateScale(10) },
+
+  title: {
+    fontSize: normalizeFont(15),
+    fontWeight: "600",
+    color: "#1f2937",
+    marginBottom: moderateScale(6),
+  },
+
+  subtitle: {
+    fontSize: normalizeFont(11),
+    color: "#6b7280",
+  },
+
   iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: scale(55),
+    height:scale(54),
+    borderRadius: moderateScale(28),
     backgroundColor: "#22c55e",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#22c55e",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: moderateScale(4) },
+    shadowOpacity: Platform.OS === "ios" ? 0.3 : 0.4,
+    shadowRadius: moderateScale(8),
     elevation: 5,
   },
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.3)", justifyContent: "flex-end" },
+
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "flex-end",
+  },
+
   modalContainer: {
     maxHeight: "90%",
     backgroundColor: "#fff",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 16,
+    borderTopLeftRadius: moderateScale(16),
+    borderTopRightRadius: moderateScale(16),
+    padding: moderateScale(13),
+    borderWidth:2,
+    borderColor:'rgba(255, 202, 40, 1)',
   },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
-  headerText: { fontSize: 18, fontWeight: "600", color: "#000" },
-  smallNote: { fontSize: 12, color: "#777", marginBottom: 10 },
-  label: { fontSize: 14, fontWeight: "500", marginTop: 10, marginBottom: 4, color: "#333" },
+
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: moderateScale(8),
+  },
+
+  headerText: {
+    fontSize: normalizeFont(12),
+    fontWeight: "600",
+    color: "#000",
+  },
+
+  smallNote: {
+    fontSize: normalizeFont(11),
+    color: "#777",
+    marginBottom: moderateScale(10),
+  },
+
+  label: {
+    fontSize: normalizeFont(10),
+    fontWeight: "500",
+    marginTop: moderateScale(10),
+    marginBottom: moderateScale(4),
+    color: "#333",
+  },
+
   input: {
-    borderWidth: 1,
+    borderWidth: moderateScale(1),
     borderColor: "#f0c96a",
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: moderateScale(10),
+    padding: moderateScale(12),
     backgroundColor: "#fff",
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
+    fontSize: normalizeFont(10),
   },
-  row: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
-  flex1: { flex: 1, marginRight: 8 },
-  checkboxRow: { flexDirection: "row", alignItems: "center", marginTop: 12 },
-  submitContainer: { flexDirection: "row", justifyContent: "center", alignContent: "center" },
-  submitBtn: {
-    backgroundColor: "#22c55e",
-    width: "70%",
-    borderRadius: 10,
-    paddingVertical: 14,
+
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: moderateScale(4),
+  },
+
+  flex1: { flex: 1, marginRight: moderateScale(8) },
+
+  checkboxRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: moderateScale(10),
+  },
+
+  submitContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignContent: "center",
-    gap: 8,
-    marginTop: 20,
-    marginBottom: 10,
+  },
+
+  submitBtn: {
+    backgroundColor: "#22c55e",
+    width: "70%",
+    borderRadius: moderateScale(10),
+    paddingVertical: moderateScale(14),
+    flexDirection: "row",
+    justifyContent: "center",
+    gap:scale(5),
+    alignContent: "center",
+    marginTop: moderateScale(20),
+    marginBottom: moderateScale(10),
     alignItems: "center",
   },
-  submitText: { color: "#fff", fontWeight: "600", fontSize: 16 },
+
+  submitText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: normalizeFont(12),
+  },
+
   imageUpload: {
-    borderWidth: 1,
+    borderWidth: moderateScale(1),
     borderColor: "#f0c96a",
-    borderRadius: 10,
-    padding: 16,
+    borderRadius: moderateScale(10),
+    padding: moderateScale(16),
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 4,
+    marginTop: moderateScale(4),
     backgroundColor: "#fff",
   },
-  imageUploadDisabled: { backgroundColor: "#f3f4f6", opacity: 0.7 },
-  imageUploadText: { marginTop: 8, color: "#777" },
-  imagePreviewContainer: { position: "relative", marginRight: 8 },
-  previewImage: { width: 80, height: 80, borderRadius: 8 },
-  removeImageBtn: { position: "absolute", top: -6, right: -6, backgroundColor: "#fff", borderRadius: 12 },
-  helperText: { fontSize: 12, color: "#777", marginBottom: 4 },
+
+  imageUploadDisabled: {
+    backgroundColor: "#f3f4f6",
+    opacity: 0.7,
+  },
+
+  imageUploadText: { marginTop: moderateScale(8), color: "#777", fontSize: normalizeFont(10) },
+
+  imagePreviewContainer: { position: "relative", marginRight: moderateScale(8) },
+
+  previewImage: {
+    width: moderateScale(65),
+    height: moderateScale(65),
+    borderRadius: moderateScale(8),
+  },
+
+  removeImageBtn: {
+    position: "absolute",
+    top: -moderateScale(6),
+    right: -moderateScale(6),
+    backgroundColor: "#fff",
+    borderRadius: moderateScale(12),
+    padding: moderateScale(4),
+  },
+
+  helperText: { fontSize: normalizeFont(10), color: "#777", marginBottom: moderateScale(4) },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.2)",
     justifyContent: "center",
     alignItems: "center",
   },
+
   dropdownContainer: {
     backgroundColor: "#fff",
-    borderRadius: 8,
-    // paddingVertical: 6,
-    width: 140,
+    borderRadius: moderateScale(8),
+    width: moderateScale(140),
     elevation: 6,
   },
+
   dropdownOption: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(15),
   },
+
   dropdownBelowInput: {
-    width: 130,
-    marginTop:75,
-    position:'absolute',
-    borderWidth: 1,
+    width: moderateScale(114),
+    marginTop: moderateScale(30),
+    position: "absolute",
+    borderWidth: moderateScale(1),
     borderColor: "#f0c96a",
-    borderRadius: 10,
+    borderRadius: moderateScale(10),
     backgroundColor: "#fff",
     overflow: "hidden",
-    zIndex:100,
+    zIndex: 100,
     elevation: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: moderateScale(2) },
+    shadowOpacity: Platform.OS === "ios" ? 0.15 : 0.2,
+    shadowRadius: moderateScale(4),
   },
 });

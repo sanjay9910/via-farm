@@ -1,21 +1,23 @@
+import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    FlatList,
-    Image,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  FlatList,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import ProductModal from "../vendors/ProductEditModel";
 
@@ -962,257 +964,314 @@ const ProductList = ({ refreshbut }) => {
 export default ProductList;
 
 // ---- STYLES ----
-const cardStyles = StyleSheet.create({
-  listContainer: { padding: 16, gap: 16 },
+export const cardStyles = StyleSheet.create({
+  listContainer: { padding: moderateScale(16), gap: moderateScale(16) },
+
   card: {
     flexDirection: "row",
     backgroundColor: "#fff",
-    borderRadius: 16,
-    borderWidth: 2,
+    borderRadius: moderateScale(16),
+    borderWidth: moderateScale(2),
     borderColor: "rgba(255, 202, 40, 1)",
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: scale(2) },
+    shadowOpacity: Platform.OS === "ios" ? 0.08 : 0.16,
+    shadowRadius: moderateScale(8),
+    elevation: moderateScale(3),
   },
-  image: { width: 150, height: "100%", minHeight: 180 },
-  details: { flex: 1, padding: 8, justifyContent: "space-between" },
+
+  image: { width: moderateScale(150), height: "100%", minHeight: moderateScale(180) },
+
+  details: { flex: 1, padding: moderateScale(8), justifyContent: "space-between" },
+
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
   },
+
   productName: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: normalizeFont(14),
+    fontWeight: "600",
     color: "#1f2937",
     flex: 1,
-    marginRight: 8,
+    marginRight: moderateScale(8),
   },
-  menuButton: { padding: 4 },
-  row: { flexDirection: "row", alignItems: "center", marginBottom:6 },
-  label: { fontSize: 14, color: "#6b7280", width: 80 },
-  colon: { fontSize: 14, color: "#6b7280", marginHorizontal: 8 },
-  value: { fontSize: 14, color: "#374151", fontWeight: "500", flex: 1 },
+
+  menuButton: { padding: moderateScale(4) },
+
+  row: { flexDirection: "row", alignItems: "center", marginBottom: moderateScale(6) },
+
+  label: { fontSize: normalizeFont(12), color: "#6b7280", width: moderateScale(80) },
+
+  colon: { fontSize: normalizeFont(12), color: "#6b7280", marginHorizontal: moderateScale(8) },
+
+  value: { fontSize: normalizeFont(12), color: "#374151", fontWeight: "500", flex: 1 },
+
   uploadDate: {
-    fontSize: 13,
+    fontSize: normalizeFont(11),
     color: "#9ca3af",
-    marginTop: 4,
-    marginBottom: 12,
+    marginTop: moderateScale(4),
+    marginBottom: moderateScale(12),
   },
+
   stockContainer: { flexDirection: "row", alignItems: "center" },
+
   stockBadge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical:4,
-    paddingHorizontal:5,
-    borderRadius:8,
-    borderWidth: 1,
-    gap: 6,
+    paddingVertical: moderateScale(4),
+    paddingHorizontal: moderateScale(5),
+    borderRadius: moderateScale(8),
+    borderWidth: moderateScale(1),
+    gap: moderateScale(6),
   },
+
   stockBadgeDisabled: {
     opacity: 0.7,
   },
+
   inStock: { backgroundColor: "#f0fdf4", borderColor: "#bbf7d0" },
   outOfStock: { backgroundColor: "#fef2f2", borderColor: "#fecaca" },
-  stockDot: { width: 8, height: 8, borderRadius: 4 },
+
+  stockDot: { width: moderateScale(8), height: moderateScale(8), borderRadius: moderateScale(4) },
   inStockDot: { backgroundColor: "#22c55e" },
   outOfStockDot: { backgroundColor: "#ef4444" },
-  stockText: { fontSize: 14, fontWeight: "500" },
+
+  stockText: { fontSize: normalizeFont(12), fontWeight: "500" },
   inStockText: { color: "#22c55e" },
   outOfStockText: { color: "#ef4444" },
   updatingText: { color: "#6b7280" },
+
   modalOverlayTransparent: { flex: 1, backgroundColor: "transparent" },
+
   menuPopup: {
     backgroundColor: "#fff",
-    borderRadius: 6,
-    minWidth: 100,
-    paddingVertical: 8,
+    borderRadius: moderateScale(6),
+    minWidth: moderateScale(50),
+    paddingVertical: moderateScale(5),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 10,
-    borderWidth: 1,
+    shadowOffset: { width: 0, height: moderateScale(4) },
+    shadowOpacity: Platform.OS === "ios" ? 0.2 : 0.28,
+    shadowRadius: moderateScale(12),
+    elevation: moderateScale(10),
+    borderWidth: moderateScale(1),
     borderColor: "rgba(255, 202, 40, 1)",
-    marginLeft: 60,
-    marginTop: -26,
+    marginLeft: moderateScale(60),
+    marginTop: moderateScale(-26),
   },
+
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-    gap: 12,
+    paddingVertical: moderateScale(4),
+    paddingHorizontal: moderateScale(6),
+    gap: moderateScale(12),
   },
-  menuItemText: { fontSize: 13, color: "#374151", fontWeight: "500" },
+
+  menuItemText: { fontSize: normalizeFont(13), color: "#374151", fontWeight: "500" },
   deleteText: { color: "#ef4444" },
-  menuDivider: { height: 1, backgroundColor: "#f3f4f6", marginHorizontal: 8 },
+
+  menuDivider: { height: moderateScale(1), backgroundColor: "#f3f4f6", marginHorizontal: moderateScale(8) },
 
   stockDropdown: {
     backgroundColor: "#fff",
-    borderRadius: 8,
-    minWidth: 140,
-    paddingVertical: 8,
+    borderRadius: moderateScale(8),
+    minWidth: moderateScale(100),
+    paddingVertical: moderateScale(8),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 10,
-    marginLeft:40,
-    borderWidth: 1,
+    shadowOffset: { width: 0, height: moderateScale(4) },
+    shadowOpacity: Platform.OS === "ios" ? 0.2 : 0.28,
+    shadowRadius: moderateScale(12),
+    elevation: moderateScale(10),
+    marginLeft: moderateScale(40),
+    borderWidth: moderateScale(1),
     borderColor: "rgba(255, 202, 40, 1)",
   },
+
   stockOption: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    gap: 8,
+    paddingVertical: moderateScale(8),
+    paddingHorizontal: moderateScale(12),
+    gap: moderateScale(8),
   },
+
   stockOptionActive: {
     backgroundColor: "#f3f4f6",
   },
+
   stockOptionText: {
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     fontWeight: "500",
   },
+
   stockDivider: {
-    height: 1,
+    height: moderateScale(1),
     backgroundColor: "#f3f4f6",
-    marginHorizontal: 8,
+    marginHorizontal: moderateScale(8),
   },
 });
 
-const filterStyles = StyleSheet.create({
+export const filterStyles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(12),
     backgroundColor: "#fff",
     zIndex: 10,
   },
-  title: { fontSize: 18, fontWeight: "700", color: "#374151" },
-  controls: { flexDirection: "row", alignItems: "center", gap: 10 },
+
+  title: { fontSize: normalizeFont(14), fontWeight: "600", color: "#374151" },
+
+  controls: { flexDirection: "row", alignItems: "center", gap: moderateScale(10) },
+
   dropdownButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 32,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    gap: moderateScale(32),
+    paddingVertical: moderateScale(5),
+    paddingHorizontal: moderateScale(5),
     backgroundColor: "#fff",
-    borderWidth: 1,
+    borderWidth: moderateScale(1),
     borderColor: "rgba(0,0,0,0.3)",
-    borderRadius: 8,
-    minWidth: 120,
+    borderRadius: moderateScale(8),
+    minWidth: moderateScale(110),
   },
-  dropdownText: { fontSize: 15, color: "#374151", fontWeight: "400" },
+
+  dropdownText: { fontSize: normalizeFont(13), color: "#374151", fontWeight: "400" },
+
   filterButton: {
-    padding: 10,
+    padding: moderateScale(10),
     backgroundColor: "#fff",
-    borderWidth: 1,
+    borderWidth: moderateScale(1),
     borderColor: "#d1d5db",
-    borderRadius: 8,
+    borderRadius: moderateScale(8),
     alignItems: "center",
     justifyContent: "center",
   },
+
   modalOverlay: { flex: 1 },
+
   dropdownMenu: {
     backgroundColor: "#fff",
-    borderRadius: 12,
+    borderRadius: moderateScale(12),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: moderateScale(4) },
+    shadowOpacity: Platform.OS === "ios" ? 0.15 : 0.22,
+    shadowRadius: moderateScale(12),
+    elevation: moderateScale(8),
     overflow: "hidden",
-    borderWidth: 1,
+    borderWidth: moderateScale(1),
     borderColor: "rgba(0,0,0,0.3)",
   },
+
   dropdownItem: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderBottomWidth: 1,
+    paddingVertical: moderateScale(8),
+    paddingHorizontal: moderateScale(8),
+    borderBottomWidth: moderateScale(1),
     borderBottomColor: "#f3f4f6",
   },
+
   dropdownItemActive: { backgroundColor: "#f3f4f6" },
-  dropdownItemText: { fontSize: 15, color: "#374151" },
+
+  dropdownItemText: { fontSize: normalizeFont(13), color: "#374151" },
+
   dropdownItemTextActive: { fontWeight: "600", color: "#111827" },
+
   filterOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
+
   filterModal: {
     position: "absolute",
     right: 0,
-    top: 280,
-    bottom: 80,
-    width: 250,
+    top: moderateScale(280),
+    bottom: moderateScale(80),
+    width: moderateScale(250),
     backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderBottomLeftRadius: 20,
-    borderWidth: 2,
+    borderTopLeftRadius: moderateScale(20),
+    borderBottomLeftRadius: moderateScale(20),
+    borderWidth: moderateScale(2),
     borderColor: "rgba(255,202,40,1)",
-    elevation: 10,
+    elevation: moderateScale(10),
   },
+
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
-    borderBottomWidth: 1,
+    padding: moderateScale(15),
+    borderBottomWidth: moderateScale(1),
     borderBottomColor: "#f0f0f0",
   },
-  modalTitle: { fontSize: 18, fontWeight: "600", color: "#333" },
-  closeButton: { fontSize: 22, color: "#333" },
-  modalBody: { flex: 1, backgroundColor: "#fff", padding: 20 },
-  filterSection: { borderBottomWidth: 1, borderBottomColor: "#f5f5f5" },
+
+  modalTitle: { fontSize: normalizeFont(14), fontWeight: "600", color: "#333" },
+
+  closeButton: { fontSize: moderateScale(22), color: "#333" },
+
+  modalBody: { flex: 1, backgroundColor: "#fff", padding: moderateScale(20) },
+
+  filterSection: { borderBottomWidth: moderateScale(1), borderBottomColor: "#f5f5f5" },
+
   filterHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 16,
+    paddingVertical: moderateScale(13),
   },
-  filterTitle: { fontSize: 16, fontWeight: "500", color: "#333" },
-  chevron: { fontSize: 16, color: "#666", transform: [{ rotate: "90deg" }] },
+
+  filterTitle: { fontSize: normalizeFont(13), fontWeight: "500", color: "#333" },
+
+  chevron: { fontSize: moderateScale(14), color: "#666", transform: [{ rotate: "90deg" }] },
+
   chevronRotated: { transform: [{ rotate: "270deg" }] },
-  filterOptions: { paddingBottom: 16 },
+
+  filterOptions: { paddingBottom: moderateScale(16) },
+
   radioOption: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: moderateScale(10),
   },
+
   radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
+    width: moderateScale(18),
+    height: moderateScale(18),
+    borderRadius: moderateScale(10),
+    borderWidth: moderateScale(2),
     borderColor: "#d1d5db",
-    marginRight: 12,
+    marginRight: moderateScale(12),
     alignItems: "center",
     justifyContent: "center",
   },
+
   radioCircleSelected: { borderColor: "#22c55e" },
+
   radioSelected: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: moderateScale(10),
+    height: moderateScale(10),
+    borderRadius: moderateScale(5),
     backgroundColor: "#22c55e",
   },
-  optionText: { fontSize: 14, color: "#6b7280" },
+
+  optionText: { fontSize: normalizeFont(12), color: "#6b7280" },
   optionTextSelected: { color: "#1f2937", fontWeight: "600" },
-  modalFooter: { padding: 20, borderTopWidth: 1, borderTopColor: "#f0f0f0" },
+
+  modalFooter: { padding: moderateScale(17), borderTopWidth: moderateScale(1), borderTopColor: "#f0f0f0" },
+
   applyButton: {
     backgroundColor: "#4CAF50",
-    paddingVertical: 14,
-    borderRadius: 8,
+    paddingVertical: moderateScale(14),
+    borderRadius: moderateScale(8),
     alignItems: "center",
   },
-  applyButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+
+  applyButtonText: { color: "#fff", fontSize: normalizeFont(13), fontWeight: "600" },
 });

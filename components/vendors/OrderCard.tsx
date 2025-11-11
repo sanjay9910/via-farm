@@ -1,7 +1,8 @@
-// components/OrderCard.js
+import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
   Image,
   Pressable,
   StyleSheet as RNStyleSheet,
@@ -11,6 +12,7 @@ import {
   View
 } from "react-native";
 
+const { width, height } = Dimensions.get("window");
 // Status lists: one for pickup, one for delivery
 const PICKUP_STATUS_OPTIONS = [
   "In-process",
@@ -199,76 +201,121 @@ const OrderCard = ({ order = {}, onStatusChange }) => {
 export default OrderCard;
 
 const styles = StyleSheet.create({
-  wrapper: { paddingHorizontal:5},
+  // wrapper: { paddingHorizontal: moderateScale(5) },
+
   cardOuter: {
-    marginTop:15,
-    borderRadius:20,
-    paddingVertical:2,
-    borderWidth:1,
+    marginTop: moderateScale(15),
+    borderRadius: moderateScale(20),
+    paddingVertical: moderateScale(2),
+    borderWidth: 1,
     borderColor: "rgba(255, 202, 40, 1)",
   },
+
   cardInner: {
-    borderRadius:20,
+    borderRadius: moderateScale(20),
     backgroundColor: "#fff",
-    padding: CARD_PADDING,
+    padding: (typeof CARD_PADDING !== "undefined") ? moderateScale(CARD_PADDING) : moderateScale(12),
     position: "relative",
     overflow: "visible",
     zIndex: 0,
   },
+
   badge: {
     position: "absolute",
-    right:0,
-    top: 10,
+    right: moderateScale(0),
+    top: moderateScale(10),
     backgroundColor: "#1F9A3F",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderTopLeftRadius: 10,
-    borderBottomLeftRadius: 10,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(4),
+    borderTopLeftRadius: moderateScale(10),
+    borderBottomLeftRadius: moderateScale(10),
     zIndex: 10,
   },
-  badgeText: { color: "#fff", fontSize: 12, fontWeight: "600" },
-  orderTitle: { fontWeight: "700", marginBottom: 6, fontSize: 14, color: "#222" },
-  row: { flexDirection: "row", alignItems: "flex-start", marginVertical: 3 },
-  label: { width: LABEL_WIDTH, fontSize: 14, color: "#666", },
-  colon: { width: COLON_WIDTH, fontSize: 14, color: "#666", fontWeight: "600" },
-  value: { flex: 1, fontSize: 14, color: "#222", fontWeight: "600" },
+  badgeText: { color: "#fff", fontSize: normalizeFont(10), fontWeight: "600" },
+
+  orderTitle: {
+    fontWeight: "700",
+    marginBottom: moderateScale(6),
+    fontSize: normalizeFont(12),
+    color: "#222",
+  },
+
+  row: { flexDirection: "row", alignItems: "flex-start", marginVertical: moderateScale(3) },
+  label: {
+    width: (typeof LABEL_WIDTH !== "undefined") ? scale(LABEL_WIDTH) : scale(100),
+    fontSize: normalizeFont(12),
+    color: "#666",
+  },
+  colon: {
+    width: (typeof COLON_WIDTH !== "undefined") ? scale(COLON_WIDTH) : scale(12),
+    fontSize: normalizeFont(12),
+    color: "#666",
+    fontWeight: "600",
+  },
+  value: {
+    flex: 1,
+    fontSize: normalizeFont(12),
+    color: "#222",
+    fontWeight: "600",
+  },
 
   dropdown: {
-    borderWidth: 1,
+    borderWidth: scale(1),
     borderColor: "#E6E6E6",
-    paddingHorizontal: 10,
+    paddingHorizontal: moderateScale(10),
     flexDirection: "row",
     alignContent: "center",
     justifyContent: "center",
-    paddingVertical: 6,
-    borderRadius: 8,
-    minWidth: 150,
+    paddingVertical: moderateScale(6),
+    borderRadius: moderateScale(8),
+    minWidth: Math.min(width * 0.32, scale(240)), 
     alignItems: "center",
   },
-  dropdownText: { fontSize: 13, color: "#333", fontWeight: "600", marginRight: 6 },
-  arrowIcon: { width: 14, height: 14 },
+  dropdownText: {
+    fontSize: normalizeFont(12),
+    color: "#333",
+    fontWeight: "600",
+    marginRight: moderateScale(6),
+  },
+  arrowIcon: { width: moderateScale(14), height: moderateScale(14) },
 
   backdrop: {
     ...RNStyleSheet.absoluteFillObject,
     backgroundColor: "transparent",
     zIndex: 998,
   },
+
   dropdownPanel: {
     position: "absolute",
     backgroundColor: "#fff",
-    borderRadius: 5,
-    borderWidth: 1,
+    borderRadius: moderateScale(5),
+    borderWidth: scale(1),
     borderColor: "#E6E6E6",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: moderateScale(2) },
     shadowOpacity: 0.12,
-    shadowRadius: 8,
+    shadowRadius: moderateScale(8),
     elevation: 20,
     zIndex: 999,
-    left:10,
+    left: moderateScale(10),
+    maxWidth: Math.min(width * 0.9, scale(420)),
   },
-  optionRow: { paddingVertical: 10, paddingHorizontal: 8, alignItems: "center" },
-  optionSelected: { backgroundColor: "#f1f7ee" },
-  optionText: { fontSize: 15, color: "#333", textAlign: "center" },
-  optionTextSelected: { color: "#1F9A3F", fontWeight: "700" },
+
+  optionRow: {
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(8),
+    alignItems: "center",
+  },
+  optionSelected: {
+    backgroundColor: "#f1f7ee",
+  },
+  optionText: {
+    fontSize: normalizeFont(12),
+    color: "#333",
+    textAlign: "center",
+  },
+  optionTextSelected: {
+    color: "#1F9A3F",
+    fontWeight: "700",
+  },
 });

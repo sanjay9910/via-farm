@@ -1,6 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
+import { goBack } from 'expo-router/build/global-state/routing';
 import React from 'react';
 import {
+  Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -8,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const AboutUs = ({ navigation }) => {
   return (
@@ -15,17 +18,26 @@ const AboutUs = ({ navigation }) => {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => (navigation?.goBack ? navigation.goBack() : null)}
+          onPress={goBack}
         >
-          <Ionicons name="chevron-back" size={22} color="#1f2937" />
+         <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>About Us</Text>
+
+        <Text numberOfLines={1} style={styles.headerTitle}>
+          About Us
+        </Text>
+
+        {/* spacer to keep title centered */}
+        <View style={styles.headerRightSpacer} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.card}>
           <Text style={styles.title}>About Us</Text>
-          
+
           <View style={styles.contentSection}>
             <Text style={styles.contentText}>
               Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
@@ -37,7 +49,7 @@ const AboutUs = ({ navigation }) => {
           </View>
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: moderateScale(40) }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -46,56 +58,79 @@ const AboutUs = ({ navigation }) => {
 export default AboutUs;
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#fff' 
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    // small top padding on Android to match SafeArea behaviour
+    paddingTop: Platform.OS === 'android' ? moderateScale(6) : 0,
   },
+
   header: {
-    height: 60,
+    height: scale(60),
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: moderateScale(12),
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#e6edf3',
     backgroundColor: '#fff',
+    paddingVertical: moderateScale(6),
   },
-  backButton: { 
-    padding: 8, 
-    marginRight: 6 
+
+  backButton: {
+    padding: moderateScale(8),
+    marginRight: moderateScale(6),
+    zIndex: 2,
   },
-  headerTitle: { 
-    fontSize: 18, 
-    fontWeight: '700', 
-    color: '#0f172a' 
+
+  headerTitle: {
+    position: 'absolute',
+    left: moderateScale(0),
+    right: moderateScale(0),
+    textAlign: 'center',
+    fontSize: normalizeFont(16),
+    color: '#0f172a',
+    alignSelf: 'center',
+    zIndex: 1,
   },
-  contentContainer: { 
-    padding: 16, 
-    paddingBottom: 40 
+
+  headerRightSpacer: {
+    width: moderateScale(36), // balances the left back button
   },
+
+  contentContainer: {
+    padding: moderateScale(16),
+    paddingBottom: moderateScale(40),
+  },
+
   card: {
     backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 20,
+    borderRadius: moderateScale(14),
+    padding: moderateScale(20),
+    // iOS shadow
     shadowColor: '#000',
     shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: moderateScale(12),
+    shadowOffset: { width: 0, height: scale(6) },
+    // Android elevation
     elevation: 4,
   },
-  title: { 
-    fontSize: 22, 
-    fontWeight: '800', 
-    color: '#06203a', 
-    marginBottom: 20, 
-    textAlign: 'center' 
+
+  title: {
+    fontSize: normalizeFont(20),
+    fontWeight: '600',
+    color: '#06203a',
+    marginBottom: moderateScale(16),
+    textAlign: 'center',
   },
+
   contentSection: {
     width: '100%',
   },
-  contentText: { 
-    color: '#334155', 
-    fontSize: 14, 
-    lineHeight: 20,
+
+  contentText: {
+    color: '#334155',
+    fontSize: normalizeFont(14),
+    lineHeight: moderateScale(20),
     textAlign: 'left',
   },
 });
