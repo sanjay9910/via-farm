@@ -66,12 +66,23 @@ const SmartPicks = () => {
   const normalizeApiItem = (item = {}) => {
     const productId = String(item.productId ?? item._id ?? item.id ?? '');
     const id = String(item.id ?? item._id ?? productId);
+    
+    // Vendor name को सही तरीके से निकालें
+    let vendorName = '';
+    if (item.vendor?.name) {
+      vendorName = item.vendor.name;
+    } else if (item.vendorName) {
+      vendorName = item.vendorName;
+    } else if (item.seller?.name) {
+      vendorName = item.seller.name;
+    }
+
     return {
       raw: item,
       productId,
       id,
       title: item.name ?? item.title ?? 'Product',
-      subtitle: item.vendor?.name ?? item.variety ?? '',
+      subtitle: vendorName || item.variety || '',
       price: Number(item.price ?? item.mrp ?? 0),
       image: item.image || item.imageUrl || null,
       category: item.category || 'General',
@@ -513,6 +524,7 @@ const SmartPicks = () => {
     </View>
   );
 };
+
 
 
 const styles = StyleSheet.create({

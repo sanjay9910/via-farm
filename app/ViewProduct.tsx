@@ -321,7 +321,10 @@ export default function ProductDetailScreen() {
           <View style={{ marginTop: 6 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4 }}>
               <Text style={{ fontWeight: '700' }}>Ratings & Reviews</Text>
-              <TouchableOpacity onPress={() => navigation.navigate?.('Reviews', { productId: product._id })} style={{flexDirection:'row',alignItems:'center',gap:5}}>
+              <TouchableOpacity onPress={() => navigation.navigate?.('SeeAllReview', {
+                  vendor,
+                  reviews,
+                })} style={{flexDirection:'row',alignItems:'center',gap:5}}>
                 <Text style={{ color: '#3b82f6',fontSize:normalizeFont(12) }}>See All</Text>
                 <Image source={require('../assets/via-farm-img/icons/see.png')} />
               </TouchableOpacity>

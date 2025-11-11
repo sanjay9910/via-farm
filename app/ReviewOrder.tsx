@@ -6,18 +6,18 @@ import { useNavigation, useRouter } from 'expo-router'
 import { goBack } from 'expo-router/build/global-state/routing'
 import React, { useEffect, useState } from 'react'
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Image,
-    Modal,
-    PanResponder,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Image,
+  Modal,
+  PanResponder,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -664,7 +664,7 @@ const ReviewOrder = () => {
               <TouchableOpacity onPress={closeModal} style={styles.closeButton}><Ionicons name="close" size={24} color="#666" /></TouchableOpacity>
             </View>
 
-            <View style={styles.searchSection}>
+            {/* <View style={styles.searchSection}>
               <View style={styles.pincodeInputContainer}>
                 <TextInput style={styles.pincodeInput} placeholder="Enter Pincode" value={pincode} onChangeText={setPincode} />
                 <TouchableOpacity style={styles.checkButton}><Text style={styles.checkButtonText}>Check Pincode</Text></TouchableOpacity>
@@ -678,7 +678,7 @@ const ReviewOrder = () => {
                 <Text style={styles.searchLocationButtonText}>Search Location</Text>
               </TouchableOpacity>
               <Text style={styles.orText}>OR</Text>
-            </View>
+            </View> */}
 
             <ScrollView style={styles.addressList} showsVerticalScrollIndicator={false}>
               {addresses.map((address) => (

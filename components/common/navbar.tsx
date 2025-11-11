@@ -1,10 +1,13 @@
-// HeaderDesign_responsive_keep_all.jsx
 import { AuthContext } from '@/app/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
+import * as Location from 'expo-location';
 import React, { useContext, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Dimensions,
   FlatList,
@@ -12,8 +15,10 @@ import {
   Modal,
   PixelRatio,
   Platform,
+  ScrollView,
   StatusBar,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -38,17 +43,36 @@ const normalizeFont = (size) => {
 
 const { width } = Dimensions.get('window');
 const API_BASE_URL = 'https://viafarm-1.onrender.com';
+const API_BASE = 'https://viafarm-1.onrender.com';
 
 export default function HeaderDesign() {
   const [searchText, setSearchText] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showFilterPopup, setShowFilterPopup] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [filteredSuggestions, setFilteredSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   const slideAnim = useState(new Animated.Value(width))[0];
+  const slideUpAnim = useState(new Animated.Value(SCREEN_HEIGHT))[0];
   const navigation = useNavigation();
+
+  // Address Form States
+  const [formData, setFormData] = useState({
+    pinCode: '',
+    houseNumber: '',
+    locality: '',
+    city: '',
+    district: '',
+    state: '',
+    latitude: 0,
+    longitude: 0,
+  });
+
+  const [isDefaultAddress, setIsDefaultAddress] = useState(false);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [locating, setLocating] = useState(false);
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -86,7 +110,7 @@ export default function HeaderDesign() {
     return () => clearInterval(interval);
   }, []);
 
-  // Handle search text change - show suggestions
+  // Handle search text change
   const handleSearchChange = async (text) => {
     setSearchText(text);
 
@@ -135,7 +159,7 @@ export default function HeaderDesign() {
         rating >= tempFilters.ratingMin
       );
     });
-    
+
     setFilteredSuggestions(filtered);
   };
 
@@ -180,12 +204,98 @@ export default function HeaderDesign() {
     });
   };
 
-  // Handle product click - navigate to ViewProduct
+  // Handle product click
   const handleProductClick = (product) => {
     console.log('Navigating with Product ID:', product._id);
     setShowSuggestions(false);
-    // Pass productId directly, not the whole product object
     navigation.navigate('ViewProduct', { productId: product._id });
+  };
+
+  // Open Address Modal
+  const openAddressModal = () => {
+    setShowAddressModal(true);
+    Animated.timing(slideUpAnim, {
+      toValue: 0,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Close Address Modal
+  const closeAddressModal = () => {
+    Animated.timing(slideUpAnim, {
+      toValue: SCREEN_HEIGHT,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowAddressModal(false);
+      resetAddressForm();
+    });
+  };
+
+  // Reset Address Form
+  const resetAddressForm = () => {
+    setFormData({
+      pinCode: '',
+      houseNumber: '',
+      locality: '',
+      city: '',
+      district: '',
+      state: '',
+      latitude: 0,
+      longitude: 0,
+    });
+    setIsDefaultAddress(false);
+  };
+
+  // Handle Address Input Change
+  const handleAddressInputChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  // Get Current Location
+  const handleUseCurrentLocation = async () => {
+    try {
+      setLocating(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required.');
+        setLocating(false);
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      const { latitude, longitude } = location.coords;
+
+      const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+
+      if (geocode && geocode.length > 0) {
+        const addr = geocode[0];
+        setFormData({
+          houseNumber: addr.name || addr.street || '',
+          locality: addr.street || addr.subregion || '',
+          city: addr.city || addr.subregion || '',
+          district: addr.district || addr.region || addr.county || '',
+          state: addr.region || addr.state || '',
+          pinCode: addr.postalCode || '',
+          latitude: latitude,
+          longitude: longitude,
+        });
+        Alert.alert('Success', 'Location fetched successfully!');
+      } else {
+        Alert.alert('Error', 'Unable to fetch address from location.');
+      }
+    } catch (error) {
+      console.error('Location Error:', error);
+      Alert.alert('Error', 'Failed to fetch current location.');
+    } finally {
+      setLocating(false);
+    }
   };
 
   // AuthContext
@@ -207,7 +317,98 @@ export default function HeaderDesign() {
     fetchBuyerAddress();
   }, []);
 
-  // Suggestion card component - clickable
+  // Save Address - YE PART CHANGE HUA
+  const handleSaveAddress = async () => {
+    try {
+      const requiredFields = ['pinCode', 'houseNumber', 'locality', 'city', 'district', 'state'];
+      const missing = requiredFields.filter((f) => !formData[f] || !formData[f].trim());
+
+      if (missing.length > 0) {
+        Alert.alert('Error', `Please fill all required fields: ${missing.join(', ')}`);
+        return;
+      }
+
+      setAddressLoading(true);
+
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        Alert.alert('Error', 'User not logged in. Please login again.');
+        return;
+      }
+
+      const payload = {
+        pinCode: formData.pinCode.trim(),
+        houseNumber: formData.houseNumber.trim(),
+        locality: formData.locality.trim(),
+        city: formData.city.trim(),
+        district: formData.district.trim(),
+        state: formData.state.trim(),
+        isDefault: isDefaultAddress,
+        latitude: parseFloat(String(formData.latitude || 28.0)),
+        longitude: parseFloat(String(formData.longitude || 77.0)),
+      };
+
+      console.log('📤 Sending Address Payload:', payload);
+
+      const res = await axios.post(
+        `${API_BASE}/api/buyer/addresses`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 15000,
+        }
+      );
+
+      console.log('✅ Server Response:', res.data);
+
+      if (res.data.success) {
+        // ✅ TURANT REFRESH KARO - Page refresh kre bina
+        console.log('🔄 Refreshing address immediately...');
+        await fetchBuyerAddress();
+        
+        // Close modal
+        closeAddressModal();
+        
+        // Success alert
+        Alert.alert('Success', 'Address added successfully!');
+      } else {
+        Alert.alert('Error', res.data.message || 'Failed to add address');
+      }
+    } catch (error) {
+      console.error('❌ Add Address Error:', error);
+
+      let errorMessage = 'Failed to add address. Please try again.';
+
+      if (axios.isAxiosError(error)) {
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response?.data?.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response?.status === 500) {
+          errorMessage = 'Server error. Please try again later.';
+        } else if (error.response?.status === 400) {
+          errorMessage = 'Invalid data. Please check all fields.';
+        } else if (error.response?.status === 401) {
+          errorMessage = 'Session expired. Please login again.';
+          await AsyncStorage.removeItem('userToken');
+          return;
+        } else if (error.response?.status === 403) {
+          errorMessage = 'You do not have permission to add addresses.';
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setAddressLoading(false);
+    }
+  };
+
+  // Suggestion Card Component
   const SuggestionCard = ({ product }) => (
     <TouchableOpacity
       style={styles.suggestionCard}
@@ -222,7 +423,7 @@ export default function HeaderDesign() {
         />
       </View>
       <View style={styles.suggestionInfo}>
-        <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:scale(5)}}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: scale(5) }}>
           <Text style={styles.suggestionName} numberOfLines={1}>{product.name}</Text>
           <View style={styles.suggestionRating}>
             <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
@@ -246,7 +447,10 @@ export default function HeaderDesign() {
       <View style={styles.headerWrapper}>
         <View style={styles.header}>
           <View style={styles.topRow}>
-            <TouchableOpacity style={styles.locationContainer}>
+            <TouchableOpacity
+              style={styles.locationContainer}
+              onPress={openAddressModal}
+            >
               <Text style={styles.locationText}>
                 {address?.city || 'Select City'}
               </Text>
@@ -299,8 +503,8 @@ export default function HeaderDesign() {
               </TouchableOpacity>
             )}
             {showSuggestions && filteredSuggestions.length > 0 && (
-              <TouchableOpacity 
-                style={styles.filterButton} 
+              <TouchableOpacity
+                style={styles.filterButton}
                 onPress={openFilterPopup}
                 activeOpacity={0.7}
               >
@@ -310,7 +514,6 @@ export default function HeaderDesign() {
           </View>
         </View>
 
-        {/* Suggestions Dropdown - FlatList ke saath scrolling control */}
         {showSuggestions && (
           <View style={styles.suggestionsDropdown}>
             {loading ? (
@@ -377,17 +580,17 @@ export default function HeaderDesign() {
                     <View>
                       <TouchableOpacity
                         style={styles.filterOption}
-                        onPress={() => setExpandedFilters({ 
-                          ...expandedFilters, 
-                          sortBy: !expandedFilters.sortBy 
+                        onPress={() => setExpandedFilters({
+                          ...expandedFilters,
+                          sortBy: !expandedFilters.sortBy
                         })}
                         activeOpacity={0.7}
                       >
                         <Text style={styles.filterOptionText}>Sort by</Text>
-                        <Ionicons 
-                          name={expandedFilters.sortBy ? "chevron-up" : "chevron-down"} 
-                          size={normalizeFont(14)} 
-                          color="#666" 
+                        <Ionicons
+                          name={expandedFilters.sortBy ? "chevron-up" : "chevron-down"}
+                          size={normalizeFont(14)}
+                          color="#666"
                         />
                       </TouchableOpacity>
                       {expandedFilters.sortBy && (
@@ -416,17 +619,17 @@ export default function HeaderDesign() {
                     <View>
                       <TouchableOpacity
                         style={styles.filterOption}
-                        onPress={() => setExpandedFilters({ 
-                          ...expandedFilters, 
-                          price: !expandedFilters.price 
+                        onPress={() => setExpandedFilters({
+                          ...expandedFilters,
+                          price: !expandedFilters.price
                         })}
                         activeOpacity={0.7}
                       >
                         <Text style={styles.filterOptionText}>Price Range</Text>
-                        <Ionicons 
-                          name={expandedFilters.price ? "chevron-up" : "chevron-down"} 
-                          size={normalizeFont(14)} 
-                          color="#666" 
+                        <Ionicons
+                          name={expandedFilters.price ? "chevron-up" : "chevron-down"}
+                          size={normalizeFont(14)}
+                          color="#666"
                         />
                       </TouchableOpacity>
                       {expandedFilters.price && (
@@ -449,14 +652,14 @@ export default function HeaderDesign() {
                                   styles.sliderThumb,
                                   { left: `${(tempFilters.priceMin / 5000) * 100}%` }
                                 ]}
-                                onPress={() => {}}
+                                onPress={() => { }}
                               />
                               <TouchableOpacity
                                 style={[
                                   styles.sliderThumb,
                                   { right: `${100 - (tempFilters.priceMax / 5000) * 100}%` }
                                 ]}
-                                onPress={() => {}}
+                                onPress={() => { }}
                               />
                             </View>
                           </View>
@@ -469,17 +672,17 @@ export default function HeaderDesign() {
                     <View>
                       <TouchableOpacity
                         style={styles.filterOption}
-                        onPress={() => setExpandedFilters({ 
-                          ...expandedFilters, 
-                          distance: !expandedFilters.distance 
+                        onPress={() => setExpandedFilters({
+                          ...expandedFilters,
+                          distance: !expandedFilters.distance
                         })}
                         activeOpacity={0.7}
                       >
                         <Text style={styles.filterOptionText}>Distance</Text>
-                        <Ionicons 
-                          name={expandedFilters.distance ? "chevron-up" : "chevron-down"} 
-                          size={normalizeFont(14)} 
-                          color="#666" 
+                        <Ionicons
+                          name={expandedFilters.distance ? "chevron-up" : "chevron-down"}
+                          size={normalizeFont(14)}
+                          color="#666"
                         />
                       </TouchableOpacity>
                       {expandedFilters.distance && (
@@ -502,14 +705,14 @@ export default function HeaderDesign() {
                                   styles.sliderThumb,
                                   { left: `${(tempFilters.distanceMin / 100) * 100}%` }
                                 ]}
-                                onPress={() => {}}
+                                onPress={() => { }}
                               />
                               <TouchableOpacity
                                 style={[
                                   styles.sliderThumb,
                                   { right: `${100 - (tempFilters.distanceMax / 100) * 100}%` }
                                 ]}
-                                onPress={() => {}}
+                                onPress={() => { }}
                               />
                             </View>
                           </View>
@@ -522,17 +725,17 @@ export default function HeaderDesign() {
                     <View>
                       <TouchableOpacity
                         style={styles.filterOption}
-                        onPress={() => setExpandedFilters({ 
-                          ...expandedFilters, 
-                          rating: !expandedFilters.rating 
+                        onPress={() => setExpandedFilters({
+                          ...expandedFilters,
+                          rating: !expandedFilters.rating
                         })}
                         activeOpacity={0.7}
                       >
                         <Text style={styles.filterOptionText}>Rating</Text>
-                        <Ionicons 
-                          name={expandedFilters.rating ? "chevron-up" : "chevron-down"} 
-                          size={normalizeFont(14)} 
-                          color="#666" 
+                        <Ionicons
+                          name={expandedFilters.rating ? "chevron-up" : "chevron-down"}
+                          size={normalizeFont(14)}
+                          color="#666"
                         />
                       </TouchableOpacity>
                       {expandedFilters.rating && (
@@ -567,12 +770,165 @@ export default function HeaderDesign() {
             />
 
             <View style={styles.filterFooter}>
-              <TouchableOpacity 
-                style={styles.applyButton} 
+              <TouchableOpacity
+                style={styles.applyButton}
                 onPress={applyFilters}
                 activeOpacity={0.8}
               >
                 <Text style={styles.applyButtonText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      {/* Address Modal */}
+      <Modal
+        visible={showAddressModal}
+        transparent={true}
+        animationType="none"
+        onRequestClose={closeAddressModal}
+      >
+        <View style={styles.addressModalOverlay}>
+          <TouchableOpacity
+            style={styles.addressOverlayTouchable}
+            onPress={closeAddressModal}
+            activeOpacity={1}
+          />
+          <Animated.View
+            style={[
+              styles.addressModalContent,
+              {
+                transform: [{ translateY: slideUpAnim }]
+              }
+            ]}
+          >
+            {/* Header */}
+            <View style={styles.addressModalHeader}>
+              <Text style={styles.addressModalTitle}>Add New Address</Text>
+              <TouchableOpacity onPress={closeAddressModal} style={styles.addressCloseBtn}>
+                <Ionicons name="close" size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={styles.addressScrollView}
+              showsVerticalScrollIndicator={false}
+              scrollEnabled={true}
+              nestedScrollEnabled={true}
+            >
+              {/* Current Location Button */}
+              <View style={styles.locationBoxModal}>
+                <TouchableOpacity
+                  style={[styles.locationButtonModal, locating && styles.locationButtonDisabledModal]}
+                  onPress={handleUseCurrentLocation}
+                  disabled={locating}
+                >
+                  <Ionicons name="location" size={20} color="#3b82f6" />
+                  <Text style={styles.locationTextModal}>
+                    {locating ? 'Fetching location...' : 'Use Current Location'}
+                  </Text>
+                  {locating && <ActivityIndicator size="small" color="#3b82f6" style={{ marginLeft: 10 }} />}
+                </TouchableOpacity>
+              </View>
+
+              {/* Address Form */}
+              <View style={styles.addressSection}>
+                <Text style={styles.addressSectionTitle}>Address Details *</Text>
+
+                <TextInput
+                  style={styles.addressTextInput}
+                  placeholder="Pin Code *"
+                  keyboardType="number-pad"
+                  value={formData.pinCode}
+                  onChangeText={(value) => handleAddressInputChange('pinCode', value)}
+                  placeholderTextColor="#999"
+                  maxLength={6}
+                  editable={!addressLoading}
+                />
+
+                <TextInput
+                  style={styles.addressTextInput}
+                  placeholder="House Number / Block / Street *"
+                  value={formData.houseNumber}
+                  onChangeText={(value) => handleAddressInputChange('houseNumber', value)}
+                  placeholderTextColor="#999"
+                  editable={!addressLoading}
+                />
+
+                <TextInput
+                  style={styles.addressTextInput}
+                  placeholder="Locality / Town *"
+                  value={formData.locality}
+                  onChangeText={(value) => handleAddressInputChange('locality', value)}
+                  placeholderTextColor="#999"
+                  editable={!addressLoading}
+                />
+
+                <View style={styles.addressRow}>
+                  <TextInput
+                    style={[styles.addressTextInput, styles.addressHalfInput]}
+                    placeholder="City *"
+                    value={formData.city}
+                    onChangeText={(value) => handleAddressInputChange('city', value)}
+                    placeholderTextColor="#999"
+                    editable={!addressLoading}
+                  />
+                  <TextInput
+                    style={[styles.addressTextInput, styles.addressHalfInput]}
+                    placeholder="District *"
+                    value={formData.district}
+                    onChangeText={(value) => handleAddressInputChange('district', value)}
+                    placeholderTextColor="#999"
+                    editable={!addressLoading}
+                  />
+                </View>
+
+                <TextInput
+                  style={styles.addressTextInput}
+                  placeholder="State *"
+                  value={formData.state}
+                  onChangeText={(value) => handleAddressInputChange('state', value)}
+                  placeholderTextColor="#999"
+                  editable={!addressLoading}
+                />
+
+                <View style={styles.addressSwitchContainer}>
+                  <Switch
+                    value={isDefaultAddress}
+                    onValueChange={setIsDefaultAddress}
+                    trackColor={{ false: '#f0f0f0', true: '#3b82f6' }}
+                    thumbColor="#fff"
+                    disabled={addressLoading}
+                  />
+                  <Text style={styles.addressSwitchLabel}>Make this my default address</Text>
+                </View>
+              </View>
+
+              <View style={{ height: 30 }} />
+            </ScrollView>
+
+            {/* Footer Buttons */}
+            <View style={styles.addressModalFooter}>
+              <TouchableOpacity
+                style={styles.addressCancelButton}
+                onPress={closeAddressModal}
+                disabled={addressLoading}
+              >
+                <Text style={styles.addressCancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.addressSaveButton, addressLoading && styles.addressSaveButtonDisabled]}
+                onPress={handleSaveAddress}
+                disabled={addressLoading}
+              >
+                {addressLoading ? (
+                  <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+                ) : null}
+                <Text style={styles.addressSaveButtonText}>
+                  {addressLoading ? 'Saving...' : 'Save Address'}
+                </Text>
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -601,7 +957,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: moderateScale(4),
   },
   locationContainer: {
     flexDirection: 'row',
@@ -940,6 +1295,155 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: normalizeFont(14),
     fontWeight: '600',
+  },
+
+  // Address Modal Styles
+  addressModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  addressOverlayTouchable: {
+    flex: 1,
+  },
+  addressModalContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    borderWidth:1,
+    borderColor:'rgba(255, 202, 40, 1)',
+    right: 0,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: moderateScale(20),
+    borderTopRightRadius: moderateScale(20),
+    maxHeight: SCREEN_HEIGHT * 0.9,
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: moderateScale(8),
+  },
+  addressModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(16),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  addressModalTitle: {
+    fontSize: normalizeFont(18),
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
+  addressCloseBtn: {
+    padding: moderateScale(4),
+  },
+  addressScrollView: {
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(16),
+  },
+  locationBoxModal: {
+    marginBottom: moderateScale(16),
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+    borderRadius: moderateScale(8),
+    padding: moderateScale(12),
+    backgroundColor: '#e8f0ff',
+  },
+  locationButtonModal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  locationButtonDisabledModal: {
+    opacity: 0.6,
+  },
+  locationTextModal: {
+    marginLeft: moderateScale(8),
+    color: '#3b82f6',
+    fontWeight: '600',
+    fontSize: normalizeFont(13),
+  },
+  addressSection: {
+    marginBottom: moderateScale(20),
+  },
+  addressSectionTitle: {
+    fontSize: normalizeFont(16),
+    fontWeight: '600',
+    marginBottom: moderateScale(12),
+    color: '#1a1a1a',
+  },
+  addressTextInput: {
+    borderWidth: 1,
+    borderColor: 'rgba(255, 202, 40, 1)',
+    borderRadius: moderateScale(8),
+    padding: moderateScale(12),
+    fontSize: normalizeFont(14),
+    marginBottom: moderateScale(10),
+    color: '#333',
+  },
+  addressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: moderateScale(10),
+  },
+  addressHalfInput: {
+    flex: 1,
+    marginRight: moderateScale(8),
+    marginBottom: 0,
+  },
+  addressSwitchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: moderateScale(12),
+    marginBottom: moderateScale(16),
+  },
+  addressSwitchLabel: {
+    marginLeft: moderateScale(8),
+    fontSize: normalizeFont(14),
+    color: '#333',
+  },
+  addressModalFooter: {
+    flexDirection: 'row',
+    padding: moderateScale(16),
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    backgroundColor: '#fff',
+    gap: moderateScale(10),
+  },
+  addressCancelButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    paddingVertical: moderateScale(12),
+    borderRadius: moderateScale(8),
+    alignItems: 'center',
+  },
+  addressCancelButtonText: {
+    color: '#555',
+    fontWeight: '500',
+    fontSize: normalizeFont(14),
+  },
+  addressSaveButton: {
+    flex: 1,
+    backgroundColor: 'rgba(76, 175, 80, 1)',
+    paddingVertical: moderateScale(12),
+    borderRadius: moderateScale(8),
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  addressSaveButtonDisabled: {
+    opacity: 0.6,
+  },
+  addressSaveButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: normalizeFont(14),
   },
 });
 

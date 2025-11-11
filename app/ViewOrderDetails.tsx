@@ -19,6 +19,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const placeholderImage = 'https://via.placeholder.com/200';
@@ -440,10 +441,10 @@ const ViewOrderDetails = () => {
 
     // If vendors array has more than one vendor, show them all
     return vendors.map((v, idx) => (
-      <View key={v.id || idx} style={{ marginBottom: 8 }}>
+      <View key={v.id || idx} style={{ marginBottom: moderateScale(8) }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
           <Image source={{ uri: v.avatar || placeholderImage }} style={styles.vendorAvatar} />
-          <View style={{ marginLeft: 12, flex: 1 }}>
+          <View style={{ marginLeft: moderateScale(12), flex: 1 }}>
             <Text style={styles.detailText}>Name: {v.name || 'N/A'}</Text>
             <Text style={styles.detailText}>Location: {v.address?.locality || v.address?.city || ''}</Text>
             <Text style={styles.detailText}>Phone: {v.phone || 'N/A'}</Text>
@@ -475,8 +476,8 @@ const ViewOrderDetails = () => {
         {/* Order Status Header */}
         <View style={{ marginBottom: 10 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ fontWeight: '700' }}>{orderStatus}</Text>
-            <Text style={{ color: '#666' }}>{orderNumber}</Text>
+            <Text style={{ fontWeight: '700'  }}>{orderStatus}</Text>
+            <Text style={{ color: '#666' ,fontSize:normalizeFont(12)}}>{orderNumber}</Text>
           </View>
         </View>
 
@@ -564,9 +565,9 @@ const ViewOrderDetails = () => {
               <Text style={styles.summaryValue}>{formatCurrency(computedDelivery)}</Text>
             </View>
 
-            <View style={[styles.summaryRow, { marginTop: 8 }]}>
-              <Text style={[styles.summaryLabel, { fontWeight: '700', fontSize: 16 }]}>Total Amount</Text>
-              <Text style={[styles.summaryValue, { fontWeight: '700', fontSize: 16, color: '#4CAF50' }]}>
+            <View style={[styles.summaryRow, { marginTop: moderateScale(8) }]}>
+              <Text style={[styles.summaryLabel, { fontWeight: '700', fontSize: normalizeFont(13) }]}>Total Amount</Text>
+              <Text style={[styles.summaryValue, { fontWeight: '700', fontSize: normalizeFont(13), color: '#4CAF50' }]}>
                 {formatCurrency(computedTotal)}
               </Text>
             </View>
@@ -591,7 +592,7 @@ const ViewOrderDetails = () => {
               <View style={styles.modalStarsContainer}>
                 {[1,2,3,4,5].map(star => (
                   <TouchableOpacity key={star} onPress={() => handleReviewRating(star)} style={styles.modalStarButton}>
-                    <Ionicons name={star <= reviewRating ? 'star' : 'star-outline'} size={36} color={star <= reviewRating ? '#FFD700' : '#E0E0E0'} />
+                    <Ionicons name={star <= reviewRating ? 'star' : 'star-outline'} size={scale(36)} color={star <= reviewRating ? '#FFD700' : '#E0E0E0'} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -605,7 +606,7 @@ const ViewOrderDetails = () => {
                       <View key={index} style={styles.uploadedImageWrapper}>
                         <Image source={{ uri: image.uri }} style={styles.uploadedImage} />
                         <TouchableOpacity style={styles.removeImageButton} onPress={() => removeImage(index)}>
-                          <Ionicons name="close-circle" size={20} color="#FF4444" />
+                          <Ionicons name="close-circle" size={scale(20)} color="#FF4444" />
                         </TouchableOpacity>
                       </View>
                     ))}
@@ -638,24 +639,24 @@ const ViewOrderDetails = () => {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#fff' },
   header: {
-    height: 56,
+    height: scale(56),
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#eee',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: moderateScale(12),
     justifyContent: 'space-between'
   },
   back: {
-    width: 36,
-    height: 36,
+    width: scale(36),
+    height: scale(36),
     justifyContent: 'center',
     alignItems: 'center'
   },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: '#333' },
+  headerTitle: { fontSize: normalizeFont(14), fontWeight: '700', color: '#333' },
 
   container: {
-    padding: 14,
+    padding: moderateScale(14),
     backgroundColor: '#fff'
   },
 
@@ -664,16 +665,16 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between'
   },
-  deliveryLabel: { color: '#37aa5c', fontWeight: '700', marginBottom: 4 },
+  deliveryLabel: { color: '#37aa5c', fontWeight: '700', marginBottom: moderateScale(4) },
   deliveryDate: { color: '#666' },
   orderNo: { fontWeight: '700', color: '#333' },
 
   itemRow: {
     flexDirection: 'row',
     backgroundColor: '#f6f6f6',
-    padding: 10,
+    padding: moderateScale(10),
     borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
     alignItems: 'center'
   },
   itemImage: {
@@ -682,15 +683,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#eee'
   },
-  itemName: { fontWeight: '700', fontSize: 15, color: '#222' },
-  itemMeta: { color: '#666', fontSize: 12, marginTop: 4 },
+  itemName: { fontWeight: '700', fontSize: normalizeFont(13), color: '#222' },
+  itemMeta: { color: '#666', fontSize: normalizeFont(11), marginTop: moderateScale(4) },
 
   ratingRow: {
-    marginTop: 8,
+    marginTop: moderateScale(8),
     flexDirection: 'row',
     alignItems: 'center'
   },
-  rateText: { color: 'rgba(1, 151, 218, 1)', marginRight: 8, fontSize: 12 },
+  rateText: { color: 'rgba(1, 151, 218, 1)', marginRight: 8, fontSize: normalizeFont(12) },
   reviewLink: { marginLeft: 'auto' },
   reviewText: { color: 'rgba(1, 151, 218, 1)', },
 
@@ -698,27 +699,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#eee',
     borderRadius: 8,
-    padding: 12,
+    padding: moderateScale(12),
     backgroundColor: '#fff'
   },
   cardTitle: {
     fontWeight: '700',
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
     color: '#333'
   },
 
-  detailName: { fontWeight: '700', fontSize: 14, color: '#222' },
-  detailText: { color: '#666', marginTop: 4, fontSize: 13 },
+  detailName: { fontWeight: '700', fontSize: normalizeFont(12), color: '#222' },
+  detailText: { color: '#666', marginTop: moderateScale(4), fontSize: normalizeFont(11) },
 
   vendorAvatar: {
-    width:56,
-    height:56,
-    marginTop:5,
+    width:scale(56),
+    height:scale(56),
+    marginTop:moderateScale(5),
     borderRadius: 8,
     backgroundColor: '#eee'
   },
 
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: moderateScale(8) },
   summaryLabel: { color: '#666' },
   summaryValue: { color: '#222' },
 
@@ -728,8 +729,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   retryButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 10,
+    paddingHorizontal: moderateScale(24),
+    paddingVertical: moderateScale(10),
     backgroundColor: '#4CAF50',
     borderRadius: 6,
   },
@@ -748,34 +749,34 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: moderateScale(20),
+    borderTopRightRadius: moderateScale(20),
     maxHeight: SCREEN_HEIGHT * 0.88,
     borderWidth: 2,
     borderColor: 'rgba(255, 202, 40, 0.5)',
   },
   modalHandle: {
-    width: 40,
-    height: 4,
+    width: scale(40),
+    height: scale(4),
     backgroundColor: '#E0E0E0',
     borderRadius: 2,
     alignSelf: 'center',
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: moderateScale(12),
+    marginBottom: moderateScale(8),
   },
   modalContent: {
-    padding: 10,
-    paddingBottom: 40,
+    padding: moderateScale(10),
+    paddingBottom: moderateScale(40),
     flex: 1,
   },
   modalProductSection: {
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
   modalProductImageContainer: {
-    width: 110,
-    height: 110,
-    borderRadius: 60,
+    width: scale(110),
+    height: scale(110),
+    borderRadius: moderateScale(60),
     overflow: 'hidden',
     backgroundColor: '#FFF',
     elevation: 3,
@@ -792,65 +793,65 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   modalRateText: {
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     color: '#333',
-    marginBottom: 12,
+    marginBottom: moderateScale(12),
     fontWeight: '500',
   },
   modalRequired: {
     color: '#f44336',
-    fontSize: 16,
+    fontSize: normalizeFont(14),
   },
   modalStarsContainer: {
     flexDirection: 'row',
-    marginBottom: 24,
+    marginBottom: moderateScale(24),
     justifyContent: 'flex-start',
-    gap: 8,
+    gap: scale(8),
   },
   modalStarButton: {
-    padding: 4,
+    padding: moderateScale(4),
   },
   modalImageText: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: '#333',
-    marginBottom: 12,
+    marginBottom: moderateScale(12),
     fontWeight: '500',
   },
   modalImageUpload: {
     borderWidth: 2,
     borderColor: 'rgba(255, 202, 40, 0.5)',
     borderRadius: 8,
-    padding: 20,
-    marginBottom: 24,
+    padding: moderateScale(20),
+    marginBottom: moderateScale(24),
     backgroundColor: '#fff',
   },
   modalImageUploadContent: {
     alignItems: 'center',
   },
   modalImageUploadText: {
-    fontSize: 12,
+    fontSize: normalizeFont(11),
     color: '#999',
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: moderateScale(8),
   },
   modalImageCount: {
-    fontSize: 10,
+    fontSize: normalizeFont(10),
     color: '#666',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: moderateScale(4),
     fontWeight: '500',
   },
   uploadedImagesContainer: {
-    marginBottom: 16,
+    marginBottom: moderateScale(13),
   },
   uploadedImageWrapper: {
     position: 'relative',
-    marginRight: 12,
+    marginRight: moderateScale(12),
   },
   uploadedImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
+    width: scale(75),
+    height: scale(75),
+    borderRadius: moderateScale(8),
     backgroundColor: '#F5F5F5',
   },
   removeImageButton: {
@@ -858,7 +859,7 @@ const styles = StyleSheet.create({
     top: -6,
     right: -6,
     backgroundColor: '#FFF',
-    borderRadius: 10,
+    borderRadius: moderateScale(10),
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: {
@@ -869,31 +870,31 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   modalReviewText: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: '#333',
-    marginBottom: 12,
+    marginBottom: moderateScale(12),
     fontWeight: '500',
   },
   modalReviewInput: {
     borderWidth: 1,
     borderColor: 'rgba(255, 202, 40, 0.5)',
     borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
+    padding: moderateScale(12),
+    fontSize: normalizeFont(12),
     color: '#333',
     backgroundColor: '#FFF',
-    marginBottom: 24,
-    minHeight: 100,
+    marginBottom: moderateScale(24),
+    minHeight: scale(100),
   },
   modalSubmitButton: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
-    paddingVertical: 16,
+    paddingVertical: moderateScale(16),
     borderRadius: 8,
     alignItems: 'center',
   },
   modalSubmitButtonText: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: normalizeFont(14),
     fontWeight: '600',
   },
 });

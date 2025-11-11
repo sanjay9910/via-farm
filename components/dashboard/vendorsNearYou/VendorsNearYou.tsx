@@ -18,7 +18,7 @@ import {
 import ProfileCard from '../../common/VendorsCard';
 
 const API_BASE = 'https://viafarm-1.onrender.com';
-const API_ENDPOINT = '/api/buyer/vendors-near-you?lat=19.076&lng=72.8777';
+const API_ENDPOINT = '/api/buyer/vendors-near-you?maxDistance=20000';
 
 // ---------- Responsive helpers ----------
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');

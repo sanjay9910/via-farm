@@ -21,6 +21,7 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -532,7 +533,7 @@ const MyOrdersScreen = () => {
                                             <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>
                                                 {order.status}
                                             </Text>
-                                            <Text style={styles.orderIdText}>{order.orderId}</Text>
+                                            <Text style={{fontSize:normalizeFont(12)}}>{order.orderId}</Text>
                                         </View>
                                         <Text style={styles.dateText}>{order.date}</Text>
                                     </View>
@@ -550,7 +551,7 @@ const MyOrdersScreen = () => {
                                         </Text>
                                         <Text style={styles.productDescription}>Price: ₹{product.price ?? '0'}</Text>
                                         <Text style={styles.productDescription}>Qty: {product.quantity ?? product.qty ?? 1}</Text>
-                                        {product.vendorName ? <Text style={styles.vendorName}>By: {product.vendorName}</Text> : null}
+                                        {product.vendorName ? <Text style={{fontSize:normalizeFont(12)}}>By: {product.vendorName}</Text> : null}
                                     </View>
                                     <Ionicons name="chevron-forward" size={20} color="#666" />
                                 </TouchableOpacity>
@@ -791,22 +792,22 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 16,
+        paddingHorizontal: moderateScale(16),
+        paddingVertical: moderateScale(16),
         backgroundColor: '#fff',
         borderBottomWidth: 1,
         borderBottomColor: '#f0f0f0',
     },
     backButton: {
-        padding: 4,
+        padding: moderateScale(4),
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: normalizeFont(18),
         fontWeight: '600',
         color: '#333',
     },
     placeholder: {
-        width: 32,
+        width: scale(32),
     },
 
     ratingDiv: {
@@ -819,10 +820,10 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingHorizontal: moderateScale(16),
+        paddingVertical: moderateScale(12),
         backgroundColor: '#fff',
-        gap: 12,
+        gap: scale(12),
     },
     searchInputContainer: {
         flex: 1,
@@ -831,26 +832,26 @@ const styles = StyleSheet.create({
         backgroundColor: '#f8f8f8',
         borderRadius: 8,
         paddingHorizontal: 12,
-        height: 44,
+        height: scale(44),
         borderWidth: 1,
         borderColor: '#f0f0f0',
     },
     searchIcon: {
-        marginRight: 8,
+        marginRight: moderateScale(8),
     },
     searchInput: {
         flex: 1,
-        fontSize: 14,
+        fontSize: normalizeFont(11),
         color: '#333',
     },
     clearButton: {
-        marginLeft: 8,
-        padding: 2,
+        marginLeft: moderateScale(8),
+        padding: moderateScale(2),
     },
     filterButton: {
-        padding: 12,
+        padding: moderateScale(12),
         backgroundColor: '#f8f8f8',
-        borderRadius: 8,
+        borderRadius: moderateScale(8),
         borderWidth: 1,
         borderColor: '#f0f0f0',
     },
@@ -860,31 +861,31 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
+        paddingHorizontal: moderateScale(16),
+        paddingVertical: moderateScale(8),
         backgroundColor: '#f8f8f8',
         borderBottomWidth: 1,
         borderBottomColor: '#f0f0f0',
     },
     searchResultsText: {
-        fontSize: 14,
+        fontSize: normalizeFont(13),
         color: '#666',
     },
     clearAllText: {
-        fontSize: 14,
+        fontSize: normalizeFont(13),
         color: '#2196F3',
         fontWeight: '600',
     },
 
     // List Styles
     listContainer: {
-        padding: 16,
+        padding: moderateScale(16),
     },
     orderCard: {
         backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 16,
+        borderRadius: moderateScale(12),
+        padding: moderateScale(16),
+        marginBottom: moderateScale(16),
         shadowColor: '#000',
         shadowOffset: {
             width: 0,
@@ -897,15 +898,15 @@ const styles = StyleSheet.create({
 
     // Order Header
     orderHeader: {
-        marginBottom: 16,
+        marginBottom:moderateScale(16),
     },
     statusText: {
-        fontSize: 14,
+        fontSize: normalizeFont(12),
         fontWeight: '600',
-        marginBottom: 4,
+        marginBottom: moderateScale(4),
     },
     dateText: {
-        fontSize: 12,
+        fontSize: normalizeFont(11),
         color: '#666',
     },
 
@@ -914,50 +915,50 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         width:'100%',
-        height:85,
-        marginBottom: 16,
+        height:scale(85),
+        marginBottom: moderateScale(16),
         backgroundColor: 'rgba(249, 249, 249, 1)',
-        padding: 15,
-        borderRadius: 10,
+        padding: moderateScale(15),
+        borderRadius: moderateScale(10),
     },
     productImage: {
-        width:75,
-        height:75,
+        width:scale(75),
+        height:scale(75),
         borderRadius: 3,
-        marginRight: 12,
+        marginRight: moderateScale(12),
     },
     productInfo: {
         flex: 1,
     },
     productName: {
-        fontSize: 16,
+        fontSize: normalizeFont(13),
         fontWeight: '600',
         color: '#333',
-        marginBottom: 4,
+        marginBottom: moderateScale(4),
     },
     productDescription: {
-        fontSize:14,
+        fontSize: normalizeFont(12),
         paddingVertical:1,
         color: '#333',
     },
 
     // Rating Section
     rateText: {
-        fontSize: 14,
+        fontSize: normalizeFont(13),
         color: '#333',
-        marginBottom: 8,
+        marginBottom: moderateScale(8),
     },
     required: {
         color: '#f44336',
-        fontSize: 19,
+        fontSize: normalizeFont(15),
     },
     starsContainer: {
         flexDirection: 'row',
-        marginBottom: 7,
+        marginBottom: moderateScale(7),
         gap: 3,
     },
     starButton: {
-        padding: 2,
+        padding: moderateScale(2),
     },
     reviewButton: {
         flexDirection: 'row',
@@ -965,9 +966,9 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-start',
     },
     reviewButtonText: {
-        fontSize: 14,
+        fontSize: normalizeFont(12),
         color: '#2196F3',
-        marginRight: 4,
+        marginRight: moderateScale(4),
     },
 
     // Modal Styles
@@ -984,34 +985,34 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         backgroundColor: '#fff',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
+        borderTopLeftRadius: moderateScale(20),
+        borderTopRightRadius: moderateScale(20),
         maxHeight: SCREEN_HEIGHT * 0.88,
         borderWidth: 2,
         borderColor: 'rgba(255, 202, 40, 0.5)',
     },
     modalHandle: {
-        width: 40,
-        height: 4,
+        width: scale(40),
+        height: scale(4),
         backgroundColor: '#E0E0E0',
         borderRadius: 2,
         alignSelf: 'center',
-        marginTop: 12,
-        marginBottom: 8,
+        marginTop: moderateScale(12),
+        marginBottom: moderateScale(8),
     },
     modalContent: {
-        padding: 10,
-        paddingBottom: 40,
+        padding: moderateScale(10),
+        paddingBottom: moderateScale(40),
         flex: 1,
     },
     modalProductSection: {
         alignItems: 'center',
-        marginBottom: 10,
+        marginBottom: moderateScale(10),
     },
     modalProductImageContainer: {
-        width: 110,
-        height: 110,
-        borderRadius: 60,
+        width: scale(110),
+        height: scale(110),
+        borderRadius: moderateScale(60),
         overflow: 'hidden',
         backgroundColor: '#FFF',
         elevation: 3,
@@ -1028,64 +1029,64 @@ const styles = StyleSheet.create({
         height: '100%',
     },
     modalRateText: {
-        fontSize: 16,
+        fontSize: normalizeFont(12),
         color: '#333',
-        marginBottom: 12,
+        marginBottom: moderateScale(12),
         fontWeight: '500',
     },
     modalRequired: {
         color: '#f44336',
-        fontSize: 16,
+        fontSize: normalizeFont(13),
     },
     modalStarsContainer: {
         flexDirection: 'row',
-        marginBottom: 24,
+        marginBottom: moderateScale(24),
         justifyContent: 'flex-start',
-        gap: 8,
+        gap: moderateScale(8),
     },
     modalStarButton: {
-        padding: 4,
+        padding: moderateScale(4),
     },
     modalImageText: {
-        fontSize: 14,
+        fontSize: normalizeFont(14),
         color: '#333',
-        marginBottom: 12,
+        marginBottom: moderateScale(12),
         fontWeight: '500',
     },
     modalImageUpload: {
-        borderWidth: 2,
+        borderWidth: moderateScale(2),
         borderColor: 'rgba(255, 202, 40, 0.5)',
         borderRadius: 8,
-        padding: 20,
-        marginBottom: 24,
+        padding: moderateScale(20),
+        marginBottom: moderateScale(24),
         backgroundColor: '#fff',
     },
     modalImageUploadContent: {
         alignItems: 'center',
     },
     modalImageUploadText: {
-        fontSize: 12,
+        fontSize: normalizeFont(10),
         color: '#999',
         textAlign: 'center',
-        marginTop: 8,
+        marginTop: moderateScale(8),
     },
     modalImageCount: {
-        fontSize: 10,
+        fontSize: normalizeFont(10),
         color: '#666',
         textAlign: 'center',
-        marginTop: 4,
+        marginTop: moderateScale(4),
         fontWeight: '500',
     },
     uploadedImagesContainer: {
-        marginBottom: 16,
+        marginBottom: moderateScale(16),
     },
     uploadedImageWrapper: {
         position: 'relative',
-        marginRight: 12,
+        marginRight: moderateScale(12),
     },
     uploadedImage: {
-        width: 80,
-        height: 80,
+        width: scale(70),
+        height: scale(70),
         borderRadius: 8,
         backgroundColor: '#F5F5F5',
     },
@@ -1094,7 +1095,7 @@ const styles = StyleSheet.create({
         top: -6,
         right: -6,
         backgroundColor: '#FFF',
-        borderRadius: 10,
+        borderRadius: moderateScale(10),
         elevation: 2,
         shadowColor: '#000',
         shadowOffset: {
@@ -1105,31 +1106,31 @@ const styles = StyleSheet.create({
         shadowRadius: 2,
     },
     modalReviewText: {
-        fontSize: 14,
+        fontSize: normalizeFont(12),
         color: '#333',
-        marginBottom: 12,
+        marginBottom: moderateScale(12),
         fontWeight: '500',
     },
     modalReviewInput: {
         borderWidth: 1,
         borderColor: 'rgba(255, 202, 40, 0.5)',
-        borderRadius: 8,
-        padding: 12,
-        fontSize: 14,
+        borderRadius: moderateScale(8),
+        padding: moderateScale(12),
+        fontSize: normalizeFont(12),
         color: '#333',
         backgroundColor: '#FFF',
-        marginBottom: 24,
-        minHeight: 100,
+        marginBottom: moderateScale(24),
+        minHeight: scale(100),
     },
     modalSubmitButton: {
         backgroundColor: 'rgba(76, 175, 80, 1)',
-        paddingVertical: 16,
+        paddingVertical: moderateScale(16),
         borderRadius: 8,
         alignItems: 'center',
     },
     modalSubmitButtonText: {
         color: '#FFF',
-        fontSize: 16,
+        fontSize: normalizeFont(13),
         fontWeight: '600',
     },
 
@@ -1138,68 +1139,68 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingVertical: 50,
-        paddingHorizontal: 20,
+        paddingVertical: moderateScale(50),
+        paddingHorizontal: moderateScale(20),
     },
     loadingText: {
-        fontSize: 16,
+        fontSize: normalizeFont(13),
         color: '#666',
-        marginTop: 12,
+        marginTop: moderateScale(12),
     },
     errorText: {
-        fontSize: 16,
+        fontSize: normalizeFont(13),
         color: '#f44336',
         textAlign: 'center',
-        marginBottom: 20,
+        marginBottom: moderateScale(20),
     },
     retryButton: {
         backgroundColor: '#4CAF50',
-        paddingHorizontal: 20,
-        paddingVertical: 10,
+        paddingHorizontal: moderateScale(20),
+        paddingVertical: moderateScale(10),
         borderRadius: 8,
     },
     retryButtonText: {
         color: '#fff',
-        fontSize: 14,
+        fontSize: normalizeFont(12),
         fontWeight: '600',
     },
     emptyIcon: {
-        marginBottom: 16,
+        marginBottom: moderateScale(16),
     },
     emptyText: {
-        fontSize: 18,
+        fontSize: normalizeFont(15),
         fontWeight: '600',
         color: '#333',
-        marginBottom: 8,
+        marginBottom: moderateScale(8),
         textAlign: 'center',
     },
     emptySubText: {
-        fontSize: 14,
+        fontSize: normalizeFont(12),
         color: '#666',
         textAlign: 'center',
-        lineHeight: 20,
+        lineHeight: scale(20),
     },
     clearSearchButton: {
-        marginTop: 16,
+        marginTop: moderateScale(16),
         backgroundColor: '#2196F3',
-        paddingHorizontal: 20,
-        paddingVertical: 10,
-        borderRadius: 8,
+        paddingHorizontal: moderateScale(20),
+        paddingVertical: moderateScale(10),
+        borderRadius: moderateScale(8),
     },
     clearSearchButtonText: {
         color: '#fff',
-        fontSize: 14,
+        fontSize: normalizeFont(12),
         fontWeight: '600',
     },
     priceContainer: {
   flexDirection: 'row',
   justifyContent: 'space-between',
   alignItems: 'center',
-  paddingVertical: 10,
-  paddingHorizontal: 8,
-  marginTop: 12,
-  backgroundColor: '#fafafa',    // subtle background to separate section
-  borderRadius: 8,
+  paddingVertical: moderateScale(10),
+  paddingHorizontal: moderateScale(8),
+  marginTop: moderateScale(12),
+  backgroundColor: '#fafafa',   
+  borderRadius: moderateScale(8),
   borderWidth: 1,
   borderColor: '#f0f0f0',
   shadowColor: '#000',
@@ -1210,13 +1211,13 @@ const styles = StyleSheet.create({
 },
 
 priceLabel: {
-  fontSize: 14,
+  fontSize: normalizeFont(12),
   color: '#666',
   fontWeight: '500',
 },
 
 priceValue: {
-  fontSize: 16,
+  fontSize: normalizeFont(12),
   color: '#222',
   fontWeight: '700',
 },

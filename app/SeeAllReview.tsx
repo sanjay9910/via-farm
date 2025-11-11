@@ -2,13 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React from 'react';
 import {
-    FlatList,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 const SeeAllReview = () => {
@@ -75,7 +75,7 @@ const SeeAllReview = () => {
         <View style={styles.row}>
           <Ionicons name="location-sharp" size={16} color="#757575" />
           <Text style={styles.vendorLocation}>
-            {v.locationText || 'Unknown'} ({v.distance || 'N/A'})
+            {v.addressesText ||  v.about || 'Comming'} ({v.distance || 'N/A'})
           </Text>
         </View>
         <Text style={styles.aboutHeader}>About the vendor</Text>

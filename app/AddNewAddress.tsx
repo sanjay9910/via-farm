@@ -24,11 +24,14 @@ const AddNewAddress = () => {
   const navigation = useNavigation();
 
   const [formData, setFormData] = useState({
-    pincode: '',
+    pinCode: '',
     houseNumber: '',
     locality: '',
     city: '',
     district: '',
+    state: '',
+    latitude: 0,
+    longitude: 0,
   });
 
   const [isDefaultAddress, setIsDefaultAddress] = useState(false);
@@ -53,7 +56,9 @@ const AddNewAddress = () => {
         return;
       }
 
-      const location = await Location.getCurrentPositionAsync({});
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
       const { latitude, longitude } = location.coords;
 
       // 🔍 Reverse Geocode (convert lat/lng to address)
@@ -62,12 +67,16 @@ const AddNewAddress = () => {
       if (geocode && geocode.length > 0) {
         const addr = geocode[0];
         setFormData({
-          houseNumber: addr.name || '',
-          locality: addr.street || '',
+          houseNumber: addr.name || addr.street || '',
+          locality: addr.street || addr.subregion || '',
           city: addr.city || addr.subregion || '',
-          district: addr.district || addr.region || '',
-          pincode: addr.postalCode || '',
+          district: addr.district || addr.region || addr.county || '',
+          state: addr.region || addr.state || '',
+          pinCode: addr.postalCode || '',
+          latitude: latitude,
+          longitude: longitude,
         });
+        Alert.alert('Success', 'Location fetched successfully!');
       } else {
         Alert.alert('Error', 'Unable to fetch address from location.');
       }
@@ -81,10 +90,12 @@ const AddNewAddress = () => {
 
   const handleSave = async () => {
     try {
-      const requiredFields = ['pincode', 'houseNumber', 'locality', 'city', 'district'];
-      const missing = requiredFields.filter((f) => !formData[f]);
+      // ✅ Validation with correct field names
+      const requiredFields = ['pinCode', 'houseNumber', 'locality', 'city', 'district', 'state'];
+      const missing = requiredFields.filter((f) => !formData[f] || !formData[f].trim());
+      
       if (missing.length > 0) {
-        Alert.alert('Error', 'Please fill all required fields');
+        Alert.alert('Error', `Please fill all required fields: ${missing.join(', ')}`);
         return;
       }
 
@@ -92,37 +103,82 @@ const AddNewAddress = () => {
 
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
-        Alert.alert('Error', 'User not logged in');
+        Alert.alert('Error', 'User not logged in. Please login again.');
+        navigation.replace('login');
         return;
       }
 
+      // ✅ Exact payload format that API expects
       const payload = {
-        pinCode: formData.pincode,
-        houseNumber: formData.houseNumber,
-        locality: formData.locality,
-        city: formData.city,
-        district: formData.district,
+        pinCode: formData.pinCode.trim(),
+        houseNumber: formData.houseNumber.trim(),
+        locality: formData.locality.trim(),
+        city: formData.city.trim(),
+        district: formData.district.trim(),
+        state: formData.state.trim(),
         isDefault: isDefaultAddress,
+        // Send coordinates separately - backend will create location
+        latitude: parseFloat(String(formData.latitude || 28.0)),
+        longitude: parseFloat(String(formData.longitude || 77.0)),
       };
 
-      const res = await axios.post(`${API_BASE}/api/buyer/addresses`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      console.log('📤 Sending Address Payload:', payload);
 
-      // console.log('Address Add Response:', res.data);
+      const res = await axios.post(
+        `${API_BASE}/api/buyer/addresses`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 15000,
+        }
+      );
+
+      console.log('✅ Server Response:', res.data);
 
       if (res.data.success) {
-        Alert.alert('Success', 'Address added successfully!');
-        navigation.goBack();
+        Alert.alert('Success', 'Address added successfully!', [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]);
       } else {
-        Alert.alert('Error', res.data.message || 'Something went wrong');
+        Alert.alert('Error', res.data.message || 'Failed to add address');
       }
     } catch (error) {
-      console.error('Add Address Error:', error.response?.data || error.message);
-      Alert.alert('Error', error.response?.data?.message || 'Failed to add address');
+      console.error('❌ Add Address Error:', error);
+
+      let errorMessage = 'Failed to add address. Please try again.';
+
+      if (axios.isAxiosError(error)) {
+        // Server error
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response?.data?.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response?.status === 500) {
+          errorMessage = 'Server error. Please try again later.';
+        } else if (error.response?.status === 400) {
+          errorMessage = 'Invalid data. Please check all fields.';
+        } else if (error.response?.status === 401) {
+          errorMessage = 'Session expired. Please login again.';
+          await AsyncStorage.removeItem('userToken');
+          navigation.replace('login');
+          return;
+        } else if (error.response?.status === 403) {
+          errorMessage = 'You do not have permission to add addresses.';
+        }
+
+        console.error('Status:', error.response?.status);
+        console.error('Response Data:', error.response?.data);
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -145,7 +201,7 @@ const AddNewAddress = () => {
         {/* 📍 Use Current Location */}
         <View style={styles.locationBox}>
           <TouchableOpacity
-            style={styles.locationButton}
+            style={[styles.locationButton, locating && styles.locationButtonDisabled]}
             onPress={handleUseCurrentLocation}
             disabled={locating}
           >
@@ -159,50 +215,64 @@ const AddNewAddress = () => {
 
         {/* Address Form */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Address Details</Text>
+          <Text style={styles.sectionTitle}>Address Details *</Text>
 
           <TextInput
             style={styles.textInput}
-            placeholder="Pin Code"
+            placeholder="Pin Code *"
             keyboardType="number-pad"
-            value={formData.pincode}
-            onChangeText={(value) => handleInputChange('pincode', value)}
+            value={formData.pinCode}
+            onChangeText={(value) => handleInputChange('pinCode', value)}
             placeholderTextColor="#999"
             maxLength={6}
+            editable={!loading}
           />
 
           <TextInput
             style={styles.textInput}
-            placeholder="House Number / Block / Street"
+            placeholder="House Number / Block / Street *"
             value={formData.houseNumber}
             onChangeText={(value) => handleInputChange('houseNumber', value)}
             placeholderTextColor="#999"
+            editable={!loading}
           />
 
           <TextInput
             style={styles.textInput}
-            placeholder="Locality / Town"
+            placeholder="Locality / Town *"
             value={formData.locality}
             onChangeText={(value) => handleInputChange('locality', value)}
             placeholderTextColor="#999"
+            editable={!loading}
           />
 
           <View style={styles.row}>
             <TextInput
               style={[styles.textInput, styles.halfInput]}
-              placeholder="City"
+              placeholder="City *"
               value={formData.city}
               onChangeText={(value) => handleInputChange('city', value)}
               placeholderTextColor="#999"
+              editable={!loading}
             />
             <TextInput
               style={[styles.textInput, styles.halfInput]}
-              placeholder="District"
+              placeholder="District *"
               value={formData.district}
               onChangeText={(value) => handleInputChange('district', value)}
               placeholderTextColor="#999"
+              editable={!loading}
             />
           </View>
+
+          <TextInput
+            style={styles.textInput}
+            placeholder="State *"
+            value={formData.state}
+            onChangeText={(value) => handleInputChange('state', value)}
+            placeholderTextColor="#999"
+            editable={!loading}
+          />
 
           <View style={styles.switchContainer}>
             <Switch
@@ -210,6 +280,7 @@ const AddNewAddress = () => {
               onValueChange={setIsDefaultAddress}
               trackColor={{ false: '#f0f0f0', true: '#3b82f6' }}
               thumbColor="#fff"
+              disabled={loading}
             />
             <Text style={styles.switchLabel}>Make this my default address</Text>
           </View>
@@ -220,23 +291,31 @@ const AddNewAddress = () => {
 
       {/* Footer */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+        <TouchableOpacity 
+          style={styles.cancelButton} 
+          onPress={handleCancel}
+          disabled={loading}
+        >
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.saveButton}
+          style={[styles.saveButton, loading && styles.saveButtonDisabled]}
           onPress={handleSave}
           disabled={loading}
         >
+          {loading ? (
+            <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+          ) : null}
           <Text style={styles.saveButtonText}>
-            {loading ? 'Saving...' : 'Save'}
+            {loading ? 'Saving...' : 'Save Address'}
           </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
+
 
 // 💅 Styles
 const styles = StyleSheet.create({
