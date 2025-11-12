@@ -1,8 +1,10 @@
 import { useNavigation, useRouter } from 'expo-router';
-import React, { useContext, useState } from 'react';
+import { useContext, useState } from 'react';
 import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
+import { moderateScale, normalizeFont, scale } from '../Responsive';
+
 
 export default function RegisterScreen() {
   const { signup } = useContext(AuthContext);
@@ -97,10 +99,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 60,
+    paddingTop: moderateScale(60),
   },
   logoText: {
-    fontSize: 48,
+    fontSize: normalizeFont(48),
     fontWeight: 'bold',
     color: '#000',
     letterSpacing: 2,
@@ -113,61 +115,61 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderWidth:2,
     borderColor: "rgba(255, 202, 40, 1)",
-    borderRadius: 20,
+    borderRadius: moderateScale(20),
     height:'130%',
-    padding: 30,
+    padding: moderateScale(30),
     shadowColor: '#000',
     shadowOffset: {
-      width:3,
-      height: 2,
+      width:scale(3),
+      height: scale(2),
     },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
   },
   title: {
-    fontSize: 22,
+    fontSize: normalizeFont(16),
     fontWeight: '600',
     color: '#333',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: moderateScale(20),
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: '#666',
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: scale(20),
   },
   boldText: {
     fontWeight: 'bold',
     color: '#333',
   },
   inputContainer: {
-    marginTop: 30,
-    marginBottom: 25,
+    marginTop: moderateScale(30),
+    marginBottom: moderateScale(25),
   },
   inputLabel: {
-    fontSize: 16,
+    fontSize: normalizeFont(13),
     color: '#333',
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
     fontWeight: '500',
   },
   textInput: {
     borderWidth: 1,
     borderColor: '#e0e0e0',
     borderRadius: 8,
-    padding: 15,
-    fontSize: 16,
+    padding: moderateScale(15),
+    fontSize: normalizeFont(13),
     backgroundColor: '#fafafa',
     color: '#333',
   },
   otpButton: {
     backgroundColor: '#4CAF50',
-    borderRadius: 8,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
+    borderRadius: moderateScale(8),
+    paddingVertical: moderateScale(15),
+    paddingHorizontal: moderateScale(20),
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: moderateScale(20),
     shadowColor: '#4CAF50',
     shadowOffset: {
       width: 0,
@@ -179,21 +181,21 @@ const styles = StyleSheet.create({
   },
   otpButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: normalizeFont(13),
     fontWeight: '600',
   },
   signInContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: moderateScale(10),
   },
   signInText: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: '#666',
   },
   signInLink: {
-    fontSize: 14,
+    fontSize: normalizeFont(13),
     color: '#007AFF',
     fontWeight: '500',
   },

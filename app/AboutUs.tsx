@@ -1,6 +1,8 @@
+// AboutUs.jsx
 import { goBack } from 'expo-router/build/global-state/routing';
-import React from 'react';
+import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   Platform,
   ScrollView,
@@ -12,22 +14,81 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, normalizeFont, scale } from './Responsive';
 
+const BASE_URL = 'https://viafarm-1.onrender.com';
+const API_ENDPOINT = '/api/admin/manage-app/About-us';
+
 const AboutUs = ({ navigation }) => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [title, setTitle] = useState('About Us');
+  const [paragraphs, setParagraphs] = useState([]);
+
+  useEffect(() => {
+    fetchAbout();
+  }, []);
+
+  const fetchAbout = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const res = await fetch(`${BASE_URL}${API_ENDPOINT}`);
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+
+      const json = await res.json();
+      if (!json || !json.success || !json.data || !json.data.content) {
+        throw new Error('Invalid response from server');
+      }
+
+      // Parse content: treat first block as heading (if present), rest as paragraphs
+      // API content example: "🌱 About Viafarm\n\nViafarm connects you..."
+      const raw = (json.data.content || '').replace(/\r\n/g, '\n').trim();
+
+      // Split by two newlines to get blocks
+      const blocks = raw.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+
+      if (blocks.length === 0) {
+        setTitle('About Us');
+        setParagraphs([]);
+      } else {
+        // If first block looks like a short heading (one line), use it
+        const first = blocks[0];
+        // If the first block is a short line (<= 6 words), treat as title
+        const isHeading = first.split(/\s+/).length <= 8;
+        if (isHeading) {
+          // remove leading emoji if any
+          const cleanedTitle = first.replace(/^[\u{1F300}-\u{1FAFF}\u{1F600}-\u{1F64F}\u{2700}-\u{27BF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\s]+/u, '').trim();
+          setTitle(cleanedTitle || 'About Us');
+          // remaining blocks as paragraphs
+          setParagraphs(blocks.slice(1));
+        } else {
+          // no clear heading: use default title and everything as one paragraph
+          setTitle('About Us');
+          setParagraphs([raw]);
+        }
+      }
+    } catch (err) {
+      console.warn('Fetch About Us error', err);
+      setError(err.message || 'Failed to load content');
+      setTitle('About Us');
+      setParagraphs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={goBack}
-        >
-         <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
+        <TouchableOpacity style={styles.backButton} onPress={goBack}>
+          <Image source={require('../assets/via-farm-img/icons/groupArrow.png')} />
         </TouchableOpacity>
 
         <Text numberOfLines={1} style={styles.headerTitle}>
           About Us
         </Text>
 
-        {/* spacer to keep title centered */}
         <View style={styles.headerRightSpacer} />
       </View>
 
@@ -35,17 +96,43 @@ const AboutUs = ({ navigation }) => {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.card}>
-          <Text style={styles.title}>About Us</Text>
+        <View style={styles.heroCard}>
+          <View style={styles.accentBar} />
 
-          <View style={styles.contentSection}>
-            <Text style={styles.contentText}>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-              {"\n\n"}
-              Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
-              {"\n\n"}
-              dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-            </Text>
+          <View style={styles.heroContent}>
+            {loading ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color="#ff6b35" />
+                <Text style={styles.loadingText}>Fetching information...</Text>
+              </View>
+            ) : error ? (
+              <View style={styles.errorBlock}>
+                <Text style={styles.errorTitle}>Oops — couldn't load content</Text>
+                <Text style={styles.errorMessage}>{error}</Text>
+                <TouchableOpacity style={styles.retryButton} onPress={fetchAbout}>
+                  <Text style={styles.retryText}>Retry</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.title}>{title}</Text>
+
+                <View style={styles.metaRow}>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>ViaFarm</Text>
+                  </View>
+                  <Text style={styles.smallText}>Connecting you with local farmers</Text>
+                </View>
+
+                <View style={styles.contentSection}>
+                  {paragraphs.map((p, i) => (
+                    <Text key={i} style={styles.contentText}>
+                      {p}
+                    </Text>
+                  ))}
+                </View>
+              </>
+            )}
           </View>
         </View>
 
@@ -60,8 +147,7 @@ export default AboutUs;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    // small top padding on Android to match SafeArea behaviour
+    backgroundColor: '#f8fafb',
     paddingTop: Platform.OS === 'android' ? moderateScale(6) : 0,
   },
 
@@ -70,9 +156,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: moderateScale(12),
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 1,
     borderBottomColor: '#e6edf3',
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     paddingVertical: moderateScale(6),
   },
 
@@ -91,10 +177,11 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     alignSelf: 'center',
     zIndex: 1,
+    fontWeight: '700',
   },
 
   headerRightSpacer: {
-    width: moderateScale(36), // balances the left back button
+    width: moderateScale(36),
   },
 
   contentContainer: {
@@ -102,10 +189,10 @@ const styles = StyleSheet.create({
     paddingBottom: moderateScale(40),
   },
 
-  card: {
-    backgroundColor: '#fff',
+  heroCard: {
+    backgroundColor: '#ffffff',
     borderRadius: moderateScale(14),
-    padding: moderateScale(20),
+    overflow: 'hidden',
     // iOS shadow
     shadowColor: '#000',
     shadowOpacity: 0.06,
@@ -115,22 +202,101 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
+  accentBar: {
+    height: moderateScale(6),
+    backgroundColor: '#16a34a', // soft green accent
+    width: '100%',
+  },
+
+  heroContent: {
+    padding: moderateScale(20),
+  },
+
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: moderateScale(8),
+  },
+
+  loadingText: {
+    marginLeft: moderateScale(10),
+    color: '#64748b',
+    fontSize: normalizeFont(13),
+  },
+
+  errorBlock: {
+    alignItems: 'center',
+    paddingVertical: moderateScale(12),
+  },
+
+  errorTitle: {
+    fontSize: normalizeFont(16),
+    color: '#dc2626',
+    fontWeight: '700',
+    marginBottom: moderateScale(6),
+  },
+
+  errorMessage: {
+    textAlign: 'center',
+    color: '#7f1d1d',
+    marginBottom: moderateScale(12),
+  },
+
+  retryButton: {
+    backgroundColor: '#ff6b35',
+    paddingHorizontal: moderateScale(18),
+    paddingVertical: moderateScale(10),
+    borderRadius: moderateScale(8),
+  },
+
+  retryText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: normalizeFont(13),
+  },
+
   title: {
     fontSize: normalizeFont(20),
-    fontWeight: '600',
     color: '#06203a',
-    marginBottom: moderateScale(16),
-    textAlign: 'center',
+    fontWeight: '800',
+    marginBottom: moderateScale(8),
+    textAlign: 'left',
+  },
+
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: moderateScale(12),
+  },
+
+  badge: {
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(6),
+    borderRadius: moderateScale(20),
+    marginRight: moderateScale(10),
+  },
+
+  badgeText: {
+    color: '#065f46',
+    fontWeight: '700',
+    fontSize: normalizeFont(12),
+  },
+
+  smallText: {
+    color: '#475569',
+    fontSize: normalizeFont(12),
   },
 
   contentSection: {
-    width: '100%',
+    marginTop: moderateScale(6),
   },
 
   contentText: {
     color: '#334155',
     fontSize: normalizeFont(14),
     lineHeight: moderateScale(20),
+    marginBottom: moderateScale(12),
     textAlign: 'left',
   },
 });

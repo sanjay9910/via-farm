@@ -493,7 +493,7 @@ const VendorsDetails = () => {
             horizontal
             keyExtractor={(item, idx) => `review-img-${idx}`}
             renderItem={({ item }) => (
-              <Image source={{ uri: item }} style={{ width: 80, height: 80, marginRight: 8, borderRadius: 8 }} />
+              <Image source={{ uri: item }} style={{ width:scale(80), height: scale(80), marginRight: moderateScale(8), borderRadius: moderateScale(8) }} />
             )}
             showsHorizontalScrollIndicator={false}
           />
@@ -501,7 +501,7 @@ const VendorsDetails = () => {
       )}
 
       {/* Reviews */}
-      <View style={{ backgroundColor: '#fff', paddingVertical: 10, marginTop: allReviewImages.length > 0 ? 0 : 10 }}>
+      <View style={{ backgroundColor: '#fff', paddingVertical: moderateScale(10), marginTop: allReviewImages.length > 0 ? 0 : 10 }}>
         {reviews.length > 0 ? (
           <FlatList
             data={reviews}
@@ -509,11 +509,11 @@ const VendorsDetails = () => {
             keyExtractor={(item, index) => (item?._id ? item._id.toString() : index.toString())}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 10 }}
+            contentContainerStyle={{ paddingHorizontal: moderateScale(10) }}
           />
         ) : (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Image style={{ width: 70, height: 70 }} source={require('../assets/via-farm-img/icons/empty.png')} />
+            <Image style={{ width: scale(70), height: scale(70) }} source={require('../assets/via-farm-img/icons/empty.png')} />
             <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
               <Image style={{ width: 25, height: 25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
               <Image style={{ width: 25, height: 25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
@@ -627,11 +627,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#D32F2F',
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
   imageBox: {
     width: '100%',
-    height: 250,
+    height: scale(250),
   },
   image: {
     width: '100%',
@@ -642,15 +642,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 10,
     backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: 20,
+    borderRadius: moderateScale(20),
     padding: 5,
   },
   cardContainer: {
-    padding: 15,
+    padding: moderateScale(15),
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
   rowBetween: {
     flexDirection: 'row',
@@ -668,20 +668,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: scale(4),
     borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    paddingHorizontal: moderateScale(6),
+    paddingVertical: moderateScale(3),
     borderWidth: 1,
     borderColor: '#4CAF50',
   },
   ratingText: {
     color: '#000',
     fontWeight: 'bold',
-    marginLeft: 6,
+    marginLeft: moderateScale(6),
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
     gap: scale(3),
   },
   location: {
@@ -705,13 +705,13 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(16),
     fontWeight: 'bold',
     color: '#333',
-    marginVertical: 10,
-    marginLeft: 10,
+    marginVertical: moderateScale(10),
+    marginLeft: moderateScale(10),
   },
   noReviewText: {
     textAlign: 'center',
     color: '#757575',
-    paddingVertical: 10,
+    paddingVertical: moderateScale(10),
   },
   reviewCard: {
     backgroundColor: 'rgba(255, 253, 246, 1)',
@@ -764,15 +764,15 @@ const styles = StyleSheet.create({
   dropdownButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8,
+    padding: moderateScale(8),
     backgroundColor: '#f0f0f0',
     borderRadius: 5,
     borderWidth: 1,
     borderColor: '#ccc',
-    minWidth: 120,
+    minWidth: scale(120),
   },
   dropdownButtonText: {
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     marginRight: 5,
     color: '#333',
     fontWeight: '600',

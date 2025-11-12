@@ -5,22 +5,22 @@ import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from 'expo-location';
 import { useRouter } from "expo-router";
-import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    Image,
-    Modal,
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "./context/AuthContext";
@@ -405,7 +405,7 @@ const ProfileScreen = () => {
   };
 
   const handlePrivacyPress = () => {
-    navigation.navigate("Privacy&Policy");
+    navigation.navigate("Terms&Condition");
   };
 
   const handleAboutPress = () => {
@@ -546,7 +546,7 @@ const ProfileScreen = () => {
 
           <ProfileMenuItem
             icon="shield-checkmark-outline"
-            title="Privacy Policy"
+            title="Terms & Condition"
             subtitle="We care about your safety"
             onPress={handlePrivacyPress}
           />

@@ -1,25 +1,27 @@
+// ProductVarieties.jsx (FIXED - Same as ViewAllFruits Design)
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation } from "@react-navigation/native";
-import axios from "axios";
-import React, { useEffect, useState } from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import axios from 'axios';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    FlatList,
+    Image,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, normalizeFont, scale } from './Responsive';
 
-const API_BASE = "https://viafarm-1.onrender.com";
+const API_BASE = 'https://viafarm-1.onrender.com';
 
-// ✅ Product Card with Wishlist & Cart functionality
+// Same ProductCard as ViewAllFruits
 const ProductCard = ({
   item,
   isFavorite,
@@ -27,29 +29,38 @@ const ProductCard = ({
   cartQuantity,
   onAddToCart,
   onUpdateQuantity,
-  onPress, // <-- handler when card pressed
+  onPress
 }) => {
-  const inCart = cartQuantity > 0;
+  const inCart = (cartQuantity || 0) > 0;
+
+  const imageUri = item?.image
+    || (Array.isArray(item?.images) && item.images.length > 0 && item.images[0])
+    || "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image";
+
+  const distance =
+    item?.distanceFromVendor ??
+    item?.distance ??
+    item?.vendor?.distanceFromVendor ??
+    null;
+
+  const status = item?.status ?? (item?.stock === 0 ? "Out of Stock" : "In Stock");
+
+  const rating = (typeof item?.rating === "number") ? item.rating : (item?.rating ? Number(item.rating) : 0);
 
   return (
     <View style={[cardStyles.container]}>
       <TouchableOpacity
         style={cardStyles.card}
-        activeOpacity={0.8}
+        activeOpacity={0.85}
         onPress={() => onPress && onPress(item)}
       >
         <View style={[cardStyles.imageContainer, { height: cardStyles.imageHeight }]}>
           <Image
-            source={{
-              uri:
-                item.images && item.images.length > 0
-                  ? item.images[0]
-                  : "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
-            }}
+            source={{ uri: imageUri }}
             style={cardStyles.productImage}
+            resizeMode="cover"
           />
 
-          {/* Wishlist Icon */}
           <TouchableOpacity
             style={cardStyles.favoriteButton}
             activeOpacity={0.7}
@@ -60,73 +71,59 @@ const ProductCard = ({
           >
             <Ionicons
               name={isFavorite ? 'heart' : 'heart-outline'}
-              size={25}
-              color={isFavorite ? '#ff4444' : '#666'}
+              size={23}
+              color={isFavorite ? '#ff4444' : '#fff'}
             />
           </TouchableOpacity>
 
-          {/* Rating */}
           <View style={cardStyles.ratingContainer}>
             <Ionicons name="star" size={12} color="#FFD700" />
             <Text style={cardStyles.ratingText}>
-              {item.rating && item.rating > 0 ? Number(item.rating).toFixed(1) : "0.0"}
+              {rating ? Number(rating).toFixed(1) : "0.0"}
             </Text>
           </View>
-
-          {/* Status Badge */}
-          {/* <View
-            style={[
-              cardStyles.statusBadge,
-              {
-                backgroundColor:
-                  item.status === "In Stock"
-                    ? "#4CAF50"
-                    : item.status === "Out of Stock"
-                      ? "#f44336"
-                      : "#ff9800",
-              },
-            ]}
-          >
-            <Text style={cardStyles.statusText}>{item.status}</Text>
-          </View> */}
         </View>
 
         <View style={cardStyles.cardContent}>
           <Text style={cardStyles.productTitle} numberOfLines={1}>
-            {item.name}
-          </Text>
-          <Text style={cardStyles.productSubtitle} numberOfLines={1}>
-            by {item.vendor?.name || "Unknown Vendor"}
+            {item?.name ?? "Unnamed product"}
           </Text>
 
-          {/* Price and Unit in same line */}
-          <View style={cardStyles.priceContainer}>
-            <Text style={cardStyles.productPrice}>₹{item.price}</Text>
-            <Text style={cardStyles.productUnit}>/{item.unit}</Text>
+          <Text style={cardStyles.productVeriety} numberOfLines={1}>
+            Variety: {item?.variety ?? "Unnamed product"}
+          </Text>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <Image
+              source={require("../assets/via-farm-img/icons/cardMap.png")}
+            />
+            <Text style={{ fontSize: 12, color: '#444' }}>
+              {distance ?? "0.0 km"}
+            </Text>
           </View>
 
-          {/* Variety */}
-          {item.variety && (
-            <Text style={cardStyles.varietyText}>Variety: {item.variety}</Text>
-          )}
+          <View style={cardStyles.priceContainer}>
+            <Text style={cardStyles.productUnit}>₹{item?.price ?? "0"}</Text>
+            <Text style={cardStyles.productUnit}>/{item?.unit ?? "unit"}</Text>
+            {item?.weightPerPiece ? <Text style={cardStyles.productUnit}>{item.weightPerPiece}</Text> : null}
+          </View>
 
-          {/* Add to Cart / Quantity Control */}
           <View style={cardStyles.buttonContainer}>
             {!inCart ? (
               <TouchableOpacity
                 style={[
                   cardStyles.addToCartButton,
-                  item.status !== "In Stock" && cardStyles.disabledButton
+                  status !== "In Stock" && cardStyles.disabledButton
                 ]}
-                activeOpacity={0.7}
-                disabled={item.status !== "In Stock"}
+                activeOpacity={0.8}
+                disabled={status !== "In Stock"}
                 onPress={(e) => {
                   e.stopPropagation?.();
                   onAddToCart && onAddToCart(item);
                 }}
               >
                 <Text style={cardStyles.addToCartText}>
-                  {item.status === "In Stock" ? "Add to Cart" : item.status}
+                  {status === "In Stock" ? "Add to Cart" : status}
                 </Text>
               </TouchableOpacity>
             ) : (
@@ -161,64 +158,51 @@ const ProductCard = ({
   );
 };
 
-const ViewAllFressPop = () => {
+// Main ProductVarieties Component
+const ProductVarieties = () => {
+  const route = useRoute();
   const navigation = useNavigation();
-  const [items, setItems] = useState([]); // fresh & popular items
+  const { product, productId, variety } = route.params || {};
+
   const [loading, setLoading] = useState(true);
+  const [varieties, setVarieties] = useState([]);
   const [error, setError] = useState(null);
   const [favorites, setFavorites] = useState(new Set());
   const [cartItems, setCartItems] = useState({});
+  const [query, setQuery] = useState("");
 
-  // Fetch Fresh & Popular
-  const fetchFreshAndPopular = async () => {
+  // Fetch Varieties by variety name
+  const fetchVarieties = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const token = await AsyncStorage.getItem("userToken");
-      if (!token) {
-        console.warn("No user token found - calling endpoint without auth header");
+      const varietyName = variety || product?.variety || product?.name;
+
+      if (!varietyName) {
+        throw new Error('Variety name not found');
       }
 
-      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+      const token = await AsyncStorage.getItem('userToken');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const res = await axios.get(`${API_BASE}/api/buyer/fresh-and-popular`, {
-        headers,
-        timeout: 10000,
-      });
-      let fetched = [];
-      if (!res || !res.data) {
-        fetched = [];
-      } else if (Array.isArray(res.data)) {
-        fetched = res.data;
-      } else if (res.data.success && Array.isArray(res.data.data)) {
-        fetched = res.data.data;
-      } else if (Array.isArray(res.data.data)) {
-        fetched = res.data.data;
-      } else if (Array.isArray(res.data?.data?.data)) {
-        fetched = res.data.data.data;
-      } else {
-        fetched = res.data.data || [];
-      }
+      const response = await axios.get(
+        `${API_BASE}/api/buyer/products/variety?variety=${encodeURIComponent(varietyName)}`,
+        { headers, timeout: 10000 }
+      );
 
-      setItems(fetched);
+      const arr = response?.data?.data ?? response?.data?.varieties ?? response?.data ?? [];
+
+      setVarieties(Array.isArray(arr) ? arr : []);
     } catch (err) {
-      console.error("Error fetching fresh & popular:", err);
-      if (err.response?.status === 401) {
-        setError("Please login to view items");
-      } else if (err.code === "ECONNABORTED") {
-        setError("Request timeout. Please try again.");
-      } else if (!err.response) {
-        setError("Network error. Check your connection.");
-      } else {
-        setError("Failed to load items. Please try again.");
-      }
+      console.error('Fetch varieties error:', err);
+      setError(err?.response?.data?.message || 'Failed to load varieties');
     } finally {
       setLoading(false);
     }
   };
 
-  // Wishlist and cart functions (reuse your existing endpoints)
+  // Fetch Wishlist
   const fetchWishlist = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -230,7 +214,9 @@ const ViewAllFressPop = () => {
 
       if (response.data?.success) {
         const wishlistItems = response.data.data?.items || [];
-        const favoriteIds = new Set(wishlistItems.map(item => item.productId || item._id));
+        const favoriteIds = new Set(
+          wishlistItems.map(item => item.productId || item._id || item.id)
+        );
         setFavorites(favoriteIds);
       }
     } catch (error) {
@@ -238,6 +224,7 @@ const ViewAllFressPop = () => {
     }
   };
 
+  // Fetch Cart
   const fetchCart = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -251,7 +238,7 @@ const ViewAllFressPop = () => {
         const items = response.data.data?.items || [];
         const cartMap = {};
         items.forEach(item => {
-          const productId = item.productId || item._id;
+          const productId = item.productId || item._id || item.id;
           cartMap[productId] = {
             quantity: item.quantity || 1,
             cartItemId: item._id || item.id
@@ -265,43 +252,64 @@ const ViewAllFressPop = () => {
   };
 
   useEffect(() => {
-    fetchFreshAndPopular();
+    fetchVarieties();
     fetchWishlist();
     fetchCart();
-  }, []);
+  }, [product, productId, variety]);
 
-  // Add to / remove from wishlist
-  const addToWishlist = async (product) => {
+  // Client-side filter by name
+  const filteredVarieties = useMemo(() => {
+    const q = (query || "").trim().toLowerCase();
+    if (!q) return varieties;
+    return varieties.filter(v =>
+      (v?.name ?? "")
+        .toString()
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [varieties, query]);
+
+  // Add to Wishlist
+  const addToWishlist = async (prod) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
         Alert.alert('Login Required', 'Please login to add items to wishlist');
         return;
       }
-      const productId = product._id || product.id;
-      const payload = {
-        productId,
-        name: product.name,
-        image: product.images?.[0] || '',
-        price: product.price,
-        category: product.category || '',
-        variety: product.variety || '',
-        unit: product.unit || '',
+
+      const prodId = prod._id || prod.id;
+
+      const wishlistData = {
+        productId: prodId,
+        name: prod.name,
+        image: prod.images?.[0] || prod.image || '',
+        price: prod.price,
+        category: prod.category || 'Products',
+        variety: prod.variety || 'Standard',
+        unit: prod.unit || 'kg'
       };
-      const res = await axios.post(`${API_BASE}/api/buyer/wishlist/add`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data?.success) {
-        setFavorites(prev => new Set(prev).add(productId));
+
+      const response = await axios.post(
+        `${API_BASE}/api/buyer/wishlist/add`,
+        wishlistData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data?.success) {
+        setFavorites(prev => new Set(prev).add(prodId));
         Alert.alert('Success', 'Added to wishlist!');
-      } else {
-        Alert.alert('Error', res.data?.message || 'Could not add to wishlist');
       }
-    } catch (err) {
-      console.error('Error adding to wishlist:', err);
-      if (err.response?.status === 400) {
-        const productId = product._id || product.id;
-        setFavorites(prev => new Set(prev).add(productId));
+    } catch (error) {
+      console.error('Error adding to wishlist:', error);
+      if (error.response?.status === 400) {
+        const prodId = prod._id || prod.id;
+        setFavorites(prev => new Set(prev).add(prodId));
         Alert.alert('Info', 'Already in wishlist');
       } else {
         Alert.alert('Error', 'Failed to add to wishlist');
@@ -309,77 +317,91 @@ const ViewAllFressPop = () => {
     }
   };
 
-  const removeFromWishlist = async (product) => {
+  // Remove from Wishlist
+  const removeFromWishlist = async (prod) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) return;
-      const productId = product._id || product.id;
-      const res = await axios.delete(`${API_BASE}/api/buyer/wishlist/${productId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data?.success) {
+
+      const prodId = prod._id || prod.id;
+
+      const response = await axios.delete(
+        `${API_BASE}/api/buyer/wishlist/${prodId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.data?.success) {
         setFavorites(prev => {
           const next = new Set(prev);
-          next.delete(productId);
+          next.delete(prodId);
           return next;
         });
         Alert.alert('Removed', 'Removed from wishlist');
-      } else {
-        Alert.alert('Error', res.data?.message || 'Could not remove from wishlist');
       }
-    } catch (err) {
-      console.error('Error removing from wishlist:', err);
+    } catch (error) {
+      console.error('Error removing from wishlist:', error);
       Alert.alert('Error', 'Failed to remove from wishlist');
     }
   };
 
-  const handleToggleFavorite = async (product) => {
-    const productId = product._id || product.id;
-    if (favorites.has(productId)) {
-      await removeFromWishlist(product);
+  const handleToggleFavorite = async (prod) => {
+    const prodId = prod._id || prod.id;
+    if (favorites.has(prodId)) {
+      await removeFromWishlist(prod);
     } else {
-      await addToWishlist(product);
+      await addToWishlist(prod);
     }
   };
 
-  // Add to cart
-  const handleAddToCart = async (product) => {
+  // Add to Cart
+  const handleAddToCart = async (prod) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
         Alert.alert('Login Required', 'Please login to add items to cart');
         return;
       }
-      const productId = product._id || product.id;
-      const payload = {
-        productId,
-        name: product.name,
-        image: product.images?.[0] || '',
-        price: product.price,
+
+      const prodId = prod._id || prod.id;
+
+      const cartData = {
+        productId: prodId,
+        name: prod.name,
+        image: prod.images?.[0] || prod.image || '',
+        price: prod.price,
         quantity: 1,
-        category: product.category || '',
-        variety: product.variety || '',
-        unit: product.unit || ''
+        category: prod.category || 'Products',
+        variety: prod.variety || 'Standard',
+        unit: prod.unit || 'kg'
       };
-      const res = await axios.post(`${API_BASE}/api/buyer/cart/add`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data?.success) {
+
+      const response = await axios.post(
+        `${API_BASE}/api/buyer/cart/add`,
+        cartData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data?.success) {
         setCartItems(prev => ({
           ...prev,
-          [productId]: {
+          [prodId]: {
             quantity: 1,
-            cartItemId: res.data.data?._id || productId
+            cartItemId: response.data.data?._id || prodId
           }
         }));
         Alert.alert('Success', 'Added to cart!');
-      } else {
-        Alert.alert('Error', res.data?.message || 'Could not add to cart');
       }
-    } catch (err) {
-      console.error('Error adding to cart:', err);
-      if (err.response?.status === 400) {
-        await fetchCart();
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      if (error.response?.status === 400) {
+        fetchCart();
         Alert.alert('Info', 'Product is already in cart');
       } else {
         Alert.alert('Error', 'Failed to add to cart');
@@ -387,94 +409,118 @@ const ViewAllFressPop = () => {
     }
   };
 
-  // Update cart quantity
-  const handleUpdateQuantity = async (product, change) => {
+  // Update Quantity
+  const handleUpdateQuantity = async (prod, change) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) return;
 
-      const productId = product._id || product.id;
-      const currentItem = cartItems[productId];
+      const prodId = prod._id || prod.id;
+      const currentItem = cartItems[prodId];
       if (!currentItem) return;
 
       const newQuantity = currentItem.quantity + change;
 
       if (newQuantity < 1) {
-        const res = await axios.delete(`${API_BASE}/api/buyer/cart/${currentItem.cartItemId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.data?.success) {
+        const response = await axios.delete(
+          `${API_BASE}/api/buyer/cart/${currentItem.cartItemId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        if (response.data?.success) {
           setCartItems(prev => {
             const next = { ...prev };
-            delete next[productId];
+            delete next[prodId];
             return next;
           });
           Alert.alert('Removed', 'Item removed from cart');
         }
       } else {
-        // optimistic
         setCartItems(prev => ({
           ...prev,
-          [productId]: { ...currentItem, quantity: newQuantity }
+          [prodId]: { ...currentItem, quantity: newQuantity }
         }));
 
-        const res = await axios.put(`${API_BASE}/api/buyer/cart/${currentItem.cartItemId}/quantity`, { quantity: newQuantity }, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await axios.put(
+          `${API_BASE}/api/buyer/cart/${currentItem.cartItemId}/quantity`,
+          { quantity: newQuantity },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-        if (!res.data?.success) {
-          // rollback
-          setCartItems(prev => ({ ...prev, [productId]: currentItem }));
+        if (!response.data?.success) {
+          setCartItems(prev => ({ ...prev, [prodId]: currentItem }));
           Alert.alert('Error', 'Failed to update quantity');
         }
       }
-    } catch (err) {
-      console.error('Error updating quantity:', err);
-      await fetchCart();
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+      fetchCart();
       Alert.alert('Error', 'Failed to update quantity');
     }
   };
 
-  // Open product details
-  const openProductDetails = (product) => {
+  const openProductDetails = (prod) => {
     try {
-      const productId = product?._id || product?.id;
-      if (!productId) {
+      const prodId = prod?._id || prod?.id;
+      if (!prodId) {
         Alert.alert("Error", "Product id missing");
         return;
       }
-      navigation.navigate("ViewProduct", { productId, product });
+      navigation.navigate("ViewProduct", { productId: prodId, product: prod });
     } catch (err) {
       console.error("openProductDetails error:", err);
-      Alert.alert("Navigation Error", "Could not open product details. See console.");
+      Alert.alert("Navigation Error", "Could not open product details");
     }
   };
 
   const handleRetry = () => {
     setError(null);
-    fetchFreshAndPopular();
+    fetchVarieties();
     fetchWishlist();
     fetchCart();
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-      {/* Header */}
+      {/* Header with Search */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonContainer}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
           <Image
             source={require("../assets/via-farm-img/icons/groupArrow.png")}
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Fresh & Popular</Text>
-        <View style={{ width: 50 }} />
+
+        <View style={styles.searchWrapper}>
+          <Ionicons name="search" size={18} color="#888" style={{ marginRight: 8 }} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search by name..."
+            placeholderTextColor="#999"
+            style={styles.searchInput}
+            returnKeyType="search"
+            autoCorrect={false}
+          />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={() => setQuery("")} style={styles.clearButton}>
+              <Ionicons name="close-circle" size={18} color="#888" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Loading */}
       {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFA500" />
-          <Text style={styles.loadingText}>Fetching fresh & popular items...</Text>
+          <Text style={styles.loadingText}>Fetching varieties...</Text>
         </View>
       )}
 
@@ -488,39 +534,47 @@ const ViewAllFressPop = () => {
         </View>
       )}
 
-      {/* Success - Items List */}
+      {/* Success - Varieties List */}
       {!loading && !error && (
-        <FlatList
-          data={items}
-          keyExtractor={(item) => item._id || item.id || String(item?.name)}
-          numColumns={2}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 20 }}
-          renderItem={({ item }) => {
-            const productId = item._id || item.id;
-            const isFavorite = favorites.has(productId);
-            const cartQuantity = cartItems[productId]?.quantity || 0;
+        <>
+          {filteredVarieties.length === 0 ? (
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <Text style={{ color: '#444' }}>No products match "{query}"</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredVarieties}
+              keyExtractor={(item) => item._id || item.id || String(item?.name)}
+              numColumns={2}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 13, paddingBottom: 20 }}
+              renderItem={({ item }) => {
+                const prodId = item._id || item.id;
+                const isFavorite = favorites.has(prodId);
+                const cartQuantity = cartItems[prodId]?.quantity || 0;
 
-            return (
-              <ProductCard
-                item={item}
-                isFavorite={isFavorite}
-                onToggleFavorite={handleToggleFavorite}
-                cartQuantity={cartQuantity}
-                onAddToCart={handleAddToCart}
-                onUpdateQuantity={handleUpdateQuantity}
-                onPress={openProductDetails}
-              />
-            );
-          }}
-          columnWrapperStyle={{ justifyContent: "space-between" }}
-        />
+                return (
+                  <ProductCard
+                    item={item}
+                    isFavorite={isFavorite}
+                    onToggleFavorite={handleToggleFavorite}
+                    cartQuantity={cartQuantity}
+                    onAddToCart={handleAddToCart}
+                    onUpdateQuantity={handleUpdateQuantity}
+                    onPress={openProductDetails}
+                  />
+                );
+              }}
+              columnWrapperStyle={{ justifyContent: "space-between" }}
+            />
+          )}
+        </>
       )}
     </SafeAreaView>
   );
 };
 
-export default ViewAllFressPop;
+export default ProductVarieties;
 
 const styles = StyleSheet.create({
   header: {
@@ -548,28 +602,14 @@ const styles = StyleSheet.create({
     color: '#222',
     paddingVertical: 0
   },
-  backButtonContainer: {
-    padding: 1,
-  },
-  riceContainer: {
-    flex: 1,
-    gap: scale(5),
-  },
-  backIcon: {
-    width: scale(24),
-    height: scale(24),
-  },
-  headerTitle: {
-    fontSize: normalizeFont(20),
-    fontWeight: "600",
-    color: "#333",
+  clearButton: {
+    padding: 4
   },
   loadingContainer: {
     alignItems: "center",
     padding: moderateScale(20),
     flex: 1,
     justifyContent: 'center',
-    alignContent: 'center',
   },
   loadingText: {
     marginTop: moderateScale(10),
@@ -601,7 +641,6 @@ const styles = StyleSheet.create({
   },
 });
 
-// ✅ Card Styles - Exact same as your design
 const cardStyles = StyleSheet.create({
   container: {
     width: Dimensions.get("window").width / 2 - 25,
@@ -659,19 +698,6 @@ const cardStyles = StyleSheet.create({
     marginLeft: 2,
     fontWeight: '500',
   },
-  statusBadge: {
-    position: 'absolute',
-    top: moderateScale(8),
-    left: moderateScale(8),
-    paddingHorizontal: moderateScale(6),
-    paddingVertical: moderateScale(2),
-    borderRadius: 8,
-  },
-  statusText: {
-    color: '#fff',
-    fontSize: normalizeFont(10),
-    fontWeight: '500',
-  },
   cardContent: {
     padding: moderateScale(5),
   },
@@ -680,40 +706,21 @@ const cardStyles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
-
   productVeriety: {
     color: 'rgba(66, 66, 66, 0.7)',
     fontSize: normalizeFont(12),
     paddingVertical: 1,
   },
-
-  productSubtitle: {
-    fontSize: normalizeFont(14),
-    color: '#888',
-    marginBottom: moderateScale(8),
-    height: scale(20),
-  },
-  // Price and Unit in same line
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
     marginBottom: moderateScale(6),
     marginTop: moderateScale(4),
   },
-  productPrice: {
-    fontSize: normalizeFont(14),
-    fontWeight: '700',
-    color: '#000',
-  },
   productUnit: {
     fontSize: normalizeFont(12),
     color: '#666',
     marginLeft: 2,
-  },
-  varietyText: {
-    fontSize: normalizeFont(12),
-    color: '#666',
-    marginBottom: moderateScale(8),
   },
   buttonContainer: {
     minHeight: scale(26),
@@ -756,7 +763,6 @@ const cardStyles = StyleSheet.create({
     justifyContent: 'center',
     padding: 0,
   },
-
   quantityValueContainer: {
     minWidth: scale(48),
     paddingHorizontal: moderateScale(6),
@@ -768,7 +774,6 @@ const cardStyles = StyleSheet.create({
     borderColor: 'rgba(76, 175, 80, 1)',
     flexDirection: 'row',
   },
-
   quantityText: {
     fontSize: normalizeFont(16),
     color: 'rgba(76, 175, 80, 1)',
@@ -776,11 +781,4 @@ const cardStyles = StyleSheet.create({
     textAlign: 'center',
     includeFontPadding: false,
   },
-  quantityCount: {
-    fontSize: normalizeFont(14),
-    color: 'rgba(76, 175, 80, 1)',
-    fontWeight: '600',
-    marginHorizontal: moderateScale(6),
-  },
-
 });

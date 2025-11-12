@@ -70,7 +70,7 @@ const ProductCard = ({
           >
             <Ionicons
               name={isFavorite ? 'heart' : 'heart-outline'}
-              size={22}
+              size={23}
               color={isFavorite ? '#ff4444' : '#fff'}
             />
           </TouchableOpacity>
@@ -99,20 +99,20 @@ const ProductCard = ({
           </Text>
 
           <Text style={cardStyles.productVeriety} numberOfLines={1}>
-           Veriety :{item?.variety ?? "Unnamed product"}
+            Veriety :{item?.variety ?? "Unnamed product"}
           </Text>
 
-          
-{/* 
+
+          {/* 
           <View style={{marginVertical:5,}}>
             <Text numberOfLines={1} style={{color:'#444',fontSize:12}}>{item?.vendor?.name ?? ''}</Text>
           </View> */}
 
-          <View style={{flexDirection:'row',alignItems:'center',gap:5,}}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, }}>
             <Image
               source={require("../assets/via-farm-img/icons/cardMap.png")}
             />
-            <Text style={{fontSize:12,color:'#444'}}>
+            <Text style={{ fontSize: 12, color: '#444' }}>
               {distance ?? "0.0 km"}
             </Text>
           </View>
@@ -150,9 +150,11 @@ const ProductCard = ({
                     onUpdateQuantity && onUpdateQuantity(item, -1);
                   }}
                 >
-                  <Ionicons name="remove" size={16} color="#fff" />
+                  <Ionicons name="remove" size={16} color="rgba(76, 175, 80, 1)" />
                 </TouchableOpacity>
-                <Text style={cardStyles.quantityText}>{cartQuantity}</Text>
+                <View style={cardStyles.quantityValueContainer}>
+                  <Text style={cardStyles.quantityText}>{cartQuantity}</Text>
+                </View>
                 <TouchableOpacity
                   style={cardStyles.quantityButton}
                   onPress={(e) => {
@@ -160,7 +162,7 @@ const ProductCard = ({
                     onUpdateQuantity && onUpdateQuantity(item, 1);
                   }}
                 >
-                  <Ionicons name="add" size={16} color="#fff" />
+                  <Ionicons name="add" size={16} color="rgba(76, 175, 80, 1)" />
                 </TouchableOpacity>
               </View>
             )}
@@ -520,7 +522,7 @@ const ViewAllFruits = () => {
         </TouchableOpacity>
 
         <View style={styles.searchWrapper}>
-          <Ionicons name="search" size={18} color="#888" style={{marginRight:8}} />
+          <Ionicons name="search" size={18} color="#888" style={{ marginRight: 8 }} />
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -560,8 +562,8 @@ const ViewAllFruits = () => {
       {!loading && !error && (
         <>
           {filteredFruits.length === 0 ? (
-            <View style={{padding:20, alignItems:'center'}}>
-              <Text style={{color:'#444'}}>No fruits match “{query}”</Text>
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <Text style={{ color: '#444' }}>No fruits match “{query}”</Text>
             </View>
           ) : (
             <FlatList
@@ -569,7 +571,7 @@ const ViewAllFruits = () => {
               keyExtractor={(item) => item._id || item.id || String(item?.name)}
               numColumns={2}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 20 }}
+              contentContainerStyle={{ paddingHorizontal:13, paddingBottom: 20 }}
               renderItem={({ item }) => {
                 const productId = item._id || item.id;
                 const isFavorite = favorites.has(productId);
@@ -600,7 +602,7 @@ const ViewAllFruits = () => {
 export default ViewAllFruits;
 
 const styles = StyleSheet.create({
-    header: {
+  header: {
     paddingHorizontal: moderateScale(12),
     paddingVertical: moderateScale(10),
     flexDirection: 'row',
@@ -612,12 +614,12 @@ const styles = StyleSheet.create({
     marginHorizontal: moderateScale(8),
     flexDirection: 'row',
     backgroundColor: 'rgba(252, 252, 252, 1)',
-    paddingVertical:moderateScale(10),
-    borderWidth:1,
-    borderColor:'rgba(0, 0, 0, 0.1)',
+    paddingVertical: moderateScale(10),
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
     paddingHorizontal: moderateScale(10),
     alignItems: 'center',
-    borderRadius:5,
+    borderRadius: 5,
   },
   searchInput: {
     flex: 1,
@@ -626,11 +628,11 @@ const styles = StyleSheet.create({
     paddingVertical: 0
   },
   backButtonContainer: {
-    padding:1,
+    padding: 1,
   },
-  riceContainer:{
-   flex:1,
-   gap:scale(5),
+  riceContainer: {
+    flex: 1,
+    gap: scale(5),
   },
   backIcon: {
     width: scale(24),
@@ -689,13 +691,13 @@ const cardStyles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
     borderRadius: 8,
-    padding:moderateScale(5),
+    padding: moderateScale(5),
     shadowColor: 'rgba(0, 0, 0, 0.2)',
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    borderWidth:2,
+    borderWidth: 2,
     borderColor: 'rgba(0, 0, 0, 0.2)',
-    elevation:7,
+    elevation: 7,
   },
   imageContainer: {
     position: 'relative',
@@ -750,18 +752,18 @@ const cardStyles = StyleSheet.create({
     fontWeight: '500',
   },
   cardContent: {
-    padding:moderateScale(5),
+    padding: moderateScale(5),
   },
   productTitle: {
     fontSize: normalizeFont(14),
     fontWeight: '600',
     color: '#333',
   },
- 
-  productVeriety:{
-    color:'rgba(66, 66, 66, 0.7)',
-    fontSize:normalizeFont(12),
-    paddingVertical:1,
+
+  productVeriety: {
+    color: 'rgba(66, 66, 66, 0.7)',
+    fontSize: normalizeFont(12),
+    paddingVertical: 1,
   },
 
   productSubtitle: {
@@ -774,8 +776,8 @@ const cardStyles = StyleSheet.create({
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginBottom:moderateScale(6),
-    marginTop:moderateScale(4),
+    marginBottom: moderateScale(6),
+    marginTop: moderateScale(4),
   },
   productPrice: {
     fontSize: normalizeFont(14),
@@ -783,7 +785,7 @@ const cardStyles = StyleSheet.create({
     color: '#000',
   },
   productUnit: {
-    fontSize:normalizeFont(12),
+    fontSize: normalizeFont(12),
     color: '#666',
     marginLeft: 2,
   },
@@ -793,8 +795,8 @@ const cardStyles = StyleSheet.create({
     marginBottom: moderateScale(8),
   },
   buttonContainer: {
-    minHeight: scale(30),
-    maxWidth:scale(158),
+    minHeight: scale(26),
+    maxWidth: scale(158),
     justifyContent: 'center',
   },
   addToCartButton: {
@@ -802,9 +804,9 @@ const cardStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: moderateScale(6),
-    paddingHorizontal: moderateScale(10),
-    borderRadius: 6,
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(20),
+    borderRadius:10,
   },
   disabledButton: {
     backgroundColor: '#cccccc',
@@ -816,27 +818,48 @@ const cardStyles = StyleSheet.create({
   },
   quantityContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center',        
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(76, 175, 80, 1)',
-    borderRadius: 6,
-    paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(76, 175, 80, 1)',
+    borderRadius: 10,
+    paddingHorizontal: moderateScale(4),
     height: scale(36),
+    minWidth: scale(100),
+    backgroundColor: '#fff',
   },
   quantityButton: {
-    paddingHorizontal: moderateScale(8),
-    paddingVertical: moderateScale(2),
+    width: scale(36),
+    height: scale(36),
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
   },
+
+    quantityValueContainer: {
+    minWidth: scale(48),
+    paddingHorizontal: moderateScale(6),
+    height: scale(36),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderLeftWidth:1,
+    borderRightWidth:1,
+    borderColor:'rgba(76, 175, 80, 1)',
+    flexDirection: 'row',
+  },
+
   quantityText: {
     fontSize: normalizeFont(16),
-    color: '#fff',
+    color: 'rgba(76, 175, 80, 1)',
     fontWeight: '600',
+    textAlign: 'center',
+    includeFontPadding: false, 
   },
   quantityCount: {
     fontSize: normalizeFont(14),
-    color: '#fff',
+    color: 'rgba(76, 175, 80, 1)',
     fontWeight: '600',
     marginHorizontal: moderateScale(6),
   },
-  
+
 });

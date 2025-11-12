@@ -1,7 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useContext, useEffect, useRef, useState } from 'react';
-import { Alert, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
+import { moderateScale, normalizeFont, scale } from '../Responsive';
 
 export default function RegisterOtpScreen(): JSX.Element {
   const { verifyOtp } = useContext(AuthContext);
@@ -70,7 +72,7 @@ export default function RegisterOtpScreen(): JSX.Element {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.logoContainer}>
-        <Text style={styles.logoText}>LOGO</Text>
+       <Image style={{width:250,height:250}}  source={require("../../assets/via-farm-img/icons/logo.png")} />
       </View>
       
       <View style={styles.formContainer}>
@@ -116,16 +118,16 @@ export default function RegisterOtpScreen(): JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   logoContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 60,
+    paddingTop: moderateScale(60),
   },
   logoText: {
-    fontSize: 48,
+    fontSize: normalizeFont(10),
     fontWeight: 'bold',
     color: '#000',
     letterSpacing: 2,
@@ -133,18 +135,18 @@ const styles = StyleSheet.create({
   formContainer: {
     flex: 2,
     justifyContent: 'flex-start',
-    paddingTop: 20,
+    paddingTop: moderateScale(20),
   },
   formCard: {
     backgroundColor: '#fff',
-    borderRadius: 20,
+    borderRadius: moderateScale(20),
     width:'100%',
     borderWidth:2,
     borderColor:'#FFD700',
     height: '130%',
     shadowColor: '#000',
     shadowOffset: {
-      width: 5,
+      width: scale(5),
       height: 2,
     },
     shadowOpacity: 0.1,
@@ -154,32 +156,32 @@ const styles = StyleSheet.create({
   },
   topBorder: {
     width: '100%',
-    height: 3,
+    height: scale(3),
     backgroundColor: '#FFD700',
   },
   cardContent: {
-    padding: 30,
+    padding: scale(30),
   },
   title: {
-    fontSize: 22,
+    fontSize: normalizeFont(16),
     fontWeight: '600',
     color: '#333',
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: moderateScale(40),
   },
   otpContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 30,
-    paddingHorizontal: 10,
+    marginBottom: moderateScale(30),
+    paddingHorizontal: moderateScale(10),
   },
   otpInput: {
-    width: 60,
-    height: 60,
+    width: scale(50),
+    height: scale(50),
     borderWidth: 2,
     borderColor: '#e0e0e0',
-    borderRadius: 12,
-    fontSize: 24,
+    borderRadius: moderateScale(12),
+    fontSize: normalizeFont(16),
     fontWeight: 'bold',
     color: '#333',
     backgroundColor: '#fafafa',
@@ -189,27 +191,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: moderateScale(30),
   },
   resendText: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: '#666',
   },
   resendLink: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: '#007AFF',
     fontWeight: '500',
   },
   verifyButton: {
     backgroundColor: '#4CAF50',
     borderRadius: 8,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
+    paddingVertical: moderateScale(15),
+    paddingHorizontal: moderateScale(20),
     alignItems: 'center',
     shadowColor: '#4CAF50',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: scale(2),
     },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -217,7 +219,7 @@ const styles = StyleSheet.create({
   },
   verifyButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: normalizeFont(14),
     fontWeight: '600',
   },
 });

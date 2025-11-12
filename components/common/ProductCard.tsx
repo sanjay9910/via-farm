@@ -131,6 +131,7 @@ const ProductCard = ({
             style={[styles.productPrice, { fontSize: normalizeFont(13) }]}
           >{`₹${price}`}</Text>
 
+
           {/* Add to Cart / Quantity */}
           <View style={[styles.buttonContainer, { minHeight: verticalScale(36) }]}>
             {quantity === 0 ? (
@@ -253,6 +254,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(76, 175, 80, 1)",
     flexDirection: "row",
     alignItems: "center",
+    height:scale(35),
     justifyContent: "center",
   },
   addToCartText: {

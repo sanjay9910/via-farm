@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const BASE_URL = 'https://viafarm-1.onrender.com';
-const API_ENDPOINT = '/api/admin/manage-app/privacy-policy';
+const API_ENDPOINT = '/api/admin/manage-app/term-and-condition';
 
 const TermsAndConditions = ({ navigation }) => {
   const [sections, setSections] = useState([]);
@@ -49,7 +49,7 @@ const TermsAndConditions = ({ navigation }) => {
           setSections([
             {
               number: '1',
-              title: 'Privacy & Policy',
+              title: 'Terms & Conditions',
               content: responseData.data.content.trim(),
               points: [],
             },
@@ -110,7 +110,7 @@ const TermsAndConditions = ({ navigation }) => {
       if (!current) {
         current = {
           number: '1',
-          title: 'Privacy & Policy',
+          title: 'Terms & Conditions',
           content: '',
           points: [],
           _accumParagraph: [],
@@ -168,7 +168,7 @@ const TermsAndConditions = ({ navigation }) => {
       return (
         <View style={{ padding: moderateScale(20), alignItems: 'center' }}>
           <ActivityIndicator size="large" color="#ff6b35" />
-          <Text style={{ marginTop: moderateScale(8), color: '#64748b' }}>Loading Privacy & Policy...</Text>
+          <Text style={{ marginTop: moderateScale(8), color: '#64748b' }}>Loading Terms & Conditions...</Text>
         </View>
       );
     }
@@ -197,7 +197,7 @@ const TermsAndConditions = ({ navigation }) => {
           <>
             {/* Intro Card */}
             <View style={styles.introCard}>
-              <Text style={styles.introTitle}>ViaFarm Privacy & Policy</Text>
+              <Text style={styles.introTitle}>ViaFarm Terms & Conditions</Text>
               <Text style={styles.introSubtitle}>
                 Please read these terms carefully. By using ViaFarm, you agree to all terms and conditions outlined below.
               </Text>
@@ -253,7 +253,7 @@ const TermsAndConditions = ({ navigation }) => {
         </TouchableOpacity>
 
         <Text numberOfLines={1} style={styles.headerTitle}>
-          Privacy & Policy
+          Terms & Conditions
         </Text>
 
         <View style={styles.headerRightSpacer} />

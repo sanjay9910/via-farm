@@ -14,14 +14,48 @@ import {
 const SeeAllReview = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { vendor, reviews } = route.params || {};
+  const { vendor, reviews } = (route.params || {}) as any;
 
-  if (!vendor) return <Text>No vendor data found</Text>;
+  if (!vendor) return <Text style={{ padding: 16 }}>No vendor data found</Text>;
 
   const v = vendor;
   const image = v.profilePicture || 'https://picsum.photos/800/600';
 
-  const ReviewCard = ({ item }) => (
+  // Helper: if address is object, build a readable string
+  const formatAddressObject = (addr: any) => {
+    if (!addr) return '';
+    // prefer common fields in good order
+    const parts = [];
+    if (addr.houseNumber) parts.push(String(addr.houseNumber));
+    if (addr.street) parts.push(String(addr.street));
+    if (addr.locality) parts.push(String(addr.locality));
+    if (addr.city) parts.push(String(addr.city));
+    if (addr.district) parts.push(String(addr.district));
+    if (addr.state) parts.push(String(addr.state));
+    if (addr.pinCode || addr.zip) parts.push(String(addr.pinCode ?? addr.zip));
+    // latitude/longitude not included
+    return parts.filter(Boolean).join(', ');
+  };
+
+  // Main vendorLocation: try locationText (string), then addressesText, then address object, etc.
+  let vendorLocationRaw: any =
+    v.locationText ?? v.addressesText ?? v.address ?? v.addresses ?? v.location ?? null;
+
+  let vendorLocation = '';
+  if (typeof vendorLocationRaw === 'string') {
+    vendorLocation = vendorLocationRaw;
+  } else if (Array.isArray(vendorLocationRaw) && vendorLocationRaw.length > 0) {
+    // if array, try first element (could be strings or objects)
+    const first = vendorLocationRaw[0];
+    if (typeof first === 'string') vendorLocation = first;
+    else vendorLocation = formatAddressObject(first);
+  } else if (typeof vendorLocationRaw === 'object' && vendorLocationRaw !== null) {
+    vendorLocation = formatAddressObject(vendorLocationRaw);
+  } else {
+    vendorLocation = 'Location not available';
+  }
+
+  const ReviewCard = ({ item }: any) => (
     <View style={styles.reviewCard}>
       <View style={styles.reviewHeader}>
         <Image
@@ -32,11 +66,11 @@ const SeeAllReview = () => {
           <Text style={styles.reviewerName}>{item?.user?.name || 'Anonymous'}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Ionicons name="star" color="#FFD700" size={14} />
-            <Text style={styles.ratingText}> {item?.rating || 'N/A'}</Text>
+            <Text style={styles.ratingText}>{' '}{item?.rating != null ? String(item.rating) : 'N/A'}</Text>
           </View>
         </View>
         <Text style={styles.reviewDate}>
-          {new Date(item?.createdAt).toLocaleDateString('en-GB')}
+          {item?.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB') : ''}
         </Text>
       </View>
 
@@ -44,10 +78,11 @@ const SeeAllReview = () => {
         <FlatList
           data={item.images}
           horizontal
-          keyExtractor={(img, idx) => `img-${idx}`}
-          renderItem={({ item: img }) => (
-            <Image source={{ uri: img }} style={styles.reviewImage} />
-          )}
+          keyExtractor={(_img, idx) => `img-${idx}`}
+          renderItem={({ item: img }: any) => {
+            const uri = typeof img === 'string' ? img : img?.url ?? img?.image ?? '';
+            return <Image source={{ uri }} style={styles.reviewImage} />;
+          }}
           showsHorizontalScrollIndicator={false}
           style={{ marginVertical: 8 }}
         />
@@ -71,11 +106,11 @@ const SeeAllReview = () => {
 
       {/* Vendor Info */}
       <View style={styles.vendorInfo}>
-        <Text style={styles.vendorName}>{v.name}</Text>
+        <Text style={styles.vendorName}>{v.name || 'Vendor'}</Text>
         <View style={styles.row}>
           <Ionicons name="location-sharp" size={16} color="#757575" />
           <Text style={styles.vendorLocation}>
-            {v.addressesText ||  v.about || 'Comming'} ({v.distance || 'N/A'})
+            {vendorLocation} {v.distance ? `(${v.distance})` : ''}
           </Text>
         </View>
         <Text style={styles.aboutHeader}>About the vendor</Text>
@@ -87,14 +122,14 @@ const SeeAllReview = () => {
       {/* Reviews */}
       <View style={styles.reviewsContainer}>
         <Text style={styles.allReviewsTitle}>
-          All Reviews ({reviews?.length || 0} reviews)
+          All Reviews ({Array.isArray(reviews) ? reviews.length : 0} reviews)
         </Text>
 
-        {reviews?.length > 0 ? (
+        {Array.isArray(reviews) && reviews.length > 0 ? (
           <FlatList
             data={reviews}
-            keyExtractor={item => item._id.toString()}
-            renderItem={({ item }) => <ReviewCard item={item} />}
+            keyExtractor={(item: any, idx: number) => (item?._id ? String(item._id) : String(idx))}
+            renderItem={({ item }: any) => <ReviewCard item={item} />}
             scrollEnabled={false}
           />
         ) : (

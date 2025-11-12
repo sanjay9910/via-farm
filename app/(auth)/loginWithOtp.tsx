@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { moderateScale, normalizeFont, scale } from '../Responsive';
 
 const API_BASE = 'https://viafarm-1.onrender.com/api/auth';
 
@@ -185,62 +186,62 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: moderateScale(20),
     justifyContent: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: normalizeFont(18),
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
     color: '#333',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: normalizeFont(14),
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: moderateScale(30),
     color: '#666',
-    lineHeight: 22,
+    lineHeight: scale(22),
   },
   inputContainer: {
-    marginBottom: 25,
+    marginBottom: moderateScale(25),
   },
   label: {
-    fontSize: 16,
+    fontSize: normalizeFont(14),
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
     color: '#333',
   },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
-    padding: 15,
-    fontSize: 16,
+    padding: moderateScale(15),
+    fontSize: normalizeFont(13),
     backgroundColor: '#f9f9f9',
   },
   button: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
-    padding: 15,
-    borderRadius: 8,
+    padding: moderateScale(15),
+    borderRadius: moderateScale(8),
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: moderateScale(10),
   },
   buttonDisabled: {
     backgroundColor: '#ccc',
   },
   buttonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: normalizeFont(14),
     fontWeight: '600',
   },
   backButton: {
-    marginTop: 20,
+    marginTop: moderateScale(20),
     alignItems: 'center',
   },
   backButtonText: {
     color: '#007AFF',
-    fontSize: 16,
+    fontSize: normalizeFont(14),
   },
 });
 

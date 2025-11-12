@@ -254,7 +254,7 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "expo-router";
-import React, { useContext, useState } from "react";
+import { useContext, useState } from "react";
 import {
   Alert,
   Image,
@@ -267,6 +267,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "../context/AuthContext";
+import { moderateScale, normalizeFont, scale } from "../Responsive";
 import { saveToken } from "../utility/Storage";
 
 export default function LoginScreen() {
@@ -408,22 +409,22 @@ const styles = StyleSheet.create({
   marginBottom: 0,
 },
 
-  // logoImage: responsive, contained, and slightly overlaps the card for a modern look
+
   logoImage: {
-    width: 250,
-    height: 250,
+    width: scale(250),
+    height: scale(250),
     resizeMode: "contain",
-    marginBottom: -60, 
+    marginBottom: moderateScale(-60), 
   },
 
   card: {
     width: "100%",
     flex: 1,
     backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 28,
-    marginTop:60,
-    marginBottom:-35,
+    borderRadius: moderateScale(20),
+    padding: moderateScale(28),
+    marginTop:moderateScale(60),
+    marginBottom:scale(-35),
     borderWidth:1,
     borderColor: "rgba(255, 202, 40, 1)",
     elevation: 6,
@@ -435,83 +436,83 @@ const styles = StyleSheet.create({
   },
 
   heading: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 25,
+    fontSize: normalizeFont(15),
+    fontWeight: "600",
+    marginBottom: moderateScale(25),
   },
   inputContainer: {
     width: "100%",
-    marginBottom: 15,
+    marginBottom: moderateScale(15),
   },
   label: {
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     fontWeight: "600",
     color: "#333",
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
     marginLeft: 2,
   },
   input: {
     width: "100%",
-    height: 50,
+    height: scale(50),
     borderWidth: 1,
     borderColor: "#ddd",
-    borderRadius: 10,
-    paddingHorizontal: 12,
+    borderRadius: moderateScale(10),
+    paddingHorizontal: moderateScale(12),
     backgroundColor: "#fdfdfd",
-    fontSize: 16,
+    fontSize: normalizeFont(15),
   },
   forgotWrapper: {
     width: "100%",
     alignItems: "flex-end",
-    marginBottom: 20,
+    marginBottom: moderateScale(20),
   },
   forgotText: {
     color: "#007AFF",
-    fontSize: 13,
+    fontSize: normalizeFont(12),
   },
   loginBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     width: "70%",
-    height: 50,
+    height: scale(50),
     borderRadius: 10,
     backgroundColor: "rgba(76, 175, 80, 1)",
-    marginBottom: 15,
+    marginBottom: moderateScale(15),
   },
   loginText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: normalizeFont(15),
     fontWeight: "600",
-    marginLeft: 8,
+    marginLeft: moderateScale(8),
   },
   otpBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     width: "70%",
-    height: 50,
+    height: scale(50),
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "green",
-    marginBottom: 20,
+    marginBottom: moderateScale(20),
   },
   otpText: {
     color: "green",
-    fontSize: 16,
+    fontSize: normalizeFont(15),
     fontWeight: "600",
-    marginLeft: 8,
+    marginLeft: moderateScale(8),
   },
   signupWrapper: {
     flexDirection: "row",
-    marginTop: 10,
+    marginTop: moderateScale(10),
   },
   signupText: {
-    fontSize: 14,
+    fontSize: normalizeFont(13),
     color: "#555",
   },
   signupLink: {
-    fontSize: 14,
+    fontSize: normalizeFont(13),
     color: "#007AFF",
     fontWeight: "600",
   },

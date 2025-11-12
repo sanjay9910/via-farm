@@ -100,7 +100,7 @@ export default function HeaderDesign() {
     rating: false,
   });
 
-  const placeholders = ["Search by Products", "Search by Name", "Search by ID"];
+  const placeholders = ["Search by Products", "Search by Name",];
   const [index, setIndex] = useState(0);
 
   useEffect(() => {

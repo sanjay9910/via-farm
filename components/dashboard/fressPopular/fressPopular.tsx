@@ -1,4 +1,4 @@
-// FressPopular_responsive.jsx
+// FressPopular_responsive.jsx (FIXED)
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useNavigation } from 'expo-router';
@@ -20,7 +20,6 @@ const API_BASE = "https://viafarm-1.onrender.com";
 
 // ---------- Responsive helpers ----------
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-// base guideline (iPhone X)
 const guidelineBaseWidth = 375;
 const guidelineBaseHeight = 812;
 
@@ -33,15 +32,37 @@ const normalizeFont = (size) => {
   if (Platform.OS === 'ios') {
     return Math.round(PixelRatio.roundToNearestPixel(newSize));
   } else {
-    // Android tends to render slightly larger fonts; compensate a bit
     return Math.round(PixelRatio.roundToNearestPixel(newSize)) - 1;
   }
 };
-// -----------------------------------------
 
-// Custom Card Component with image inside and name below
+// Styles
+const cardStyles = StyleSheet.create({
+  container: { marginHorizontal: moderateScale(8), width: moderateScale(140) },
+  card: { borderRadius: 8, overflow: 'hidden', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 3 },
+  image: { width: '100%', height: moderateScale(140), backgroundColor: '#f0f0f0' },
+  name: { fontSize: normalizeFont(12), fontWeight: '600', color: '#333', marginTop: moderateScale(8), textAlign: 'center', paddingHorizontal: 4 }
+});
+
+const styles = StyleSheet.create({
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: moderateScale(12), marginBottom: verticalScale(12) },
+  heading: { fontSize: normalizeFont(15), fontWeight: '600', color: '#333' },
+  seeButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 6 ,gap:5},
+  seeIcon: { width: moderateScale(16), height: moderateScale(16), marginRight: 4 },
+  link: { fontSize: normalizeFont(12), color: 'rgba(1, 151, 218, 1)', fontWeight: '600' },
+  errorContainer: { marginVertical: verticalScale(20), paddingHorizontal: moderateScale(20), alignItems: 'center' },
+  errorText: { fontSize: normalizeFont(14), color: '#e74c3c', textAlign: 'center', marginBottom: verticalScale(12) },
+  buttonContainer: { flexDirection: 'row', gap: 10 },
+  retryButton: { backgroundColor: '#ff6b35', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 6 },
+  loginButton: { backgroundColor: '#3498db', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 6 },
+  buttonText: { color: '#fff', fontWeight: '600', fontSize: normalizeFont(12) },
+  noDataContainer: { marginVertical: verticalScale(20), alignItems: 'center' },
+  noDataText: { fontSize: normalizeFont(14), color: '#999' }
+});
+
+// ---------- Custom Card Component ----------
 const ProductCard = ({ item, onPress }) => {
-  const veriety = item?.variety ?? 'Unnamed';
+  const variety = item?.variety ?? item?.name ?? 'Unnamed';
   const image = (item?.images && item.images.length > 0) ? item.images[0] : 'https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image';
 
   return (
@@ -50,7 +71,6 @@ const ProductCard = ({ item, onPress }) => {
       activeOpacity={0.85}
       onPress={() => onPress && onPress(item)}
     >
-      {/* Card - Sirf Image */}
       <View style={cardStyles.card}>
         <Image
           source={{ uri: image }}
@@ -58,16 +78,15 @@ const ProductCard = ({ item, onPress }) => {
           resizeMode="cover"
         />
       </View>
-
-      {/* Name - Card ke niche */}
-      <Text style={cardStyles.name} numberOfLines={1}>{veriety}</Text>
+      <Text style={cardStyles.name} numberOfLines={1}>{variety}</Text>
     </TouchableOpacity>
   );
 };
 
+// ---------- Main Component ----------
 const FressPopular = () => {
   const navigation = useNavigation();
-  const [data, setData] = useState([]);            // store full product objects
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -84,7 +103,6 @@ const FressPopular = () => {
         timeout: 10000,
       });
 
-      // normalize various possible response shapes
       let items = [];
       if (!response || !response.data) items = [];
       else if (Array.isArray(response.data)) items = response.data;
@@ -121,15 +139,20 @@ const FressPopular = () => {
     navigation.navigate('login');
   };
 
-  // navigate to ViewProduct with productId and the full product
+  // FIXED: Pass variety name to ProductVarieties page
   const openProductDetails = (product) => {
-    const productId = product?._id || product?.id;
-    if (!productId) {
-      console.warn("openProductDetails: missing product id", product);
+    const varietyName = product?.variety || product?.name;
+    
+    if (!varietyName) {
+      console.warn("openProductDetails: missing variety/product name", product);
       return;
     }
-    // pass both productId and product to the target screen
-    navigation.navigate('ViewProduct', { productId, product });
+    
+    // Navigate to ProductVeriety with variety name
+    navigation.navigate('ProductVeriety', { 
+      product, 
+      variety: varietyName 
+    });
   };
 
   // Loading state
@@ -138,8 +161,6 @@ const FressPopular = () => {
       <View style={{ marginVertical: verticalScale(20), alignItems: 'center' }}>
         <View style={styles.headerRow}>
           <Text style={styles.heading}>Fresh & Popular</Text>
-
-          {/* See All: icon on left, safe for older RN */}
           <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("AllCategory")}>
             <Image
               source={require("../../../assets/via-farm-img/icons/see.png")}
@@ -160,8 +181,6 @@ const FressPopular = () => {
       <View style={{ marginVertical: verticalScale(20), alignItems: 'center' }}>
         <View style={styles.headerRow}>
           <Text style={styles.heading}>Fresh & Popular</Text>
-
-          {/* See All: icon on left */}
           <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("AllCategory")}>
             <Image
               source={require("../../../assets/via-farm-img/icons/see.png")}
@@ -201,12 +220,12 @@ const FressPopular = () => {
       <View style={styles.headerRow}>
         <Text style={styles.heading}>Fresh & Popular</Text>
 
-        {/* Final See All usage: icon left */}
         <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate('ViewAllFressPop')}>
-            <Text style={styles.link}>See All</Text>
-            <Image
-              source={require("../../../assets/via-farm-img/icons/see.png")}
-            />
+          <Text style={styles.link}>See All</Text>
+          <Image
+            source={require("../../../assets/via-farm-img/icons/see.png")}
+        
+          />
         </TouchableOpacity>
       </View>
 
@@ -234,116 +253,3 @@ const FressPopular = () => {
 };
 
 export default FressPopular;
-
-const styles = StyleSheet.create({
-  heading: {
-    fontSize: normalizeFont(17),
-    marginLeft: moderateScale(20),
-    fontWeight: '600',
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: verticalScale(10),
-    paddingRight: moderateScale(20),
-  },
-
-
-  link: {
-    color: 'rgba(1, 151, 218, 1)',
-    fontWeight: '600',
-    textAlign: 'center',
-    fontSize: normalizeFont(12),
-  },
-
-  // See All container + icon
-  seeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap:5
-  },
-  seeIcon: {
-    width: moderateScale(18),
-    height: moderateScale(18),
-    marginRight: moderateScale(6),
-    resizeMode: 'contain',
-  },
-
-  errorContainer: {
-    alignItems: 'center',
-    padding: moderateScale(20),
-    backgroundColor: '#ffebee',
-    borderRadius: moderateScale(8),
-    marginHorizontal: moderateScale(20),
-  },
-  errorText: {
-    color: '#d32f2f',
-    textAlign: 'center',
-    marginBottom: moderateScale(15),
-    fontSize: normalizeFont(14),
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  retryButton: {
-    backgroundColor: '#1976d2',
-    paddingVertical: moderateScale(10),
-    paddingHorizontal: moderateScale(20),
-    borderRadius: moderateScale(5),
-  },
-  loginButton: {
-    backgroundColor: '#388e3c',
-    paddingVertical: moderateScale(10),
-    paddingHorizontal: moderateScale(20),
-    borderRadius: moderateScale(5),
-    marginLeft: moderateScale(10), 
-  },
-  buttonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: normalizeFont(14),
-  },
-  noDataContainer: {
-    alignItems: 'center',
-    padding: moderateScale(20),
-  },
-  noDataText: {
-    color: '#666',
-    fontSize: normalizeFont(14),
-  },
-});
-
-const cardStyles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    marginHorizontal: moderateScale(8),
-    width: moderateScale(120),
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: moderateScale(12),
-    width: moderateScale(120),
-    height: moderateScale(120),
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: moderateScale(5),
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    borderRadius: moderateScale(8),
-  },
-  name: {
-    fontSize: normalizeFont(13),
-    fontWeight: '500',
-    color: '#333',
-    textAlign: 'center',
-    // marginTop: verticalScale(2),
-    flexWrap: 'wrap',
-    width: moderateScale(100),
-  },
-});

@@ -1,8 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useContext, useState } from 'react';
+import { useContext, useState } from 'react';
 import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
+import { moderateScale, normalizeFont, scale } from '../Responsive';
 
 export default function SetPasswordScreen(): JSX.Element {
   const { newPassword } = useContext(AuthContext);
@@ -105,16 +106,16 @@ export default function SetPasswordScreen(): JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#ffff',
   },
   logoContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 60,
+    paddingTop: moderateScale(60),
   },
   logoText: {
-    fontSize: 48,
+    fontSize: normalizeFont(48),
     fontWeight: 'bold',
     color: '#000',
     letterSpacing: 2,
@@ -122,11 +123,11 @@ const styles = StyleSheet.create({
   formContainer: {
     flex: 2,
     justifyContent: 'flex-start',
-    paddingTop: 20,
+    paddingTop: moderateScale(20),
   },
   formCard: {
     backgroundColor: '#fff',
-    borderRadius: 20,
+    borderRadius: moderateScale(20),
     height: '130%',
     borderWidth:2,
     borderColor:'#FFD700',
@@ -142,62 +143,62 @@ const styles = StyleSheet.create({
   },
   topBorder: {
     width: '100%',
-    height: 3,
+    height: scale(3),
     backgroundColor: '#FFD700',
   },
   cardContent: {
-    padding: 30,
+    padding: scale(30),
   },
   title: {
-    fontSize: 22,
+    fontSize: normalizeFont(16),
     fontWeight: '600',
     color: '#333',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: normalizeFont(10),
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: '#666',
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: moderateScale(30),
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: moderateScale(20),
   },
   inputLabel: {
-    fontSize: 16,
+    fontSize: normalizeFont(13),
     color: '#333',
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
     fontWeight: '500',
   },
   textInput: {
     borderWidth: 1,
     borderColor: '#e0e0e0',
     borderRadius: 8,
-    padding: 15,
-    fontSize: 16,
+    padding: moderateScale(15),
+    fontSize: normalizeFont(13),
     backgroundColor: '#fafafa',
     color: '#333',
   },
   showPasswordContainer: {
     alignItems: 'center',
-    marginBottom: 25,
+    marginBottom: moderateScale(25),
   },
   showPasswordText: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: '#007AFF',
     fontWeight: '500',
   },
   continueButton: {
     backgroundColor: '#4CAF50',
     borderRadius: 8,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
+    paddingVertical: moderateScale(15),
+    paddingHorizontal: moderateScale(20),
     alignItems: 'center',
     shadowColor: '#4CAF50',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: scale(2),
     },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -205,7 +206,7 @@ const styles = StyleSheet.create({
   },
   continueButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: normalizeFont(13),
     fontWeight: '600',
   },
 });

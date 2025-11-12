@@ -26,7 +26,7 @@ const { width, height } = Dimensions.get('window');
 const BASE_URL = 'https://viafarm-1.onrender.com';
 const GET_CART_ENDPOINT = '/api/buyer/cart';
 const ADD_UPDATE_CART_ENDPOINT = '/api/buyer/cart/add';
-const DELETE_CART_ITEM_ENDPOINT = '/api/buyer/cart';
+const DELETE_CART_ITEM_ENDPOINT = '/api/buyer/cart/';
 const { moderateScale, scale, verticalScale, normalizeFont } = Responsive;
 
 
@@ -229,8 +229,10 @@ const MyCart = () => {
 
   const removeItem = async (itemId) => {
     if (!authToken) return Alert.alert('Error', 'Token not found.');
+    
     const prevCart = [...cartItems];
 
+    // Optimistically remove from UI
     setCartItems(prev => prev.filter(i => i.id !== itemId));
 
     try {
@@ -238,16 +240,21 @@ const MyCart = () => {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${authToken}` },
       });
+
       if (!res.ok) {
         const json = await res.json();
         Alert.alert('Remove Failed', json.message || 'Could not remove item.');
+        // Revert on error
         setCartItems(prevCart);
       } else {
+        Alert.alert('Success', 'Item removed from cart');
+        // Refresh cart to update prices
         fetchCartItems(authToken);
       }
     } catch (e) {
       console.error('Remove Error:', e);
       Alert.alert('Error', 'Network error.');
+      // Revert on error
       setCartItems(prevCart);
     }
   };
@@ -831,21 +838,21 @@ const MyCart = () => {
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      paddingVertical: 12,
-                      paddingHorizontal: 10,
+                      paddingVertical: moderateScale(12),
+                      paddingHorizontal: moderateScale(10),
                       borderWidth: 1,
                       borderColor: paymentMethod === 'cash' ? '#FFA500' : '#ddd',
-                      borderRadius: 8,
-                      marginBottom: 10,
+                      borderRadius: moderateScale(8),
+                      marginBottom: moderateScale(10),
                       backgroundColor: paymentMethod === 'cash' ? '#FFF8E1' : '#fff'
                     }}
                   >
-                    <Text style={{ fontSize: 16, color: '#333' }}>Pay by Cash</Text>
+                    <Text style={{ fontSize: normalizeFont(16), color: '#333' }}>Pay by Cash</Text>
                     <View
                       style={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: 11,
+                        width: scale(22),
+                        height: scale(22),
+                        borderRadius: moderateScale(11),
                         borderWidth: 2,
                         borderColor: paymentMethod === 'cash' ? '#FFA500' : '#ccc',
                         alignItems: 'center',
@@ -855,8 +862,8 @@ const MyCart = () => {
                       {paymentMethod === 'cash' && (
                         <View
                           style={{
-                            width: 10,
-                            height: 10,
+                            width: scale(10),
+                            height: scale(10),
                             borderRadius: 5,
                             backgroundColor: '#FFA500',
                           }}
@@ -873,20 +880,20 @@ const MyCart = () => {
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      paddingVertical: 12,
-                      paddingHorizontal: 10,
+                      paddingVertical: moderateScale(12),
+                      paddingHorizontal: moderateScale(10),
                       borderWidth: 1,
                       borderColor: paymentMethod === 'online' ? '#FFA500' : '#ddd',
                       borderRadius: 8,
                       backgroundColor: paymentMethod === 'online' ? '#FFF8E1' : '#fff'
                     }}
                   >
-                    <Text style={{ fontSize: 16, color: '#333' }}>Pay Online</Text>
+                    <Text style={{ fontSize: normalizeFont(16), color: '#333' }}>Pay Online</Text>
                     <View
                       style={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: 11,
+                        width: scale(22),
+                        height: scale(22),
+                        borderRadius: moderateScale(11),
                         borderWidth: 2,
                         borderColor: paymentMethod === 'online' ? '#FFA500' : '#ccc',
                         alignItems: 'center',
@@ -896,8 +903,8 @@ const MyCart = () => {
                       {paymentMethod === 'online' && (
                         <View
                           style={{
-                            width: 10,
-                            height: 10,
+                            width: scale(10),
+                            height: scale(10),
                             borderRadius: 5,
                             backgroundColor: '#FFA500',
                           }}
@@ -912,7 +919,7 @@ const MyCart = () => {
                 <View style={styles.vendorInfo}>
                   <Image
                     borderRadius={10}
-                    style={{ width: 60, height: 60 }}
+                    style={{ width: scale(60), height: scale(60) }}
                     source={{
                       uri: vendorDetails?.profilePicture || "https://via.placeholder.com/60",
                     }}
@@ -948,8 +955,8 @@ const MyCart = () => {
       <Modal visible={showSuccessModal} transparent animationType="fade">
         <View style={styles.successModalOverlay}>
           <View style={styles.successModalBox}>
-            <Image source={require('../../assets/via-farm-img/icons/confirm.png')} style={{ width: 64, height: 64, marginBottom: 12 }} />
-            <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 6 }}>Order Placed</Text>
+            <Image source={require('../../assets/via-farm-img/icons/confirm.png')} style={{ width: scale(64), height: scale(64), marginBottom: moderateScale(12) }} />
+            <Text style={{ fontSize: normalizeFont(18), fontWeight: '600', marginBottom: moderateScale(6) }}>Order Placed</Text>
             <Text style={{ color: '#555' }}>Your order was placed successfully!</Text>
           </View>
         </View>
@@ -1024,61 +1031,61 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyCartImage: {
-    width: 200,
-    height: 200,
+    width: scale(200),
+    height: scale(200),
     marginBottom: 24,
     resizeMode: 'contain',
   },
   emptyCartTitle: {
-    fontSize: 24,
+    fontSize: normalizeFont(24),
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 12,
     textAlign: 'center',
   },
   emptyCartSubtitle: {
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     color: '#666',
     textAlign: 'center',
     marginBottom: 32,
-    lineHeight: 22,
+    lineHeight: scale(22),
   },
   shopNowButton: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 8,
+    paddingHorizontal: moderateScale(32),
+    paddingVertical: moderateScale(16),
+    borderRadius: moderateScale(8),
   },
   shopNowText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     fontWeight: '600',
   },
   emptyCartText: {
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     color: '#666',
-    marginTop: 50,
-    padding: 20,
+    marginTop: moderateScale(50),
+    padding: moderateScale(20),
   },
   couponSection: {
     backgroundColor: '#fff',
-    margin: 8,
-    marginTop: 16,
-    borderRadius: 8,
-    padding: 16,
+    margin: moderateScale(8),
+    marginTop: moderateScale(16),
+    borderRadius: moderateScale(8),
+    padding: moderateScale(16),
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },
   couponTitle: {
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     fontWeight: '600',
     color: 'rgba(1, 151, 218, 1)',
   },
   couponSubtitle: {
-    fontSize: 12,
+    fontSize: normalizeFont(12),
     color: 'rgba(1, 151, 218, 1)',
-    marginBottom: 12,
+    marginBottom: moderateScale(12),
   },
   couponInputContainer: {
     flexDirection: 'row',
@@ -1103,28 +1110,28 @@ const styles = StyleSheet.create({
   applyCouponText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: normalizeFont(14),
   },
   removeCouponButton: {
     backgroundColor: '#ff4444',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(10),
+    borderRadius: moderateScale(8),
   },
   removeCouponText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: normalizeFont(14),
   },
   couponError: {
     color: '#ff4444',
-    fontSize: 12,
-    marginTop: 8,
+    fontSize: normalizeFont(12),
+    marginTop: moderateScale(8),
   },
   couponSuccess: {
     color: '#28a745',
-    fontSize: 12,
-    marginTop: 8,
+    fontSize: normalizeFont(12),
+    marginTop: moderateScale(8),
   },
 
   container: {
@@ -1214,9 +1221,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: '5%',
     top: '5%',
-    padding: 4,
+    padding: moderateScale(4),
     backgroundColor: '#fff',
-    borderRadius: 20,
+    borderRadius: moderateScale(20),
   },
   quantityContainer: {
     position: 'absolute',
@@ -1266,7 +1273,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     margin: moderateScale(8),
     marginTop: moderateScale(16),
-    borderRadius: 8,
+    borderRadius: moderateScale(8),
     padding: moderateScale(16),
   },
   priceSectionTitle: {

@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useNavigation } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -798,7 +798,7 @@ const VendorProfile = () => {
           />
           <ProfileMenuItem 
             icon="shield-checkmark-outline" 
-            title="Terms & Conditions" 
+            title="Privacy&Policy" 
             subtitle="We care about your safety" 
             onPress={() => navigation.navigate("Privacy&Policy")} 
           />

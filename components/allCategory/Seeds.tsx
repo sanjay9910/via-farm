@@ -1,16 +1,17 @@
+import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const API_BASE = "https://viafarm-1.onrender.com";
@@ -32,7 +33,7 @@ const ProductCard = ({ id, name, image, onPress, product }) => {
           resizeMode="cover"
         />
       </View>
-      <Text style={cardStyles.name} numberOfLines={2}>
+      <Text style={cardStyles.name} numberOfLines={1}>
         {name}
       </Text>
     </TouchableOpacity>
@@ -226,57 +227,58 @@ export default Seeds;
 // ✅ Styles same as Fruits/Vegetables/Plants/Handicrafts
 const styles = StyleSheet.create({
   heading: {
-    fontSize: 20,
-    marginLeft: 20,
+    fontSize: normalizeFont(16),
+    marginLeft: moderateScale(20),
     fontWeight: "600",
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
-    paddingRight: 20,
+    marginBottom: moderateScale(15),
+    paddingRight: moderateScale(20),
   },
   link: {
     color: "rgba(1, 151, 218, 1)",
     fontWeight: "600",
+    fontSize:normalizeFont(12),
   },
   loadingContainer: {
     alignItems: "center",
-    padding: 20,
+    padding: moderateScale(20),
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: moderateScale(10),
     color: "#777",
   },
   errorContainer: {
     alignItems: "center",
-    padding: 20,
+    padding: moderateScale(20),
     backgroundColor: "#ffebee",
-    borderRadius: 8,
-    marginHorizontal: 20,
+    borderRadius: moderateScale(8),
+    marginHorizontal: moderateScale(20),
   },
   errorText: {
     color: "#d32f2f",
     textAlign: "center",
-    marginBottom: 15,
-    fontSize: 16,
+    marginBottom: moderateScale(15),
+    fontSize: normalizeFont(13),
   },
   buttonContainer: {
     flexDirection: "row",
-    gap: 10,
+    gap: scale(10),
   },
   retryButton: {
     backgroundColor: "#1976d2",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(20),
     borderRadius: 5,
   },
   loginButton: {
     backgroundColor: "#388e3c",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(20),
+    borderRadius: moderateScale(5),
   },
   buttonText: {
     color: "white",
@@ -284,28 +286,28 @@ const styles = StyleSheet.create({
   },
   noDataContainer: {
     alignItems: "center",
-    padding: 20,
+    padding: moderateScale(20),
   },
   noDataText: {
     color: "#666",
-    fontSize: 16,
+    fontSize: normalizeFont(13),
   },
 });
 
-// ✅ Card styles same as other categories
+// ✅ Same card design as NewSeason
 const cardStyles = StyleSheet.create({
   container: {
     alignItems: "center",
-    marginHorizontal: 8,
-    width: 120,
+    marginHorizontal: moderateScale(8),
+    width: scale(120),
   },
   card: {
     backgroundColor: "#fff",
-    borderRadius: 12,
+    borderRadius: moderateScale(12),
     borderWidth: 1,
     borderColor: "#e0e0e0",
-    width: 120,
-    height: 120,
+    width: scale(120),
+    height: scale(120),
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
@@ -320,12 +322,12 @@ const cardStyles = StyleSheet.create({
     borderRadius: 8,
   },
   name: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     fontWeight: "500",
     color: "#333",
     textAlign: "center",
-    marginTop: 4,
+    marginTop: moderateScale(4),
     flexWrap: "wrap",
-    width: 100,
+    width: scale(100),
   },
 });

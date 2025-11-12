@@ -1,8 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useContext, useState } from 'react';
+import { useContext, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
+import { moderateScale, normalizeFont, scale } from '../Responsive';
 
 export default function ProfileScreen() {
   const { completeProfile } = useContext(AuthContext);
@@ -90,12 +91,12 @@ export default function ProfileScreen() {
               </View>
             </View>
 
-            {mobile && (
+            {/* {mobile && (
               <View style={styles.mobileInfo}>
                 <Text style={styles.mobileLabel}>Mobile Number</Text>
                 <Text style={styles.mobileNumber}>{mobile}</Text>
               </View>
-            )}
+            )} */}
           </View>
 
           <TouchableOpacity style={styles.completeButton} onPress={saveProfile}>
@@ -117,46 +118,46 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 40,
+    paddingHorizontal: moderateScale(20),
+    paddingVertical: moderateScale(40),
     justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: moderateScale(40),
   },
   title: {
-    fontSize: 28,
+    fontSize: normalizeFont(18),
     fontWeight: 'bold',
     color: '#1a1a1a',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: normalizeFont(13),
     color: '#666',
     textAlign: 'center',
   },
   form: {
-    marginBottom: 40,
+    marginBottom: moderateScale(40),
   },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: moderateScale(24),
   },
   label: {
-    fontSize: 16,
+    fontSize: normalizeFont(13),
     fontWeight: '600',
     color: '#333',
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
   },
   input: {
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#e0e0e0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    fontSize: 16,
+    borderRadius: moderateScale(12),
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(16),
+    fontSize: normalizeFont(13),
     color: '#333',
     shadowColor: '#000',
     shadowOffset: {
@@ -169,15 +170,15 @@ const styles = StyleSheet.create({
   },
   roleContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: scale(12),
   },
   roleButton: {
     flex: 1,
     backgroundColor: '#fff',
     borderWidth: 2,
     borderColor: '#e0e0e0',
-    borderRadius: 12,
-    paddingVertical: 20,
+    borderRadius: moderateScale(12),
+    paddingVertical: moderateScale(20),
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
@@ -189,11 +190,10 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   roleButtonActive: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: 'rgba(76, 175, 80, 1)',
   },
   roleText: {
-    fontSize: 16,
+    fontSize: normalizeFont(13),
     fontWeight: '600',
     color: '#666',
   },
@@ -202,25 +202,25 @@ const styles = StyleSheet.create({
   },
   mobileInfo: {
     backgroundColor: '#f0f0f0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    marginTop: 8,
+    borderRadius: moderateScale(12),
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(16),
+    marginTop: moderateScale(8),
   },
   mobileLabel: {
-    fontSize: 14,
+    fontSize: normalizeFont(11),
     color: '#666',
-    marginBottom: 4,
+    marginBottom: moderateScale(4),
   },
   mobileNumber: {
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     fontWeight: '600',
     color: '#333',
   },
   completeButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    paddingVertical: 18,
+    backgroundColor: 'rgba(76, 175, 80, 1)',
+    borderRadius: moderateScale(12),
+    paddingVertical: moderateScale(18),
     alignItems: 'center',
     shadowColor: '#007AFF',
     shadowOffset: {
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   },
   completeButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: normalizeFont(15),
     fontWeight: 'bold',
   },
 });
