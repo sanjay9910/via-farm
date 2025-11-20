@@ -5,15 +5,15 @@ import { useNavigation } from 'expo-router';
 import { goBack } from "expo-router/build/global-state/routing";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Animated,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { moderateScale, normalizeFont, scale } from "./Responsive";
@@ -70,7 +70,7 @@ const ProductCard = ({
           >
             <Ionicons
               name={isFavorite ? 'heart' : 'heart-outline'}
-              size={moderateScale(22)}
+              size={moderateScale(25)}
               color={isFavorite ? '#ff4444' : '#fff'}
             />
           </TouchableOpacity>
@@ -164,7 +164,7 @@ const MyWishlist = () => {
   const [filteredData, setFilteredData] = useState([]);
 
   const [favorites, setFavorites] = useState(new Set());
-  const [cartItems, setCartItems] = useState({}); // { productId: { quantity, cartItemId } }
+  const [cartItems, setCartItems] = useState({});
   const [selectedOption, setSelectedOption] = useState('All');
 
   // Fetch wishlist (and convert to product-like items)
@@ -646,8 +646,8 @@ const cardStyles = StyleSheet.create({
   },
   favoriteButton: {
     position: 'absolute',
-    top: moderateScale(8),
-    right: moderateScale(8),
+    // top: moderateScale(2),
+    right: moderateScale(2),
     // backgroundColor: 'rgba(0,0,0,0.35)',
     padding: moderateScale(6),
     borderRadius: moderateScale(14)
@@ -702,7 +702,7 @@ const cardStyles = StyleSheet.create({
   },
   addToCartButton: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
-    paddingVertical: moderateScale(8),
+    paddingVertical: moderateScale(12),
     paddingHorizontal: moderateScale(12),
     borderRadius: moderateScale(6),
     width:'100%',
@@ -772,7 +772,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff'
   },
   text: {
-    fontSize: normalizeFont(18),
+    fontSize: normalizeFont(15),
     fontWeight: '600',
     color: '#000'
   },

@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     gap: moderateScale(12),
   },
   imageContainer: {
-    width: scale(110),
+    width: scale(120),
     height: moderateScale(150),
   },
   itemImage: {

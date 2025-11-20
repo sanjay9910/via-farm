@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import axios from "axios";
 import { useNavigation } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -59,33 +59,73 @@ const formatDateForAPI = (date) => {
 // --- Enhanced Category Dropdown with Checkboxes and Product Dropdown ---
 const CategoryProductDropdown = ({
   visible,
-  selectedCategories,
-  selectedProducts,
+  selectedCategories = [],
+  selectedProducts = [],
   onCategoryToggle,
   onProductSelect,
   onClose,
-  products,
+  products = [],
 }) => {
-  const categories = [
+  const [categories, setCategories] = useState([
     "All Products",
     "Fruits",
     "Vegetables",
     "Plants",
     "Seeds",
     "Handicrafts",
-  ];
-
+  ]); // initial fallback
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
   const [expandedCategory, setExpandedCategory] = useState(null);
+
+  // fetch categories from API and map to names
+  useEffect(() => {
+    let mounted = true;
+    const fetchCategories = async () => {
+      setLoadingCategories(true);
+      setFetchError(null);
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/admin/manage-app/categories`, { timeout: 15000 });
+        if (!mounted) return;
+        if (res?.data?.success && Array.isArray(res.data.categories)) {
+          const names = res.data.categories.map((c) => (c?.name ? String(c.name).trim() : null)).filter(Boolean);
+          // Put All Products at start and unique values
+          const unique = Array.from(new Set(["All Products", ...names]));
+          setCategories(unique);
+        } else {
+          console.warn("Categories API returned no categories, keeping fallback");
+        }
+      } catch (err) {
+        console.warn("Failed to fetch categories:", err?.message || err);
+        setFetchError(err?.message || "Failed to load categories");
+        // keep fallback categories already in state
+      } finally {
+        if (mounted) setLoadingCategories(false);
+      }
+    };
+
+    fetchCategories();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   if (!visible) return null;
 
+  // helper: case-insensitive category comparison
+  const sameCategory = (a, b) => {
+    if (!a || !b) return false;
+    return String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+  };
+
   const getProductsByCategory = (category) => {
-    if (category === "All Products") return products;
-    return products.filter((product) => product.category === category);
+    if (!category) return [];
+    if (sameCategory(category, "All Products")) return products || [];
+    return (products || []).filter((product) => sameCategory(product.category, category));
   };
 
   const isCategorySelected = (category) => {
-    return selectedCategories.includes(category);
+    return selectedCategories.some((c) => sameCategory(c, category));
   };
 
   const isProductSelected = (productId) => {
@@ -99,9 +139,25 @@ const CategoryProductDropdown = ({
         nestedScrollEnabled={true}
         showsVerticalScrollIndicator={true}
       >
+        {/* optional: show loading indicator for categories fetch */}
+        {loadingCategories && (
+          <View style={{ padding: 12 }}>
+            <ActivityIndicator />
+            <Text style={{ marginTop: 8, color: "#666" }}>Loading categories...</Text>
+          </View>
+        )}
+
+        {/* optional: show fetch error (non-blocking) */}
+        {fetchError && (
+          <View style={{ padding: 8 }}>
+            <Text style={{ color: "#c00" }}>Could not load latest categories — showing cached options.</Text>
+          </View>
+        )}
+
+        {/* render categories (names only) */}
         {categories.map((category) => {
           const categoryProducts = getProductsByCategory(category);
-          const isExpanded = expandedCategory === category;
+          const isExpanded = expandedCategory && sameCategory(expandedCategory, category);
 
           return (
             <View key={category} style={dropdownStyles.categoryContainer}>
@@ -109,13 +165,15 @@ const CategoryProductDropdown = ({
                 {/* Checkbox for category */}
                 <TouchableOpacity
                   style={dropdownStyles.checkboxContainer}
-                  onPress={() => onCategoryToggle(category)}
+                  onPress={() => {
+                    // call parent handler with the category name (string)
+                    if (typeof onCategoryToggle === "function") onCategoryToggle(category);
+                  }}
                 >
                   <View
                     style={[
                       dropdownStyles.checkbox,
-                      isCategorySelected(category) &&
-                        dropdownStyles.checkboxSelected,
+                      isCategorySelected(category) && dropdownStyles.checkboxSelected,
                     ]}
                   >
                     {isCategorySelected(category) && (
@@ -125,48 +183,48 @@ const CategoryProductDropdown = ({
                   <Text style={dropdownStyles.categoryText}>{category}</Text>
                 </TouchableOpacity>
 
-                {/* Dropdown arrow for products */}
+                {/* Dropdown arrow for products (skip for All Products if desired) */}
                 {category !== "All Products" && categoryProducts.length > 0 && (
                   <TouchableOpacity
                     style={dropdownStyles.expandButton}
-                    onPress={() =>
-                      setExpandedCategory(isExpanded ? null : category)
-                    }
+                    onPress={() => setExpandedCategory(isExpanded ? null : category)}
                   >
-                    <Text style={dropdownStyles.expandArrow}>
-                      {isExpanded ? "▲" : "▼"}
-                    </Text>
+                    <Text style={dropdownStyles.expandArrow}>{isExpanded ? "▲" : "▼"}</Text>
                   </TouchableOpacity>
                 )}
               </View>
 
-              {/* Products dropdown */}
+              {/* Products dropdown (names only) */}
               {isExpanded && category !== "All Products" && (
                 <View style={dropdownStyles.productsContainer}>
-                  {categoryProducts.map((product) => (
-                    <TouchableOpacity
-                      key={product._id}
-                      style={[
-                        dropdownStyles.productRow,
-                        isProductSelected(product._id) &&
-                          dropdownStyles.productRowSelected,
-                      ]}
-                      onPress={() => onProductSelect(product._id, category)}
-                    >
-                      <Text
+                  {categoryProducts.length === 0 ? (
+                    <Text style={{ color: "#666", paddingVertical: 6, paddingLeft: 8 }}>No products</Text>
+                  ) : (
+                    categoryProducts.map((product) => (
+                      <TouchableOpacity
+                        key={product._id}
                         style={[
-                          dropdownStyles.productText,
-                          isProductSelected(product._id) &&
-                            dropdownStyles.productTextSelected,
+                          dropdownStyles.productRow,
+                          isProductSelected(product._id) && dropdownStyles.productRowSelected,
                         ]}
+                        onPress={() => {
+                          if (typeof onProductSelect === "function") onProductSelect(product._id, category);
+                        }}
                       >
-                        {product.name}
-                      </Text>
-                      {isProductSelected(product._id) && (
-                        <Text style={dropdownStyles.productCheckmark}>✓</Text>
-                      )}
-                    </TouchableOpacity>
-                  ))}
+                        <Text
+                          style={[
+                            dropdownStyles.productText,
+                            isProductSelected(product._id) && dropdownStyles.productTextSelected,
+                          ]}
+                        >
+                          {product.name}
+                        </Text>
+                        {isProductSelected(product._id) && (
+                          <Text style={dropdownStyles.productCheckmark}>✓</Text>
+                        )}
+                      </TouchableOpacity>
+                    ))
+                  )}
                 </View>
               )}
             </View>
@@ -1405,11 +1463,11 @@ const styles = StyleSheet.create({
   },
   filterOptionsContainer: {
     position: "absolute",
-    top: moderateScale(50),
+    top: moderateScale(39),
     left: 0,
     right: 0,
-    backgroundColor: "white",
-    borderRadius: moderateScale(8),
+    backgroundColor: "#fff",
+    borderRadius: moderateScale(15),
     borderWidth: scale(1),
     borderColor: "#4CAF50",
     marginBottom: moderateScale(100),
@@ -1421,11 +1479,13 @@ const styles = StyleSheet.create({
   },
   filterOption: {
     padding: moderateScale(12),
+    borderRadius:moderateScale(10),
     borderBottomWidth: scale(1),
     borderBottomColor: "#f0f0f0",
   },
   filterOptionText: {
     fontSize: normalizeFont(12),
+    borderRadius:moderateScale(10),
     color: "#333",
   },
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
@@ -1498,8 +1558,11 @@ const styles = StyleSheet.create({
     position: "absolute",
     backgroundColor: "white",
     borderRadius: moderateScale(8),
-    minWidth: moderateScale(140),
+    minWidth: moderateScale(130),
     shadowColor: "#000",
+    margin:-40,
+    borderWidth:1,
+    borderColor:'rgba(255, 202, 40, 1)',
     shadowOffset: { width: 0, height: moderateScale(2) },
     shadowOpacity: 0.25,
     shadowRadius: moderateScale(3.84),
@@ -1511,7 +1574,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  modalOptionText: { fontSize: normalizeFont(16), color: "#000" },
+  modalOptionText: { fontSize: normalizeFont(13), color: "#000" },
   deleteText: { color: "#FF3B30" },
   modalDivider: { height: scale(1), backgroundColor: "#f0f0f0" },
 });
@@ -1580,17 +1643,18 @@ const createModalStyles = StyleSheet.create({
   textInput: {
     // flex: 1,
     height: moderateScale(50),
+    width:'100%',
     borderWidth: scale(1),
     borderColor: "#f4e8b3",
     backgroundColor: "#fff",
     borderRadius: moderateScale(8),
     paddingHorizontal: scale(15),
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     color: "#000",
     justifyContent: "center",
   },
   dateText: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(13),
     color: "#000",
   },
   starIcon: {
@@ -1632,7 +1696,7 @@ const createModalStyles = StyleSheet.create({
     marginLeft: -moderateScale(1),
   },
   discountText: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     fontWeight: "600",
     color: "#333",
   },
@@ -1643,7 +1707,7 @@ const createModalStyles = StyleSheet.create({
     paddingRight: moderateScale(15),
   },
   dropdownText: {
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(14),
     color: "#000",
   },
   loadingText: {
@@ -1669,7 +1733,7 @@ const createModalStyles = StyleSheet.create({
   },
   createButtonText: {
     color: "#fff",
-    fontSize: normalizeFont(18),
+    fontSize: normalizeFont(14),
     fontWeight: "bold",
   },
 });

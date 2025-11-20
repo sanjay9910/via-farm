@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { moderateScale, normalizeFont, scale } from '../Responsive';
 
 export default function VendorLayout() {
+  
   return (
     <Tabs
       screenOptions={{
@@ -89,29 +90,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
-    height: 80,
-    paddingBottom:12,
-    paddingTop: 12,
-    paddingLeft:10,
-    paddingRight:10,
-    elevation: 8,
+    height: scale(80),
+    paddingBottom:moderateScale(12),
+    paddingTop: moderateScale(12),
+    paddingLeft:moderateScale(10),
+    paddingRight:moderateScale(10),
+    elevation: moderateScale(8),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: normalizeFont(11),
     fontWeight: '600',
-    marginTop: 4,
+    marginTop: moderateScale(8),
   },
   tabItem: {
-    paddingTop: 5,
+    paddingTop:moderateScale(3),
   },
   iconContainer: {
-    width: 90,
-    height: 65,
-    borderRadius:20,
+    width: scale(85),
+    marginTop:14,
+    height: scale(70),
+    borderRadius:moderateScale(20),
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',

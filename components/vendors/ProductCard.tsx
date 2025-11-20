@@ -416,14 +416,40 @@ const ProductCard = ({ item, onDelete, onStockUpdate, onEdit }) => {
 
 // --- ProductFilter Component ---
 
-const categories = [
-  "All",
-  "Fruits",
-  "Vegetables",
-  "Seeds",
-  "Plants",
-  "Handicrafts",
-];
+
+// useEffect(()=>{
+//   const   getAllCategory = async ()=>{
+//     try{
+//      const token = await AsyncStorage.getItem("userToken");
+//      const catRes = await axios.get(`${API_BASE}/api/admin/manage-app/categories`,{
+//       headers:{
+//        Authorization:`Bearer ${token}`
+//       },
+//      });
+
+//      const onlyNames = catRes.data?.categories?.map((item) => item.name) || [];
+//      console.log("Category Name",onlyNames)
+
+//      setAllCategory(onlyNames)
+//     }catch(error){
+//       console.log("Error",error)
+//     }
+//   }
+//   getAllCategory();
+// },[])
+
+
+
+// const categories = [
+//   "All",
+//   "Fruits",
+//   "Vegetables",
+//   "Seeds",
+//   "Plants",
+//   "Handicrafts",
+// ];
+
+
 const stockOptions = ["Out of Stock", "In Stock"];
 const dateOptions = ["Today", "Last 7 Days", "Last 30 Days", "All Time"];
 const amountOptions = ["Low to High", "High to Low"];
@@ -442,6 +468,7 @@ const ProductFilter = ({
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
+  const [ categories ,setAllCategory] = useState([]);
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
@@ -452,6 +479,26 @@ const ProductFilter = ({
 
   const slideAnim = useRef(new Animated.Value(width)).current;
   const dropdownButtonRef = useRef(null);
+
+  useEffect(()=>{
+  const   getAllCategory = async ()=>{
+    try{
+     const token = await AsyncStorage.getItem("userToken");
+     const catRes = await axios.get(`${API_BASE}/api/admin/manage-app/categories`,{
+      headers:{
+       Authorization:`Bearer ${token}`
+      },
+     });
+
+     const onlyNames = catRes.data?.categories?.map((item) => item.name) || [];
+     setAllCategory(onlyNames)
+    }catch(error){
+      console.log("Error",error)
+    }
+  }
+  getAllCategory();
+},[])
+
 
   useEffect(() => {
     if (isFilterOpen) {
@@ -522,50 +569,65 @@ const ProductFilter = ({
         </TouchableOpacity>
       </View>
 
-      <Modal
-        visible={isDropdownOpen}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setIsDropdownOpen(false)}
+
+
+<Modal
+  visible={isDropdownOpen}
+  transparent={true}
+  animationType="fade"
+  onRequestClose={() => setIsDropdownOpen(false)}
+>
+  <TouchableWithoutFeedback onPress={() => setIsDropdownOpen(false)}>
+    <View style={filterStyles.modalOverlay}>
+      <View
+        style={[
+          filterStyles.dropdownMenu,
+          {
+            position: "absolute",
+            top:scale(216),
+            left: dropdownPos.left,
+            width: dropdownPos.width,
+            maxHeight: scale(300), 
+            overflow: "hidden",
+          },
+        ]}
       >
-        <TouchableWithoutFeedback onPress={() => setIsDropdownOpen(false)}>
-          <View style={filterStyles.modalOverlay}>
-            <View
+        <ScrollView
+          nestedScrollEnabled
+          showsVerticalScrollIndicator
+          contentContainerStyle={{ paddingVertical: 4 }}
+        >
+          {categories.map((category) => (
+            <TouchableOpacity
+              key={category}
               style={[
-                filterStyles.dropdownMenu,
-                {
-                  position: "absolute",
-                  top: dropdownPos.top,
-                  left: dropdownPos.left,
-                  width: dropdownPos.width,
-                },
+                filterStyles.dropdownItem,
+                selectedCategory === category && filterStyles.dropdownItemActive,
               ]}
+              onPress={() => {
+                onCategorySelect(category);
+                setIsDropdownOpen(false); // close after select
+              }}
+              activeOpacity={0.7}
             >
-              {categories.map((category) => (
-                <TouchableOpacity
-                  key={category}
-                  style={[
-                    filterStyles.dropdownItem,
-                    selectedCategory === category &&
-                    filterStyles.dropdownItemActive,
-                  ]}
-                  onPress={() => onCategorySelect(category)}
-                >
-                  <Text
-                    style={[
-                      filterStyles.dropdownItemText,
-                      selectedCategory === category &&
-                      filterStyles.dropdownItemTextActive,
-                    ]}
-                  >
-                    {category}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+              <Text
+                style={[
+                  filterStyles.dropdownItemText,
+                  selectedCategory === category && filterStyles.dropdownItemTextActive,
+                ]}
+              >
+                {category}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    </View>
+  </TouchableWithoutFeedback>
+</Modal>
+
+
+
 
       <Modal
         animationType="none"
@@ -1167,6 +1229,7 @@ export const filterStyles = StyleSheet.create({
     elevation: moderateScale(8),
     overflow: "hidden",
     borderWidth: moderateScale(1),
+    height:scale(200),
     borderColor: "rgba(0,0,0,0.3)",
   },
 
@@ -1177,9 +1240,9 @@ export const filterStyles = StyleSheet.create({
     borderBottomColor: "#f3f4f6",
   },
 
-  dropdownItemActive: { backgroundColor: "#f3f4f6" },
+  dropdownItemActive: { backgroundColor: "#f3f4f6"},
 
-  dropdownItemText: { fontSize: normalizeFont(13), color: "#374151" },
+  dropdownItemText: { fontSize: normalizeFont(11), color: "#374151"},
 
   dropdownItemTextActive: { fontWeight: "600", color: "#111827" },
 

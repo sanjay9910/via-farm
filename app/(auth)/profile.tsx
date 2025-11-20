@@ -35,9 +35,9 @@ export default function ProfileScreen() {
         
         // ROLE KE BASIS PE NAVIGATE KARO
         if (role === 'Buyer') {
-          router.replace('/(tabs)'); 
+          router.replace('/login'); 
         } else if (role === 'Vendor') {
-          router.replace('/(vendors)'); 
+          router.replace('/login'); 
         }
       }
     } catch (err) {
@@ -91,12 +91,6 @@ export default function ProfileScreen() {
               </View>
             </View>
 
-            {/* {mobile && (
-              <View style={styles.mobileInfo}>
-                <Text style={styles.mobileLabel}>Mobile Number</Text>
-                <Text style={styles.mobileNumber}>{mobile}</Text>
-              </View>
-            )} */}
           </View>
 
           <TouchableOpacity style={styles.completeButton} onPress={saveProfile}>

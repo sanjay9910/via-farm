@@ -54,7 +54,7 @@ const ProductCard = ({ id, name, image, onPress }) => {
           resizeMode="cover"
         />
       </View>
-      <Text style={cardStyles.name} numberOfLines={2}>
+      <Text style={cardStyles.name} numberOfLines={1}>
         {name}
       </Text>
     </TouchableOpacity>
@@ -242,15 +242,15 @@ const AllAroundIndia = () => {
 export default AllAroundIndia;
 
 const styles = StyleSheet.create({
-  heading: { fontSize: normalizeFont(17), marginLeft: moderateScale(20), fontWeight: "600" },
+  heading: { fontSize: normalizeFont(16), marginLeft: moderateScale(20), fontWeight: "600" },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: verticalScale(15), paddingRight: moderateScale(20) },
-  link: { color: "rgba(1, 151, 218, 1)", fontWeight: "600", fontSize: normalizeFont(13) },
+  link: { color: "rgba(1, 151, 218, 1)", fontWeight: "600", fontSize: normalizeFont(12) },
 
   seeButton: { flexDirection: "row", alignItems: "center",gap:5 },
 
 
   loadingContainer: { alignItems: "center", padding: moderateScale(20) },
-  loadingText: { marginTop: verticalScale(10), color: "#777", fontSize: normalizeFont(12) },
+  loadingText: { marginTop: verticalScale(10), color: "#777", fontSize: normalizeFont(10) },
 
   errorContainer: { alignItems: "center", padding: moderateScale(20), backgroundColor: "#ffebee", borderRadius: moderateScale(8), marginHorizontal: moderateScale(20) },
   errorText: { color: "#d32f2f", textAlign: "center", marginBottom: moderateScale(15), fontSize: normalizeFont(14) },
@@ -278,5 +278,5 @@ const cardStyles = StyleSheet.create({
     marginBottom: moderateScale(5),
   },
   image: { width: "100%", height: "100%", borderRadius: moderateScale(8) },
-  name: { fontSize: normalizeFont(14), fontWeight: "500", color: "#333", textAlign: "center", flexWrap: "wrap", width: moderateScale(100) },
+  name: { fontSize: normalizeFont(12), fontWeight: "500", color: "#333", textAlign: "center", flexWrap: "wrap", width: moderateScale(100) },
 });

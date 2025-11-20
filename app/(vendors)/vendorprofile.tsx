@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useNavigation } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -134,100 +135,184 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
     });
   };
 
+
+
+
   // Submit handler — IMPORTANT: do NOT set Content-Type header manually
   const handleSubmit = async () => {
-    if (!name || !mobileNumber || !upiId) {
-      Alert.alert('Error', 'Please fill all required fields.');
+  if (!name || !mobileNumber || !upiId) {
+    Alert.alert('Error', 'Please fill all required fields.');
+    return;
+  }
+
+  setLoading(true);
+
+  // helper: guess mime from filename
+  const guessMime = (filename) => {
+    const match = /\.(\w+)$/.exec(filename);
+    if (!match) return 'image/jpeg';
+    const ext = match[1].toLowerCase();
+    if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+    if (ext === 'png') return 'image/png';
+    if (ext === 'webp') return 'image/webp';
+    if (ext === 'gif') return 'image/gif';
+    if (ext === 'heic' || ext === 'heif') return 'image/heic';
+    return 'image/jpeg';
+  };
+
+  const prepareUriForUpload = async (uri) => {
+    try {
+      if (!uri) return null;
+
+      if (uri.startsWith('http://') || uri.startsWith('https://')) return uri;
+
+      if (Platform.OS === 'android') {
+
+        if (uri.startsWith('content://')) {
+          const filename = uri.split('/').pop() || `img_${Date.now()}.jpg`;
+          const dest = `${FileSystem.cacheDirectory}${filename}`;
+          try {
+            // Try copyAsync; fallback to downloadAsync
+            await FileSystem.copyAsync({ from: uri, to: dest }).catch(async () => {
+              await FileSystem.downloadAsync(uri, dest);
+            });
+            return dest;
+          } catch (err) {
+            console.warn('prepareUriForUpload: copy/download failed, returning original uri', err);
+            return uri;
+          }
+        }
+        // file:// or other - return as-is
+        return uri;
+      } else {
+        // iOS: remove file:// prefix for FormData on iOS
+        if (uri.startsWith('file://')) return uri.replace('file://', '');
+        return uri;
+      }
+    } catch (err) {
+      console.warn('prepareUriForUpload error:', err);
+      return uri;
+    }
+  };
+
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      Alert.alert('Error', 'User not authenticated.');
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        Alert.alert('Error', 'User not authenticated.');
-        setLoading(false);
-        return;
-      }
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('mobileNumber', String(mobileNumber));
+    formData.append('upiId', upiId);
+    formData.append('status', status);
+    formData.append('about', about || '');
 
-      const formData = new FormData();
-      formData.append('name', name);
-      formData.append('mobileNumber', mobileNumber);
-      formData.append('upiId', upiId);
-      formData.append('status', status);
-      formData.append('about', about);
+    // profile picture
+    if (profileImageUri) {
+      const prepared = await prepareUriForUpload(profileImageUri);
+      const filename = (prepared && prepared.split('/').pop()) || `profile_${Date.now()}.jpg`;
+      const mimeType = guessMime(filename);
 
-      // profile picture
-      if (profileImageUri) {
-        const filename = profileImageUri.split('/').pop();
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image';
-        formData.append('profilePicture', {
-          uri: Platform.OS === 'android' ? profileImageUri : profileImageUri.replace('file://', ''),
+      formData.append('profilePicture', {
+        uri: Platform.OS === 'android' ? prepared : prepared,
+        name: filename,
+        type: mimeType,
+      });
+    }
+
+    console.log("Sanjay name ",formData)
+
+    // farm images (multiple) — accept array of {uri} or strings
+    if (farmImages && Array.isArray(farmImages) && farmImages.length > 0) {
+      // normalize to array of URIs, dedupe and limit to 10 (or 5 as you prefer)
+      const uris = Array.from(
+        new Map(
+          farmImages
+            .map((i) => (typeof i === 'string' ? i : i?.uri))
+            .filter(Boolean)
+            .map((u) => [u, u])
+        ).values()
+      ).slice(0, 5);
+
+      for (let i = 0; i < uris.length; i++) {
+        const rawUri = uris[i];
+        const prepared = await prepareUriForUpload(rawUri);
+        const filename = (prepared && prepared.split('/').pop()) || `farm_${Date.now()}_${i}.jpg`;
+        const mimeType = guessMime(filename);
+
+        // Append multiple entries with same field name to create an array on server
+        formData.append('farmImages', {
+          uri: Platform.OS === 'android' ? prepared : prepared,
           name: filename,
-          type,
+          type: mimeType,
         });
       }
+    }
 
-      // farm images (multiple) — validate URIs before appending
-      if (farmImages && Array.isArray(farmImages) && farmImages.length > 0) {
-        farmImages.forEach((imgObj, index) => {
-          const imgUri = typeof imgObj === 'string' ? imgObj : imgObj?.uri;
-          if (!imgUri) return;
-          const filename = imgUri.split('/').pop() || `farm_${index}.jpg`;
-          const match = /\.(\w+)$/.exec(filename);
-          const type = match ? `image/${match[1]}` : 'image';
 
-          // Many backends accept repeated 'farmImages' keys. If your backend expects
-          // farmImages[] (PHP/Laravel style) change the key to 'farmImages[]' below.
-          formData.append('farmImages', {
-            uri: Platform.OS === 'android' ? imgUri : imgUri.replace('file://', ''),
-            name: filename,
-            type,
-          });
-        });
-      }
 
-      // IMPORTANT: Do not set Content-Type manually — Axios will set correct multipart boundary
-      const response = await axios.put(`${API_BASE}/api/vendor/profile`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+    // Do NOT set Content-Type header — let RN/axios set multipart boundary
+    const response = await axios.put(`${API_BASE}/api/vendor/profile`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      timeout: 120000,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+    });
+
+    // For debugging: log server response (not the FormData itself)
+    console.log('upload response status:', response.status);
+    console.log('upload response data:', response.data);
+
+    if (response.data?.success) {
+      const payload = response.data?.user || response.data?.data || response.data;
+      onUpdate({
+        name: payload?.name || name,
+        mobileNumber: payload?.mobileNumber || mobileNumber,
+        upiId: payload?.upiId || upiId,
+        status: payload?.status || status,
+        about: payload?.about || about,
+        profileImageUri: payload?.profilePicture || payload?.profileImage || profileImageUri,
+        farmImages: Array.isArray(payload?.farmImages)
+          ? payload.farmImages
+          : payload?.farmImages
+          ? [payload.farmImages]
+          : (farmImages || []).map((i) => (typeof i === 'string' ? i : i?.uri)),
       });
 
-      console.log('upload response', response.status, response.data);
-
-      if (response.data?.success) {
-        const payload = response.data?.user || response.data?.data || response.data;
-        onUpdate({
-          name: payload?.name || name,
-          mobileNumber: payload?.mobileNumber || mobileNumber,
-          upiId: payload?.upiId || upiId,
-          status: payload?.status || status,
-          about: payload?.about || about,
-          profileImageUri: payload?.profilePicture || payload?.profileImage || profileImageUri,
-          farmImages: Array.isArray(payload?.farmImages) ? payload.farmImages : (payload?.farmImages ? [payload.farmImages] : farmImages.map(i => i.uri)),
-        });
-        Alert.alert('Success', 'Profile updated successfully!');
-        onClose();
-      } else {
-        console.log('server returned success:false', response.data);
-        Alert.alert('Error', response.data?.message || 'Something went wrong!');
-      }
-    } catch (err) {
-      // Detailed logging for debugging 500
-      console.error('Profile update error (full):', err);
-      if (err?.response) {
-        console.error('Server response status:', err.response.status);
-        console.error('Server response data:', err.response.data);
-        Alert.alert('Server error', err.response.data?.message || `Status ${err.response.status}`);
-      } else {
-        Alert.alert('Error', 'Failed to update profile. Please try again.');
-      }
-    } finally {
-      setLoading(false);
+      Alert.alert('Success', 'Profile updated successfully!');
+      onClose();
+    } else {
+      console.log('server returned success:false', response.data);
+      Alert.alert('Error', response.data?.message || 'Something went wrong!');
     }
-  };
+  } catch (err) {
+    console.error('Profile update error (full):', err);
+
+    // axios network error or other
+    if (err?.response) {
+      console.error('Server response status:', err.response.status);
+      console.error('Server response data:', err.response.data);
+      Alert.alert('Server error', err.response.data?.message || `Status ${err.response.status}`);
+    } else if (err?.message && err.message.toLowerCase().includes('network')) {
+      // network error - give helpful hint
+      console.error('Network error while uploading. Check device network and API URL.');
+      Alert.alert('Network Error', 'Failed to reach server. Check your internet connection and API URL.');
+    } else {
+      Alert.alert('Error', err?.message || 'Failed to update profile. Please try again.');
+    }
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
+
 
   const selectStatus = (value) => {
     SetStatus(value);
@@ -542,7 +627,7 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
           {/* Header */}
           <View style={modalStyles.header}>
             <TouchableOpacity onPress={onClose} style={modalStyles.headerIcon}>
-              <Text style={modalStyles.iconText}>←</Text>
+              <Image source={require("../../assets/via-farm-img/icons/groupArrow.png")} />
             </TouchableOpacity>
             <Text style={modalStyles.headerTitle}>Edit Location & Charges</Text>
             <View style={{ width: 40 }} />
@@ -565,14 +650,14 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
               <Ionicons name="chevron-forward" size={16} color="#00B0FF" />
             </TouchableOpacity>
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={modalStyles.locationButton}
               onPress={handleSearchLocation}
             >
               <Ionicons name="search" size={18} color="#00B0FF" />
               <Text style={modalStyles.locationButtonText}>Search Location</Text>
               <Ionicons name="chevron-forward" size={16} color="#00B0FF" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             {/* Address Inputs */}
             <TextInput
@@ -658,6 +743,7 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
 // ---------------- VendorProfile ----------------
 const VendorProfile = () => {
   const [userInfo, setUserInfo] = useState(null);
+  const [fullUser, setFullUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editLocationModalVisible, setEditLocationModalVisible] = useState(false);
   const [editProfileModalVisible, setEditProfileModalVisible] = useState(false);
@@ -676,9 +762,13 @@ const VendorProfile = () => {
 
       if (res.data.success) {
         const user = res.data.user;
+
+        setFullUser(user);  
+
         setUserInfo({
           name: user.name,
-          status:user.status,
+          status: user.status,
+          rating:user.rating,
           phone: user.mobileNumber,
           upiId: user.upiId,
           image: user.profilePicture,
@@ -741,7 +831,7 @@ const VendorProfile = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <View style={styles.profileSection}>
+        <TouchableOpacity style={styles.profileSection} onPress={() => navigation.navigate("VendorProfileView", { user: fullUser })}>
           <View style={styles.profileInfo}>
             <TouchableOpacity style={styles.avatarContainer}>
               {userInfo?.image ? (
@@ -757,62 +847,62 @@ const VendorProfile = () => {
               <Text style={styles.userRole}>{userInfo?.status}</Text>
             </View>
             <View>
-            <TouchableOpacity style={{borderWidth:1, borderColor:"rgba(0, 0, 0, 0.4)",paddingHorizontal:moderateScale(6),borderRadius:5,flexDirection:'row',alignItems:'center',gap:5,paddingVertical:moderateScale(3)}}>
-              <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
-              <Text >4.5</Text>
-            </TouchableOpacity>  
-            <TouchableOpacity 
-              style={styles.editButtonContainer} 
-              onPress={() => setEditProfileModalVisible(true)}
-            >
-              <Image source={require("../../assets/via-farm-img/icons/editicon.png")} />
-            </TouchableOpacity>
+              <TouchableOpacity style={{ borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.4)", paddingHorizontal: moderateScale(6), borderRadius: 5, flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: moderateScale(3) }} onPress={() => navigation.navigate("VendorProfileView", { user: fullUser })}>
+                <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
+                 <Text >{userInfo?.rating}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.editButtonContainer}
+                onPress={() => setEditProfileModalVisible(true)}
+              >
+                <Image source={require("../../assets/via-farm-img/icons/editicon.png")} />
+              </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.menuSection}>
-          <ProfileMenuItem 
-            icon="location-outline" 
-            title="Manage Location & Charges" 
-            subtitle="Add/Edit your location" 
-            onPress={() => setEditLocationModalVisible(true)} 
+          <ProfileMenuItem
+            icon="location-outline"
+            title="Manage Location & Charges"
+            subtitle="Add/Edit your location"
+            onPress={() => setEditLocationModalVisible(true)}
           />
-          <ProfileMenuItem 
-            icon="pricetag-outline" 
-            title="My Coupons" 
-            subtitle="Your available discount coupons" 
-            onPress={() => navigation.navigate("MyCoupons")} 
+          <ProfileMenuItem
+            icon="pricetag-outline"
+            title="My Coupons"
+            subtitle="Your available discount coupons"
+            onPress={() => navigation.navigate("MyCoupons")}
           />
-          <ProfileMenuItem 
-            icon="language" 
-            title="Language" 
-            subtitle="Select your preferred language" 
-            onPress={() => navigation.navigate("Language")} 
+          <ProfileMenuItem
+            icon="language"
+            title="Language"
+            subtitle="Select your preferred language"
+            onPress={() => navigation.navigate("Language")}
           />
-          <ProfileMenuItem 
-            icon="headset-outline" 
-            title="Customer Support" 
-            subtitle="We are happy to assist you!" 
-            onPress={() => navigation.navigate("CustomerSupport")} 
+          <ProfileMenuItem
+            icon="headset-outline"
+            title="Customer Support"
+            subtitle="We are happy to assist you!"
+            onPress={() => navigation.navigate("CustomerSupport")}
           />
-          <ProfileMenuItem 
-            icon="shield-checkmark-outline" 
-            title="Privacy&Policy" 
-            subtitle="We care about your safety" 
-            onPress={() => navigation.navigate("Privacy&Policy")} 
+          <ProfileMenuItem
+            icon="shield-checkmark-outline"
+            title="Privacy&Policy"
+            subtitle="We care about your safety"
+            onPress={() => navigation.navigate("Privacy&Policy")}
           />
-          <ProfileMenuItem 
-            icon="information-circle-outline" 
-            title="About Us" 
-            subtitle="Get to know about us" 
-            onPress={() => navigation.navigate("AboutUs")} 
+          <ProfileMenuItem
+            icon="information-circle-outline"
+            title="About Us"
+            subtitle="Get to know about us"
+            onPress={() => navigation.navigate("AboutUs")}
           />
-          <ProfileMenuItem 
-            icon="star-outline" 
-            title="Rate Us" 
-            subtitle="Rate your experience on Play Store" 
-            onPress={() => navigation.navigate("RateUs")} 
+          <ProfileMenuItem
+            icon="star-outline"
+            title="Rate Us"
+            subtitle="Rate your experience on Play Store"
+            onPress={() => navigation.navigate("RateUs")}
           />
         </View>
 
@@ -865,8 +955,8 @@ const styles = StyleSheet.create({
     marginTop: moderateScale(20),
     marginBottom: moderateScale(10),
     borderRadius: moderateScale(12),
-    borderWidth:1,
-    borderColor:'rgba(0, 0, 0, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
     padding: moderateScale(20),
     elevation: 2,
     shadowColor: '#000',
@@ -946,7 +1036,7 @@ const styles = StyleSheet.create({
   logoutButton: {
     backgroundColor: '#4CAF50',
     flexDirection: 'row',
-    width:'70%',
+    width: '70%',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: moderateScale(18),
@@ -974,10 +1064,12 @@ const modalStyles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: moderateScale(20),
     borderTopRightRadius: moderateScale(20),
-    borderWidth: scale(2),
-    borderColor: 'rgba(255, 202, 40, 0.2)',
     maxHeight: Math.max(moderateScale(200), height - moderateScale(80)),
     paddingBottom: moderateScale(15),
+    borderTopWidth:2,
+    borderLeftWidth:2,
+    borderRightWidth:2,
+    borderColor:'rgba(255, 202, 40, 1)'
   },
 
   header: {
@@ -991,12 +1083,12 @@ const modalStyles = StyleSheet.create({
   },
   headerIcon: { width: moderateScale(40), justifyContent: 'center', alignItems: 'center' },
   iconText: { fontSize: normalizeFont(22), color: '#4CAF50', fontWeight: '600' },
-  headerTitle: { fontSize: normalizeFont(16), fontWeight: '600', color: '#333' },
+  headerTitle: { fontSize: normalizeFont(14), fontWeight: '600', color: '#333' },
 
   scrollViewContent: { paddingVertical: moderateScale(15), paddingHorizontal: scale(20) },
   smallText: { fontSize: normalizeFont(10), color: '#999', marginBottom: moderateScale(10) },
 
-  sectionTitle: { fontSize: normalizeFont(14), fontWeight: '600', color: '#333', marginBottom: moderateScale(15), marginTop: moderateScale(5) },
+  sectionTitle: { fontSize: normalizeFont(12), fontWeight: '600', color: '#333', marginBottom: moderateScale(15), marginTop: moderateScale(5) },
 
   locationButton: {
     flexDirection: 'row',

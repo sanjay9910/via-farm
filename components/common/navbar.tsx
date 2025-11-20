@@ -4,7 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import * as Location from 'expo-location';
-import React, { useContext, useEffect, useState } from 'react';
+import { StatusBar } from 'expo-status-bar';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,16 +14,16 @@ import {
   FlatList,
   Image,
   Modal,
+  PanResponder,
   PixelRatio,
   Platform,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Switch,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -77,19 +78,19 @@ export default function HeaderDesign() {
   // Filter states
   const [filters, setFilters] = useState({
     sortBy: 'relevance',
-    priceMin: 50,
-    priceMax: 3000,
-    distanceMin: 4,
-    distanceMax: 40,
+    priceMin:0,
+    priceMax: 1000,
+    distanceMin:0,
+    distanceMax:100,
     ratingMin: 0,
   });
 
   const [tempFilters, setTempFilters] = useState({
     sortBy: 'relevance',
-    priceMin: 50,
-    priceMax: 3000,
-    distanceMin: 4,
-    distanceMax: 40,
+    priceMin:0,
+    priceMax: 1000,
+    distanceMin:0,
+    distanceMax: 100,
     ratingMin: 0,
   });
 
@@ -100,7 +101,52 @@ export default function HeaderDesign() {
     rating: false,
   });
 
-  const placeholders = ["Search by Products", "Search by Name",];
+  // PanResponder refs
+  const priceMinResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (e, { dx }) => {
+        const newValue = Math.max(50, Math.min(tempFilters.priceMax - 100, tempFilters.priceMin + Math.round(dx / 2)));
+        setTempFilters(prev => ({ ...prev, priceMin: newValue }));
+      },
+    })
+  ).current;
+
+  const priceMaxResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (e, { dx }) => {
+        const newValue = Math.min(3000, Math.max(tempFilters.priceMin + 100, tempFilters.priceMax + Math.round(dx / 2)));
+        setTempFilters(prev => ({ ...prev, priceMax: newValue }));
+      },
+    })
+  ).current;
+
+  const distanceMinResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (e, { dx }) => {
+        const newValue = Math.max(0, Math.min(tempFilters.distanceMax - 5, tempFilters.distanceMin + Math.round(dx / 3)));
+        setTempFilters(prev => ({ ...prev, distanceMin: newValue }));
+      },
+    })
+  ).current;
+
+  const distanceMaxResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (e, { dx }) => {
+        const newValue = Math.min(100, Math.max(tempFilters.distanceMin + 5, tempFilters.distanceMax + Math.round(dx / 3)));
+        setTempFilters(prev => ({ ...prev, distanceMax: newValue }));
+      },
+    })
+  ).current;
+
+  const placeholders = ["Search by Products", "Search by Name"];
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -206,7 +252,7 @@ export default function HeaderDesign() {
 
   // Handle product click
   const handleProductClick = (product) => {
-    console.log('Navigating with Product ID:', product._id);
+    // console.log('Navigating with Product ID:', product._id);
     setShowSuggestions(false);
     navigation.navigate('ViewProduct', { productId: product._id });
   };
@@ -317,7 +363,7 @@ export default function HeaderDesign() {
     fetchBuyerAddress();
   }, []);
 
-  // Save Address - YE PART CHANGE HUA
+  // Save Address
   const handleSaveAddress = async () => {
     try {
       const requiredFields = ['pinCode', 'houseNumber', 'locality', 'city', 'district', 'state'];
@@ -348,7 +394,7 @@ export default function HeaderDesign() {
         longitude: parseFloat(String(formData.longitude || 77.0)),
       };
 
-      console.log('📤 Sending Address Payload:', payload);
+      // console.log('📤 Sending Address Payload:', payload);
 
       const res = await axios.post(
         `${API_BASE}/api/buyer/addresses`,
@@ -362,17 +408,14 @@ export default function HeaderDesign() {
         }
       );
 
-      console.log('✅ Server Response:', res.data);
+      // console.log('✅ Server Response:', res.data);
 
       if (res.data.success) {
-        // ✅ TURANT REFRESH KARO - Page refresh kre bina
         console.log('🔄 Refreshing address immediately...');
         await fetchBuyerAddress();
-        
-        // Close modal
+
         closeAddressModal();
-        
-        // Success alert
+
         Alert.alert('Success', 'Address added successfully!');
       } else {
         Alert.alert('Error', res.data.message || 'Failed to add address');
@@ -643,23 +686,23 @@ export default function HeaderDesign() {
                               <View style={[
                                 styles.sliderFill,
                                 {
-                                  left: `${(tempFilters.priceMin / 5000) * 100}%`,
-                                  right: `${100 - (tempFilters.priceMax / 5000) * 100}%`,
+                                  left: `${(tempFilters.priceMin / 3000) * 100}%`,
+                                  right: `${100 - (tempFilters.priceMax / 3000) * 100}%`,
                                 }
                               ]} />
-                              <TouchableOpacity
+                              <View
+                                {...priceMinResponder.panHandlers}
                                 style={[
                                   styles.sliderThumb,
-                                  { left: `${(tempFilters.priceMin / 5000) * 100}%` }
+                                  { left: `${(tempFilters.priceMin / 3000) * 100}%` }
                                 ]}
-                                onPress={() => { }}
                               />
-                              <TouchableOpacity
+                              <View
+                                {...priceMaxResponder.panHandlers}
                                 style={[
                                   styles.sliderThumb,
-                                  { right: `${100 - (tempFilters.priceMax / 5000) * 100}%` }
+                                  { right: `${100 - (tempFilters.priceMax / 3000) * 100}%` }
                                 ]}
-                                onPress={() => { }}
                               />
                             </View>
                           </View>
@@ -700,19 +743,19 @@ export default function HeaderDesign() {
                                   right: `${100 - (tempFilters.distanceMax / 100) * 100}%`,
                                 }
                               ]} />
-                              <TouchableOpacity
+                              <View
+                                {...distanceMinResponder.panHandlers}
                                 style={[
                                   styles.sliderThumb,
                                   { left: `${(tempFilters.distanceMin / 100) * 100}%` }
                                 ]}
-                                onPress={() => { }}
                               />
-                              <TouchableOpacity
+                              <View
+                                {...distanceMaxResponder.panHandlers}
                                 style={[
                                   styles.sliderThumb,
                                   { right: `${100 - (tempFilters.distanceMax / 100) * 100}%` }
                                 ]}
-                                onPress={() => { }}
                               />
                             </View>
                           </View>
@@ -938,6 +981,8 @@ export default function HeaderDesign() {
   );
 }
 
+
+
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
@@ -950,7 +995,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#fff',
     paddingHorizontal: moderateScale(16),
-    paddingVertical: moderateScale(8),
+    // paddingVertical: moderateScale(8),
     borderBottomColor: '#f0f0f0',
   },
   topRow: {
@@ -963,7 +1008,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   locationText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(11),
     fontWeight: '600',
     color: '#333',
     marginRight: moderateScale(4),
@@ -996,7 +1041,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   locationSubtitle: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(11 ),
     color: '#666',
     marginBottom: moderateScale(10),
     marginLeft: moderateScale(2),
@@ -1016,7 +1061,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(12),
     color: '#333',
     paddingVertical: 0,
   },
@@ -1310,7 +1355,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     left: 0,
-    borderWidth:1,
+    borderWidth:2,
     borderColor:'rgba(255, 202, 40, 1)',
     right: 0,
     backgroundColor: '#fff',
@@ -1336,7 +1381,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   addressModalTitle: {
-    fontSize: normalizeFont(18),
+    fontSize: normalizeFont(15),
     fontWeight: '700',
     color: '#1a1a1a',
   },
@@ -1372,7 +1417,7 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(20),
   },
   addressSectionTitle: {
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(14),
     fontWeight: '600',
     marginBottom: moderateScale(12),
     color: '#1a1a1a',
@@ -1382,7 +1427,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 202, 40, 1)',
     borderRadius: moderateScale(8),
     padding: moderateScale(12),
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     marginBottom: moderateScale(10),
     color: '#333',
   },

@@ -24,6 +24,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "./context/AuthContext";
+import { moderateScale, normalizeFont, scale } from "./Responsive";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const API_BASE = 'https://viafarm-1.onrender.com';
@@ -605,7 +606,8 @@ const ProfileScreen = () => {
                   onPress={handleCloseModal}
                   style={styles.backButton}
                 >
-                  <Text style={styles.backButtonText}>←</Text>
+                  {/* <Text style={styles.backButtonText}>←</Text> */}
+                  <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
                 </TouchableOpacity>
                 <Text style={styles.modalTitle}>Edit Details</Text>
                 <View style={styles.placeholder} />
@@ -615,7 +617,7 @@ const ProfileScreen = () => {
                 style={styles.modalContent}
                 showsVerticalScrollIndicator={false}
               >
-                <Text style={styles.fieldNote}>* marks important fields</Text>
+                <Text style={{fontSize:normalizeFont(12)}}>* marks important fields</Text>
 
                 <View style={styles.fieldContainer}>
                   <Text style={styles.fieldLabel}>Profile Picture</Text>
@@ -722,7 +724,7 @@ const ProfileScreen = () => {
                   onPress={handleCloseLocationModal}
                   style={styles.backButton}
                 >
-                  <Text style={styles.backButtonText}>←</Text>
+                  <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
                 </TouchableOpacity>
                 <Text style={styles.modalTitle}>
                   {savedLocation ? "Edit Location" : "Add Location"}
@@ -759,13 +761,13 @@ const ProfileScreen = () => {
                   </TouchableOpacity>
                 </View>
 
-                {latitude && longitude && (
+                {/* {latitude && longitude && (
                   <View style={styles.coordinatesContainer}>
                     <Text style={styles.coordinatesText}>
                       Coordinates: {latitude.toFixed(4)}, {longitude.toFixed(4)}
                     </Text>
                   </View>
-                )}
+                )} */}
 
                 {savedLocation && (
                   <View style={styles.savedLocationNote}>
@@ -773,7 +775,7 @@ const ProfileScreen = () => {
                 )}
 
                 <View style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>Pin Code *</Text>
+                  {/* <Text style={styles.fieldLabel}>Pin Code *</Text> */}
                   <TextInput
                     style={styles.textInput}
                     value={pinCode}
@@ -787,7 +789,7 @@ const ProfileScreen = () => {
                 </View>
 
                 <View style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>House number/Block/Street *</Text>
+                  {/* <Text style={styles.fieldLabel}>House number/Block/Street *</Text> */}
                   <TextInput
                     style={styles.textInput}
                     value={houseNumber}
@@ -799,7 +801,7 @@ const ProfileScreen = () => {
                 </View>
 
                 <View style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>Locality/Town *</Text>
+                  {/* <Text style={styles.fieldLabel}>Locality/Town *</Text> */}
                   <TextInput
                     style={styles.textInput}
                     value={locality}
@@ -812,7 +814,7 @@ const ProfileScreen = () => {
 
                 <View style={styles.fieldRowContainer}>
                   <View style={styles.fieldHalf}>
-                    <Text style={styles.fieldLabel}>City *</Text>
+                    {/* <Text style={styles.fieldLabel}>City *</Text> */}
                     <TextInput
                       style={styles.textInput}
                       value={city}
@@ -823,7 +825,7 @@ const ProfileScreen = () => {
                     />
                   </View>
                   <View style={styles.fieldHalf}>
-                    <Text style={styles.fieldLabel}>District *</Text>
+                    {/* <Text style={styles.fieldLabel}>District *</Text> */}
                     <TextInput
                       style={styles.textInput}
                       value={district}
@@ -836,7 +838,7 @@ const ProfileScreen = () => {
                 </View>
 
                 <View style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>State *</Text>
+                  {/* <Text style={styles.fieldLabel}>State *</Text> */}
                   <TextInput
                     style={styles.textInput}
                     value={state}
@@ -891,11 +893,11 @@ const styles = StyleSheet.create({
   },
   profileSection: {
     backgroundColor: "#fff",
-    marginHorizontal: 16,
-    marginTop: 20,
-    marginBottom: 10,
-    borderRadius: 12,
-    padding: 20,
+    marginHorizontal: moderateScale(16),
+    marginTop: moderateScale(20),
+    marginBottom: moderateScale(10),
+    borderRadius: moderateScale(12),
+    padding: moderateScale(20),
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -907,51 +909,51 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   avatarContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: scale(50),
+    height: scale(50),
+    borderRadius: moderateScale(30),
     backgroundColor: "#FFB4A2",
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
   },
   avatarImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: scale(50),
+    height: scale(50),
+    borderRadius: moderateScale(30),
   },
   avatarText: {
-    fontSize: 24,
+    fontSize: normalizeFont(20),
     fontWeight: "600",
     color: "#fff",
   },
   userInfo: {
     flex: 1,
-    marginLeft: 15,
+    marginLeft: moderateScale(15),
   },
   userName: {
-    fontSize: 18,
+    fontSize: normalizeFont(15),
     fontWeight: "600",
     color: "#333",
   },
   userPhone: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: "#666",
   },
   userRole: {
-    fontSize: 12,
+    fontSize: normalizeFont(10),
     color: "#4CAF50",
     fontWeight: "500",
     marginTop: 2,
   },
   editButtonContainer: {
-    padding: 8,
+    padding: moderateScale(8),
   },
   menuSection: {
     backgroundColor: "#fff",
-    marginHorizontal: 16,
-    marginVertical: 5,
-    borderRadius: 12,
+    marginHorizontal: moderateScale(16),
+    marginVertical: moderateScale(5),
+    borderRadius: moderateScale(12),
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -960,8 +962,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: moderateScale(20),
+    paddingVertical: moderateScale(16),
     borderBottomWidth: 0.5,
     borderBottomColor: "#f0f0f0",
   },
@@ -971,13 +973,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   iconContainer: {
-    width: 45,
-    height: 45,
+    width: scale(45),
+    height: scale(45),
     borderRadius: 50,
     backgroundColor: 'rgba(141, 110, 99, 0.1)',
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 15,
+    marginRight: scale(15),
     borderWidth: 1,
     borderColor: 'rgba(141, 110, 99, 0.2)',
   },
@@ -985,31 +987,31 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuItemTitle: {
-    fontSize: 16,
+    fontSize: normalizeFont(13),
     fontWeight: "500",
     color: "#333",
   },
   menuItemSubtitle: {
-    fontSize: 13,
+    fontSize: normalizeFont(13),
     color: "#666",
   },
   logoutSection: {
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    marginBottom: 20,
+    paddingHorizontal: moderateScale(13),
+    paddingVertical: moderateScale(18),
+    marginBottom: moderateScale(20),
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
+    marginTop: moderateScale(10),
   },
   logoutButton: {
     backgroundColor: "#4CAF50",
     flexDirection: "row",
-    width: "70%",
+    width: "60%",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 20,
-    borderRadius: 12,
+    paddingVertical: moderateScale(20),
+    borderRadius: moderateScale(10),
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -1017,10 +1019,10 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   logoutIcon: {
-    marginRight: 8,
+    marginRight: moderateScale(8),
   },
   logoutText: {
-    fontSize: 16,
+    fontSize: normalizeFont(16),
     fontWeight: "600",
     color: "#fff",
   },
@@ -1036,60 +1038,62 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: '100%',
     backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 202, 40, 0.2)',
+    borderTopLeftRadius: moderateScale(20),
+    borderTopRightRadius: moderateScale(20),
+    borderRightWidth:2,
+    borderLeftWidth:2,
+    borderTopWidth:2,
+    borderColor: 'rgba(255, 202, 40, 1)',
     maxHeight: SCREEN_HEIGHT * 0.9,
   },
   modalHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingHorizontal: moderateScale(20),
+    paddingVertical: moderateScale(15),
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
   },
   backButton: {
-    width: 40,
+    width: scale(40),
     justifyContent: "center",
     alignItems: "center",
   },
   backButtonText: {
-    fontSize: 22,
+    fontSize: normalizeFont(22),
     color: "#4CAF50",
     fontWeight: "600",
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: normalizeFont(15),
     fontWeight: "600",
     color: "#333",
   },
   placeholder: {
-    width: 40,
+    width: scale(40),
   },
   modalContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingHorizontal: moderateScale(20),
+    paddingVertical: moderateScale(15),
   },
   locationModalContent: {
-    paddingBottom: 30,
+    paddingBottom: moderateScale(30),
   },
   fieldContainer: {
-    marginBottom: 15,
+    marginBottom: moderateScale(15),
   },
   fieldLabel: {
-    fontSize: 14,
+    fontSize: normalizeFont(11),
     fontWeight: "500",
     color: "#333",
-    marginBottom: 5,
+    marginBottom: moderateScale(5),
   },
   imagePickerContainer: {
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 12,
-    height: 150,
+    borderRadius: moderateScale(12),
+    height: scale(150),
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
@@ -1097,21 +1101,21 @@ const styles = StyleSheet.create({
   profilePreview: {
     width: '100%',
     height: '100%',
-    borderRadius: 8,
+    borderRadius: moderateScale(8),
   },
   imagePickerText: {
-    fontSize: 12,
+    fontSize: normalizeFont(10),
     color: "#999",
-    marginTop: 8,
+    marginTop: moderateScale(8),
   },
   textInput: {
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius:8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(12),
     color: "#333",
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     backgroundColor: '#f9f9f9',
   },
   updateButton: {
@@ -1119,56 +1123,57 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 15,
-    borderRadius: 12,
-    marginTop: 10,
+    paddingVertical: moderateScale(15),
+    borderRadius: moderateScale(12),
+    marginTop: moderateScale(10),
     width: "70%",
   },
   updateButtonDisabled: {
     backgroundColor: "#a5d6a7",
   },
   updateButtonText: {
-    fontSize: 16,
+    fontSize: normalizeFont(14),
     fontWeight: "600",
     color: "#fff",
   },
   addressHeading: {
-    fontSize: 12,
+    fontSize: normalizeFont(12),
     color: "#999",
-    marginBottom: 15,
+    marginBottom: moderateScale(15),
   },
   addressActionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15,
+    marginBottom: moderateScale(15),
   },
   addressAction: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#e6f0ff',
-    padding: 10,
-    borderRadius: 12,
+    paddingVertical:moderateScale(15),
+    padding: moderateScale(10),
+    borderRadius: moderateScale(12),
     flex: 0.48,
     justifyContent: 'center',
+    borderWidth:1,
+    borderColor:'blue',
   },
   addressActionDisabled: {
     opacity: 0.6,
   },
   addressActionText: {
-    fontSize: 12,
+    fontSize: normalizeFont(12),
     color: '#007AFF',
     marginLeft: 6,
   },
   coordinatesContainer: {
     backgroundColor: '#f0f8ff',
-    padding: 10,
+    padding: moderateScale(10),
     borderRadius: 8,
-    marginBottom: 15,
+    marginBottom: moderateScale(15),
     borderLeftWidth: 3,
     borderLeftColor: '#007AFF',
   },
   coordinatesText: {
-    fontSize: 12,
+    fontSize:normalizeFont(12),
     color: '#007AFF',
     fontWeight: '500',
   },
@@ -1176,12 +1181,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
+    marginTop: moderateScale(20),
   },
   fieldRowContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 15,
+    marginBottom: moderateScale(15),
   },
   fieldHalf: {
     width: "48%",

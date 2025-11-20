@@ -375,3 +375,32 @@
 // });
 
 // export default UserProfile;
+
+
+
+
+
+
+
+
+
+
+// push notification
+
+
+// app/(auth)/userProfile.tsx
+// import React from 'react';
+// import { StyleSheet, Text, View } from 'react-native';
+
+// export default function UserProfile() {
+//   return (
+//     <View style={styles.container}>
+//       <Text style={styles.text}>User Profile Screen</Text>
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+//   text: { fontSize: 20, fontWeight: '600' },
+// });

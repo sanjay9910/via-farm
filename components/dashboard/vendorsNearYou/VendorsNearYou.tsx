@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(12),
   },
   heading: {
-    fontSize: normalizeFont(18),
+    fontSize: normalizeFont(16),
     fontWeight: '700',
     color: '#333',
   },
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     gap: moderateScale(6),
   },
   link: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     color: 'rgba(1, 151, 218, 1)',
     fontWeight: '500',
   },

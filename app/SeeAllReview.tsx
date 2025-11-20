@@ -11,6 +11,8 @@ import {
   View,
 } from 'react-native';
 
+import { moderateScale, normalizeFont, scale } from './Responsive';
+
 const SeeAllReview = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -108,7 +110,8 @@ const SeeAllReview = () => {
       <View style={styles.vendorInfo}>
         <Text style={styles.vendorName}>{v.name || 'Vendor'}</Text>
         <View style={styles.row}>
-          <Ionicons name="location-sharp" size={16} color="#757575" />
+          {/* <Ionicons name="location-sharp" size={16} color="#757575" /> */}
+          <Image source={require("../assets/via-farm-img/icons/loca.png")} />
           <Text style={styles.vendorLocation}>
             {vendorLocation} {v.distance ? `(${v.distance})` : ''}
           </Text>
@@ -134,10 +137,13 @@ const SeeAllReview = () => {
           />
         ) : (
           <View style={styles.emptyBox}>
-            <Image
-              style={styles.emptyImage}
-              source={require('../assets/via-farm-img/icons/emptyReview.png')}
-            />
+            <View style={{flexDirection:'row',alignItems:'center',gap:5}}>
+            <Image style={{width:scale(30),height:scale(30)}} source={require("../assets/via-farm-img/icons/satar.png")} />
+            <Image style={{width:scale(30),height:scale(30)}} source={require("../assets/via-farm-img/icons/satar.png")} />
+            <Image style={{width:scale(30),height:scale(30)}} source={require("../assets/via-farm-img/icons/satar.png")} />
+            <Image style={{width:scale(30),height:scale(30)}} source={require("../assets/via-farm-img/icons/satar.png")} />
+            <Image style={{width:scale(30),height:scale(30)}} source={require("../assets/via-farm-img/icons/satar.png")} />
+            </View>
             <Text style={styles.noReviewText}>No reviews yet.</Text>
           </View>
         )}
@@ -155,7 +161,7 @@ const styles = StyleSheet.create({
   },
   imageBox: {
     width: '100%',
-    height: 220,
+    height: scale(220),
   },
   headerImage: {
     width: '100%',
@@ -164,61 +170,61 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     position: 'absolute',
-    top: 40,
-    left: 15,
+    top: moderateScale(40),
+    left: moderateScale(15),
     backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 20,
-    padding: 6,
+    borderRadius: moderateScale(20),
+    padding: moderateScale(6),
   },
   vendorInfo: {
     backgroundColor: '#fff',
-    paddingHorizontal: 15,
-    paddingTop: 10,
-    paddingBottom: 20,
+    paddingHorizontal: moderateScale(15),
+    paddingTop: moderateScale(10),
+    paddingBottom: moderateScale(20),
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
   vendorName: {
-    fontSize: 22,
+    fontSize: normalizeFont(16),
     fontWeight: 'bold',
     color: '#333',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 4,
+    marginVertical: moderateScale(4),
   },
   vendorLocation: {
-    fontSize: 14,
+    fontSize: normalizeFont(11),
     color: '#757575',
-    marginLeft: 5,
+    marginLeft: moderateScale(5),
   },
   aboutHeader: {
-    fontSize: 16,
+    fontSize: normalizeFont(13),
     fontWeight: 'bold',
-    marginTop: 10,
+    marginTop: moderateScale(10),
     color: '#333',
   },
   aboutText: {
-    fontSize: 14,
+    fontSize: normalizeFont(11),
     color: '#555',
-    marginTop: 5,
-    lineHeight: 20,
+    marginTop: moderateScale(5),
+    lineHeight: scale(20),
   },
   reviewsContainer: {
-    padding: 15,
+    padding:moderateScale(15),
   },
   allReviewsTitle: {
-    fontSize: 18,
+    fontSize: normalizeFont(15),
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
   reviewCard: {
     backgroundColor: '#f9f9f9',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
+    borderRadius: moderateScale(10),
+    padding: moderateScale(15),
+    marginBottom: moderateScale(15),
     borderWidth: 1,
     borderColor: '#eee',
   },
@@ -227,46 +233,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatar: {
-    width: 45,
-    height: 45,
-    borderRadius: 25,
+    width: scale(45),
+    height: scale(45),
+    borderRadius: moderateScale(25),
   },
   reviewerName: {
-    fontSize: 15,
+    fontSize: normalizeFont(13),
     fontWeight: 'bold',
     color: '#333',
   },
   ratingText: {
-    fontSize: 13,
+    fontSize: normalizeFont(11),
     color: '#555',
   },
   reviewDate: {
-    fontSize: 12,
+    fontSize: normalizeFont(11),
     color: '#9E9E9E',
   },
   reviewComment: {
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     color: '#444',
-    marginTop: 5,
-    lineHeight: 20,
+    marginTop: normalizeFont(5),
+    lineHeight: scale(20),
   },
   reviewImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 8,
-    marginRight: 8,
+    width: scale(70),
+    height: scale(70),
+    borderRadius: moderateScale(8),
+    marginRight: moderateScale(8),
   },
   emptyBox: {
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: moderateScale(40),
   },
   emptyImage: {
-    width: 160,
-    height: 160,
+    width: scale(160),
+    height: scale(160),
   },
   noReviewText: {
     color: '#757575',
-    marginTop: 10,
+    marginTop: moderateScale(10),
   },
 });

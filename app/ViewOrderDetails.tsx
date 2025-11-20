@@ -566,8 +566,8 @@ const ViewOrderDetails = () => {
             </View>
 
             <View style={[styles.summaryRow, { marginTop: moderateScale(8) }]}>
-              <Text style={[styles.summaryLabel, { fontWeight: '700', fontSize: normalizeFont(13) }]}>Total Amount</Text>
-              <Text style={[styles.summaryValue, { fontWeight: '700', fontSize: normalizeFont(13), color: '#4CAF50' }]}>
+              <Text style={[styles.summaryLabel, { fontWeight: '700', fontSize: normalizeFont(12) }]}>Total Amount</Text>
+              <Text style={[styles.summaryValue, { fontWeight: '700', fontSize: normalizeFont(12), color: '#4CAF50' }]}>
                 {formatCurrency(computedTotal)}
               </Text>
             </View>
@@ -665,9 +665,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between'
   },
-  deliveryLabel: { color: '#37aa5c', fontWeight: '700', marginBottom: moderateScale(4) },
-  deliveryDate: { color: '#666' },
-  orderNo: { fontWeight: '700', color: '#333' },
+  deliveryLabel: { color: '#37aa5c', fontWeight: '700', marginBottom: moderateScale(4),fontSize:normalizeFont(12), },
+  deliveryDate: { color: '#666',fontSize:normalizeFont(12) },
+  orderNo: { fontWeight: '700', color: '#333',fontSize:normalizeFont(12) },
 
   itemRow: {
     flexDirection: 'row',
@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#eee'
   },
-  itemName: { fontWeight: '700', fontSize: normalizeFont(13), color: '#222' },
+  itemName: { fontWeight: '700', fontSize: normalizeFont(12), color: '#222' },
   itemMeta: { color: '#666', fontSize: normalizeFont(11), marginTop: moderateScale(4) },
 
   ratingRow: {
@@ -693,7 +693,7 @@ const styles = StyleSheet.create({
   },
   rateText: { color: 'rgba(1, 151, 218, 1)', marginRight: 8, fontSize: normalizeFont(12) },
   reviewLink: { marginLeft: 'auto' },
-  reviewText: { color: 'rgba(1, 151, 218, 1)', },
+  reviewText: { color: 'rgba(1, 151, 218, 1)',fontSize:normalizeFont(12)},
 
   card: {
     borderWidth: 1,
@@ -705,7 +705,8 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontWeight: '700',
     marginBottom: moderateScale(8),
-    color: '#333'
+    color: '#333',
+    fontSize:normalizeFont(12)
   },
 
   detailName: { fontWeight: '700', fontSize: normalizeFont(12), color: '#222' },
@@ -719,9 +720,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#eee'
   },
 
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: moderateScale(8) },
-  summaryLabel: { color: '#666' },
-  summaryValue: { color: '#222' },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: moderateScale(8)},
+  summaryLabel: { color: '#666' ,fontSize:normalizeFont(12)},
+  summaryValue: { color: '#222' ,fontSize:normalizeFont(12)},
 
   center: {
     flex: 1,

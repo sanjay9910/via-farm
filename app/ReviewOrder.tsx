@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import axios from 'axios'
 import { useNavigation, useRouter } from 'expo-router'
 import { goBack } from 'expo-router/build/global-state/routing'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -20,6 +20,7 @@ import {
   View
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { moderateScale, normalizeFont, scale } from './Responsive'
 
 const API_BASE = 'https://viafarm-1.onrender.com';
 
@@ -279,7 +280,6 @@ const ReviewOrder = () => {
   };
 
   const removeCoupon = async () => {
-    // If your backend has a remove endpoint, call it. If not, re-fetch cart without coupon.
     try {
       setApplyingCoupon(true);
       const token = await AsyncStorage.getItem('userToken');
@@ -289,13 +289,11 @@ const ReviewOrder = () => {
         return;
       }
 
-      // defensive: try delete endpoint first
       try {
         const res = await axios.delete(`${API_BASE}/api/buyer/cart/remove-coupon`, { headers: { Authorization: `Bearer ${token}` } });
         if (res.data && res.data.success) {
           setAppliedCoupon(null);
           setCouponCode('');
-          // refresh cart to get fresh price details
           await fetchCartProducts();
           Alert.alert('Removed', 'Coupon removed');
           return;
@@ -382,10 +380,8 @@ const ReviewOrder = () => {
       Alert.alert('Cart Empty', 'Please add items first');
       return;
     }
-
     const totals = computeTotals();
     const totalItems = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
-
     // IMPORTANT: pass server's totalAmount if usedServer true, else pass client totalAmount
     const amountToPay = totals.totalAmount;
 
@@ -483,6 +479,7 @@ const ReviewOrder = () => {
           <Image source={require('../assets/via-farm-img/icons/groupArrow.png')} />
         </TouchableOpacity>
         <Text style={styles.headerText}>Review Order</Text>
+        <Text></Text>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -514,11 +511,11 @@ const ReviewOrder = () => {
         {/* Donatio */}
         <View
           style={{
-            marginVertical: 16,
-            padding: 12,
+            marginVertical: moderateScale(16),
+            padding: moderateScale(12),
             borderWidth: 1,
             borderColor: "#ddd",
-            borderRadius: 10,
+            borderRadius: moderateScale(10),
             backgroundColor: "#fff",
           }}
         >
@@ -530,7 +527,7 @@ const ReviewOrder = () => {
               justifyContent: "space-between",
             }}
           >
-            <Text style={{ fontSize: 16, color: "#333", flex: 1 }}>
+            <Text style={{ fontSize: normalizeFont(16), color: "#333", flex: 1 }}>
               Do you want to donate?
             </Text>
 
@@ -538,9 +535,9 @@ const ReviewOrder = () => {
             <TouchableOpacity
               onPress={() => setWantDonation(!wantDonation)}
               style={{
-                width: 24,
-                height: 24,
-                borderRadius: 12,
+                width: scale(24),
+                height: scale(24),
+                borderRadius: moderateScale(12),
                 borderWidth: 2,
                 borderColor: wantDonation ? "#4CAF50" : "#999",
                 alignItems: "center",
@@ -550,9 +547,9 @@ const ReviewOrder = () => {
               {wantDonation && (
                 <View
                   style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: 6,
+                    width: scale(12),
+                    height: scale(12),
+                    borderRadius: moderateScale(6),
                     backgroundColor: "#4CAF50",
                   }}
                 />
@@ -562,8 +559,8 @@ const ReviewOrder = () => {
 
           {/* Donation amount input (only if checked) */}
           {wantDonation && (
-            <View style={{ marginTop: 12 }}>
-              <Text style={{ fontSize: 14, color: "#555", marginBottom: 4 }}>
+            <View style={{ marginTop: moderateScale(12) }}>
+              <Text style={{ fontSize: normalizeFont(14), color: "#555", marginBottom: moderateScale(4) }}>
                 Enter donation amount
               </Text>
               <TextInput
@@ -574,10 +571,10 @@ const ReviewOrder = () => {
                 style={{
                   borderWidth: 1,
                   borderColor: "#ccc",
-                  borderRadius: 8,
-                  paddingHorizontal: 10,
-                  paddingVertical: 8,
-                  fontSize: 16,
+                  borderRadius: moderateScale(8),
+                  paddingHorizontal: moderateScale(10),
+                  paddingVertical: moderateScale(8),
+                  fontSize: normalizeFont(16),
                   color: "#333",
                 }}
               />
@@ -607,7 +604,7 @@ const ReviewOrder = () => {
 
           {!appliedCoupon ? (
             <TouchableOpacity style={styles.Button} onPress={applyCoupon} disabled={applyingCoupon}>
-              {applyingCoupon ? <ActivityIndicator /> : <Text style={{ color: '#fff' }} >Apply</Text>}
+              {applyingCoupon ? <ActivityIndicator /> : <Text style={{ color: '#fff' ,fontSize: normalizeFont(12)}} >Apply</Text>}
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.Button} onPress={removeCoupon} disabled={applyingCoupon}>
@@ -629,7 +626,7 @@ const ReviewOrder = () => {
           <View style={styles.priceRow}><Text style={styles.priceLabel}>Coupon Discount</Text><Text style={styles.priceValue}>₹{(-totalsForRender.couponDiscount).toFixed(2)}</Text></View>
           <View style={styles.priceRow}><Text style={styles.priceLabel}>Delivery Charge</Text><Text style={styles.priceValue}>₹{totalsForRender.deliveryCharge.toFixed(2)}</Text></View>
           <View style={styles.totalRow}><Text style={styles.totalLabel}>Total Amount</Text><Text style={styles.totalValue}>₹{totalsForRender.totalAmount.toFixed(2)}</Text></View>
-          {totalsForRender.usedServer && <Text style={{ fontSize: 12, color: '#666', marginTop: 6 }}>Using server-calculated charges</Text>}
+          {totalsForRender.usedServer && <Text style={{ fontSize: normalizeFont(12), color: '#666', marginTop: moderateScale(6) }}>Using server-calculated charges</Text>}
         </View>
 
         <View style={styles.commentsSection}>
@@ -770,12 +767,13 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 30,
+    justifyContent:'space-between',
+    paddingHorizontal: moderateScale(20),
+    paddingBottom: moderateScale(30),
   },
   mainContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: scale(12),
   },
   loadingContainer: {
     flex: 1,
@@ -784,8 +782,8 @@ const styles = StyleSheet.create({
     alignContent: 'center',
   },
   productImage: {
-    width: 167,
-    height: 128,
+    width:scale(167),
+    height: scale(128),
     borderRadius: 8,
   },
   productDetails: {
@@ -795,101 +793,100 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     top: 0,
-    padding: 5,
+    padding: moderateScale(5),
   },
   indiaCurrency: {
     backgroundColor: 'rgba(217, 217, 217, 1)',
     color: 'black',
-    padding: 13,
+    padding: moderateScale(13),
     borderTopLeftRadius: 5,
     borderBottomLeftRadius: 5,
-    width: 50,
-    fontSize: 20,
+    width: scale(50),
+    fontSize: normalizeFont(20),
   },
   location: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: moderateScale(10),
   },
   headerText: {
-    fontSize: 20,
+    fontSize: normalizeFont(15),
     fontWeight: '600',
-    marginLeft: 70,
   },
   scrollView: {
     flex: 1,
-    paddingHorizontal: 10,
+    paddingHorizontal:moderateScale(10),
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: moderateScale(100),
   },
   bottomSpacer: {
-    height: 20,
+    height: scale(20),
   },
   section: {
-    marginBottom: 15,
+    marginBottom: moderateScale(15),
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: normalizeFont(14),
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
     color: '#000',
   },
   addressContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderRadius: 10,
-    padding: 10,
+    borderRadius: moderateScale(10),
+    padding: moderateScale(10),
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.2)',
   },
   addressText: {
-    fontSize: 14,
+    fontSize: normalizeFont(11),
     color: '#333',
   },
   changeText: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: '#007AFF',
     fontWeight: '500',
   },
 
   deliveryDate: {
-    fontSize: 16,
+    fontSize: normalizeFont(12),
     color: 'rgba(66, 66, 66, 1)',
-    marginBottom: 25,
-    marginTop: 10,
+    marginBottom: moderateScale(15),
+    marginTop: moderateScale(5),
   },
   productCard: {
     backgroundColor: '#f8f8f8',
-    padding: 8,
+    padding: moderateScale(8),
     borderRadius: 8,
-    marginBottom: 15,
+    marginBottom: moderateScale(15),
   },
   productName: {
-    fontSize: 16,
+    fontSize: normalizeFont(13),
     fontWeight: '600',
     color: '#000',
   },
   productDescription: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: '#666',
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
   productPrice: {
-    fontSize: 14,
+    fontSize: normalizeFont(11),
     fontWeight: '600',
     color: '#000',
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
   deliveryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: moderateScale(10),
   },
   deliveryText: {
-    fontSize: 11,
+    fontSize: normalizeFont(11),
     color: '#666',
   },
   quantityContainer: {
@@ -898,153 +895,151 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 5,
     position: 'absolute',
-    marginTop: 60,
+    marginTop: moderateScale(60),
     borderWidth: 1,
     borderColor: '#000',
   },
   quantityButton: {
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: moderateScale(3),
   },
   quantityText: {
-    fontSize: 16,
+    fontSize: normalizeFont(15),
     fontWeight: '600',
     color: '#000',
   },
   quantityNumber: {
-    fontSize: 14,
+    fontSize: normalizeFont(14),
     fontWeight: '600',
     color: '#000',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateScale(3),
     borderLeftWidth: 1,
     borderRightWidth: 1,
   },
   couponSection: {
-    marginTop: 20,
-    marginBottom: 10,
+    marginTop: moderateScale(15),
+    marginBottom: moderateScale(10),
     flexDirection: 'row',
     gap: 10,
   },
   couponTitle: {
-    fontSize: 16,
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     color: 'rgba(1, 151, 218, 1)',
   },
   couponSubtitle: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: 'rgba(1, 151, 218, 1)',
     marginTop: 2,
   },
   couponInputContainer: {
-    marginBottom: 20,
+    marginBottom: moderateScale(15),
     justifyContent: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: scale(5),
   },
   couponInput: {
-    borderWidth: 2,
+    borderWidth: scale(2),
     borderColor: 'rgba(1, 151, 218, 1)',
     borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
+    padding: moderateScale(12),
+    fontSize: moderateScale(11),
     width: '80%',
   },
   Button: {
     backgroundColor: '#28a745',
-    padding: 14,
+    padding: moderateScale(14),
     borderRadius: 10,
-    // borderWidth:2,
-    // borderColor:'#28a745',
   },
   donationSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    borderRadius: 10,
-    gap: 20,
+    marginBottom: moderateScale(20),
+    borderRadius: moderateScale(10),
+    gap: scale(20),
     borderWidth: 2,
     borderColor: 'rgba(0, 0, 0, 0.2)',
   },
   donationText: {
-    fontSize: 15,
-    marginTop: 10,
+    fontSize: normalizeFont(12),
+    marginTop: moderateScale(10),
     color: '#666',
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
   donationAmount: {
     backgroundColor: '#F8F8F8',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    paddingHorizontal: moderateScale(15),
+    paddingVertical: moderateScale(8),
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#E5E5E5',
   },
   donationValue: {
-    fontSize: 16,
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     color: '#000',
   },
   priceSection: {
     backgroundColor: '#F8F8F8',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 20,
+    padding: moderateScale(15),
+    borderRadius: moderateScale(8),
+    marginBottom: moderateScale(20),
   },
   priceTitle: {
-    fontSize: 16,
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     color: '#000',
-    marginBottom: 12,
+    marginBottom: moderateScale(12),
   },
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
   },
   priceLabel: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: '#666',
   },
   priceValue: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: '#000',
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
-    paddingTop: 8,
+    marginTop: moderateScale(8),
+    paddingTop: moderateScale(8),
     borderTopWidth: 1,
     borderTopColor: '#E5E5E5',
   },
   totalLabel: {
-    fontSize: 16,
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     color: '#000',
   },
   totalValue: {
-    fontSize: 16,
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     color: '#000',
   },
   commentsSection: {
-    marginBottom: 30,
+    marginBottom: moderateScale(20),
   },
   commentsTitle: {
-    fontSize: 16,
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     color: '#000',
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
   commentsInput: {
     borderWidth: 1,
     borderColor: '#E5E5E5',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    height: 80,
+    borderRadius: moderateScale(8),
+    padding: moderateScale(12),
+    fontSize: normalizeFont(12),
+    height: scale(80),
     textAlignVertical: 'top',
   },
   // Bottom Payment Card Styles
@@ -1057,8 +1052,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 15,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(15),
     borderTopWidth: 1,
     borderTopColor: '#E5E5E5',
     shadowColor: '#000',
@@ -1074,28 +1069,28 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   priceLabelBottom: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: '#666',
-    marginBottom: 2,
+    marginBottom: moderateScale(2),
   },
   totalPrice: {
-    fontSize: 20,
+    fontSize: normalizeFont(15),
     fontWeight: '700',
     color: '#000',
   },
   proceedButton: {
     backgroundColor: '#28a745',
-    paddingHorizontal: 15,
-    paddingVertical: 13,
-    borderRadius: 8,
-    minWidth: 180,
+    paddingHorizontal: moderateScale(15),
+    paddingVertical: moderateScale(13),
+    borderRadius: moderateScale(8),
+    minWidth: scale(180),
     flexDirection: 'row',
     gap: 10,
     alignItems: 'center',
   },
   proceedButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: normalizeFont(12),
     fontWeight: '600',
   },
   // Modal Styles
@@ -1109,62 +1104,62 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: moderateScale(20),
+    borderTopRightRadius: moderateScale(20),
     maxHeight: '95%',
     borderWidth: 2,
     borderColor: 'rgba(255, 202, 40, 1)',
   },
   dragHandle: {
-    width: 40,
-    height: 4,
+    width: scale(40),
+    height: scale(4),
     backgroundColor: '#ddd',
     borderRadius: 2,
     alignSelf: 'center',
-    marginVertical: 8,
+    marginVertical: moderateScale(8),
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingHorizontal: moderateScale(20),
+    paddingVertical: moderateScale(15),
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: normalizeFont(15),
     fontWeight: '600',
     color: '#333',
   },
   closeButton: {
-    padding: 4,
+    padding: moderateScale(4),
   },
   searchSection: {
-    padding: 20,
+    padding: moderateScale(20),
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
   pincodeInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: moderateScale(15),
   },
   pincodeInput: {
     flex: 1,
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginRight: 10,
+    borderRadius: moderateScale(8),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(10),
+    marginRight: moderateScale(10),
   },
   checkButton: {
     borderWidth: 1,
     borderColor: 'green',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingHorizontal: moderateScale(15),
+    paddingVertical: moderateScale(10),
+    borderRadius: moderateScale(8),
   },
   checkButtonText: {
     color: 'blue',
@@ -1172,40 +1167,40 @@ const styles = StyleSheet.create({
   },
   locationButton: {
     flexDirection: 'row',
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
   locationButtonText: {
     color: '#3b82f6',
     fontWeight: '600',
-    marginLeft: 8,
+    marginLeft: moderateScale(8),
   },
   searchLocationButton: {
     flexDirection: 'row',
-    marginBottom: 15,
+    marginBottom: moderateScale(15),
     color: '#000',
   },
   searchLocationButtonText: {
     color: 'blue',
-    marginLeft: 8,
+    marginLeft: moderateScale(8),
   },
   orText: {
     textAlign: 'center',
     color: '#666',
-    fontSize: 14,
+    fontSize: normalizeFont(12),
   },
   addressList: {
-    maxHeight: 300,
-    paddingHorizontal: 20,
+    maxHeight: scale(300),
+    paddingHorizontal: moderateScale(20),
   },
   addressItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 15,
+    paddingVertical: moderateScale(15),
     borderBottomWidth: 1,
     borderWidth: 2,
-    padding: 10,
+    padding: moderateScale(10),
     borderColor: 'rgba(0, 0, 0, 0.2)',
-    marginBottom: 15,
+    marginBottom: moderateScale(15),
     backgroundColor: '#fff',
     borderRadius: 10,
   },
@@ -1213,14 +1208,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   radioContainer: {
-    marginRight: 12,
+    marginRight: moderateScale(12),
     marginTop: 2,
   },
   radioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
+    width: scale(20),
+    height: scale(20),
+    borderRadius: moderateScale(10),
+    borderWidth: scale(2),
     borderColor: '#ddd',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1229,8 +1224,8 @@ const styles = StyleSheet.create({
     borderColor: '#3b82f6',
   },
   radioInner: {
-    width: 10,
-    height: 10,
+    width: scale(10),
+    height: scale(10),
     borderRadius: 5,
     backgroundColor: '#3b82f6',
   },
@@ -1238,33 +1233,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   addressName: {
-    fontSize: 16,
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     color: '#333',
-    marginBottom: 4,
+    marginBottom: moderateScale(4),
   },
   addressText: {
-    fontSize: 14,
+    fontSize: normalizeFont(12),
     color: '#666',
-    lineHeight: 20,
+    lineHeight: scale(20),
   },
   addAddressButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 15,
+    padding: moderateScale(15),
   },
   NewAddress: {
     borderWidth: 2,
     borderColor: 'rgba(76, 175, 80, 1)',
     flexDirection: 'row',
-    padding: 10,
-    borderRadius: 10,
+    padding: moderateScale(10),
+    borderRadius: moderateScale(10),
   },
   addAddressButtonText: {
     color: 'rgba(76, 175, 80, 1)',
     fontWeight: '600',
-    fontSize: 16,
-    marginLeft: 8,
+    fontSize: normalizeFont(12),
+    marginLeft: moderateScale(8),
   },
 })

@@ -82,7 +82,7 @@ const ProductCard = ({
             >
               <Ionicons
                 name={isFavorite ? "heart" : "heart-outline"}
-                size={moderateScale(18)}
+                size={moderateScale(25)}
                 color={isFavorite ? "#ff4757" : "#666"}
               />
             </TouchableOpacity>
@@ -125,7 +125,7 @@ const ProductCard = ({
             ]}
             numberOfLines={1}
           >
-            {subtitle}
+            by {subtitle}
           </Text>
           <Text
             style={[styles.productPrice, { fontSize: normalizeFont(13) }]}
@@ -156,7 +156,6 @@ const ProductCard = ({
                 style={[
                   styles.quantityBox,
                   {
-                    height: verticalScale(36),
                     borderRadius: moderateScale(8),
                   },
                 ]}
@@ -197,7 +196,7 @@ const styles = StyleSheet.create({
     borderWidth: moderateScale(1),
     borderColor: "rgba(108, 59, 28, 1)",
     marginBottom: moderateScale(5),
-    elevation: 3,
+    // elevation: 3,
     overflow: "hidden",
   },
   imageContainer: {

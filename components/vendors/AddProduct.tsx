@@ -1,10 +1,9 @@
-import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import Checkbox from "expo-checkbox";
 import * as ImagePicker from "expo-image-picker";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -20,15 +19,45 @@ import {
   View,
 } from "react-native";
 
+import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 
-const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+/**
+ * CONFIG
+ */
+const API_HOST = "https://viafarm-1.onrender.com";
+const CATEGORY_API = "/api/admin/manage-app/categories";
+const VARIETY_API = "/api/admin/variety";
+const ADD_PRODUCT_API = "/api/vendor/products/add";
 
-const API_BASE = "https://viafarm-1.onrender.com/api/vendor";
+const api = axios.create({
+  baseURL: API_HOST,
+  timeout: 30000,
+});
 
+api.interceptors.request.use(
+  async (config) => {
+    try {
+      let token = await AsyncStorage.getItem("userToken");
+      if (token) {
+        token = token.replace(/^"|"$/g, "");
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (err) {
+      console.warn("Error reading token for request interceptor", err);
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+/**
+ * Component
+ */
 const AddProduct = ({ refreshprops }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState(""); 
   const [unit, setUnit] = useState("");
   const [variety, setVariety] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -38,90 +67,152 @@ const AddProduct = ({ refreshprops }) => {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [weightPerPiece, setWeightPerPiece] = useState("");
-  const [isUnitDropdownOpen, setIsUnitDropdownOpen] = useState(false); // dropdown toggle
+
+  // dropdown states
+  const [isUnitDropdownOpen, setIsUnitDropdownOpen] = useState(false);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [isVarietyDropdownOpen, setIsVarietyDropdownOpen] = useState(false);
+
+  // data lists
+  const [categories, setCategories] = useState([]); 
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+
+  const [allVarieties, setAllVarieties] = useState([]); 
+  const [varietyOptions, setVarietyOptions] = useState([]); 
+  const [varietyLoading, setVarietyLoading] = useState(false);
 
   const unitOptions = ["kg", "pc", "ltr", "dozen"];
+
+  useEffect(() => {
+    fetchCategoriesAndVarieties();
+  }, []);
+
+  useEffect(() => {
+    if (!category) {
+      setVarietyOptions(allVarieties.map((v) => v.name));
+      setVariety("");
+    } else {
+      filterVarietiesForCategory(category);
+    }
+  }, [category, allVarieties]);
+
+  const fetchCategoriesAndVarieties = async () => {
+    setCategoriesLoading(true);
+    setVarietyLoading(true);
+    try {
+      const [catRes, varRes] = await Promise.all([
+        api.get(CATEGORY_API),
+        api.get(VARIETY_API),
+      ]);
+      if (catRes.data && Array.isArray(catRes.data.categories)) {
+        setCategories(catRes.data.categories);
+      } else if (Array.isArray(catRes.data)) {
+        setCategories(catRes.data);
+      } else {
+        setCategories([]);
+      }
+      if (varRes.data && Array.isArray(varRes.data.varieties)) {
+        setAllVarieties(varRes.data.varieties);
+        setVarietyOptions(varRes.data.varieties.map((v) => v.name));
+      } else if (Array.isArray(varRes.data)) {
+        setAllVarieties(varRes.data);
+        setVarietyOptions(varRes.data.map((v) => v.name));
+      } else {
+        setAllVarieties([]);
+        setVarietyOptions([]);
+      }
+    } catch (error) {
+      console.error("Error fetching categories/varieties:", error);
+      const status = error?.response?.status;
+      if (status === 401) {
+        Alert.alert("Unauthorized", "Session expired or invalid. Please login again.");
+      } else if (status === 403) {
+        Alert.alert("Forbidden", "You don't have permission to access categories/varieties.");
+      } else {
+        Alert.alert("Error", "Failed to load categories/varieties. Please try again.");
+      }
+      setCategories([]);
+      setAllVarieties([]);
+      setVarietyOptions([]);
+    } finally {
+      setCategoriesLoading(false);
+      setVarietyLoading(false);
+    }
+  };
+
+  const filterVarietiesForCategory = (selectedCategory) => {
+    setVarietyLoading(true);
+    try {
+      const filtered = allVarieties.filter((v) => {
+        if (!v || !v.category) return false;
+        if (typeof v.category === "string") {
+          return v.category === selectedCategory || v.category === selectedCategory._id;
+        } else if (typeof v.category === "object") {
+          return (
+            (v.category.name && v.category.name.toLowerCase() === selectedCategory.toLowerCase()) ||
+            (v.category._id && v.category._id === selectedCategory)
+          );
+        }
+        return false;
+      });
+
+      const names = filtered.length > 0 ? filtered.map((f) => f.name) : [];
+      setVarietyOptions(names);
+      setVariety("");
+    } catch (err) {
+      console.error("Error filtering varieties:", err);
+      setVarietyOptions([]);
+      setVariety("");
+    } finally {
+      setVarietyLoading(false);
+    }
+  };
 
   const pickImages = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(
-          "Permission Denied",
-          "Permission to access gallery is required!"
-        );
+        Alert.alert("Permission Denied", "Permission to access gallery is required!");
         return;
       }
 
-      let result = await ImagePicker.launchImageLibraryAsync({
+      const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
         selectionLimit: 5 - images.length,
         quality: 0.8,
       });
 
-      if (!result.canceled) {
-        let selected = result.assets || [];
+      const cancelled = result.canceled ?? result.cancelled ?? false;
+      if (!cancelled) {
+        const selected = result.assets || (result.selected ? result.selected : []);
         setImages((prev) => [...prev, ...selected]);
       }
     } catch (err) {
-      console.log("Image picker error:", err);
+      console.error("Image picker error:", err);
       Alert.alert("Error", "Failed to select images.");
     }
   };
 
-  const removeImage = (index) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
+  const removeImage = (index) => setImages((prev) => prev.filter((_, i) => i !== index));
   const handleSubmit = async () => {
-    if (!name.trim()) {
-      Alert.alert("Error", "Please enter product name");
-      return;
-    }
-    if (!category.trim()) {
-      Alert.alert("Error", "Please enter category");
-      return;
-    }
-    if (!variety.trim()) {
-      Alert.alert("Error", "Please enter variety");
-      return;
-    }
-    if (!price.trim() || isNaN(price)) {
-      Alert.alert("Error", "Please enter valid price");
-      return;
-    }
-    if (!quantity.trim() || isNaN(quantity)) {
-      Alert.alert("Error", "Please enter valid quantity");
-      return;
-    }
-    if (!unit.trim()) {
-      Alert.alert("Error", "Please select unit (kg/pc/ltr/dozen)");
-      return;
-    }
+    // basic validations
+    if (!name.trim()) return Alert.alert("Error", "Please enter product name");
+    if (!category.trim()) return Alert.alert("Error", "Please select category");
+    if (!variety.trim()) return Alert.alert("Error", "Please select variety");
+    if (!price.trim() || isNaN(price)) return Alert.alert("Error", "Please enter valid price");
+    if (!quantity.trim() || isNaN(quantity)) return Alert.alert("Error", "Please enter valid quantity");
+    if (!unit.trim()) return Alert.alert("Error", "Please select unit (kg/pc/ltr/dozen)");
 
     const normalizedUnit = unit.trim().toLowerCase();
-
     if (normalizedUnit === "pc" && !weightPerPiece.trim()) {
-      Alert.alert("Error", "Please enter weight per piece for pc unit");
-      return;
+      return Alert.alert("Error", "Please enter weight per piece for pc unit");
     }
 
-    if (images.length === 0) {
-      Alert.alert("Error", "Please add at least one image");
-      return;
-    }
+    if (images.length === 0) return Alert.alert("Error", "Please add at least one image");
 
     setLoading(true);
-
     try {
-      const token = await AsyncStorage.getItem("userToken");
-      if (!token) {
-        Alert.alert("Error", "Please login first");
-        setLoading(false);
-        return;
-      }
-
       const formData = new FormData();
       formData.append("name", name.trim());
       formData.append("category", category.trim());
@@ -139,27 +230,22 @@ const AddProduct = ({ refreshprops }) => {
       images.forEach((image, index) => {
         const uri = image.uri;
         const uriParts = uri.split("/");
-        const fileName = uriParts[uriParts.length - 1];
+        const fileName = uriParts[uriParts.length - 1] || `photo_${index}.jpg`;
         const fileType = fileName.split(".").pop().toLowerCase();
-
-        const file = {
-          uri: uri,
-          type: `image/${fileType === "jpg" ? "jpeg"  : fileType}`,
-          name: fileName || `photo_${index}.${fileType}`,
-        };
-
-        formData.append("images", file);
+        const mimeType = fileType === "jpg" ? "image/jpeg" : `image/${fileType}`;
+        formData.append("images", {
+          uri: Platform.OS === "android" ? uri : uri.replace("file://", ""),
+          name: fileName,
+          type: mimeType,
+        });
       });
 
-      const response = await axios.post(`${API_BASE}/products/add`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-        timeout: 30000,
+      // send request
+      const res = await api.post(ADD_PRODUCT_API, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
-      if (response.data.success) {
+      if (res.data?.success) {
         Alert.alert("Success", "Product added successfully!", [
           {
             text: "OK",
@@ -171,35 +257,18 @@ const AddProduct = ({ refreshprops }) => {
           },
         ]);
       } else {
-        Alert.alert("Error", response.data.message || "Failed to add product");
+        Alert.alert("Error", res.data?.message || "Failed to add product");
       }
     } catch (error) {
-      console.error("Full error:", error);
-      console.error("Error response:", error.response?.data);
-      let errorMessage = "Failed to add product. Please try again.";
+      console.error("Add product error:", error);
+      const status = error?.response?.status;
+      let msg = "Failed to add product. Please try again.";
+      if (status === 401) msg = "Session expired. Please login again.";
+      else if (status === 413) msg = "Images are too large. Please select smaller images.";
+      else if (status === 400) msg = error?.response?.data?.message || msg;
+      else if (error?.code === "ECONNABORTED") msg = "Request timeout. Please try again.";
 
-      if (error.response) {
-        errorMessage =
-          error.response.data?.message ||
-          error.response.data?.error ||
-          errorMessage;
-
-        if (error.response.status === 401) {
-          errorMessage = "Session expired. Please login again.";
-        } else if (error.response.status === 413) {
-          errorMessage = "Images are too large. Please select smaller images.";
-        } else if (error.response.status === 400) {
-          errorMessage = error.response.data?.message || "Please check all fields and try again.";
-        } else if (error.response.status === 500) {
-          errorMessage = "Server error. Please check all fields and try again.";
-        }
-      } else if (error.request) {
-        errorMessage = "Network error. Please check your connection.";
-      } else if (error.code === "ECONNABORTED") {
-        errorMessage = "Request timeout. Please try again.";
-      }
-
-      Alert.alert("Error", errorMessage);
+      Alert.alert("Error", msg);
     } finally {
       setLoading(false);
     }
@@ -222,17 +291,15 @@ const AddProduct = ({ refreshprops }) => {
     <>
       <TouchableOpacity
         style={styles.container}
-        activeOpacity={0.7}
+        activeOpacity={0.8}
         onPress={() => setModalVisible(true)}
       >
         <View style={styles.content}>
           <Text style={styles.title}>Add a Product</Text>
-          <Text style={styles.subtitle}>
-            Showcase your fresh produce or handmade items to more buyers
-          </Text>
+          <Text style={styles.subtitle}>Showcase your fresh produce or handmade items</Text>
         </View>
         <View style={styles.iconContainer}>
-          <Feather name="plus" size={28} color="#fff" />
+          <Feather name="plus" size={22} color="#fff" />
         </View>
       </TouchableOpacity>
 
@@ -247,7 +314,7 @@ const AddProduct = ({ refreshprops }) => {
             activeOpacity={1}
             onPress={(e) => e.stopPropagation()}
           >
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
               <View style={styles.header}>
                 <Pressable onPress={() => !loading && setModalVisible(false)}>
                   <Ionicons name="arrow-back" size={24} color="#000" />
@@ -268,149 +335,140 @@ const AddProduct = ({ refreshprops }) => {
               />
 
               <View style={styles.row}>
-                <View style={styles.flex1}>
+                <View style={{ flex: 1, position: "relative", marginRight: moderateScale(8) }}>
                   <Text style={styles.label}>Category *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={category}
-                    onChangeText={setCategory}
-                    placeholder="e.g., Fruits"
-                    editable={!loading}
-                  />
+
+                  <TouchableOpacity
+                    style={[styles.input, styles.pickerInput]}
+                    onPress={() => !categoriesLoading && setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                    disabled={loading || categoriesLoading}
+                  >
+                    <Text style={{ fontSize: normalizeFont(10), color: category ? "#000" : "#999" }}>
+                      {category || "Select Category"}
+                    </Text>
+                    <Ionicons name={isCategoryDropdownOpen ? "chevron-up" : "chevron-down"} size={15} color="#333" />
+                  </TouchableOpacity>
+
+                  {isCategoryDropdownOpen && (
+                    <View style={styles.dropdownBelowInput}>
+                      {categoriesLoading ? (
+                        <View style={styles.dropdownOption}><ActivityIndicator size="small" /></View>
+                      ) : categories.length > 0 ? (
+                        <ScrollView nestedScrollEnabled style={{ maxHeight: moderateScale(150) }}>
+                          {categories.map((cat) => (
+                            <TouchableOpacity
+                              key={cat._id}
+                              style={[styles.dropdownOption, category === cat.name && styles.dropdownOptionSelected]}
+                              onPress={() => {
+                                setCategory(cat.name);
+                                setIsCategoryDropdownOpen(false);
+                              }}
+                            >
+                              <Text style={{ fontSize: normalizeFont(10) }}>{cat.name}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      ) : (
+                        <View style={styles.dropdownOption}><Text style={{ color: "#999" }}>No categories available</Text></View>
+                      )}
+                    </View>
+                  )}
                 </View>
-                <View style={styles.flex1}>
+
+                <View style={{ flex: 1, position: "relative" }}>
                   <Text style={styles.label}>Variety *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={variety}
-                    onChangeText={setVariety}
-                    placeholder="e.g., Royal Gala"
-                    editable={!loading}
-                  />
+
+                  <TouchableOpacity
+                    style={[styles.input, styles.pickerInput]}
+                    onPress={() => !varietyLoading && setIsVarietyDropdownOpen(!isVarietyDropdownOpen)}
+                    disabled={loading || varietyLoading}
+                  >
+                    <Text style={{ fontSize: normalizeFont(10), color: variety ? "#000" : "#999" }}>
+                      {variety || (category ? "Select Variety" : "All Varieties")}
+                    </Text>
+                    <Ionicons name={isVarietyDropdownOpen ? "chevron-up" : "chevron-down"} size={15} color="#333" />
+                  </TouchableOpacity>
+
+                  {isVarietyDropdownOpen && (
+                    <View style={styles.dropdownBelowInput}>
+                      {varietyLoading ? (
+                        <View style={styles.dropdownOption}><ActivityIndicator size="small" /></View>
+                      ) : varietyOptions.length > 0 ? (
+                        <ScrollView nestedScrollEnabled style={{ maxHeight: moderateScale(150) }}>
+                          {varietyOptions.map((varName, idx) => (
+                            <TouchableOpacity
+                              key={`${varName}-${idx}`}
+                              style={[styles.dropdownOption, variety === varName && styles.dropdownOptionSelected]}
+                              onPress={() => {
+                                setVariety(varName);
+                                setIsVarietyDropdownOpen(false);
+                              }}
+                            >
+                              <Text style={{ fontSize: normalizeFont(10) }}>{varName}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      ) : (
+                        <View style={styles.dropdownOption}><Text style={{ color: "#999" }}>No varieties available</Text></View>
+                      )}
+                    </View>
+                  )}
                 </View>
               </View>
 
               <View style={styles.row}>
                 <View style={styles.flex1}>
                   <Text style={styles.label}>Price (₹) *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={price}
-                    onChangeText={setPrice}
-                    placeholder="eg.0"
-                    keyboardType="numeric"
-                    editable={!loading}
-                  />
+                  <TextInput style={styles.input} value={price} onChangeText={setPrice} placeholder="eg.0" keyboardType="numeric" editable={!loading} />
                 </View>
 
                 <View style={styles.flex1}>
                   <Text style={styles.label}>Quantity *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={quantity}
-                    onChangeText={setQuantity}
-                    placeholder="eg.0"
-                    keyboardType="numeric"
-                    editable={!loading}
-                  />
+                  <TextInput style={styles.input} value={quantity} onChangeText={setQuantity} placeholder="eg.0" keyboardType="numeric" editable={!loading} />
                 </View>
 
-
-
-
-                <View style={styles.flex1}>
+                <View style={{ flex: 1, position: "relative" }}>
                   <Text style={styles.label}>Unit *</Text>
 
-                  {/* Dropdown button */}
-                  <TouchableOpacity
-                    style={[
-                      styles.input,
-                      { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-                    ]}
-                    onPress={() => setIsUnitDropdownOpen(!isUnitDropdownOpen)}
-                    disabled={loading}
-                  >
-                    <Text style={{fontSize:moderateScale(10)}}>{unit || "Select Unit"}</Text>
-                    <Ionicons name={isUnitDropdownOpen ? "chevron-up" : "chevron-down"} size={15} color="#000" />
+                  <TouchableOpacity style={[styles.input, styles.pickerInput]} onPress={() => setIsUnitDropdownOpen(!isUnitDropdownOpen)} disabled={loading}>
+                    <Text style={{ fontSize: normalizeFont(10), color: unit ? "#000" : "#999" }}>{unit || "Select Unit"}</Text>
+                    <Ionicons name={isUnitDropdownOpen ? "chevron-up" : "chevron-down"} size={15} color="#333" />
                   </TouchableOpacity>
 
-                  {/* Dropdown list (shown just below input) */}
                   {isUnitDropdownOpen && (
                     <View style={styles.dropdownBelowInput}>
                       {unitOptions.map((opt) => (
-                        <TouchableOpacity
-                          key={opt}
-                          style={[
-                            styles.dropdownOption,
-                            unit === opt && { backgroundColor: "#f0f0f0" },
-                          ]}
-                          onPress={() => {
-                            setUnit(opt);
-                            setIsUnitDropdownOpen(false);
-                          }}
-                        >
-                          <Text>{opt}</Text>
+                        <TouchableOpacity key={opt} style={[styles.dropdownOption, unit === opt && styles.dropdownOptionSelected]} onPress={() => { setUnit(opt); setIsUnitDropdownOpen(false); }}>
+                          <Text style={{ fontSize: normalizeFont(10) }}>{opt}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
                   )}
                 </View>
-
-
-
               </View>
 
-              {unit.toLowerCase() === "pc" && (
+              { (unit || "").toLowerCase() === "pc" && (
                 <View>
                   <Text style={styles.label}>Weight Per Piece *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={weightPerPiece}
-                    onChangeText={setWeightPerPiece}
-                    placeholder="e.g., 400g or 0.4kg"
-                    editable={!loading}
-                  />
-                  <Text style={styles.helperText}>
-                    Enter weight of one piece (e.g., 400gm, 0.5kg, 200gram)
-                  </Text>
+                  <TextInput style={styles.input} value={weightPerPiece} onChangeText={setWeightPerPiece} placeholder="e.g., 400g or 0.4kg" editable={!loading} />
+                  <Text style={styles.helperText}>Enter weight of one piece (e.g., 400gm, 0.5kg)</Text>
                 </View>
               )}
 
               <Text style={styles.label}>Add Images *</Text>
-              <TouchableOpacity
-                style={[
-                  styles.imageUpload,
-                  (loading || images.length >= 5) && styles.imageUploadDisabled,
-                ]}
-                onPress={pickImages}
-                disabled={loading || images.length >= 5}
-              >
-                <Ionicons name="folder-outline" size={32} color="#777" />
-                <Text style={styles.imageUploadText}>
-                  {images.length >= 5
-                    ? "Maximum 5 images reached"
-                    : `Add photos of your product (${images.length}/5)`}
-                </Text>
+              <TouchableOpacity style={[styles.imageUpload, (loading || images.length >= 5) && styles.imageUploadDisabled]} onPress={pickImages} disabled={loading || images.length >= 5}>
+                <Ionicons name="folder-outline" size={28} color="#777" />
+                <Text style={styles.imageUploadText}>{images.length >= 5 ? "Maximum 5 images reached" : `Add photos (${images.length}/5)`}</Text>
               </TouchableOpacity>
 
               {images.length > 0 && (
-                <ScrollView horizontal style={{ marginVertical: 8 }}>
+                <ScrollView horizontal style={{ marginVertical: moderateScale(8) }}>
                   {images.map((img, idx) => (
                     <View key={idx} style={styles.imagePreviewContainer}>
-                      <Image
-                        source={{ uri: img.uri }}
-                        style={styles.previewImage}
-                      />
+                      <Image source={{ uri: img.uri }} style={styles.previewImage} />
                       {!loading && (
-                        <TouchableOpacity
-                          style={styles.removeImageBtn}
-                          onPress={() => removeImage(idx)}
-                        >
-                          <Ionicons
-                            name="close-circle"
-                            size={24}
-                            color="#ef4444"
-                          />
+                        <TouchableOpacity style={styles.removeImageBtn} onPress={() => removeImage(idx)}>
+                          <Ionicons name="close-circle" size={22} color="#ef4444" />
                         </TouchableOpacity>
                       )}
                     </View>
@@ -419,42 +477,19 @@ const AddProduct = ({ refreshprops }) => {
               )}
 
               <Text style={styles.label}>Description</Text>
-              <TextInput
-                style={[styles.input, { height: 80, textAlignVertical: "top" }]}
-                value={description}
-                onChangeText={setDescription}
-                placeholder="Write product details here (optional)"
-                multiline
-                editable={!loading}
-              />
+              <TextInput style={[styles.input, { height: moderateScale(80), textAlignVertical: "top" }]} value={description} onChangeText={setDescription} placeholder="Write product details here (optional)" multiline editable={!loading} />
 
               <View style={styles.checkboxRow}>
-                <Checkbox
-                  value={allIndiaDelivery}
-                  onValueChange={setAllIndiaDelivery}
-                  disabled={loading}
-                />
-                <Text style={{ marginLeft: 8 ,fontSize:normalizeFont(12)}}>All India Delivery</Text>
+                <Checkbox value={allIndiaDelivery} onValueChange={setAllIndiaDelivery} disabled={loading} />
+                <Text style={{ marginLeft: moderateScale(8), fontSize: normalizeFont(12) }}>All India Delivery</Text>
               </View>
 
               <View style={styles.submitContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.submitBtn,
-                    loading && styles.submitBtnDisabled,
-                  ]}
-                  onPress={handleSubmit}
-                  disabled={loading}
-                  activeOpacity={loading ? 1 : 0.7}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#fff" size="small" />
-                  ) : (
-                    <>
-                      <Feather name="check-circle" size={20} color="#fff" />
-                      <Text style={styles.submitText}>Add Product</Text>
-                    </>
-                  )}
+                <TouchableOpacity style={[styles.submitBtn, loading && styles.submitBtnDisabled]} onPress={handleSubmit} disabled={loading} activeOpacity={loading ? 1 : 0.7}>
+                  {loading ? <ActivityIndicator color="#fff" size="small" /> : (<>
+                    <Feather name="check-circle" size={18} color="#fff" />
+                    <Text style={styles.submitText}>Add Product</Text>
+                  </>)}
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -501,7 +536,7 @@ export const styles = StyleSheet.create({
 
   iconContainer: {
     width: scale(55),
-    height:scale(54),
+    height: scale(54),
     borderRadius: moderateScale(28),
     backgroundColor: "#22c55e",
     alignItems: "center",
@@ -525,8 +560,8 @@ export const styles = StyleSheet.create({
     borderTopLeftRadius: moderateScale(16),
     borderTopRightRadius: moderateScale(16),
     padding: moderateScale(13),
-    borderWidth:2,
-    borderColor:'rgba(255, 202, 40, 1)',
+    borderWidth: 2,
+    borderColor: "rgba(255, 202, 40, 1)",
   },
 
   header: {
@@ -560,6 +595,9 @@ export const styles = StyleSheet.create({
     borderWidth: moderateScale(1),
     borderColor: "#f0c96a",
     borderRadius: moderateScale(10),
+    flexDirection:'row',
+    alignItems:'center',
+    justifyContent:'space-around',
     padding: moderateScale(12),
     backgroundColor: "#fff",
     marginBottom: moderateScale(8),
@@ -573,6 +611,36 @@ export const styles = StyleSheet.create({
   },
 
   flex1: { flex: 1, marginRight: moderateScale(8) },
+
+  dropdownBelowInput: {
+    borderWidth: moderateScale(1),
+    borderColor: "#22c55e",
+    borderRadius: moderateScale(10),
+    backgroundColor: "#fff",
+    position: "absolute",
+    top: moderateScale(66),
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    overflow: "hidden",
+    maxHeight: moderateScale(200),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: moderateScale(2) },
+    shadowOpacity: Platform.OS === "ios" ? 0.1 : 0.15,
+    shadowRadius: moderateScale(4),
+    elevation: 10,
+  },
+
+  dropdownOption: {
+    paddingVertical: moderateScale(12),
+    paddingHorizontal: moderateScale(12),
+    borderBottomWidth: moderateScale(0.5),
+    borderBottomColor: "#e8f5e9",
+  },
+
+  dropdownOptionSelected: {
+    backgroundColor: "#f0f0f0",
+  },
 
   checkboxRow: {
     flexDirection: "row",
@@ -593,11 +661,15 @@ export const styles = StyleSheet.create({
     paddingVertical: moderateScale(14),
     flexDirection: "row",
     justifyContent: "center",
-    gap:scale(5),
+    gap: scale(5),
     alignContent: "center",
     marginTop: moderateScale(20),
     marginBottom: moderateScale(10),
     alignItems: "center",
+  },
+
+  submitBtnDisabled: {
+    opacity: 0.6,
   },
 
   submitText: {
@@ -622,9 +694,16 @@ export const styles = StyleSheet.create({
     opacity: 0.7,
   },
 
-  imageUploadText: { marginTop: moderateScale(8), color: "#777", fontSize: normalizeFont(10) },
+  imageUploadText: {
+    marginTop: moderateScale(8),
+    color: "#777",
+    fontSize: normalizeFont(10),
+  },
 
-  imagePreviewContainer: { position: "relative", marginRight: moderateScale(8) },
+  imagePreviewContainer: {
+    position: "relative",
+    marginRight: moderateScale(8),
+  },
 
   previewImage: {
     width: moderateScale(65),
@@ -641,41 +720,9 @@ export const styles = StyleSheet.create({
     padding: moderateScale(4),
   },
 
-  helperText: { fontSize: normalizeFont(10), color: "#777", marginBottom: moderateScale(4) },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  dropdownContainer: {
-    backgroundColor: "#fff",
-    borderRadius: moderateScale(8),
-    width: moderateScale(140),
-    elevation: 6,
-  },
-
-  dropdownOption: {
-    paddingVertical: moderateScale(10),
-    paddingHorizontal: moderateScale(15),
-  },
-
-  dropdownBelowInput: {
-    width: moderateScale(114),
-    marginTop: moderateScale(30),
-    position: "absolute",
-    borderWidth: moderateScale(1),
-    borderColor: "#f0c96a",
-    borderRadius: moderateScale(10),
-    backgroundColor: "#fff",
-    overflow: "hidden",
-    zIndex: 100,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: moderateScale(2) },
-    shadowOpacity: Platform.OS === "ios" ? 0.15 : 0.2,
-    shadowRadius: moderateScale(4),
+  helperText: {
+    fontSize: normalizeFont(10),
+    color: "#777",
+    marginBottom: moderateScale(4),
   },
 });

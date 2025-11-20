@@ -24,9 +24,8 @@
 //     </ThemeProvider>
 //   );
 // }
-
 import { Stack } from "expo-router";
-import { AuthProvider } from "./context/AuthContext";
+import AuthProvider from "./context/AuthContext"; // note: ./context
 
 export default function RootLayout() {
   return (
@@ -38,3 +37,5 @@ export default function RootLayout() {
     </AuthProvider>
   );
 }
+
+

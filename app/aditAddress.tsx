@@ -14,6 +14,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { moderateScale, normalizeFont } from './Responsive';
 
 const API_BASE = 'https://viafarm-1.onrender.com';
 
@@ -204,31 +205,31 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(12),
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  backButton: { padding: 4 },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '600' },
-  scrollView: { paddingHorizontal: 16 },
-  section: { marginTop: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 10 },
+  backButton: { padding: moderateScale(4) },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: normalizeFont(14), fontWeight: '600' },
+  scrollView: { paddingHorizontal: moderateScale(16) },
+  section: { marginTop: moderateScale(20) },
+  sectionTitle: { fontSize: normalizeFont(13), fontWeight: '600', marginBottom: moderateScale(10) },
   textInput: {
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    marginBottom: 10,
+    borderRadius: moderateScale(8),
+    padding: moderateScale(12),
+    fontSize: normalizeFont(11),
+    marginBottom: moderateScale(10),
   },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   halfInput: { flex: 1, marginRight: 8 },
   switchContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
-  switchLabel: { marginLeft: 8, fontSize: 14 },
+  switchLabel: { marginLeft: moderateScale(8), fontSize: normalizeFont(14) },
   footer: {
     flexDirection: 'row',
-    padding: 16,
+    padding: moderateScale(16),
     borderTopWidth: 1,
     borderTopColor: '#eee',
     backgroundColor: '#fff',
@@ -237,16 +238,16 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: '#ccc',
-    padding: 12,
+    padding: moderateScale(12),
     borderRadius: 8,
     alignItems: 'center',
   },
   cancelButtonText: { color: '#555', fontWeight: '500' },
   saveButton: {
     flex: 1,
-    backgroundColor: '#3b82f6',
-    marginLeft: 10,
-    padding: 12,
+    backgroundColor: 'rgba(76, 175, 80, 1)',
+    marginLeft: moderateScale(10),
+    padding: moderateScale(12),
     borderRadius: 8,
     alignItems: 'center',
   },

@@ -6,14 +6,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Dimensions,
   FlatList,
   Image,
   Modal,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ProductCard from '../components/common/ProductCard';
@@ -27,11 +29,8 @@ const CARD_MARGIN = 10;
 const CARD_COLUMNS = 2;
 const CARD_WIDTH = (width - CARD_MARGIN * (CARD_COLUMNS * 2)) / CARD_COLUMNS;
 
-// Category options
-const CATEGORIES = ['All', 'Fruits', 'Vegetables', 'Seeds', 'Plants', 'Handicrafts'];
-
-/** Robust FarmImage - unchanged */
-const FarmImage = ({ item }) => {
+/** Robust FarmImage */
+const FarmImage = ({ item, onPress }) => {
   let uri = null;
   if (!item) uri = 'https://via.placeholder.com/120';
   else if (typeof item === 'string') uri = item;
@@ -42,24 +41,24 @@ const FarmImage = ({ item }) => {
   else uri = 'https://via.placeholder.com/120';
 
   return (
-    <TouchableOpacity style={{ marginRight: 8 }} activeOpacity={0.85}>
+    <TouchableOpacity style={{ marginRight: 8 }} activeOpacity={0.85} onPress={() => onPress(uri)}>
       <Image
         source={{ uri }}
-        style={{ width: 80, height: 80, borderRadius: 8, backgroundColor: '#eee' }}
+        style={{ width: scale(80), height: scale(80), borderRadius:moderateScale(8), backgroundColor: '#eee' }}
         resizeMode="cover"
       />
     </TouchableOpacity>
   );
 };
 
-const ReviewCard = ({ item }) => (
+const ReviewCard = ({ item, onImagePress }) => (
   <TouchableOpacity style={styles.reviewCard} activeOpacity={0.8}>
     <View style={styles.header}>
       <Image
         source={{ uri: item?.user?.profilePicture || 'https://via.placeholder.com/50' }}
         style={styles.avatar}
       />
-      <View style={{ flex: 1, marginLeft: 10 }}>
+      <View style={{ flex: 1, marginLeft: moderateScale(10) }}>
         <Text style={styles.name}>{item?.user?.name || 'Anonymous'}</Text>
         <Text style={styles.rating}>
           ⭐ {item?.rating != null ? Number(item.rating).toFixed(1) : 'N/A'}
@@ -90,10 +89,15 @@ const VendorsDetails = () => {
   const [favorites, setFavorites] = useState(new Set());
   const [cartItems, setCartItems] = useState({});
 
+  // categories from API
+  const [categories, setCategories] = useState(['All']);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [categoryModalVisible, setCategoryModalVisible] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const animation = useRef(new Animated.Value(0)).current;
 
-  const dropdownButtonRef = useRef(null);
+  // Image viewer modal state
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   // ----- helper function -----
   const getVendorRating = (r) => {
@@ -133,6 +137,28 @@ const VendorsDetails = () => {
     }
   };
 
+  // fetch categories from API
+  const fetchCategories = async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      const resp = await axios.get(`${API}/api/admin/manage-app/categories`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        timeout: 10000,
+      });
+      const cats = Array.isArray(resp?.data?.categories) ? resp.data.categories : [];
+      const names = cats
+        .map(c => (typeof c.name === 'string' ? c.name.trim() : String(c._id || c).trim()))
+        .filter(Boolean);
+      const unique = ['All', ...Array.from(new Set(names))];
+      setCategories(unique);
+      if (!unique.includes(selectedCategory)) setSelectedCategory('All');
+    } catch (err) {
+      console.error('fetchCategories error', err);
+      setCategories(['All']);
+      setSelectedCategory('All');
+    }
+  };
+
   // ----- wishlist endpoints -----
   const fetchWishlist = async () => {
     try {
@@ -164,7 +190,6 @@ const VendorsDetails = () => {
         const map = {};
         items.forEach((it) => {
           const productId = it.productId || it._id || it.id;
-          // cart item id might be stored as _id or id
           const cartItemId = it._id || it.id || it.cartItemId || productId;
           map[productId] = { quantity: it.quantity || it.qty || 1, cartItemId };
         });
@@ -180,8 +205,41 @@ const VendorsDetails = () => {
       fetchVendor();
       fetchWishlist();
       fetchCart();
+      fetchCategories();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vendorId]);
+
+  // ----- dropdown handlers -----
+  const openDropdown = () => {
+    setShowDropdown(true);
+    Animated.timing(animation, { toValue: 1, duration: 200, useNativeDriver: false }).start();
+  };
+
+  const closeDropdown = () => {
+    Animated.timing(animation, { toValue: 0, duration: 180, useNativeDriver: false }).start(() => {
+      setShowDropdown(false);
+    });
+  };
+
+  const toggleDropdown = () => {
+    if (showDropdown) {
+      closeDropdown();
+    } else {
+      openDropdown();
+    }
+  };
+
+  // ----- image viewer handlers -----
+  const openImageViewer = (imageUri) => {
+    setSelectedImage(imageUri);
+    setImageViewerVisible(true);
+  };
+
+  const closeImageViewer = () => {
+    setImageViewerVisible(false);
+    setSelectedImage(null);
+  };
 
   // ----- wishlist handlers -----
   const addToWishlist = async (product) => {
@@ -275,16 +333,13 @@ const VendorsDetails = () => {
       });
 
       if (res.data?.success) {
-        // prefer server returned data if exists
         const returned = res.data.data ?? {};
         const cartItemId = returned._id || returned.id || returned.cartItemId || productId;
         const qty = returned.quantity || returned.qty || 1;
         setCartItems(prev => ({ ...prev, [productId]: { quantity: qty, cartItemId } }));
-        // re-sync to be safe
         await fetchCart();
         Alert.alert('Success', 'Added to cart!');
       } else {
-        // fallback: still try to fetch cart
         await fetchCart();
         Alert.alert('Info', res.data?.message ?? 'Added to cart');
       }
@@ -309,7 +364,6 @@ const VendorsDetails = () => {
       const productId = product._id || product.id;
       const current = cartItems[productId];
       if (!current) {
-        // If not present in local map, try to add
         if (change > 0) {
           await handleAddToCart(product);
         }
@@ -318,7 +372,6 @@ const VendorsDetails = () => {
       const newQty = (current.quantity || 1) + change;
 
       if (newQty < 1) {
-        // delete cart item by cartItemId
         const res = await axios.delete(`${API}/api/buyer/cart/${current.cartItemId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -330,31 +383,25 @@ const VendorsDetails = () => {
           });
           Alert.alert('Removed', 'Item removed from cart');
         } else {
-          // fallback fetch
           await fetchCart();
           Alert.alert('Error', 'Failed to remove item');
         }
       } else {
-        // optimistic update
         const previous = current;
         setCartItems(prev => ({ ...prev, [productId]: { ...current, quantity: newQty } }));
 
-        // try known update endpoint, if fails, fallback to generic cart update or re-fetch
         try {
           const res = await axios.put(`${API}/api/buyer/cart/${current.cartItemId}/quantity`, { quantity: newQty }, {
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
           });
           if (!res.data?.success) {
-            // try alternate endpoint (best-effort)
             await axios.put(`${API}/api/buyer/cart/update`, { cartItemId: current.cartItemId, quantity: newQty }, {
               headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
             });
           }
-          // re-sync to ensure consistent state
           await fetchCart();
         } catch (err) {
           console.error('handleUpdateQuantity inner error', err);
-          // revert and fetch
           setCartItems(prev => ({ ...prev, [productId]: previous }));
           await fetchCart();
           Alert.alert('Error', 'Failed to update quantity');
@@ -377,7 +424,7 @@ const VendorsDetails = () => {
     navigation.navigate('ViewProduct', { productId, product });
   };
 
-  // ---- small helpers & UI guards ----
+  // ---- UI guards ----
   if (loading)
     return (
       <View style={styles.containerRoot}>
@@ -401,12 +448,12 @@ const VendorsDetails = () => {
   const v = vendor;
   const image = v.profilePicture || 'https://picsum.photos/800/600';
 
-  // Filtering logic: if product has category property match (case-insensitive), else include
+  // Filtering logic
   const filteredProducts =
     selectedCategory === 'All'
       ? products
       : products.filter((p) => {
-          const c = (p?.category || '').toString().toLowerCase();
+          const c = (p?.category || p?.categoryName || '').toString().toLowerCase();
           return c === selectedCategory.toString().toLowerCase();
         });
 
@@ -424,7 +471,7 @@ const VendorsDetails = () => {
   }, []);
 
   const ListHeader = () => (
-    <View style={{ width: '100%', paddingBottom: 10, backgroundColor: '#fff' }}>
+    <View style={{ width: '100%', paddingBottom: moderateScale(10), backgroundColor: '#fff' }}>
       <View style={styles.imageBox}>
         <Image source={{ uri: image }} style={styles.image} />
         <TouchableOpacity
@@ -460,21 +507,21 @@ const VendorsDetails = () => {
         {farmImage.length > 0 ? (
           <FlatList
             data={farmImage}
-            renderItem={({ item }) => <FarmImage item={item} />}
+            renderItem={({ item }) => <FarmImage item={item} onPress={openImageViewer} />}
             keyExtractor={(item, index) =>
               typeof item === 'string' ? item : item?._id ? item._id.toString() : index.toString()
             }
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 10 }}
+            contentContainerStyle={{ paddingHorizontal:moderateScale(10) }}
           />
         ) : null}
       </View>
 
       {allReviewImages.length > 0 && (
-        <View style={{ backgroundColor: '#fff', paddingVertical: 10, paddingLeft: 10 }}>
+        <View style={{ backgroundColor: '#fff', paddingVertical: moderateScale(10), paddingLeft: moderateScale(10) }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={styles.sectionHeader}>Reviews <Text style={{ fontSize: normalizeFont(13), fontWeight: (400), }}>({reviews.length} reviews)</Text> </Text>
+            <Text style={styles.sectionHeader}>Reviews <Text style={{ fontSize: normalizeFont(12), fontWeight: (400), }}>({reviews.length} reviews)</Text> </Text>
             <TouchableOpacity
               onPress={() =>
                 navigation.navigate('SeeAllReview', {
@@ -482,7 +529,7 @@ const VendorsDetails = () => {
                   reviews,
                 })
               }>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingRight: 5 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingRight: moderateScale(5) }}>
                 <Text style={{ color: 'rgba(1, 151, 218, 1)', fontWeight: '600', fontSize: normalizeFont(12) }}>See All</Text>
                 <Image source={require("../assets/via-farm-img/icons/see.png")} />
               </View>
@@ -493,7 +540,9 @@ const VendorsDetails = () => {
             horizontal
             keyExtractor={(item, idx) => `review-img-${idx}`}
             renderItem={({ item }) => (
-              <Image source={{ uri: item }} style={{ width:scale(80), height: scale(80), marginRight: moderateScale(8), borderRadius: moderateScale(8) }} />
+              <TouchableOpacity activeOpacity={0.8} onPress={() => openImageViewer(item)}>
+                <Image source={{ uri: item }} style={{ width: scale(80), height: scale(80), marginRight: moderateScale(8), borderRadius: moderateScale(8) }} />
+              </TouchableOpacity>
             )}
             showsHorizontalScrollIndicator={false}
           />
@@ -505,21 +554,21 @@ const VendorsDetails = () => {
         {reviews.length > 0 ? (
           <FlatList
             data={reviews}
-            renderItem={({ item }) => <ReviewCard item={item} />}
+            renderItem={({ item }) => <ReviewCard item={item} onImagePress={openImageViewer} />}
             keyExtractor={(item, index) => (item?._id ? item._id.toString() : index.toString())}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: moderateScale(10) }}
+            contentContainerStyle={{ paddingHorizontal: moderateScale(10),marginLeft:moderateScale(10) }}
           />
         ) : (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <Image style={{ width: scale(70), height: scale(70) }} source={require('../assets/via-farm-img/icons/empty.png')} />
             <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
-              <Image style={{ width: 25, height: 25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
-              <Image style={{ width: 25, height: 25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
-              <Image style={{ width: 25, height: 25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
-              <Image style={{ width: 25, height: 25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
-              <Image style={{ width: 25, height: 25 }} source={require("../assets/via-farm-img/icons/satar.png")} />
+              <Image style={{ width: scale(25), height: scale(25) }} source={require("../assets/via-farm-img/icons/satar.png")} />
+              <Image style={{ width: scale(25), height: scale(25) }} source={require("../assets/via-farm-img/icons/satar.png")} />
+              <Image style={{ width: scale(25), height: scale(25) }} source={require("../assets/via-farm-img/icons/satar.png")} />
+              <Image style={{ width: scale(25), height: scale(25) }} source={require("../assets/via-farm-img/icons/satar.png")} />
+              <Image style={{ width: scale(25), height: scale(25) }} source={require("../assets/via-farm-img/icons/satar.png")} />
             </View>
           </View>
         )}
@@ -529,13 +578,62 @@ const VendorsDetails = () => {
         <Text style={[styles.sectionHeader, { marginLeft: 0, marginVertical: 0 }]}>
           Listing Product
         </Text>
-        <TouchableOpacity
-          ref={dropdownButtonRef}
-          style={styles.dropdownButton}
-          onPress={() => setCategoryModalVisible(true)}>
-          <Text style={styles.dropdownButtonText}>{selectedCategory}</Text>
-          <Ionicons name="chevron-down" size={20} color="#555" />
-        </TouchableOpacity>
+        <View style={styles.filterWrapper}>
+          <TouchableOpacity
+            style={styles.filterBtn}
+            onPress={toggleDropdown}
+            activeOpacity={0.8}>
+            <View style={styles.filterExpand}>
+              <Text numberOfLines={1} ellipsizeMode="tail" style={styles.filterText}>
+                {selectedCategory}
+              </Text>
+              <Ionicons name={showDropdown ? 'chevron-up' : 'chevron-down'} size={normalizeFont(14)} color="#666" />
+            </View>
+          </TouchableOpacity>
+
+          {/* Animated Dropdown */}
+          <Animated.View
+            pointerEvents={showDropdown ? 'auto' : 'none'}
+            style={[
+              styles.dropdown,
+              {
+                height: animation.interpolate({ inputRange: [0, 1], outputRange: [0, moderateScale(240)] }),
+                borderWidth: animation.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }),
+                opacity: animation,
+              },
+            ]}
+          >
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={styles.dropdownScrollContent}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator
+            >
+              {Array.isArray(categories) && categories.length > 0 ? (
+                categories.map((cat) => {
+                  const isSelected = String(cat).toLowerCase() === String(selectedCategory).toLowerCase();
+                  return (
+                    <TouchableOpacity
+                      key={String(cat)}
+                      style={[styles.dropdownItem, isSelected && styles.selectedDropdownItem]}
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        setSelectedCategory(cat);
+                        closeDropdown();
+                      }}
+                    >
+                      <Text style={[styles.dropdownText, isSelected && styles.selectedDropdownText]}>
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })
+              ) : (
+                <Text style={{ padding: moderateScale(12) }}>No categories</Text>
+              )}
+            </ScrollView>
+          </Animated.View>
+        </View>
       </View>
     </View>
   );
@@ -556,6 +654,7 @@ const VendorsDetails = () => {
               id={item?._id}
               title={item?.name || 'Unnamed Product'}
               subtitle={item?.variety || ''}
+              distance={item?.distance || ''}
               price={item?.price || 0}
               rating={item?.rating || 0}
               image={item?.images?.[0] || 'https://via.placeholder.com/150'}
@@ -573,7 +672,7 @@ const VendorsDetails = () => {
         numColumns={CARD_COLUMNS}
         columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: CARD_MARGIN }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40, backgroundColor: '#fff' }}
+        contentContainerStyle={{ paddingBottom: moderateScale(40), backgroundColor: '#fff' }}
         ListEmptyComponent={
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <Text>No products available.</Text>
@@ -581,32 +680,36 @@ const VendorsDetails = () => {
         }
       />
 
-      {/* Category modal */}
+      {/* Image Viewer Modal */}
       <Modal
-        visible={categoryModalVisible}
+        visible={imageViewerVisible}
+        transparent={true}
         animationType="fade"
-        transparent
-        onRequestClose={() => setCategoryModalVisible(false)}
+        onRequestClose={closeImageViewer}
       >
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCategoryModalVisible(false)}>
-          <View style={styles.modalContent}>
-            {CATEGORIES.map((cat) => {
-              const selected = selectedCategory === cat;
-              return (
-                <TouchableOpacity
-                  key={cat}
-                  style={[styles.modalItem, selected && styles.modalItemSelected]}
-                  onPress={() => {
-                    setSelectedCategory(cat);
-                    setCategoryModalVisible(false);
-                  }}
-                >
-                  <Text style={[styles.modalItemText, selected && styles.modalItemTextSelected]}>{cat}</Text>
-                </TouchableOpacity>
-              );
-            })}
+        <View style={styles.imageViewerContainer}>
+          <TouchableOpacity
+            style={styles.imageViewerBackdrop}
+            activeOpacity={1}
+            onPress={closeImageViewer}
+          />
+          <View style={styles.imageViewerContent}>
+            {selectedImage && (
+              <Image
+                source={{ uri: selectedImage }}
+                style={styles.fullScreenImage}
+                resizeMode="contain"
+              />
+            )}
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={closeImageViewer}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close" size={28} color="#fff" />
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
     </>
   );
@@ -615,208 +718,235 @@ const VendorsDetails = () => {
 const styles = StyleSheet.create({
   containerRoot: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   center: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    alignItems: "center",
+    justifyContent: "center",
+    padding: moderateScale(20),
   },
   errorHeader: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#D32F2F',
-    marginBottom: moderateScale(10),
-  },
-  imageBox: {
-    width: '100%',
-    height: scale(250),
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  backBtn: {
-    position: 'absolute',
-    left: 10,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: moderateScale(20),
-    padding: 5,
-  },
-  cardContainer: {
-    padding: moderateScale(15),
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    marginBottom: moderateScale(10),
-  },
-  rowBetween: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  vendorName: {
-    fontSize: normalizeFont(16),
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  ratingBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: scale(4),
-    borderRadius: 8,
-    paddingHorizontal: moderateScale(6),
-    paddingVertical: moderateScale(3),
-    borderWidth: 1,
-    borderColor: '#4CAF50',
-  },
-  ratingText: {
-    color: '#000',
-    fontWeight: 'bold',
-    marginLeft: moderateScale(6),
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: moderateScale(10),
-    gap: scale(3),
-  },
-  location: {
-    marginLeft: 5,
-    fontSize: normalizeFont(12),
-    color: 'rgba(66, 66, 66, 0.7)',
-  },
-  aboutHeader: {
-    fontSize: normalizeFont(13),
-    fontWeight: 'bold',
-    marginTop: moderateScale(5),
-    color: '#333',
-  },
-  about: {
-    fontSize: normalizeFont(12),
-    color: '#555',
-    marginTop: 5,
-    lineHeight: scale(15),
-  },
-  sectionHeader: {
-    fontSize: normalizeFont(16),
-    fontWeight: 'bold',
-    color: '#333',
-    marginVertical: moderateScale(10),
-    marginLeft: moderateScale(10),
-  },
-  noReviewText: {
-    textAlign: 'center',
-    color: '#757575',
-    paddingVertical: moderateScale(10),
-  },
-  reviewCard: {
-    backgroundColor: 'rgba(255, 253, 246, 1)',
-    borderRadius: 8,
-    padding: moderateScale(15),
-    marginRight: moderateScale(10),
-    width: scale(300),
-    borderWidth: 1,
-    borderColor: '#eee',
+    fontSize: normalizeFont(1),
+    fontWeight: "700",
+    marginBottom: moderateScale(8),
   },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(8),
+    gap: 8,
+  },
+  imageBox: {
+    width: "100%",
+    height: scale(200),
+    backgroundColor: "#f6f6f6",
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+  backBtn: {
+    position: "absolute",
+    left: moderateScale(12),
+    padding: moderateScale(6),
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: moderateScale(20),
+  },
+  cardContainer: {
+    padding: moderateScale(12),
+    backgroundColor: "#fff",
+  },
+  rowBetween: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  vendorName: {
+    fontSize: normalizeFont(15),
+    fontWeight: "700",
+    color: "#222",
+  },
+  ratingBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    borderWidth: 1,
+    borderColor: 'grey',
+    borderRadius: 10,
+    padding: 5,
+  },
+  ratingText: {
+    marginLeft: moderateScale(6),
+    fontWeight: "700",
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: moderateScale(8),
+  },
+  location: {
+    marginLeft: moderateScale(6),
+    color: "#666",
+    fontSize: moderateScale(11),
+  },
+  aboutHeader: {
+    marginTop: moderateScale(8),
+    fontWeight: "600",
+  },
+  about: {
+    marginTop: moderateScale(6),
+    color: "#444",
+    fontSize: moderateScale(11),
+  },
+  sectionHeader: {
+    fontSize: normalizeFont(14),
+    marginTop: moderateScale(10),
+    marginBottom: moderateScale(10),
+    fontWeight: "600",
+    marginLeft: moderateScale(10),
+  },
+  productsHeaderContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingHorizontal: moderateScale(10),
+    paddingTop: moderateScale(12),
+    paddingBottom: moderateScale(6),
+  },
+  filterWrapper: {
+    position: 'relative',
+    minWidth: moderateScale(120),
+  },
+  filterBtn: {
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(8),
+    borderRadius: moderateScale(6),
+    borderWidth: 1,
+    borderColor: 'rgba(66, 66, 66, 0.7)',
+  },
+  filterExpand: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 5,
+    justifyContent: 'center',
+  },
+  filterText: {
+    color: 'rgba(66, 66, 66, 0.9)',
+    textAlign: 'center',
+    fontSize: normalizeFont(11),
+    marginRight: moderateScale(6),
+    maxWidth: moderateScale(90),
+  },
+  dropdown: {
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    borderColor: 'rgba(66, 66, 66, 0.7)',
+    borderRadius: moderateScale(6),
+    position: 'absolute',
+    top: moderateScale(35),
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    elevation: 10,
+  },
+  dropdownScrollContent: {
+    paddingVertical: moderateScale(6),
+  },
+  dropdownItem: {
+    padding: moderateScale(12),
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(66, 66, 66, 0.06)',
+  },
+  selectedDropdownItem: {
+    backgroundColor: 'rgba(76, 175, 80, 0.08)',
+  },
+  dropdownText: {
+    color: 'rgba(66, 66, 66, 0.9)',
+    fontSize: normalizeFont(11),
+  },
+  selectedDropdownText: {
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+  reviewCard: {
+    padding: moderateScale(10),
+    backgroundColor: "rgba(255, 253, 246, 1)",
+    borderRadius: moderateScale(8),
+    borderWidth: 1,
+    borderColor: "#f0f0f0",
   },
   avatar: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: 20,
+    width: scale(42),
+    height: scale(42),
+    borderRadius: moderateScale(22),
   },
   name: {
-    fontWeight: 'bold',
+    fontWeight: "600",
     fontSize: normalizeFont(12),
   },
   rating: {
-    fontSize: normalizeFont(12),
-    color: '#FFC107',
-    marginTop: moderateScale(4),
+    color: "#444",
+    fontSize: 12,
   },
   date: {
-    fontSize: normalizeFont(12),
-    color: '#9E9E9E',
+    color: "#888",
+    fontSize: normalizeFont(11),
   },
   comment: {
-    fontSize: normalizeFont(12),
-    color: '#555',
-    marginTop: 5,
+    marginTop: moderateScale(8),
+    color: "#444",
+    fontSize: normalizeFont(11),
   },
-  productsHeaderContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    marginTop: 10,
-    backgroundColor: '#fff',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(8),
+    gap: 8,
   },
-  dropdownButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: moderateScale(8),
-    backgroundColor: '#f0f0f0',
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    minWidth: scale(120),
-  },
-  dropdownButtonText: {
-    fontSize: normalizeFont(16),
-    marginRight: 5,
-    color: '#333',
-    fontWeight: '600',
-  },
-  modalOverlay: {
+  // Image Viewer Styles
+  imageViewerContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    maxHeight: 320,
-    width: '80%',
-    paddingVertical: 8,
+  imageViewerBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
-  modalItem: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    alignItems: 'flex-start',
+  imageViewerContent: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
-  modalItemSelected: {
-    backgroundColor: '#e8f5e9',
+  fullScreenImage: {
+    width: '90%',
+    height: '100%',
   },
-  modalItemText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  modalItemTextSelected: {
-    fontWeight: 'bold',
-    color: '#4CAF50',
+  closeButton: {
+    position: 'absolute',
+    top: moderateScale(40),
+    right: moderateScale(20),
+    width: moderateScale(45),
+    height: moderateScale(45),
+    borderRadius: moderateScale(22.5),
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
 export default VendorsDetails;
 
-
+// export default VendorsDetails;
 
 
 // import { Ionicons } from '@expo/vector-icons';
@@ -1562,4 +1692,4 @@ export default VendorsDetails;
 //   },
 // });
 
-// export default VendorsDetails;
+

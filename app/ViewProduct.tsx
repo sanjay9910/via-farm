@@ -128,14 +128,12 @@ export default function ProductDetailScreen() {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) { Alert.alert("Login required", "Please login to add items to cart"); return; }
       const payload = { productId: product._id, quantity: qty, vendorId: vendor?.id ?? vendor?._id ?? product.vendor?._id ?? product.vendor };
-      // Many backends accept "add" with the desired quantity and will upsert; this is safe best-effort.
       const res = await axios.post(`${API_BASE}/api/buyer/cart/add`, payload, { headers: { Authorization: `Bearer ${token}` } });
       if (res.data?.success) {
         setInCart(true);
         setQuantity(qty);
         Alert.alert(res.data.message ?? "Added to cart");
       } else {
-        // fallback: if response doesn't say success, still set quantity optimistically
         setInCart(true);
         setQuantity(qty);
         Alert.alert(res.data?.message ?? "Updated cart");
@@ -170,7 +168,6 @@ export default function ProductDetailScreen() {
   // NEW: increment/decrement handlers that update quantity and call addToCart
   const incrementQuantity = async () => {
     const newQty = (quantity ?? 1) + 1;
-    // optimistic UI update + API call
     setQuantity(newQty);
     await addToCart(newQty);
   };
@@ -189,8 +186,6 @@ export default function ProductDetailScreen() {
   const handleCartToggle = async () => {
     if (!product) return;
     if (inCart) {
-      // if already in cart, open quantity UI: we'll just increment once (or you can open cart)
-      // Here we decrease to mimic "move to cart" behaviour? Keep behavior simple: remove if user taps cartBtn when inCart.
       await removeFromCart();
     } else {
       await addToCart(1);
@@ -206,14 +201,12 @@ export default function ProductDetailScreen() {
     navigation.push?.({ pathname: '/ViewOrderProduct', params: { productId: id } }) || navigation.navigate?.('ViewOrderProduct', { productId: id });
   };
 
-  // NEW: navigate to vendor details screen with vendor id
   const openVendorDetails = () => {
     const vid = vendor?.id ?? vendor?._id ?? product.vendor?._id ?? product.vendor;
     if (!vid) {
       Alert.alert("Vendor not available");
       return;
     }
-    // navigate to VendorsDetails, pass vendorId param
     navigation.navigate?.('VendorsDetails', { vendorId: vid });
   };
 
@@ -335,11 +328,11 @@ export default function ProductDetailScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               keyExtractor={(it, idx) => String(it.id ?? idx)}
-              contentContainerStyle={{ paddingVertical: 10, paddingHorizontal: 12 }}
+              contentContainerStyle={{ paddingVertical: moderateScale(10), paddingHorizontal: moderateScale(12) }}
               renderItem={({ item }) => (
-                <View style={{ marginRight: 10 }}>
+                <View style={{ marginRight: moderateScale(10) }}>
                   {item.images.map((img, i) => (
-                    <Image key={i} source={{ uri: img }} style={{ width: 120, height: 120, borderRadius: 8, marginBottom: 6 }} />
+                    <Image key={i} source={{ uri: img }} style={{ width: scale(120), height: scale(120), borderRadius: moderateScale(8), marginBottom: moderateScale(6) }} />
                   ))}
                 </View>
               )}
@@ -351,17 +344,17 @@ export default function ProductDetailScreen() {
             horizontal
             showsHorizontalScrollIndicator={false}
             keyExtractor={(it, idx) => String(it.id ?? idx)}
-            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 18 }}
+            contentContainerStyle={{ paddingHorizontal: moderateScale(12), paddingBottom: moderateScale(18) }}
             renderItem={({ item }) => (
               <View style={styles.reviewCard}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <Image source={{ uri: item.user?.profilePicture ?? 'https://cdn-icons-png.flaticon.com/512/149/149071.png' }} style={{ width: 40, height: 40, borderRadius: 20, marginRight: 10 }} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: moderateScale(8) }}>
+                  <Image source={{ uri: item.user?.profilePicture ?? 'https://cdn-icons-png.flaticon.com/512/149/149071.png' }} style={{ width: scale(40), height: scale(40), borderRadius: moderateScale(20), marginRight: 10 }} />
                   <View>
                     <Text style={{ fontWeight: '700' }}>{item.user?.name ?? 'Anonymous'}</Text>
-                    <Text style={{ color: '#777', fontSize: 12 }}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+                    <Text style={{ color: '#777', fontSize: normalizeFont(12) }}>{new Date(item.createdAt).toLocaleDateString()}</Text>
                   </View>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: moderateScale(8) }}>
                   <Ionicons name="star" size={14} color="#FFD700" />
                   <Text style={{ marginLeft: 6 }}>{item.rating}/5</Text>
                 </View>
@@ -369,13 +362,13 @@ export default function ProductDetailScreen() {
               </View>
             )}
             ListEmptyComponent={() => (
-              <View style={{ padding: 20 }}>
+              <View style={{ padding: moderateScale(20) }}>
                 <Text style={{ color: '#777' }}>No reviews yet</Text>
               </View>
             )}
           />
 
-          <View style={{ marginTop: 8 }}>
+          <View style={{ marginTop: moderateScale(8) }}>
             <SuggestionCard />
           </View>
 
@@ -385,8 +378,8 @@ export default function ProductDetailScreen() {
       {/* Bottom bar */}
       <View style={styles.bottomBar}>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: '#666', fontSize: 12 }}>Price</Text>
-          <Text style={{ fontWeight: '800', fontSize: 18 }}>₹{product.price}</Text>
+          <Text style={{ color: '#666', fontSize: normalizeFont(12) }}>Price</Text>
+          <Text style={{ fontWeight: '800', fontSize: normalizeFont(18) }}>₹{product.price}</Text>
         </View>
 
         {inCart ? (
@@ -418,15 +411,15 @@ export default function ProductDetailScreen() {
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: '#fff' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 0.4, borderBottomColor: '#eee' },
-  iconBtn: { padding: 6 },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: moderateScale(12), paddingVertical: moderateScale(10), borderBottomWidth: 0.4, borderBottomColor: '#eee' },
+  iconBtn: { padding: moderateScale(6) },
   headerTitle: { flex: 1, textAlign: 'center', fontSize:normalizeFont(16) },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
 
   container: { flex: 1 },
 
   heroImage: { width: SCREEN_W, height: SCREEN_W * 0.7, backgroundColor: '#f3f3f3' },
-  favButton: { position: 'absolute', right: 18, top:6, backgroundColor: 'transparent' },
+  favButton: { position: 'absolute', right: moderateScale(18), top:6, backgroundColor: 'transparent' },
 
   infoCard: { backgroundColor: '#fff', marginTop: -18,  padding: 16, minHeight: 220 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -438,30 +431,30 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize:normalizeFont(14), fontWeight: '600' },
   description: { color: '#444', marginTop: 6, fontSize:normalizeFont(14) },
 
-  nutriRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
+  nutriRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: moderateScale(12) },
   nutriCol: { alignItems: 'center', flex: 1 },
   nutriLabel: { color: '#777', fontSize: normalizeFont(12) },
   nutriVal: { fontWeight: '600', marginTop: 6 },
 
-  vendorHeader: { marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  vendorHeader: { marginTop: moderateScale(12), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   vendorExpanded: { flexDirection: 'row', marginTop:10, alignItems: 'center' },
-  vendorImage: { width: 90, height: 90, borderRadius: 10, backgroundColor: '#f3f3f3' },
+  vendorImage: { width: scale(90), height: scale(90), borderRadius: moderateScale(10), backgroundColor: '#f3f3f3' },
 
-  pickupRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, padding: 8, backgroundColor: '#fafafa', borderRadius: 8 },
+  pickupRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: moderateScale(12), padding: moderateScale(8), backgroundColor: '#fafafa', borderRadius: 8 },
 
-  deliverySec: { marginTop: 12 },
-  deliveryBox: { marginTop: 8, borderWidth: 0.8, borderColor: '#eee', padding: 12, borderRadius: 10 },
+  deliverySec: { marginTop: moderateScale(12) },
+  deliveryBox: { marginTop: moderateScale(8), borderWidth: 0.8, borderColor: '#eee', padding: moderateScale(12), borderRadius: moderateScale(10) },
 
-  coupon: { marginTop: 14, paddingTop: 8 },
+  coupon: { marginTop: moderateScale(14), paddingTop: moderateScale(8) },
   couponTitle: { fontWeight: '700' },
-  couponSub: { color: '#3b82f6', marginTop: 4 },
-  couponInput: { borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 8, padding: 10, marginTop: 8 },
+  couponSub: { color: '#3b82f6', marginTop: moderateScale(4) },
+  couponInput: { borderWidth: 1, borderColor: '#e0e0e0', borderRadius: moderateScale(8), padding: moderateScale(10), marginTop: moderateScale(8) },
 
-  reviewCard: { width:300, backgroundColor: '#fff', borderRadius: 12, padding: 14, marginRight: 12, elevation: 2 },
+  reviewCard: { width:scale(300), backgroundColor: '#fff', borderRadius: moderateScale(12), padding: moderateScale(14), marginRight: moderateScale(12), elevation: 2 },
 
-  bottomBar: { flexDirection: 'row', alignItems: 'center', padding: 12, borderTopWidth: 0.6, borderTopColor: '#eee', backgroundColor: '#fff' },
-  cartBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#22c55e', paddingHorizontal: 18, paddingVertical: 12, borderRadius: 10 },
-  cartBtnText: { color: '#fff', fontWeight: '700', marginLeft: 8 },
+  bottomBar: { flexDirection: 'row', alignItems: 'center', padding: moderateScale(12), borderTopWidth: 0.6, borderTopColor: '#eee', backgroundColor: '#fff' },
+  cartBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#22c55e', paddingHorizontal: moderateScale(18), paddingVertical: moderateScale(12), borderRadius: moderateScale(10) },
+  cartBtnText: { color: '#fff', fontWeight: '700', marginLeft: moderateScale(8) },
 
   // NEW styles for quantity control (matches your provided image)
   quantityControlContainer: {
@@ -469,12 +462,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1.2,
     borderColor: '#22c55e',
-    borderRadius:11,
+    borderRadius:moderateScale(11),
     overflow: 'hidden',
   },
   qtyBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: moderateScale(6),
     minWidth: moderateScale(36),
     alignItems: 'center',
     justifyContent: 'center',

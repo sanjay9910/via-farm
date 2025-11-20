@@ -4,7 +4,7 @@ import {
   scale,
   verticalScale,
 } from "@/app/Responsive";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -41,12 +41,13 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
 
         {/* Distance */}
         <View style={styles.distanceContainer}>
-          <Ionicons
+          {/* <Ionicons
             name="location-outline"
             size={moderateScale(14)}
             color="rgba(66, 66, 66, 1)"
-          />
-          <Text style={styles.distance}>{distance} away</Text>
+          /> */}
+          <Image source={require('../../assets/via-farm-img/icons/loca.png')} />
+          <Text style={styles.distance}>{distance}</Text>
         </View>
 
         {/* Category */}
@@ -56,7 +57,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
             size={moderateScale(14)}
             color="#666"
           />
-          <Text style={styles.category} numberOfLines={2} ellipsizeMode="tail">
+          <Text style={styles.category} numberOfLines={1} ellipsizeMode="tail">
             {category}
           </Text>
         </View>

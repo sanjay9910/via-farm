@@ -1,48 +1,90 @@
 import Card from '@/components/common/card';
-import { useNavigation } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
+import { moderateScale, normalizeFont, scale } from '@/app/Responsive';
 
 const API_BASE = 'https://viafarm-1.onrender.com';
 
 const CategoryCard = () => {
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState<
+    { id: string; name: string; image: string }[]
+  >([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const navigation = useNavigation();
+  const navigation: any = useNavigation();
 
   const fetchCategories = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE}/api/admin/manage-app/categories`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(
+        `${API_BASE}/api/admin/manage-app/categories`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to fetch categories: ${response.status}`);
       }
 
-      const data = await response.json();
-      // console.log('Categories data:', data);
+      const json = await response.json();
+      // console.log('kya aa raha Hai (raw)', json);
 
-  
-      const transformedData = data.map(category => ({
-        id: category._id,
-        name: category.name,
-        image: category.image?.url || 'https://via.placeholder.com/150', 
+      // Normalize response to an array. Some APIs return { data: [...] } or { categories: [...] } etc.
+      let items: any[] = [];
+      if (Array.isArray(json)) {
+        items = json;
+      } else if (Array.isArray(json.data)) {
+        items = json.data;
+      } else if (Array.isArray(json.categories)) {
+        items = json.categories;
+      } else if (json.success && Array.isArray(json.payload)) {
+        items = json.payload;
+      } else {
+        // Try to find first array value in object (fallback)
+        const firstArray = Object.values(json).find((v) => Array.isArray(v));
+        if (Array.isArray(firstArray)) items = firstArray as any[];
+      }
+
+      // If still empty, but API returned an object for a single category, wrap it
+      if (items.length === 0 && typeof json === 'object' && (json._id || json.id)) {
+        items = [json];
+      }
+
+      const transformedData = items.map((category: any, idx: number) => ({
+        id:
+          String(category._id ?? category.id ?? category._id ?? `cat-${idx}`),
+        name: String(category.name ?? category.title ?? 'Unnamed Category'),
+        image:
+          String(
+            category.image?.url ??
+              category.image ??
+              category.imageUrl ??
+              category.img ??
+              ''
+          ) || 'https://via.placeholder.com/150',
       }));
 
       setCategories(transformedData);
-
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching categories:', err);
-      setError(err.message);
+      setError(err?.message ?? 'Unknown error');
       Alert.alert('Error', 'Failed to load categories. Please try again.');
     } finally {
       setLoading(false);
@@ -52,6 +94,32 @@ const CategoryCard = () => {
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  // Handle Category Card Press
+  const handleCategoryPress = (categoryId: string, categoryName: string) => {
+    // console.log('📂 Category Card Pressed:', { categoryId, categoryName });
+    try {
+      navigation.navigate('CategoryVIewAllProduct', {
+        categoryId: String(categoryId),
+        categoryName: categoryName,
+      });
+      // console.log('✅ Navigated to CategoryVIewAllProduct');
+    } catch (err) {
+      console.error('❌ Navigation error:', err);
+      Alert.alert('Error', 'Unable to navigate to category products.');
+    }
+  };
+
+  // Go to All Categories
+  const gotoAllCategory = () => {
+    // console.log('➡️ Go to All Categories');
+    try {
+      navigation.navigate('category');
+    } catch (err) {
+      console.error('Navigation error:', err);
+      Alert.alert('Error', 'Unable to navigate to all categories.');
+    }
+  };
 
   if (loading) {
     return (
@@ -90,16 +158,13 @@ const CategoryCard = () => {
     );
   }
 
-
-  const gotoAllCategory=()=>{
-    navigation.navigate('category');
-  } 
-
-
   return (
     <View style={styles.container}>
       <View style={styles.Categoryheader}>
         <Text style={styles.heading}>All Categories</Text>
+        <TouchableOpacity onPress={gotoAllCategory}>
+          {/* See All button placeholder if you want */}
+        </TouchableOpacity>
       </View>
       <FlatList
         data={categories}
@@ -108,30 +173,39 @@ const CategoryCard = () => {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.flatListContent}
         renderItem={({ item }) => (
-          <Card
-            name={item.name}
-            image={item.image}  
-             imageStyel={{ width: 110, height: 110, borderRadius: 12 }}
-            cardStyle={{ backgroundColor: 'rgba(108, 59, 28, 1)', borderColor: '#222' }} 
-            stylek={{ color: '#fff', fontWeight: '600' }}
-          />
+          <TouchableOpacity
+            onPress={() => handleCategoryPress(item.id, item.name)}
+            activeOpacity={0.7}
+          >
+            <Card
+              name={item.name}
+              image={item.image}
+              imageStyel={{ width: scale(110), height: scale(110), borderRadius: scale(12) }}
+              cardStyle={{
+                backgroundColor: 'rgba(108, 59, 28, 1)',
+                borderColor: '#222',
+              }}
+              stylek={{ color: '#fff', fontWeight: '600' }}
+            />
+          </TouchableOpacity>
         )}
       />
     </View>
   );
 };
 
+
 export default CategoryCard;
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 10,
+    marginVertical: moderateScale(10),
   },
   heading: {
-    fontSize:17,
-    marginLeft: 20,
+    fontSize:normalizeFont(16),
+    marginLeft: moderateScale(20),
     fontWeight: '500',
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
   Categoryheader:{
     flexDirection:'row',
@@ -143,54 +217,54 @@ const styles = StyleSheet.create({
     flexDirection:'row',
     alignItems:'center',
     gap:'7',
-    marginRight:20,
+    marginRight:moderateScale(20),
   },
   text:{
     color:'blue',
   },
   flatListContent: {
-    paddingHorizontal: 10,
+    paddingHorizontal: moderateScale(10),
   },
   loadingContainer: {
-    height: 100,
+    height: scale(100),
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
+    marginTop: moderateScale(10),
+    fontSize: normalizeFont(16),
     color: '#666',
   },
   errorContainer: {
-    height: 100,
+    height: scale(100),
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: moderateScale(20),
   },
   errorText: {
-    fontSize: 16,
+    fontSize: normalizeFont(12),
     color: '#FF3B30',
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
     textAlign: 'center',
   },
   retryButton: {
     backgroundColor: '#007AFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingHorizontal: moderateScale(20),
+    paddingVertical: moderateScale(10),
+    borderRadius: moderateScale(8),
   },
   retryButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: normalizeFont(12),
     fontWeight: '600',
   },
   emptyContainer: {
-    height: 100,
+    height: scale(100),
     justifyContent: 'center',
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: normalizeFont(12),
     color: '#666',
   },
 });

@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -12,6 +13,7 @@ import {
   PixelRatio,
   Platform,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -24,8 +26,6 @@ const ENDPOINT = '/api/buyer/smart-picks';
 const WISHLIST_ADD_ENDPOINT = '/api/buyer/wishlist/add';
 const WISHLIST_REMOVE_ENDPOINT = '/api/buyer/wishlist';
 const CART_ADD_ENDPOINT = '/api/buyer/cart/add';
-
-const categories = ['All', 'Fruits', 'Vegetables', 'Plants', 'Seeds', 'Handicrafts'];
 
 // ---------- Responsive helpers ----------
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -47,12 +47,15 @@ const normalizeFont = (size) => {
 // -----------------------------------------
 
 // Make card slightly wider than before but responsive
-const ITEM_CARD_WIDTH = Math.round(moderateScale(150)); 
+const ITEM_CARD_WIDTH = Math.round(moderateScale(150));
 const ITEM_HORIZONTAL_MARGIN = Math.round(moderateScale(8));
 const ITEM_FULL = ITEM_CARD_WIDTH + ITEM_HORIZONTAL_MARGIN * 2;
 
 const SmartPicks = () => {
+  const navigation = useNavigation();
+
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [categories, setCategories] = useState(['All']); // populated from API
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,8 +69,8 @@ const SmartPicks = () => {
   const normalizeApiItem = (item = {}) => {
     const productId = String(item.productId ?? item._id ?? item.id ?? '');
     const id = String(item.id ?? item._id ?? productId);
-    
-    // Vendor name को सही तरीके से निकालें
+
+    // Vendor name extraction
     let vendorName = '';
     if (item.vendor?.name) {
       vendorName = item.vendor.name;
@@ -85,7 +88,9 @@ const SmartPicks = () => {
       subtitle: vendorName || item.variety || '',
       price: Number(item.price ?? item.mrp ?? 0),
       image: item.image || item.imageUrl || null,
-      category: item.category || 'General',
+      category:
+        item.category ??
+        (typeof item.categoryName === 'string' ? item.categoryName : 'General'),
       rating: item.rating ?? 0,
       ratingCount: item.ratingCount ?? 0,
     };
@@ -108,34 +113,39 @@ const SmartPicks = () => {
     };
   }, []);
 
-  const fetchProducts = useCallback(async (isRefresh = false) => {
-    try {
-      if (isRefresh) setRefreshing(true);
-      else setLoading(true);
+  const fetchProducts = useCallback(
+    async (isRefresh = false) => {
+      try {
+        if (isRefresh) setRefreshing(true);
+        else setLoading(true);
 
-      const token = await AsyncStorage.getItem('userToken');
-      const res = await axios.get(`${API_BASE}${ENDPOINT}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        timeout: 10000,
-      });
+        const token = await AsyncStorage.getItem('userToken');
+        const res = await axios.get(`${API_BASE}${ENDPOINT}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          timeout: 10000,
+        });
 
-      if (res?.data?.success && Array.isArray(res.data.data)) {
-        const mapped = res.data.data.map(mapApiItemToProduct);
-        setProducts(mapped);
-      } else if (res?.data?.data) {
-        const arr = Array.isArray(res.data.data) ? res.data.data : Object.values(res.data.data);
-        setProducts(arr.map(mapApiItemToProduct));
-      } else {
+        if (res?.data?.success && Array.isArray(res.data.data)) {
+          const mapped = res.data.data.map(mapApiItemToProduct);
+          setProducts(mapped);
+        } else if (res?.data?.data) {
+          const arr = Array.isArray(res.data.data)
+            ? res.data.data
+            : Object.values(res.data.data);
+          setProducts(arr.map(mapApiItemToProduct));
+        } else {
+          setProducts([]);
+        }
+      } catch (error) {
+        console.error('Error fetching smart picks:', error);
         setProducts([]);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-    } catch (error) {
-      console.error('Error fetching smart picks:', error);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [mapApiItemToProduct]);
+    },
+    [mapApiItemToProduct]
+  );
 
   const fetchCart = useCallback(async () => {
     try {
@@ -152,7 +162,7 @@ const SmartPicks = () => {
       if (response.data?.success) {
         const items = response.data.data?.items || [];
         const cartMap = {};
-        items.forEach(item => {
+        items.forEach((item) => {
           const productIdKey = String(item.productId ?? item._id ?? item.id ?? '');
           cartMap[productIdKey] = {
             quantity: item.quantity ?? 1,
@@ -181,7 +191,9 @@ const SmartPicks = () => {
 
       if (response.data?.success) {
         const wishlistItems = response.data.data?.items || [];
-        const favoriteIds = new Set(wishlistItems.map(i => String(i.productId ?? i._id ?? i.id ?? '')));
+        const favoriteIds = new Set(
+          wishlistItems.map((i) => String(i.productId ?? i._id ?? i.id ?? ''))
+        );
         setFavorites(favoriteIds);
       }
     } catch (error) {
@@ -189,123 +201,183 @@ const SmartPicks = () => {
     }
   }, []);
 
+  // NEW: fetch categories from API and set dropdown (trim + unique)
+  const fetchCategories = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/api/admin/manage-app/categories`, {
+        timeout: 10000,
+      });
+      // API returns { success: true, categories: [...] }
+      const catArr = Array.isArray(res.data?.categories) ? res.data.categories : [];
+      // Trim + unique + preserve order
+      const seen = new Set();
+      const names = [];
+      for (const c of catArr) {
+        const rawName = typeof c.name === 'string' ? c.name : String(c.name ?? c._id ?? '');
+        const name = rawName.trim();
+        if (!name) continue;
+        const lower = name.toLowerCase();
+        if (!seen.has(lower)) {
+          seen.add(lower);
+          names.push(name);
+        }
+      }
+      setCategories(['All', ...names]);
+      // if currently selected category isn't in new list, reset to All
+      if (selectedCategory && selectedCategory !== 'All') {
+        const found = names.find((n) => n.toLowerCase() === selectedCategory.toLowerCase());
+        if (!found) setSelectedCategory('All');
+      }
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+      setCategories(['All']);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     fetchProducts();
     fetchWishlist();
     fetchCart();
+    fetchCategories();
 
     const sub = DeviceEventEmitter.addListener('cartUpdated', () => {
       fetchCart();
     });
     return () => sub.remove();
-  }, [fetchProducts, fetchWishlist, fetchCart]);
+  }, [fetchProducts, fetchWishlist, fetchCart, fetchCategories]);
 
   // Filter products by category
   useEffect(() => {
-    const filtered = (selectedCategory === 'All')
-      ? products
-      : products.filter(p => (p.category || '').toLowerCase() === selectedCategory.toLowerCase());
+    const filtered =
+      selectedCategory === 'All'
+        ? products
+        : products.filter(
+            (p) => String(p.category || '').toLowerCase() === String(selectedCategory).toLowerCase()
+          );
     setFilteredProducts(filtered);
   }, [products, selectedCategory]);
 
+  const openDropdown = useCallback(() => {
+    setShowDropdown(true);
+    Animated.timing(animation, { toValue: 1, duration: 200, useNativeDriver: false }).start();
+  }, [animation]);
+
+  const closeDropdown = useCallback(() => {
+    Animated.timing(animation, { toValue: 0, duration: 180, useNativeDriver: false }).start(() => {
+      setShowDropdown(false);
+    });
+  }, [animation]);
+
   const toggleDropdown = useCallback(() => {
-    const toValue = showDropdown ? 0 : 1;
-    setShowDropdown(prev => !prev);
-    Animated.timing(animation, { toValue, duration: 300, useNativeDriver: false }).start();
-  }, [showDropdown, animation]);
+    if (showDropdown) closeDropdown();
+    else openDropdown();
+  }, [showDropdown, openDropdown, closeDropdown]);
 
   // Add to Cart
-  const addToCart = useCallback(async (product) => {
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        Alert.alert('Login Required', 'Please login to add items to cart');
-        return false;
-      }
+  const addToCart = useCallback(
+    async (product) => {
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        if (!token) {
+          Alert.alert('Login Required', 'Please login to add items to cart');
+          return false;
+        }
 
-      const productId = String(product.productId ?? product.raw?._id ?? product.raw?.id ?? product.id ?? '');
+        const productId = String(
+          product.productId ?? product.raw?._id ?? product.raw?.id ?? product.id ?? ''
+        );
 
-      if (!productId) {
-        Alert.alert('Error', 'Invalid product id');
-        return false;
-      }
+        if (!productId) {
+          Alert.alert('Error', 'Invalid product id');
+          return false;
+        }
 
-      if (cartItems[productId]) {
-        Alert.alert('Info', 'Product already in cart');
-        return false;
-      }
+        if (cartItems[productId]) {
+          Alert.alert('Info', 'Product already in cart');
+          return false;
+        }
 
-      const cartData = {
-        productId,
-        name: product.title,
-        image: product.image || product.raw?.image,
-        price: Number(product.price || 0),
-        quantity: 1,
-        category: product.category || 'General',
-        variety: product.subtitle || product.raw?.variety || 'Standard',
-        unit: 'piece',
-      };
+        const cartData = {
+          productId,
+          name: product.title,
+          image: product.image || product.raw?.image,
+          price: Number(product.price || 0),
+          quantity: 1,
+          category: product.category || 'General',
+          variety: product.subtitle || product.raw?.variety || 'Standard',
+          unit: 'piece',
+        };
 
-      const response = await axios.post(`${API_BASE}${CART_ADD_ENDPOINT}`, cartData, {
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        timeout: 10000,
-      });
+        const response = await axios.post(`${API_BASE}${CART_ADD_ENDPOINT}`, cartData, {
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          timeout: 10000,
+        });
 
-      if (response.data?.success) {
+        if (response.data?.success) {
+          await fetchCart();
+          DeviceEventEmitter.emit('cartUpdated');
+          Alert.alert('Success', 'Product added to cart!');
+          return true;
+        } else {
+          const msg = response.data?.message || 'Failed to add to cart';
+          Alert.alert('Info', msg);
+          await fetchCart();
+          return false;
+        }
+      } catch (error) {
+        console.error('Error adding to cart:', error);
+        const status = error.response?.status;
+        const msg = error.response?.data?.message || error.message || 'Failed to add to cart';
+        if (status === 401) {
+          Alert.alert('Login Required', 'Please login to add items');
+        } else if (status === 400) {
+          Alert.alert('Info', msg);
+        } else {
+          Alert.alert('Error', msg);
+        }
         await fetchCart();
-        DeviceEventEmitter.emit('cartUpdated');
-        Alert.alert('Success', 'Product added to cart!');
-        return true;
-      } else {
-        const msg = response.data?.message || 'Failed to add to cart';
-        Alert.alert('Info', msg);
-        await fetchCart();
         return false;
       }
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      const status = error.response?.status;
-      const msg = error.response?.data?.message || error.message || 'Failed to add to cart';
-      if (status === 401) {
-        Alert.alert('Login Required', 'Please login to add items');
-      } else if (status === 400) {
-        Alert.alert('Info', msg);
-      } else {
-        Alert.alert('Error', msg);
-      }
-      await fetchCart();
-      return false;
-    }
-  }, [cartItems, fetchCart]);
+    },
+    [cartItems, fetchCart]
+  );
 
   // Update cart quantity
-  const updateCartQuantity = useCallback(async (product, newQty) => {
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) return;
+  const updateCartQuantity = useCallback(
+    async (product, newQty) => {
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        if (!token) return;
 
-      const productIdKey = String(product.productId ?? product.id ?? '');
-      const entry = cartItems[productIdKey];
-      if (!entry || !entry.cartItemId) {
+        const productIdKey = String(product.productId ?? product.id ?? '');
+        const entry = cartItems[productIdKey];
+        if (!entry || !entry.cartItemId) {
+          await fetchCart();
+          return;
+        }
+        const cartItemId = entry.cartItemId;
+        const res = await axios.put(
+          `${API_BASE}/api/buyer/cart/${cartItemId}/quantity`,
+          { quantity: newQty },
+          {
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          }
+        );
+        if (res.data?.success) {
+          await fetchCart();
+          DeviceEventEmitter.emit('cartUpdated');
+        } else {
+          Alert.alert('Error', res.data?.message || 'Failed to update quantity');
+        }
+      } catch (err) {
+        console.error('Error updating cart quantity:', err);
+        Alert.alert('Error', 'Failed to update cart quantity');
         await fetchCart();
-        return;
       }
-      const cartItemId = entry.cartItemId;
-      const res = await axios.put(`${API_BASE}/api/buyer/cart/${cartItemId}/quantity`, { quantity: newQty }, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      });
-      if (res.data?.success) {
-        await fetchCart();
-        DeviceEventEmitter.emit('cartUpdated');
-      } else {
-        Alert.alert('Error', res.data?.message || 'Failed to update quantity');
-      }
-    } catch (err) {
-      console.error('Error updating cart quantity:', err);
-      Alert.alert('Error', 'Failed to update cart quantity');
-      await fetchCart();
-    }
-  }, [cartItems, fetchCart]);
+    },
+    [cartItems, fetchCart]
+  );
 
   // Wishlist functions
   const addToWishlist = useCallback(async (product) => {
@@ -323,7 +395,7 @@ const SmartPicks = () => {
         price: product.price,
         category: product.category,
         variety: product.subtitle || 'Standard',
-        unit: 'piece'
+        unit: 'piece',
       };
 
       const response = await axios.post(`${API_BASE}${WISHLIST_ADD_ENDPOINT}`, payload, {
@@ -331,7 +403,7 @@ const SmartPicks = () => {
       });
 
       if (response.data?.success) {
-        setFavorites(prev => {
+        setFavorites((prev) => {
           const next = new Set(prev);
           next.add(String(product.productId || product.id));
           return next;
@@ -362,7 +434,7 @@ const SmartPicks = () => {
       });
 
       if (response.data?.success) {
-        setFavorites(prev => {
+        setFavorites((prev) => {
           const next = new Set(prev);
           next.delete(String(product.productId ?? product.id));
           return next;
@@ -378,75 +450,98 @@ const SmartPicks = () => {
     }
   }, []);
 
-  const handleCardPress = useCallback((productId) => {
-    console.log('card pressed', productId);
-  }, []);
-
-  const handleFavoritePress = useCallback(async (productId) => {
-    try {
-      const product = filteredProducts.find(p => p.id === productId);
-      if (!product) return;
-      if (favorites.has(String(product.productId ?? product.id))) {
-        await removeFromWishlist(product);
-      } else {
-        await addToWishlist(product);
+  // Navigate to product view
+  const handleCardPress = useCallback(
+    (productId, item) => {
+      try {
+        navigation.navigate('ViewProduct', {
+          productId: String(productId),
+          product: item,
+        });
+      } catch (err) {
+        console.error('Navigation error to ViewProduct:', err);
+        Alert.alert('Error', 'Unable to open product details.');
       }
-      await fetchWishlist();
-    } catch (err) {
-      console.error(err);
-    }
-  }, [filteredProducts, favorites, addToWishlist, removeFromWishlist, fetchWishlist]);
+    },
+    [navigation]
+  );
 
-  const handleAddToCart = useCallback(async (productId) => {
-    const product = filteredProducts.find(p => p.id === productId);
-    if (!product) return;
-    await addToCart(product);
-  }, [filteredProducts, addToCart]);
+  const handleFavoritePress = useCallback(
+    async (productId) => {
+      try {
+        const product = filteredProducts.find((p) => p.id === productId);
+        if (!product) return;
+        if (favorites.has(String(product.productId ?? product.id))) {
+          await removeFromWishlist(product);
+        } else {
+          await addToWishlist(product);
+        }
+        await fetchWishlist();
+      } catch (err) {
+        console.error(err);
+      }
+    },
+    [filteredProducts, favorites, addToWishlist, removeFromWishlist, fetchWishlist]
+  );
 
-  const handleQuantityChange = useCallback(async (productId, change) => {
-    const product = filteredProducts.find(p => p.id === productId);
-    if (!product) return;
-    const key = String(product.productId ?? product.id);
-    const currentQty = cartItems[key]?.quantity ?? 0;
-    const newQty = Math.max(0, currentQty + change);
-    if (newQty === 0) {
-      await updateCartQuantity(product, 0);
-    } else {
-      await updateCartQuantity(product, newQty);
-    }
-  }, [filteredProducts, cartItems, updateCartQuantity]);
+  const handleAddToCart = useCallback(
+    async (productId) => {
+      const product = filteredProducts.find((p) => p.id === productId);
+      if (!product) return;
+      await addToCart(product);
+    },
+    [filteredProducts, addToCart]
+  );
+
+  const handleQuantityChange = useCallback(
+    async (productId, change) => {
+      const product = filteredProducts.find((p) => p.id === productId);
+      if (!product) return;
+      const key = String(product.productId ?? product.id);
+      const currentQty = cartItems[key]?.quantity ?? 0;
+      const newQty = Math.max(0, currentQty + change);
+      if (newQty === 0) {
+        await updateCartQuantity(product, 0);
+      } else {
+        await updateCartQuantity(product, newQty);
+      }
+    },
+    [filteredProducts, cartItems, updateCartQuantity]
+  );
 
   // Memoized renderItem
-  const renderProductCard = useCallback(({ item }) => {
-    const productIdKey = item.productId || item.id;
-    const inCart = !!cartItems[productIdKey];
-    const quantity = cartItems[productIdKey]?.quantity || 0;
+  const renderProductCard = useCallback(
+    ({ item }) => {
+      const productIdKey = item.productId || item.id;
+      const inCart = !!cartItems[productIdKey];
+      const quantity = cartItems[productIdKey]?.quantity || 0;
 
-    return (
-      // enforce fixed width wrapper so measurement mismatch doesn't shift layout
-      <View style={[styles.cardWrapper, { width: ITEM_CARD_WIDTH }]}>
-        <ProductCard
-          id={item.id}
-          title={item.title}
-          subtitle={item.subtitle}
-          price={item.price}
-          rating={item.rating}
-          image={item.image}
-          isFavorite={favorites.has(String(item.productId ?? item.id))}
-          onPress={handleCardPress}
-          onFavoritePress={handleFavoritePress}
-          onAddToCart={handleAddToCart}
-          onQuantityChange={handleQuantityChange}
-          inCart={inCart}
-          cartQuantity={quantity}
-          width={ITEM_CARD_WIDTH}
-          showRating
-          showFavorite
-          imageHeight={Math.round(moderateScale(120))}
-        />
-      </View>
-    );
-  }, [favorites, cartItems, handleCardPress, handleFavoritePress, handleAddToCart, handleQuantityChange]);
+      return (
+        <View style={[styles.cardWrapper, { width: ITEM_CARD_WIDTH }]}>
+          <ProductCard
+            id={item.id}
+            title={item.title}
+            subtitle={item.subtitle}
+            price={item.price}
+            rating={item.rating}
+            image={item.image}
+            isFavorite={favorites.has(String(item.productId ?? item.id))}
+            onPress={() => handleCardPress(item.productId ?? item.id, item)}
+            onFavoritePress={() => handleFavoritePress(item.id)}
+            onAddToCart={() => handleAddToCart(item.id)}
+            onQuantityChange={(change) => handleQuantityChange(item.id, change)}
+            inCart={inCart}
+            cartQuantity={quantity}
+            width={ITEM_CARD_WIDTH}
+            showRating
+            showFavorite
+            imageHeight={Math.round(moderateScale(120))}
+          />
+        </View>
+      );
+    },
+    [favorites, cartItems, handleCardPress, handleFavoritePress, handleAddToCart, handleQuantityChange]
+  );
 
   if (loading && !refreshing) {
     return (
@@ -465,34 +560,56 @@ const SmartPicks = () => {
         <View style={styles.filterWrapper}>
           <TouchableOpacity style={styles.filterBtn} onPress={toggleDropdown} activeOpacity={0.8}>
             <View style={styles.filterExpand}>
-              <Text style={styles.filterText}>{selectedCategory}</Text>
-              <Ionicons name="chevron-down" size={normalizeFont(14)} color="#666" />
+              <Text numberOfLines={1} ellipsizeMode="tail" style={styles.filterText}>
+                {selectedCategory}
+              </Text>
+              <Ionicons name={showDropdown ? 'chevron-up' : 'chevron-down'} size={normalizeFont(14)} color="#666" />
             </View>
           </TouchableOpacity>
 
+          {/* Animated dropdown */}
+          {/*
+            Animated.View has absolute positioning.
+            We give it elevation on Android and zIndex on iOS so it renders above other elements.
+          */}
           <Animated.View
+            pointerEvents={showDropdown ? 'auto' : 'none'}
             style={[
               styles.dropdown,
               {
                 height: animation.interpolate({ inputRange: [0, 1], outputRange: [0, moderateScale(240)] }),
                 borderWidth: animation.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }),
+                opacity: animation,
               },
             ]}
           >
-            {categories.map((category) => (
-              <TouchableOpacity
-                key={category}
-                style={[styles.dropdownItem, selectedCategory === category && styles.selectedDropdownItem]}
-                onPress={() => {
-                  setSelectedCategory(category);
-                  toggleDropdown();
-                }}
-              >
-                <Text style={[styles.dropdownText, selectedCategory === category && styles.selectedDropdownText]}>
-                  {category}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={styles.dropdownScrollContent}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator
+            >
+              {categories.map((category) => {
+                const isSelected = String(category).toLowerCase() === String(selectedCategory).toLowerCase();
+                return (
+                  <TouchableOpacity
+                    key={category}
+                    style={[styles.dropdownItem, isSelected && styles.selectedDropdownItem]}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      // set selected and close dropdown
+                      setSelectedCategory(category);
+                      // animate close
+                      closeDropdown();
+                    }}
+                  >
+                    <Text style={[styles.dropdownText, isSelected && styles.selectedDropdownText]}>
+                      {category}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </Animated.View>
         </View>
       </View>
@@ -506,10 +623,16 @@ const SmartPicks = () => {
         showsHorizontalScrollIndicator={false}
         style={styles.flatListStyle}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { fetchProducts(true); fetchCart(); }} />}
-        ListEmptyComponent={!loading && (<View style={styles.emptyContainer}><Text style={styles.emptyText}>No products available.</Text></View>)}
+        ListEmptyComponent={
+          !loading && (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No products available.</Text>
+            </View>
+          )
+        }
         initialNumToRender={5}
         removeClippedSubviews={false}
-        extraData={{ favorites: Array.from(favorites), cartItems }}
+        extraData={{ favorites: Array.from(favorites), cartItems, selectedCategory }}
         getItemLayout={(data, index) => ({ length: ITEM_FULL, offset: ITEM_FULL * index, index })}
         windowSize={5}
         maxToRenderPerBatch={6}
@@ -524,8 +647,6 @@ const SmartPicks = () => {
     </View>
   );
 };
-
-
 
 const styles = StyleSheet.create({
   container: {
@@ -573,10 +694,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filterText: {
-    color: 'rgba(66, 66, 66, 0.7)',
+    color: 'rgba(66, 66, 66, 0.9)',
     textAlign: 'center',
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(11),
     marginRight: moderateScale(6),
+    maxWidth: moderateScale(90),
   },
   dropdown: {
     overflow: 'hidden',
@@ -588,18 +710,20 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1000,
+    elevation: 10, // android elevation
   },
+  dropdownScrollContent: { paddingVertical: 6 },
   dropdownItem: {
     padding: moderateScale(12),
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(66, 66, 66, 0.7)',
+    borderBottomColor: 'rgba(66, 66, 66, 0.06)',
   },
   selectedDropdownItem: {
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    backgroundColor: 'rgba(76, 175, 80, 0.08)',
   },
   dropdownText: {
-    color: 'rgba(66, 66, 66, 0.7)',
-    fontSize: normalizeFont(13),
+    color: 'rgba(66, 66, 66, 0.9)',
+    fontSize: normalizeFont(11),
   },
   selectedDropdownText: {
     color: '#4CAF50',
@@ -625,17 +749,6 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(14),
     textAlign: 'center',
     marginBottom: verticalScale(10),
-  },
-  showAllButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: moderateScale(16),
-    paddingVertical: verticalScale(8),
-    borderRadius: moderateScale(6),
-  },
-  showAllButtonText: {
-    color: 'white',
-    fontSize: normalizeFont(14),
-    fontWeight: '600',
   },
 });
 

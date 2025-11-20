@@ -1,4 +1,4 @@
-import { moderateScale, normalizeFont } from "@/app/Responsive";
+import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -8,6 +8,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -257,10 +258,10 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
           {/* Header */}
           <View style={modalStyles.header}>
             <TouchableOpacity onPress={onClose} style={modalStyles.headerIcon}>
-              <Text style={modalStyles.iconText}>←</Text>
+             <Image source={require('../../assets/via-farm-img/icons/groupArrow.png')} />
             </TouchableOpacity>
             <Text style={modalStyles.headerTitle}>Edit Location & Charges</Text>
-            <View style={{ width: 40 }} />
+            <View style={{ width: scale(40) }} />
           </View>
 
           {/* Scrollable Content */}
@@ -284,7 +285,7 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
                   <ActivityIndicator
                     size="small"
                     color="#00B0FF"
-                    style={{ marginRight: 10 }}
+                    style={{ marginRight: moderateScale(10) }}
                   />
                   <Text style={modalStyles.locationButtonText}>
                     Fetching location...
@@ -386,7 +387,7 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
             disabled={loading || fetchingLocation}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />
+              <ActivityIndicator color="#fff" style={{ marginRight: moderateScale(8) }} />
             ) : (
               <Ionicons
                 name="reload-outline"
@@ -557,8 +558,10 @@ const modalStyles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopLeftRadius: moderateScale(20),
     borderTopRightRadius: moderateScale(20),
-    borderWidth: 2,
-    borderColor: "rgba(255, 202, 40, 0.2)",
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+    borderLeftWidth: 2,
+    borderColor: "rgba(255, 202, 40, 1)",
     maxHeight: "85%",
     paddingBottom: moderateScale(15),
   },

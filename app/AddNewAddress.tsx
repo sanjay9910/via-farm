@@ -16,6 +16,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { moderateScale, normalizeFont, scale } from './Responsive';
 
 // ✅ Base URL
 const API_BASE = 'https://viafarm-1.onrender.com';
@@ -122,7 +123,7 @@ const AddNewAddress = () => {
         longitude: parseFloat(String(formData.longitude || 77.0)),
       };
 
-      console.log('📤 Sending Address Payload:', payload);
+      // console.log('📤 Sending Address Payload:', payload);
 
       const res = await axios.post(
         `${API_BASE}/api/buyer/addresses`,
@@ -194,7 +195,7 @@ const AddNewAddress = () => {
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add New Address</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: scale(24) }} />
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -209,7 +210,7 @@ const AddNewAddress = () => {
             <Text style={styles.locationText}>
               {locating ? 'Fetching location...' : 'Use Current Location'}
             </Text>
-            {locating && <ActivityIndicator size="small" color="#3b82f6" style={{ marginLeft: 10 }} />}
+            {locating && <ActivityIndicator size="small" color="#3b82f6" style={{ marginLeft: moderateScale(10) }} />}
           </TouchableOpacity>
         </View>
 
@@ -286,7 +287,7 @@ const AddNewAddress = () => {
           </View>
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: scale(100) }} />
       </ScrollView>
 
       {/* Footer */}
@@ -323,31 +324,31 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(12),
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  backButton: { padding: 4 },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '600' },
-  scrollView: { paddingHorizontal: 16 },
-  section: { marginTop: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 10 },
+  backButton: { padding: moderateScale(4) },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: normalizeFont(14), fontWeight: '600' },
+  scrollView: { paddingHorizontal: moderateScale(16) },
+  section: { marginTop: moderateScale(20) },
+  sectionTitle: { fontSize: normalizeFont(13), fontWeight: '600', marginBottom: moderateScale(10) },
   textInput: {
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    marginBottom: 10,
+    borderRadius: moderateScale(8),
+    padding: moderateScale(12),
+    fontSize: normalizeFont(12),
+    marginBottom: moderateScale(10),
   },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
-  halfInput: { flex: 1, marginRight: 8 },
-  switchContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
-  switchLabel: { marginLeft: 8, fontSize: 14 },
+  halfInput: { flex: 1, marginRight: moderateScale(8) },
+  switchContainer: { flexDirection: 'row', alignItems: 'center', marginTop:moderateScale(10) },
+  switchLabel: { marginLeft: moderateScale(8), fontSize: normalizeFont(12) },
   footer: {
     flexDirection: 'row',
-    padding: 16,
+    padding: moderateScale(16),
     borderTopWidth: 1,
     borderTopColor: '#eee',
     backgroundColor: '#fff',
@@ -356,32 +357,33 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: '#ccc',
-    padding: 12,
-    borderRadius: 8,
+    padding:moderateScale(12),
+    borderRadius: moderateScale(8),
     alignItems: 'center',
   },
   cancelButtonText: { color: '#555', fontWeight: '500' },
   saveButton: {
     flex: 1,
-    backgroundColor: '#3b82f6',
-    marginLeft: 10,
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: 'rgba(76, 175, 80, 1)',
+    marginLeft: moderateScale(10),
+    padding: moderateScale(12),
+    borderRadius: moderateScale(8),
     alignItems: 'center',
   },
   saveButtonText: { color: '#fff', fontWeight: '600' },
   locationBox: {
-    marginTop: 10,
+    marginTop: moderateScale(10),
     borderWidth: 1,
     borderColor: '#3b82f6',
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: moderateScale(8),
+    padding: moderateScale(12),
     backgroundColor: '#e8f0ff',
   },
   locationButton: { flexDirection: 'row', alignItems: 'center' },
   locationText: {
-    marginLeft: 8,
+    marginLeft: moderateScale(8),
     color: '#3b82f6',
+    fontSize:normalizeFont(12),
     fontWeight: '600',
   },
 });

@@ -56,7 +56,7 @@ const ProductCard = ({ item, onPress }) => {
       <View style={cardStyles.card}>
         <Image source={{ uri: image }} style={cardStyles.image} resizeMode="cover" />
       </View>
-      <Text style={cardStyles.name} numberOfLines={2}>
+      <Text style={cardStyles.name} numberOfLines={1}>
         {name}
       </Text>
     </TouchableOpacity>
@@ -214,7 +214,7 @@ export default LocalBest;
 
 // ✅ Styles (responsive)
 const styles = StyleSheet.create({
-  heading: { fontSize: normalizeFont(18), marginLeft: moderateScale(20), fontWeight: "600" },
+  heading: { fontSize: normalizeFont(16), marginLeft: moderateScale(20), fontWeight: "600" },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: verticalScale(15), paddingRight: moderateScale(20) },
   link: { color: "rgba(1, 151, 218, 1)", fontWeight: "600", fontSize: normalizeFont(13) },
 
@@ -250,5 +250,5 @@ const cardStyles = StyleSheet.create({
     shadowOpacity: 0.1,
   },
   image: { width: "100%", height: "100%", borderRadius: moderateScale(8) },
-  name: { fontSize: normalizeFont(14), fontWeight: "500", color: "#333", textAlign: "center", flexWrap: "wrap", width: moderateScale(100) },
+  name: { fontSize: normalizeFont(12), fontWeight: "500", color: "#333", textAlign: "center", flexWrap: "wrap", width: moderateScale(100) },
 });

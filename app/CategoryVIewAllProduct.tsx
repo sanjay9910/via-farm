@@ -1,9 +1,8 @@
-import ViewVendors from '@/components/dashboard/vendorsNearYou/VendorsNearYou';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,16 +11,16 @@ import {
   Image,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const API_BASE = "https://viafarm-1.onrender.com";
-const CARD_WIDTH = Dimensions.get("window").width / 2 - 25;
 
-// ==================== ProductCard ====================
+// ✅ ProductCard - Exact same design
 const ProductCard = ({
   item,
   isFavorite,
@@ -35,7 +34,7 @@ const ProductCard = ({
 
   const imageUri = item?.image
     || (Array.isArray(item?.images) && item.images.length > 0 && item.images[0])
-    || "https://media.licdn.com/dms/image/v2/D4E03AQFGq7-JPZSEYg/profile-displayphoto-shrink_200_200/B4EZdDeyJHGcAY-/0/1749183835222?e=2147483647&v=beta&t=qprTD0p_Mev28VSY-gb0DnzwPBIqQtRoZX24FfmMnQM";
+    || "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image";
 
   const distance =
     item?.distanceFromVendor ??
@@ -71,7 +70,7 @@ const ProductCard = ({
           >
             <Ionicons
               name={isFavorite ? 'heart' : 'heart-outline'}
-              size={22}
+              size={23}
               color={isFavorite ? '#ff4444' : '#fff'}
             />
           </TouchableOpacity>
@@ -82,16 +81,6 @@ const ProductCard = ({
               {rating ? Number(rating).toFixed(1) : "0.0"}
             </Text>
           </View>
-
-          {/* <View style={[
-            cardStyles.statusBadge,
-            {
-              backgroundColor: status === "In Stock" ? "#4CAF50" :
-                status === "Out of Stock" ? "#f44336" : "#ff9800"
-            }
-          ]}>
-            <Text style={cardStyles.statusText}>{status}</Text>
-          </View> */}
         </View>
 
         <View style={cardStyles.cardContent}>
@@ -99,25 +88,23 @@ const ProductCard = ({
             {item?.name ?? "Unnamed product"}
           </Text>
 
-          <View style={{ marginVertical: moderateScale(5) }}>
-            <Text numberOfLines={1} style={{ color: '#444', fontSize: normalizeFont(12) }}>
-              By {item?.vendor?.name ?? item?.vendorName ?? "Local Vendor"}
-            </Text>
-          </View>
+          <Text style={cardStyles.productVeriety} numberOfLines={1}>
+            Veriety :{item?.variety ?? "Unnamed product"}
+          </Text>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, }}>
             <Image
               source={require("../assets/via-farm-img/icons/cardMap.png")}
             />
-            <Text style={{ fontSize: normalizeFont(10), color: '#444' }}>
+            <Text style={{ fontSize: 12, color: '#444' }}>
               {distance ?? "0.0 km"}
             </Text>
           </View>
 
           <View style={cardStyles.priceContainer}>
-            <Text style={cardStyles.productPrice}>₹{item?.price ?? "0"}</Text>
+            <Text style={cardStyles.productUnit}>₹{item?.price ?? "0"}</Text>
             <Text style={cardStyles.productUnit}>/{item?.unit ?? "unit"}</Text>
-            {item?.weightPerPiece ? <Text style={cardStyles.weightText}>{item.weightPerPiece}</Text> : null}
+            {item?.weightPerPiece ? <Text style={cardStyles.productUnit}>{item.weightPerPiece}</Text> : null}
           </View>
 
           <View style={cardStyles.buttonContainer}>
@@ -147,7 +134,7 @@ const ProductCard = ({
                     onUpdateQuantity && onUpdateQuantity(item, -1);
                   }}
                 >
-                  <Ionicons name="remove" size={20} color="rgba(76, 175, 80, 1)" />
+                  <Ionicons name="remove" size={16} color="rgba(76, 175, 80, 1)" />
                 </TouchableOpacity>
                 <View style={cardStyles.quantityValueContainer}>
                   <Text style={cardStyles.quantityText}>{cartQuantity}</Text>
@@ -159,7 +146,7 @@ const ProductCard = ({
                     onUpdateQuantity && onUpdateQuantity(item, 1);
                   }}
                 >
-                  <Ionicons name="add" size={20} color="rgba(76, 175, 80, 1)" />
+                  <Ionicons name="add" size={16} color="rgba(76, 175, 80, 1)" />
                 </TouchableOpacity>
               </View>
             )}
@@ -170,17 +157,24 @@ const ProductCard = ({
   );
 };
 
-// ==================== ViewAllLocalBest ====================
-const ViewAllLocalBest = () => {
+// ✅ CategoryViewAllProduct - Dynamic category products
+const CategoryViewAllProduct = () => {
   const navigation = useNavigation();
-  const [localBestProducts, setLocalBestProducts] = useState([]);
+  const route = useRoute();
+
+  const categoryName = route.params?.categoryName || "Products";
+  const categoryId = route.params?.categoryId;
+
+  const [allCategories, setAllCategories] = useState([]);
+  const [categoryProducts, setCategoryProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [favorites, setFavorites] = useState(new Set());
   const [cartItems, setCartItems] = useState({});
+  const [query, setQuery] = useState("");
 
-  // Fetch Local Best Products
-  const fetchLocalBest = async () => {
+  // Fetch all categories and filter by categoryId
+  const fetchCategoryProducts = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -193,7 +187,7 @@ const ViewAllLocalBest = () => {
       }
 
       const response = await axios.get(
-        `${API_BASE}/api/buyer/local-best?lat=28.6139&lng=77.2090`,
+        `${API_BASE}/api/buyer/with-products`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -203,14 +197,29 @@ const ViewAllLocalBest = () => {
         }
       );
 
-      if (response.data && response.data.success) {
-        const dataArray = response.data.data || [];
-        setLocalBestProducts(Array.isArray(dataArray) ? dataArray : []);
+      // console.log("📦 All Categories Response:", response.data);
+
+      if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        setAllCategories(response.data.data);
+
+        // Find the specific category
+        const selectedCategory = response.data.data.find(
+          cat => cat._id === categoryId || cat.name === categoryName
+        );
+
+        if (selectedCategory && Array.isArray(selectedCategory.products)) {
+          setCategoryProducts(selectedCategory.products);
+        } else {
+          setError("No products found in this category");
+          setCategoryProducts([]);
+        }
       } else {
-        setError("No local best products found");
+        setError("Failed to load category products");
+        setCategoryProducts([]);
       }
     } catch (err) {
-      console.error("Error fetching local best:", err);
+      console.error("❌ Error fetching category products:", err);
+
       if (err.response?.status === 401) {
         setError("Please login to view products");
       } else if (err.code === "ECONNABORTED") {
@@ -275,10 +284,22 @@ const ViewAllLocalBest = () => {
   };
 
   useEffect(() => {
-    fetchLocalBest();
+    fetchCategoryProducts();
     fetchWishlist();
     fetchCart();
-  }, []);
+  }, [categoryId, categoryName]);
+
+  // Client-side filter by name
+  const filteredProducts = useMemo(() => {
+    const q = (query || "").trim().toLowerCase();
+    if (!q) return categoryProducts;
+    return categoryProducts.filter(p =>
+      (p?.name ?? "")
+        .toString()
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [categoryProducts, query]);
 
   // Add to Wishlist
   const addToWishlist = async (product) => {
@@ -296,7 +317,7 @@ const ViewAllLocalBest = () => {
         name: product.name,
         image: product.images?.[0] || product.image || '',
         price: product.price,
-        category: product.category || 'Local Best',
+        category: product.category || categoryName,
         variety: product.variety || 'Standard',
         unit: product.unit || 'kg'
       };
@@ -357,7 +378,6 @@ const ViewAllLocalBest = () => {
     }
   };
 
-  // Toggle Favorite
   const handleToggleFavorite = async (product) => {
     const productId = product._id || product.id;
     if (favorites.has(productId)) {
@@ -384,7 +404,7 @@ const ViewAllLocalBest = () => {
         image: product.images?.[0] || product.image || '',
         price: product.price,
         quantity: 1,
-        category: product.category || 'Local Best',
+        category: product.category || categoryName,
         variety: product.variety || 'Standard',
         unit: product.unit || 'kg'
       };
@@ -478,7 +498,6 @@ const ViewAllLocalBest = () => {
     }
   };
 
-  // Open Product Details
   const openProductDetails = (product) => {
     try {
       const productId = product?._id || product?.id;
@@ -489,87 +508,113 @@ const ViewAllLocalBest = () => {
       navigation.navigate("ViewProduct", { productId, product });
     } catch (err) {
       console.error("openProductDetails error:", err);
-      Alert.alert("Navigation Error", "Could not open product details. See console.");
+      Alert.alert("Navigation Error", "Could not open product details.");
     }
   };
 
-  // List Header with Vendors
-  const ListHeader = () => (
-    <View>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonContainer}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Local Best</Text>
-        <View style={{ width: 50 }} />
-      </View>
-
-      <View>
-        <ViewVendors title="Vendors" />
-      </View>
-
-      <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 6 }}>
-        <Text style={{ fontSize: 16, fontWeight: "700" }}>Products</Text>
-      </View>
-    </View>
-  );
-
   const handleRetry = () => {
     setError(null);
-    fetchLocalBest();
+    fetchCategoryProducts();
     fetchWishlist();
     fetchCart();
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-      {loading ? (
+      {/* Header with Search */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Image
+            source={require("../assets/via-farm-img/icons/groupArrow.png")}
+          />
+        </TouchableOpacity>
+
+        <View style={styles.searchWrapper}>
+          <Ionicons name="search" size={18} color="#888" style={{ marginRight: 8 }} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder={`Search ${categoryName}...`}
+            placeholderTextColor="#999"
+            style={styles.searchInput}
+            returnKeyType="search"
+            autoCorrect={false}
+          />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={() => setQuery("")} style={styles.clearButton}>
+              <Ionicons name="close-circle" size={18} color="#888" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Category Title */}
+      <View style={styles.categoryTitleContainer}>
+        <Text style={styles.categoryTitle}>{categoryName}</Text>
+      </View>
+
+      {/* Loading */}
+      {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFA500" />
-          <Text style={styles.loadingText}>Fetching local best products...</Text>
+          <Text style={styles.loadingText}>Loading products...</Text>
         </View>
-      ) : error ? (
+      )}
+
+      {/* Error */}
+      {error && !loading && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
             <Text style={styles.buttonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
-      ) : (
-        <FlatList
-          data={localBestProducts}
-          keyExtractor={(item) => item._id || item.id || String(item?.name)}
-          numColumns={2}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal:12, paddingBottom: 20 }}
-          renderItem={({ item }) => {
-            const productId = item._id || item.id;
-            const isFavorite = favorites.has(productId);
-            const cartQuantity = cartItems[productId]?.quantity || 0;
+      )}
 
-            return (
-              <ProductCard
-                item={item}
-                isFavorite={isFavorite}
-                onToggleFavorite={handleToggleFavorite}
-                cartQuantity={cartQuantity}
-                onAddToCart={handleAddToCart}
-                onUpdateQuantity={handleUpdateQuantity}
-                onPress={openProductDetails}
-              />
-            );
-          }}
-          columnWrapperStyle={{ justifyContent: "space-between" }}
-          ListHeaderComponent={ListHeader}
-        />
+      {/* Success - Products List */}
+      {!loading && !error && (
+        <>
+          {filteredProducts.length === 0 ? (
+            <View style={{ padding: 20, alignItems: 'center', flex: 1, justifyContent: 'center' }}>
+              <Text style={{ color: '#444', fontSize: normalizeFont(14) }}>
+                No products match "{query}"
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredProducts}
+              keyExtractor={(item) => item._id || item.id || String(item?.name)}
+              numColumns={2}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 13, paddingBottom: 20 }}
+              renderItem={({ item }) => {
+                const productId = item._id || item.id;
+                const isFavorite = favorites.has(productId);
+                const cartQuantity = cartItems[productId]?.quantity || 0;
+
+                return (
+                  <ProductCard
+                    item={item}
+                    isFavorite={isFavorite}
+                    onToggleFavorite={handleToggleFavorite}
+                    cartQuantity={cartQuantity}
+                    onAddToCart={handleAddToCart}
+                    onUpdateQuantity={handleUpdateQuantity}
+                    onPress={openProductDetails}
+                  />
+                );
+              }}
+              columnWrapperStyle={{ justifyContent: "space-between" }}
+            />
+          )}
+        </>
       )}
     </SafeAreaView>
   );
 };
 
-export default ViewAllLocalBest;
+export default CategoryViewAllProduct;
 
-// ✅ Styles
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: moderateScale(12),
@@ -596,21 +641,17 @@ const styles = StyleSheet.create({
     color: '#222',
     paddingVertical: 0
   },
-  backButtonContainer: {
-    padding: 1,
+  clearButton: {
+    padding: moderateScale(4),
   },
-  riceContainer: {
-    flex: 1,
-    gap: scale(5),
+  categoryTitleContainer: {
+    paddingHorizontal: moderateScale(20),
+    paddingVertical: moderateScale(10),
   },
-  backIcon: {
-    width: scale(24),
-    height: scale(24),
-  },
-  headerTitle: {
-    fontSize: normalizeFont(20),
-    fontWeight: "600",
-    color: "#333",
+  categoryTitle: {
+    fontSize: normalizeFont(18),
+    fontWeight: '600',
+    color: '#333',
   },
   loadingContainer: {
     alignItems: "center",
@@ -649,7 +690,7 @@ const styles = StyleSheet.create({
   },
 });
 
-// ✅ Card Styles - Exact same as your design
+// ✅ Card Styles - Exact same design
 const cardStyles = StyleSheet.create({
   container: {
     width: Dimensions.get("window").width / 2 - 25,
@@ -682,8 +723,8 @@ const cardStyles = StyleSheet.create({
   },
   favoriteButton: {
     position: 'absolute',
-    top: moderateScale(1),
-    right: moderateScale(1),
+    top: moderateScale(8),
+    right: moderateScale(8),
     borderRadius: 15,
     width: scale(30),
     height: scale(30),
@@ -707,19 +748,6 @@ const cardStyles = StyleSheet.create({
     marginLeft: 2,
     fontWeight: '500',
   },
-  statusBadge: {
-    position: 'absolute',
-    top: moderateScale(8),
-    left: moderateScale(8),
-    paddingHorizontal: moderateScale(6),
-    paddingVertical: moderateScale(2),
-    borderRadius: 8,
-  },
-  statusText: {
-    color: '#fff',
-    fontSize: normalizeFont(10),
-    fontWeight: '500',
-  },
   cardContent: {
     padding: moderateScale(5),
   },
@@ -728,40 +756,21 @@ const cardStyles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
-
   productVeriety: {
     color: 'rgba(66, 66, 66, 0.7)',
     fontSize: normalizeFont(12),
     paddingVertical: 1,
   },
-
-  productSubtitle: {
-    fontSize: normalizeFont(14),
-    color: '#888',
-    marginBottom: moderateScale(8),
-    height: scale(20),
-  },
-  // Price and Unit in same line
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
     marginBottom: moderateScale(6),
     marginTop: moderateScale(4),
   },
-  productPrice: {
-    fontSize: normalizeFont(14),
-    fontWeight: '700',
-    color: '#000',
-  },
   productUnit: {
     fontSize: normalizeFont(12),
     color: '#666',
     marginLeft: 2,
-  },
-  varietyText: {
-    fontSize: normalizeFont(12),
-    color: '#666',
-    marginBottom: moderateScale(8),
   },
   buttonContainer: {
     minHeight: scale(26),
@@ -804,7 +813,6 @@ const cardStyles = StyleSheet.create({
     justifyContent: 'center',
     padding: 0,
   },
-
   quantityValueContainer: {
     minWidth: scale(48),
     paddingHorizontal: moderateScale(6),
@@ -816,7 +824,6 @@ const cardStyles = StyleSheet.create({
     borderColor: 'rgba(76, 175, 80, 1)',
     flexDirection: 'row',
   },
-
   quantityText: {
     fontSize: normalizeFont(16),
     color: 'rgba(76, 175, 80, 1)',
@@ -824,11 +831,4 @@ const cardStyles = StyleSheet.create({
     textAlign: 'center',
     includeFontPadding: false,
   },
-  quantityCount: {
-    fontSize: normalizeFont(14),
-    color: 'rgba(76, 175, 80, 1)',
-    fontWeight: '600',
-    marginHorizontal: moderateScale(6),
-  },
-
 });

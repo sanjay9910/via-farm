@@ -1,4 +1,3 @@
-// app/Notification.tsx (fixed JS version — no TS annotations, ctaText font fixed)
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useRouter } from "expo-router";
@@ -21,7 +20,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-// guideline based on iPhone X (375 x 812)
 const guidelineBaseWidth = 375;
 const guidelineBaseHeight = 812;
 const scale = (size) => (SCREEN_WIDTH / guidelineBaseWidth) * size;
@@ -39,6 +37,7 @@ const normalizeFont = (size) => {
 const BASE_URL = "https://viafarm-1.onrender.com";
 const NOTIFICATIONS_ENDPOINT = "/api/notifications";
 
+/* ---------------- NotificationCard ---------------- */
 const NotificationCard = ({ item, onPressCta }) => (
   <View style={styles.cardContainer}>
     <View style={styles.cardInner}>
@@ -61,18 +60,19 @@ const NotificationCard = ({ item, onPressCta }) => (
           {item.message}
         </Text>
 
-        {item.ctaText ? (
-          <TouchableOpacity onPress={() => onPressCta(item)} activeOpacity={0.7}>
+        {/* {item.ctaText ? (
+          <TouchableOpacity onPress={() => onPressCta(item)} activeOpacity={0.75}>
             <Text style={styles.ctaText}>
               {item.ctaText} <Text style={{ fontSize: normalizeFont(16) }}>→</Text>
             </Text>
           </TouchableOpacity>
-        ) : null}
+        ) : null} */}
       </View>
     </View>
   </View>
 );
 
+/* ---------------- Exported Screen ---------------- */
 export default function NotificationsScreen() {
   const router = useRouter();
   const [notifications, setNotifications] = useState([]);
@@ -96,16 +96,43 @@ export default function NotificationsScreen() {
   const mapServerNotificationToItem = (n, index) => {
     const baseId = n._id || n.id || `notif-${index}`;
     const id = `${String(baseId)}-${index}`;
+
+    const data = n.data || {};
+    
+    // ✅ Extract Order ID (Order Status notifications)
+    const orderId = data.orderId || null;
+    
+    // ✅ Extract Product ID (Product/Price notifications)
+    const productId = data.productId || null;
+
+    const isOrderNotification = !!orderId;
+    const isProductNotification = !!productId;
+
+    console.log(' Notification:', {
+      title: n.title,
+      orderId,
+      productId,
+      isOrderNotification,
+      isProductNotification,
+      action: data.action,
+      type: data.type,
+    });
+
     return {
       id,
       rawId: n._id || n.id || null,
       title: n.title || "No title",
       message: n.message || "",
       date: formatDate(n.createdAt),
-      image: (n.data && n.data.image) || n.image || null,
-      ctaText: n.data && n.data.orderIds ? "View Order" : null,
-      ctaType: n.data && n.data.orderIds ? "order" : null,
+      image: data.image || n.image || null,
+      ctaText: isOrderNotification ? "View Order" : isProductNotification ? "View Product" : null,
+      ctaType: isOrderNotification ? "order" : isProductNotification ? "product" : null,
       raw: n,
+      parsed: {
+        data,
+        orderId,
+        productId,
+      },
     };
   };
 
@@ -113,7 +140,7 @@ export default function NotificationsScreen() {
     await AsyncStorage.removeItem("userToken");
     await AsyncStorage.removeItem("userData");
     Alert.alert("Session expired", "Please login again.");
-    router.push("/login");
+    router.replace("/login");
   };
 
   const fetchNotifications = async () => {
@@ -161,14 +188,89 @@ export default function NotificationsScreen() {
     fetchNotifications();
   }, []);
 
-  const handleCta = (item) => {
-    if (item.ctaType === "order") {
-      const orderIds = item.raw?.data?.orderIds ?? [];
-      if (orderIds.length > 0) {
-        console.log("Open order:", orderIds[0]);
+  /* ------------- CTA handler - FIXED FOR API RESPONSE ------------- */
+  const handleCta = async (item) => {
+    try {
+      const { parsed } = item;
+      const orderId = parsed?.orderId || null;
+      const productId = parsed?.productId || null;
+
+      console.log('🔗 CTA Handler:', {
+        ctaType: item.ctaType,
+        orderId,
+        productId,
+      });
+
+      // ✅ ORDER NOTIFICATION - Navigate with orderId
+      if (item.ctaType === "order" && orderId) {
+        console.log('Opening Order:', orderId);
+        
+        try {
+          // ViewOrderProduct screen should accept orderId parameter
+          await router.push({
+            pathname: "/ViewOrderProduct",
+            params: { 
+              orderId: String(orderId),
+            },
+          });
+          return;
+        } catch (e) {
+          console.warn("Navigation to ViewOrderProduct failed:", e);
+          
+          // Try alternative routes
+          try {
+            await router.push(`/OrderDetails?orderId=${encodeURIComponent(orderId)}`);
+            return;
+          } catch (err) {
+            console.warn("OrderDetails route failed:", err);
+          }
+
+          try {
+            await router.push(`/order/${encodeURIComponent(orderId)}`);
+            return;
+          } catch (err) {
+            console.warn("Order route failed:", err);
+          }
+
+          // Show alert with order ID
+          Alert.alert("Order Details", `Order ID: ${orderId}`, [{ text: "OK" }]);
+          return;
+        }
       }
-    } else {
-      console.log("CTA clicked:", item);
+
+      // ✅ PRODUCT NOTIFICATION - Navigate with productId
+      if (item.ctaType === "product" && productId) {
+        console.log('Opening Product:', productId);
+        
+        try {
+          await router.push({
+            pathname: "/ViewProduct",
+            params: { 
+              productId: String(productId),
+            },
+          });
+          return;
+        } catch (e) {
+          console.warn("Navigation to ViewProduct failed:", e);
+          
+          try {
+            await router.push(`/product/${encodeURIComponent(productId)}`);
+            return;
+          } catch (err) {
+            console.warn("Product route failed:", err);
+          }
+
+          Alert.alert("Error", "Unable to open product. Please try again.");
+          return;
+        }
+      }
+
+      // Default: no action CTA
+      console.log('No actionable CTA for this notification');
+      Alert.alert("Info", item?.title ?? "Notification", [{ text: "OK" }]);
+    } catch (err) {
+      console.error("handleCta error:", err);
+      Alert.alert("Error", "Something went wrong. Please try again.");
     }
   };
 
@@ -182,7 +284,7 @@ export default function NotificationsScreen() {
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Image
             source={require("../assets/via-farm-img/icons/groupArrow.png")}
             style={styles.backIcon}
@@ -201,7 +303,7 @@ export default function NotificationsScreen() {
         <FlatList
           data={notifications}
           keyExtractor={(item, index) => String(item.id ?? `i-${index}`)}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, notifications.length === 0 && { flex: 1 }]}
           renderItem={({ item }) => <NotificationCard item={item} onPressCta={handleCta} />}
           ListEmptyComponent={renderEmpty}
           showsVerticalScrollIndicator={false}

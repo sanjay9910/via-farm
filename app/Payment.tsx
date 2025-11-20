@@ -1,80 +1,65 @@
+// PaymentScreen.js (Complete Updated Version)
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+import * as Clipboard from "expo-clipboard";
+import { useRouter } from "expo-router";
+import { goBack } from "expo-router/build/global-state/routing";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Clipboard,
-    Image,
-    Modal,
-    ScrollView,
-    Share,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  Share,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { moderateScale, normalizeFont, scale } from "./Responsive";
 
 const API_BASE = "https://viafarm-1.onrender.com";
 
 export default function PaymentScreen({ route, navigation }) {
+  const router = useRouter();
+  
   const [loading, setLoading] = useState(true);
   const [paymentInfo, setPaymentInfo] = useState(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [polling, setPolling] = useState(false);
+  const [paid, setPaid] = useState(false);
 
   const pollRef = useRef(null);
   const attemptsRef = useRef(0);
-  const successTimeoutRef = useRef(null);
 
   const { addressId, deliveryType, comments, paymentMethod } = route?.params || {};
 
-  // robust success detector
+  // Stronger success detection
   const isPaymentSuccessful = (resData) => {
     if (!resData) return false;
     try {
-      if (typeof resData.status === "string" && resData.status.toLowerCase().includes("paid")) return true;
+      const s = (v) => (typeof v === "string" ? v.toLowerCase() : v);
+      
+      if (typeof resData.status === "string" && s(resData.status).includes("paid")) return true;
       if (resData.paid === true) return true;
       if (resData.isPaid === true) return true;
       if (resData.payment_confirmed === true) return true;
-      if (typeof resData.paymentStatus === "string" && resData.paymentStatus.toLowerCase().includes("paid")) return true;
-      if (resData.success === true && (resData.paid === true || (typeof resData.status === "string" && resData.status.toLowerCase().includes("paid")))) return true;
+      if (typeof resData.paymentStatus === "string" && s(resData.paymentStatus).includes("paid")) return true;
+      if (resData.success === true && (resData.paid === true || (typeof resData.status === "string" && s(resData.status).includes("paid")))) return true;
+
       if (resData.data && isPaymentSuccessful(resData.data)) return true;
+
+      if (Array.isArray(resData.payments)) {
+        for (const p of resData.payments) if (isPaymentSuccessful(p)) return true;
+      }
+
+      if (resData.payment && isPaymentSuccessful(resData.payment)) return true;
     } catch (e) {
-      // ignore
+      console.log("isPaymentSuccessful error:", e);
     }
     return false;
   };
 
-  // show modal then navigate after 3s — uses navigation.reset for reliability
-  const showSuccessThenNavigate = () => {
-    // clear polling
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-    // clear previous timeout
-    if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
-
-    console.log("Payment success detected -> showing modal and will navigate in 3s");
-    setShowSuccessModal(true);
-
-    // 3s delay then reset navigation to Donate
-    successTimeoutRef.current = setTimeout(() => {
-      setShowSuccessModal(false);
-      // reset navigation stack to Donate screen (replace whole stack)
-      try {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "Donate" }],
-        });
-      } catch (err) {
-        // fallback to replace if reset fails for any reason
-        navigation.replace("Donate");
-      }
-    }, 3000);
-  };
-
-  // try candidate endpoints (and given URLs) until one returns 2xx
+  // Try multiple endpoints
   const tryEndpointsForStatus = async (orderId, token, extraUrls = []) => {
     const candidateEndpoints = [
       `${API_BASE}/api/buyer/orders/${orderId}/status`,
@@ -83,6 +68,7 @@ export default function PaymentScreen({ route, navigation }) {
       `${API_BASE}/api/buyer/orders/status/${orderId}`,
       `${API_BASE}/api/buyer/orders/${orderId}/payments`,
       `${API_BASE}/api/buyer/payments?orderId=${orderId}`,
+      `${API_BASE}/api/buyer/payments/${orderId}`,
       `${API_BASE}/api/orders/${orderId}/status`,
       `${API_BASE}/api/orders/${orderId}`,
       `${API_BASE}/orders/${orderId}`,
@@ -100,27 +86,29 @@ export default function PaymentScreen({ route, navigation }) {
           timeout: 8000,
         });
         if (res && res.status >= 200 && res.status < 300) {
+          // console.log("✓ Status endpoint success:", url);
           return { url, data: res.data };
         }
       } catch (err) {
-        // skip HTML 404 pages and continue
-        console.log(`tryEndpointsForStatus: tried ${url} ->`, err?.response?.status, err?.response?.data || err?.message);
+        console.log(`✗ Tried ${url.split('/').pop()}:`, err?.response?.status || err?.code);
       }
     }
     return null;
   };
 
-  // Create order & get QR — and immediately check for any embedded success indicators or URLs
+  // Create order & get QR
   useEffect(() => {
     let mounted = true;
     const createOrderAndGetQR = async () => {
       try {
         const body = {
           deliveryType: deliveryType || "Delivery",
-          addressId: addressId || "68ee30dbe5123aab550b6828",
+          addressId: addressId || "691d9b1408f3a17e4162434b",
           comments: comments || "Deliver before 8 PM please",
           paymentMethod: paymentMethod || "UPI",
         };
+
+      console.log("bod kya aa raha hai",body)
 
         const token = await AsyncStorage.getItem("userToken");
         if (!token) {
@@ -129,124 +117,167 @@ export default function PaymentScreen({ route, navigation }) {
           return;
         }
 
+        // console.log("📝 Creating order...");
         const response = await axios.post(`${API_BASE}/api/buyer/orders/place`, body, {
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          headers: { 
+            "Content-Type": "application/json", 
+            Authorization: `Bearer ${token}` 
+          },
         });
 
-        console.log("createOrder response (full):", response.data);
+        // console.log("✓ Order created:", response.data);
 
-        // If response contains direct success info, act immediately
-        if (isPaymentSuccessful(response.data)) {
-          if (mounted) {
-            setPaymentInfo(response.data?.payments?.[0] || response.data);
-            showSuccessThenNavigate();
-            setLoading(false);
-            return;
-          }
-        }
-
-        // set paymentInfo if present (payments array or payment object)
-        const pInfo = response.data?.payments?.length ? response.data.payments[0] : (response.data.payment || response.data);
-        if (mounted && pInfo) setPaymentInfo(pInfo);
-
-        // store array of possible URLs found inside response to try first during polling
-        const discoveredUrls = [];
-        const scanObjectForUrls = (obj) => {
-          if (!obj || typeof obj !== "object") return;
-          for (const k of Object.keys(obj)) {
-            const v = obj[k];
-            if (typeof v === "string" && (v.startsWith("http") || v.includes("/api/"))) {
-              const candidate = v.startsWith("http") ? v : `${API_BASE}${v.startsWith("/") ? "" : "/"}${v}`;
-              discoveredUrls.push(candidate);
-            } else if (typeof v === "object") {
-              scanObjectForUrls(v);
-            }
-          }
-        };
-        scanObjectForUrls(response.data);
+        const pInfo = response.data?.payments?.length 
+          ? response.data.payments[0] 
+          : (response.data.payment || response.data);
 
         if (mounted && pInfo) {
+          const discoveredUrls = [];
+          const scan = (obj) => {
+            if (!obj || typeof obj !== "object") return;
+            for (const k of Object.keys(obj)) {
+              const v = obj[k];
+              if (typeof v === "string" && (v.startsWith("http") || v.includes("/api/"))) {
+                const candidate = v.startsWith("http") 
+                  ? v 
+                  : `${API_BASE}${v.startsWith("/") ? "" : "/"}${v}`;
+                discoveredUrls.push(candidate);
+              } else if (typeof v === "object") {
+                scan(v);
+              }
+            }
+          };
+          scan(response.data);
           pInfo._discoveredStatusUrls = discoveredUrls;
           setPaymentInfo({ ...pInfo });
-        }
-
-        if (!pInfo) {
-          Alert.alert("Error", "Unable to get payment details from server response. Check console logs.");
+        } else {
+          // console.log("⚠️ No payment info in response");
+          Alert.alert("Warning", "Order created but payment details not returned");
         }
       } catch (error) {
-        console.log("createOrder error:", error?.response?.data || error.message);
-        Alert.alert("Error", "Failed to create order");
+        console.log("❌ Order creation error:", error?.response?.data || error.message);
+        Alert.alert(
+          "Error", 
+          error?.response?.data?.message || error?.message || "Failed to create order"
+        );
       } finally {
         if (mounted) setLoading(false);
       }
     };
 
     createOrderAndGetQR();
-
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addressId, deliveryType, comments, paymentMethod]);
 
-  // Polling effect — uses discovered URLs first, then fallback list
+  // Polling effect
   useEffect(() => {
     const orderId = paymentInfo?.orderId || paymentInfo?._id || paymentInfo?.id;
-    if (!orderId && !paymentInfo) return;
+    const paymentId = paymentInfo?.paymentId || paymentInfo?.id;
 
-    const MAX_POLL_ATTEMPTS = 40;
-    const POLL_INTERVAL_MS = 3000;
+    if (!orderId && !paymentId && !paymentInfo) {
+      return;
+    }
+
+    const POLL_INTERVAL = 3000;
+    const MAX_ATTEMPTS = 40;
 
     attemptsRef.current = 0;
     setPolling(true);
 
     const poll = async () => {
-      if (attemptsRef.current >= MAX_POLL_ATTEMPTS) {
+      attemptsRef.current += 1;
+      if (attemptsRef.current > MAX_ATTEMPTS) {
         if (pollRef.current) clearInterval(pollRef.current);
         setPolling(false);
+        // console.log("⏹️ Polling stopped - max attempts reached");
         return;
       }
-      attemptsRef.current += 1;
 
       try {
         const token = await AsyncStorage.getItem("userToken");
 
-        const extra = paymentInfo?._discoveredStatusUrls || [];
-        if (paymentInfo?.paymentId) {
-          extra.unshift(`${API_BASE}/api/buyer/payments/${paymentInfo.paymentId}`);
-          extra.unshift(`${API_BASE}/api/buyer/payments/${paymentInfo.paymentId}/status`);
+        const extra = paymentInfo?._discoveredStatusUrls 
+          ? [...paymentInfo._discoveredStatusUrls] 
+          : [];
+        
+        if (paymentId) {
+          extra.unshift(`${API_BASE}/api/buyer/payments/${paymentId}`);
+          extra.unshift(`${API_BASE}/api/buyer/payments/${paymentId}/status`);
+        }
+        
+        if (orderId) {
+          extra.unshift(`${API_BASE}/api/buyer/orders/${orderId}`);
+          extra.unshift(`${API_BASE}/api/buyer/orders/${orderId}/status`);
         }
 
-        const found = await tryEndpointsForStatus(orderId, token, extra);
+        // console.log(`🔄 Poll attempt ${attemptsRef.current}/${MAX_ATTEMPTS}`);
+        const found = await tryEndpointsForStatus(orderId || paymentId, token, extra);
 
         if (!found) {
-          console.log("poll: no matched endpoint yet (attempt " + attemptsRef.current + ")");
+          // console.log("⏳ No endpoint response, retrying...");
           return;
         }
 
-        console.log("poll matched endpoint:", found.url, found.data);
+        // console.log("📊 Response data:", found.data);
 
+        // Check if payment is successful
         if (isPaymentSuccessful(found.data)) {
-          // ensure only one navigation flow
-          showSuccessThenNavigate();
+          setPaid(true);
+          setPolling(false);
+          if (pollRef.current) clearInterval(pollRef.current);
+          
+          // console.log("✅ PAYMENT SUCCESSFUL DETECTED!");
+          Alert.alert(
+            "✅ Payment Successful!",
+            "Your payment has been confirmed. You can now proceed or contact support if you have any questions.",
+            [{ text: "OK" }]
+          );
           return;
         }
 
-        const maybeStatus = (found.data && (found.data.status || found.data.paymentStatus || found.data.message));
-        if (maybeStatus && typeof maybeStatus === "string" && maybeStatus.toLowerCase().includes("fail")) {
+        // Check payments array
+        if (found.data?.payments) {
+          for (const p of found.data.payments) {
+            if (isPaymentSuccessful(p)) {
+              setPaid(true);
+              setPolling(false);
+              if (pollRef.current) clearInterval(pollRef.current);
+              // console.log("✅ PAYMENT FOUND IN ARRAY!");
+              Alert.alert(
+                "✅ Payment Successful!",
+                "Your payment has been confirmed.",
+                [{ text: "OK" }]
+              );
+              return;
+            }
+          }
+        }
+
+        // Check for failure
+        const maybeStatus = (
+          found.data && 
+          (found.data.status || found.data.paymentStatus || found.data.message)
+        );
+        
+        if (
+          maybeStatus && 
+          typeof maybeStatus === "string" && 
+          maybeStatus.toLowerCase().includes("fail")
+        ) {
           if (pollRef.current) clearInterval(pollRef.current);
           setPolling(false);
-          Alert.alert("Payment failed", "Backend reports payment failed. Please try again.");
+          Alert.alert("❌ Payment Failed", "Please try again or contact support.");
           return;
         }
       } catch (err) {
-        console.log("poll generic error:", err?.response?.data || err?.message);
+        // console.log("⚠️ Poll error:", err?.message);
       }
     };
 
-    // start polling
-    pollRef.current = setInterval(poll, POLL_INTERVAL_MS);
     poll();
+    pollRef.current = setInterval(poll, POLL_INTERVAL);
 
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
@@ -254,53 +285,17 @@ export default function PaymentScreen({ route, navigation }) {
     };
   }, [paymentInfo]);
 
-  // manual verify — uses same tryEndpointsForStatus
-  const manualVerifyNow = async () => {
-    const orderId = paymentInfo?.orderId || paymentInfo?._id || paymentInfo?.id;
-    if (!orderId && !paymentInfo) {
-      Alert.alert("Error", "Order ID not available");
-      return;
-    }
-
+  // Copy to clipboard
+  const copyToClipboard = async (text) => {
     try {
-      const token = await AsyncStorage.getItem("userToken");
-      const extra = paymentInfo?._discoveredStatusUrls || [];
-      if (paymentInfo?.paymentId) {
-        extra.unshift(`${API_BASE}/api/buyer/payments/${paymentInfo.paymentId}`);
-        extra.unshift(`${API_BASE}/api/buyer/payments/${paymentInfo.paymentId}/status`);
-      }
-
-      const found = await tryEndpointsForStatus(orderId, token, extra);
-      if (!found) {
-        Alert.alert("Not Found", "Could not find a status endpoint for this order. Check console logs for create-order response keys/URLs.");
-        return;
-      }
-
-      console.log("manual verify matched endpoint:", found.url, found.data);
-
-      if (isPaymentSuccessful(found.data)) {
-        showSuccessThenNavigate();
-      } else {
-        const backendMsg = found.data?.message || found.data?.status || found.data?.paymentStatus || JSON.stringify(found.data);
-        Alert.alert("Not Paid Yet", backendMsg.toString());
-      }
+      await Clipboard.setStringAsync(String(text));
+      // Alert.alert("✅ Copied!", "UPI ID copied to clipboard");
     } catch (err) {
-      console.log("manual verify error:", err?.response?.data || err?.message);
-      Alert.alert("Error", "Failed to verify payment. Check console logs.");
+      Alert.alert("Copy", String(text));
     }
   };
 
-  // copy to clipboard
-  const copyToClipboard = (text) => {
-    try {
-      Clipboard.setString(text);
-      Alert.alert("Copied!", "UPI ID copied to clipboard");
-    } catch (err) {
-      Alert.alert("Copied!", text);
-    }
-  };
-
-  // share QR
+  // Share/Download QR
   const downloadQRCode = async () => {
     if (!paymentInfo?.qrCode) {
       Alert.alert("Error", "QR Code not available");
@@ -313,31 +308,123 @@ export default function PaymentScreen({ route, navigation }) {
         title: "Payment QR Code",
       });
     } catch (error) {
-      Alert.alert("Download QR Code", "Please take a screenshot to save the QR code");
+      Alert.alert("Share QR", "Please take a screenshot to save the QR code");
     }
   };
 
-  // cleanup on unmount
+  // Manual mark as paid button
+  const handlePaymentDone = () => {
+    Alert.alert(
+      "Payment Confirmation",
+      "Have you already completed the payment from your UPI app?",
+      [
+        { text: "Not Yet", style: "cancel" },
+        {
+          text: "Yes, I Paid",
+          style: "default",
+          onPress: () => {
+            setPaid(true);
+            setPolling(false);
+            if (pollRef.current) clearInterval(pollRef.current);
+            Alert.alert(
+              "✅ Thank You!",
+              "Your payment has been recorded. Vendor will confirm shortly."
+            );
+          },
+        },
+      ]
+    );
+  };
+
+  // Go to Donate page
+  const goToDonate = () => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    router.push("/Donate");
+  };
+
+  // Close payment screen
+  const handleClosePage = () => {
+    Alert.alert(
+      "Close Payment Screen?",
+      "Are you sure? Your order is saved.",
+      [
+        { text: "Stay Here", style: "cancel" },
+        {
+          text: "Close",
+          style: "destructive",
+          onPress: () => {
+            if (pollRef.current) clearInterval(pollRef.current);
+            setPolling(false);
+            navigation.goBack();
+          },
+        },
+      ]
+    );
+  };
+
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
-      if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
     };
   }, []);
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <View 
+        style={{ 
+          flex: 1, 
+          justifyContent: "center", 
+          alignItems: "center", 
+          backgroundColor: "#fff" 
+        }}
+      >
         <ActivityIndicator size="large" color="#4CAF50" />
-        <Text style={{ marginTop: 10, fontSize: 16 }}>Generating payment QR...</Text>
+        <Text 
+          style={{ 
+            marginTop: moderateScale(10), 
+            fontSize: normalizeFont(16), 
+            color: "#000" 
+          }}
+        >
+          Generating payment QR...
+        </Text>
       </View>
     );
   }
 
   if (!paymentInfo) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
-        <Text style={{ fontSize: 16, color: "#d32f2f" }}>No payment info found</Text>
+      <View 
+        style={{ 
+          flex: 1, 
+          justifyContent: "center", 
+          alignItems: "center", 
+          padding: moderateScale(20), 
+          backgroundColor: "#fff" 
+        }}
+      >
+        <Text 
+          style={{ 
+            fontSize: normalizeFont(16), 
+            color: "#d32f2f", 
+            textAlign: "center" 
+          }}
+        >
+          No payment info found. Please try again.
+        </Text>
+        <TouchableOpacity
+          style={{
+            marginTop: moderateScale(20),
+            backgroundColor: "#007bff",
+            paddingVertical: moderateScale(10),
+            paddingHorizontal: moderateScale(20),
+            borderRadius: moderateScale(8),
+          }}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={{ color: "#fff", fontWeight: "600" }}>Go Back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -345,55 +432,318 @@ export default function PaymentScreen({ route, navigation }) {
   const { amount, upiId, qrCode } = paymentInfo;
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1, backgroundColor: "#fff", paddingHorizontal: 20, paddingTop: 40, paddingBottom: 20 }}>
-      <Text style={{ fontSize: 24, fontWeight: "bold", textAlign: "center", marginBottom: 30, color: "#000" }}>Payment</Text>
-
-      {qrCode ? (
-        <View style={{ alignItems: "center", marginBottom: 30 }}>
-          <Image source={{ uri: qrCode }} style={{ width: 280, height: 280, borderRadius: 12, borderWidth: 1, borderColor: "#dee2e6" }} />
-        </View>
-      ) : (
-        <View style={{ alignItems: "center", marginBottom: 30, padding: 40, backgroundColor: "#f8f9fa", borderRadius: 12 }}>
-          <Text style={{ color: "#6c757d", fontSize: 16 }}>QR Code not available</Text>
-        </View>
-      )}
-
-      <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center" }}>
-        <Text style={{ fontSize: 16, fontWeight: "600", color: "#000", marginBottom: 12 }}>Amount ₹{amount} </Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+      {/* Header */}
+      <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:moderateScale(20)}}>
+        <TouchableOpacity onPress={goBack}>
+          <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
+        </TouchableOpacity>
+        <Text>Payment</Text>
+        <Text></Text>
       </View>
+      <ScrollView 
+        contentContainerStyle={{ 
+          paddingHorizontal: moderateScale(16), 
+          paddingVertical: moderateScale(16),
+          paddingBottom: moderateScale(30),
+        }}
+      >
+        {/* Status Badge */}
+        {/* <View 
+          style={{ 
+            marginBottom: moderateScale(20), 
+            padding: moderateScale(12), 
+            backgroundColor: paid ? "#e6ffed" : polling ? "#e3f2fd" : "#f8f9fa", 
+            borderRadius: moderateScale(10), 
+            borderLeftWidth: 4, 
+            borderLeftColor: paid ? "#4CAF50" : polling ? "#2196F3" : "#dee2e6" 
+          }}
+        >
+          <Text 
+            style={{ 
+              fontSize: normalizeFont(13), 
+              fontWeight: "700", 
+              color: paid ? "#1b5e20" : polling ? "#0d47a1" : "#495057" 
+            }}
+          >
+            {paid ? "✓ Payment Confirmed" : polling ? "⏳ Waiting for Payment..." : "📱 Ready to Pay"}
+          </Text>
+        </View> */}
 
-      <View style={{ backgroundColor: "#f8f9fa", padding: 20, borderRadius: 12, marginBottom: 25, borderWidth: 1, borderColor: "#e9ecef" }}>
-        <Text style={{ fontSize: 16, color: "#6c757d", marginBottom: 8 }}>UPI Id</Text>
-        <Text style={{ fontSize: 18, fontWeight: "600", color: "#000", marginBottom: 20 }}>{upiId}</Text>
+        {/* QR Code Section */}
+        {qrCode ? (
+          <View 
+            style={{ 
+              alignItems: "center", 
+              marginBottom: moderateScale(24), 
+              backgroundColor: "#f8f9fa", 
+              padding: moderateScale(16), 
+              borderRadius: moderateScale(12),
+              borderWidth: 1,
+              borderColor: "#e9ecef",
+            }}
+          >
+            <Image
+              source={{ uri: qrCode }}
+              style={{ 
+                width: scale(260), 
+                height: scale(260), 
+                borderRadius: moderateScale(12), 
+                borderWidth: 2, 
+                borderColor: "#dee2e6" 
+              }}
+            />
+            <Text 
+              style={{ 
+                marginTop: moderateScale(12), 
+                fontSize: normalizeFont(12), 
+                color: "#6c757d", 
+                textAlign: "center",
+                fontWeight: "500",
+              }}
+            >
+              Scan this QR code with your UPI app to pay
+            </Text>
+          </View>
+        ) : (
+          <View 
+            style={{ 
+              alignItems: "center", 
+              marginBottom: moderateScale(24), 
+              backgroundColor: "#f8f9fa", 
+              padding: moderateScale(40), 
+              borderRadius: moderateScale(12) 
+            }}
+          >
+            <Text style={{ color: "#6c757d", fontSize: normalizeFont(12) }}>
+              QR Code not available
+            </Text>
+          </View>
+        )}
 
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <TouchableOpacity style={{ flex: 1, backgroundColor: "#007bff", paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, marginRight: 10, alignItems: "center" }} onPress={downloadQRCode}>
-            <Text style={{ color: "#fff", fontSize: 14, fontWeight: "600" }}>Download QR Code</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={{ flex: 1, backgroundColor: "#28a745", paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, marginLeft: 10, alignItems: "center" }} onPress={() => copyToClipboard(upiId)}>
-            <Text style={{ color: "#fff", fontSize: 14, fontWeight: "600" }}>Copy UPI Id</Text>
-          </TouchableOpacity>
+        {/* Amount Section */}
+        <View style={{ alignItems: "center", marginBottom: moderateScale(24) }}>
+          <Text style={{ fontSize: normalizeFont(10), color: "#6c757d", marginBottom: moderateScale(4) }}>
+            Total Amount
+          </Text>
+          <Text 
+            style={{ 
+              fontSize: normalizeFont(26), 
+              fontWeight: "800", 
+              color: "#28a745" 
+            }}
+          >
+            ₹{amount}
+          </Text>
         </View>
 
-        <View style={{ marginTop: 16, alignItems: "center" }}>
-          <TouchableOpacity onPress={manualVerifyNow} style={{ paddingVertical: 10, paddingHorizontal: 18, backgroundColor: "#ff9800", borderRadius: 8 }}>
-            <Text style={{ color: "#fff", fontWeight: "600" }}>I Have Paid — Verify Now</Text>
-          </TouchableOpacity>
+        {/* UPI ID Section */}
+        <View 
+          style={{ 
+            backgroundColor: "#f8f9fa", 
+            padding: moderateScale(16), 
+            borderRadius: moderateScale(10), 
+            marginBottom: moderateScale(20), 
+            borderWidth: 1, 
+            borderColor: "#e9ecef" 
+          }}
+        >
+          <Text 
+            style={{ 
+              fontSize: normalizeFont(11), 
+              color: "#6c757d", 
+              marginBottom: moderateScale(6), 
+              fontWeight: "600" 
+            }}
+          >
+            UPI ID (Manual Payment)
+          </Text>
+          <Text 
+            style={{ 
+              fontSize: normalizeFont(13), 
+              fontWeight: "600", 
+              color: "#000", 
+              marginBottom: moderateScale(14), 
+              fontFamily: "monospace",
+              backgroundColor: "#fff",
+              padding: moderateScale(8),
+              borderRadius: moderateScale(6),
+            }}
+          >
+            {upiId}
+          </Text>
 
-          <Text style={{ marginTop: 8, color: "#6c757d", fontSize: 12 }}>{polling ? "Waiting for payment confirmation..." : "Tap 'I Have Paid' if payment done"}</Text>
-        </View>
-      </View>
+          <View style={{ flexDirection: "row", gap: moderateScale(10) }}>
+            <TouchableOpacity
+              style={{ 
+                flex: 1, 
+                borderWidth:2,
+                borderColor:'rgba(255, 202, 40, 0.5)',
+                paddingVertical: moderateScale(12), 
+                borderRadius: moderateScale(8), 
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              onPress={() => copyToClipboard(upiId)}
+            >
+              <Text 
+                style={{ 
+                  color: "#000", 
+                  fontSize: normalizeFont(12), 
+                  fontWeight: "600" 
+                }}
+              >
+                 Copy UPI ID
+              </Text>
+            </TouchableOpacity>
 
-      <Modal visible={showSuccessModal} transparent animationType="fade" onRequestClose={() => {}}>
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center" }}>
-          <View style={{ width: 280, padding: 24, backgroundColor: "#fff", borderRadius: 12, alignItems: "center" }}>
-            <Text style={{ fontSize: 20, fontWeight: "700", marginBottom: 8 }}>Payment Successful</Text>
-            <Text style={{ color: "#6c757d", textAlign: "center", marginBottom: 16 }}>Done — Redirecting to Donate...</Text>
-            <ActivityIndicator size="small" />
+            <TouchableOpacity
+              style={{ 
+                flex: 1, 
+                borderWidth:2,
+                borderColor:'rgba(255, 202, 40, 0.5)',
+                paddingVertical: moderateScale(12), 
+                borderRadius: moderateScale(8), 
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              onPress={downloadQRCode}
+            >
+              <Text 
+                style={{ 
+                  color: "#000", 
+                  fontSize: normalizeFont(12), 
+                  fontWeight: "600" 
+                }}
+              >
+                 Share QR
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
-      </Modal>
-    </ScrollView>
+
+        {/* Instructions */}
+        {/* <View 
+          style={{ 
+            backgroundColor: "#fff3cd", 
+            padding: moderateScale(14), 
+            borderRadius: moderateScale(8), 
+            marginBottom: moderateScale(20), 
+            borderLeftWidth: 4, 
+            borderLeftColor: "#ff9800" 
+          }}
+        >
+          <Text 
+            style={{ 
+              fontSize: normalizeFont(12), 
+              fontWeight: "700", 
+              color: "#856404", 
+              marginBottom: moderateScale(8) 
+            }}
+          >
+            📋 How to Pay:
+          </Text>
+          <Text 
+            style={{ 
+              fontSize: normalizeFont(11), 
+              color: "#856404", 
+              lineHeight: 18,
+              fontWeight: "500",
+            }}
+          >
+            1. Scan the QR with your UPI app, or{"\n"}
+            2. Copy UPI ID and enter in your app, or{"\n"}
+            3. Pay ₹{amount} to {upiId}{"\n\n"}
+            4. Tap "I Have Paid" when done
+          </Text>
+        </View> */}
+
+        {/* Action Buttons */}
+        <TouchableOpacity
+          style={{
+            backgroundColor:'rgba(76, 175, 80, 1)',
+            paddingVertical: moderateScale(14),
+            borderRadius: moderateScale(8),
+            alignItems: "center",
+            marginBottom: moderateScale(10),
+            opacity: paid ? 0.6 : 1,
+          }}
+          onPress={handlePaymentDone}
+          disabled={paid}
+        >
+          <Text 
+            style={{ 
+              color: "#fff", 
+              fontSize: normalizeFont(14), 
+              fontWeight: "700" 
+            }}
+          >
+            {paid ? "✓ Payment Completed" : " I Have Paid"}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{
+            backgroundColor: "rgba(76, 175, 80, 1)",
+            paddingVertical: moderateScale(14),
+            borderRadius: moderateScale(8),
+            alignItems: "center",
+            marginBottom: moderateScale(10),
+            marginTop: moderateScale(10),
+          }}
+          onPress={goToDonate}
+        >
+          <Text 
+            style={{ 
+              color: "#fff", 
+              fontSize: normalizeFont(14), 
+              fontWeight: "700" 
+            }}
+          >
+             Continue to Donate Page
+          </Text>
+        </TouchableOpacity>
+
+        {/* Polling Indicator */}
+        {polling && (
+          <View style={{ alignItems: "center", paddingVertical: moderateScale(14) }}>
+            <ActivityIndicator size="small" color="#2196F3" />
+            <Text 
+              style={{ 
+                marginTop: moderateScale(8), 
+                fontSize: normalizeFont(11), 
+                color: "#2196F3",
+                fontWeight: "500",
+              }}
+            >
+              🔄 Checking payment status...
+            </Text>
+          </View>
+        )}
+
+        {/* Footer Message */}
+        <View 
+          style={{ 
+            marginTop: moderateScale(20), 
+            paddingTop: moderateScale(16), 
+            borderTopWidth: 1, 
+            borderTopColor: "#e9ecef" 
+          }}
+        >
+          <Text 
+            style={{ 
+              fontSize: normalizeFont(11), 
+              color: "#6c757d", 
+              textAlign: "center", 
+              lineHeight: 18,
+              fontWeight: "500",
+            }}
+          >
+            💬 Contact vendor directly if you have questions{"\n"}
+            📞 Your order details have been saved
+          </Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

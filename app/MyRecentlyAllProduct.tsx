@@ -337,19 +337,27 @@ const AllRecently = () => {
               </Text>
 
               <View style={styles.priceQuantityContainer}>
-                <Text style={styles.priceText}>₹{item.price}/{item.unit}</Text>
-                <Text style={styles.quantity}>{item.weightPerPiece}</Text>
+                <TouchableOpacity
+                  ref={(ref) => {
+                    actionMenuRefs.current[item.id] = ref;
+                  }}
+                  style={styles.threeDotsButton}
+                  onPress={() => openActionMenu(item.id)}
+                >
+                  <Text style={styles.threeDotsText}>⋮</Text>
+                </TouchableOpacity>
               </View>
+            </View>
+
+             <View style={styles.startAllIndia}>
+              <Text style={styles.priceText}>{item.categories}</Text>
+              <Text style={styles.priceText}>₹{item.price}/{item.unit}</Text>
+              <Text style={styles.quantity}>{item.weightPerPiece}</Text>
             </View>
 
             <View style={styles.detailsContainer}>
               <Text style={styles.uploadLabel}>Uploaded on:</Text>
               <Text style={styles.uploadValue}>{item.uploadedOn}</Text>
-            </View>
-
-            <View style={styles.startAllIndia}>
-              <Image source={require("../assets/via-farm-img/icons/satar.png")} />
-              <Text style={styles.txetAll}>All India Delivery</Text>
             </View>
 
             <View style={styles.editBtn}>
@@ -376,17 +384,6 @@ const AllRecently = () => {
 
                 <Image source={require("../assets/via-farm-img/icons/downArrow.png")} />
               </TouchableOpacity>
-
-              {/* Three dots (action menu) */}
-              <TouchableOpacity
-                ref={(ref) => {
-                  actionMenuRefs.current[item.id] = ref;
-                }}
-                style={styles.threeDotsButton}
-                onPress={() => openActionMenu(item.id)}
-              >
-                <Text style={styles.threeDotsText}>⋮</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -400,7 +397,7 @@ const AllRecently = () => {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Recent Products</Text>
+        <Text style={styles.headerTitle}>Recent Listings</Text>
       </View>
 
       <TouchableOpacity ref={categoryButtonRef} style={styles.categoryDropdownButton} onPress={openCategoryDropdown}>
@@ -577,12 +574,11 @@ export const styles = StyleSheet.create({
   categoryDropdownButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f8f9fa",
     paddingHorizontal: moderateScale(12),
     paddingVertical: moderateScale(10),
     borderRadius: moderateScale(12),
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#e0e0e0",
+    borderWidth:1,
+    borderColor:'rgba(0, 0, 0, 0.3)',
     minWidth: moderateScale(100),
   },
   categoryDropdownText: {
@@ -612,10 +608,10 @@ export const styles = StyleSheet.create({
   cardContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: moderateScale(12), 
+    gap: moderateScale(12),
   },
   imageContainer: {
-    width: moderateScale(120),
+    width: moderateScale(135),
     height: moderateScale(170),
   },
   itemImage: {
@@ -626,16 +622,16 @@ export const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
-    paddingRight: moderateScale(12),
+    // paddingRight: moderateScale(12),
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: moderateScale(8),
+    alignItems: "center",
+    // marginBottom: moderateScale(8),
   },
   itemName: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(15),
     fontWeight: "600",
     color: "#424242",
     flex: 1,
@@ -722,13 +718,13 @@ export const styles = StyleSheet.create({
   threeDotsButton: {
     padding: moderateScale(8),
     borderRadius: moderateScale(8),
-    width: moderateScale(35),
-    height: moderateScale(35),
+    width: moderateScale(65),
+    height: moderateScale(65),
     justifyContent: "center",
     alignItems: "center",
   },
   threeDotsText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(22),
     fontWeight: "700",
     color: "#333",
     transform: [{ rotate: "180deg" }],
