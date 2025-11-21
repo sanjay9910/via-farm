@@ -519,7 +519,7 @@ const VendorsDetails = () => {
       </View>
 
       {allReviewImages.length > 0 && (
-        <View style={{ backgroundColor: '#fff', paddingVertical: moderateScale(10), paddingLeft: moderateScale(10) }}>
+        <View style={{ backgroundColor: '#fff', paddingVertical: moderateScale(10), }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={styles.sectionHeader}>Reviews <Text style={{ fontSize: normalizeFont(12), fontWeight: (400), }}>({reviews.length} reviews)</Text> </Text>
             <TouchableOpacity
@@ -872,6 +872,7 @@ const styles = StyleSheet.create({
   },
   reviewCard: {
     padding: moderateScale(10),
+    marginLeft:10,
     backgroundColor: "rgba(255, 253, 246, 1)",
     borderRadius: moderateScale(8),
     borderWidth: 1,

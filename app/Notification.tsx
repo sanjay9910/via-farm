@@ -59,14 +59,6 @@ const NotificationCard = ({ item, onPressCta }) => (
         <Text numberOfLines={2} style={styles.cardMessage}>
           {item.message}
         </Text>
-
-        {/* {item.ctaText ? (
-          <TouchableOpacity onPress={() => onPressCta(item)} activeOpacity={0.75}>
-            <Text style={styles.ctaText}>
-              {item.ctaText} <Text style={{ fontSize: normalizeFont(16) }}>→</Text>
-            </Text>
-          </TouchableOpacity>
-        ) : null} */}
       </View>
     </View>
   </View>
@@ -98,11 +90,7 @@ export default function NotificationsScreen() {
     const id = `${String(baseId)}-${index}`;
 
     const data = n.data || {};
-    
-    // ✅ Extract Order ID (Order Status notifications)
     const orderId = data.orderId || null;
-    
-    // ✅ Extract Product ID (Product/Price notifications)
     const productId = data.productId || null;
 
     const isOrderNotification = !!orderId;
@@ -201,12 +189,10 @@ export default function NotificationsScreen() {
         productId,
       });
 
-      // ✅ ORDER NOTIFICATION - Navigate with orderId
       if (item.ctaType === "order" && orderId) {
         console.log('Opening Order:', orderId);
         
         try {
-          // ViewOrderProduct screen should accept orderId parameter
           await router.push({
             pathname: "/ViewOrderProduct",
             params: { 

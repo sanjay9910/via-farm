@@ -1,7 +1,7 @@
 import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import { useNavigation } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState, } from "react";
 import {
   ActivityIndicator,
@@ -18,7 +18,6 @@ import {
 } from "react-native";
 import ProductModal from "../../components/vendors/ProductEditModel";
 
-
 const API_BASE = "https://viafarm-1.onrender.com";
 const { width } = Dimensions.get("window");
 
@@ -33,7 +32,8 @@ const MyRecentListing = () => {
   const [currentProductId, setCurrentProductId] = useState(null);
   const [updatingStock, setUpdatingStock] = useState(false);
   const stockButtonRefs = useRef({});
-  const navigation = useNavigation();
+  const router = useRouter();
+
   // Fetch products
   const fetchProducts = async () => {
     setLoading(true);
@@ -104,23 +104,37 @@ const MyRecentListing = () => {
   };
 
   const viewAll = () => {
-    navigation.navigate("MyRecentlyAllProduct");
+    router.push("/MyRecentlyAllProduct");
   };
 
+  // NAV: open VendorViewProduct with productId (uses list endpoint on destination)
+  const handleOpenProduct = (id) => {
+    if (!id) {
+      Alert.alert("Error", "Product id missing");
+      return;
+    }
+    // push using query param (expo-router)
+    router.push(`/VendorViewProduct?productId=${encodeURIComponent(id)}`);
+  };
 
   // Stock Dropdown Handler
   const openStockDropdown = (productId) => {
     const ref = stockButtonRefs.current[productId];
     
-    if (ref) {
-      ref.measureInWindow((x, y, width, height) => {
+    if (ref && ref.measureInWindow) {
+      ref.measureInWindow((x, y, w, h) => {
         setStockDropdownPosition({ 
           x: x - 60, 
-          y: y + height + 5 
+          y: y + h + 5 
         });
         setCurrentProductId(productId);
         setIsStockDropdownOpen(true);
       });
+    } else {
+      // Fallback: show centered dropdown if measure fails
+      setStockDropdownPosition({ x: width / 2 - 80, y: 200 });
+      setCurrentProductId(productId);
+      setIsStockDropdownOpen(true);
     }
   };
 
@@ -150,7 +164,6 @@ const MyRecentListing = () => {
       let response = null;
       let lastError = null;
 
-      // Method 1: PATCH /api/vendor/products/:id/status
       try {
         response = await axios.patch(
           `${API_BASE}/api/vendor/products/${currentProductId}/status`,
@@ -166,7 +179,6 @@ const MyRecentListing = () => {
       } catch (err) {
         lastError = err;
         
-        // Method 2: PATCH /api/vendor/products/:id (without /status)
         try {
           response = await axios.patch(
             `${API_BASE}/api/vendor/products/${currentProductId}`,
@@ -182,7 +194,6 @@ const MyRecentListing = () => {
         } catch (err2) {
           lastError = err2;
           
-          // Method 3: PUT /api/vendor/products/:id
           try {
             response = await axios.put(
               `${API_BASE}/api/vendor/products/${currentProductId}`,
@@ -201,9 +212,7 @@ const MyRecentListing = () => {
         }
       }
 
-      // Check if any method succeeded
       if (response && response.data && response.data.success) {
-        // Update local state WITHOUT removing product
         const updatedList = listingsData.map((item) =>
           item.id === currentProductId ? { ...item, status: newStatus } : item
         );
@@ -238,85 +247,99 @@ const MyRecentListing = () => {
   };
 
   const renderItem = ({ item }) => {
-    const circleColor = item.status.toLowerCase() === "in stock" ? "#22c55e" : "#ef4444";
+    const circleColor = (item.status || "").toLowerCase() === "in stock" ? "#22c55e" : "#ef4444";
     const isCurrentlyUpdating = updatingStock && currentProductId === item.id;
 
     return (
-      <View style={styles.listingCard}>
-        <View style={styles.cardContent}>
-          <View style={styles.imageContainer}>
-            <Image 
-              source={{ uri: item.image }} 
-              style={styles.itemImage} 
-              resizeMode="cover"
-            />
-          </View>
+      // wrap item card to navigate on press
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={() => handleOpenProduct(item.id)}
+        style={{ marginRight: moderateScale(12) }}
+      >
+        <View style={styles.listingCard}>
+          <View style={styles.cardContent}>
+            <View style={styles.imageContainer}>
+              <Image 
+                source={{ uri: item.image }} 
+                style={styles.itemImage} 
+                resizeMode="cover"
+              />
+            </View>
 
-          <View style={styles.textContainer}>
-            <View style={styles.headerRow}>
-              <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-              <View style={styles.priceQuantityContainer}>
-                <Text style={styles.priceText}>₹{item.price}/{item.unit}</Text>
-                <Text style={styles.quantity}>{item.weightPerPiece}</Text>
+            <View style={styles.textContainer}>
+              <View style={styles.headerRow}>
+                <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+                <View style={styles.priceQuantityContainer}>
+                  <Text style={styles.priceText}>₹{item.price}/{item.unit}</Text>
+                  <Text style={styles.quantity}>{item.weightPerPiece}</Text>
+                </View>
               </View>
-            </View>
 
-            <View style={styles.detailsContainer}>
-              <Text style={styles.uploadLabel}>Uploaded on:</Text>
-              <Text style={styles.uploadValue}>{item.uploadedOn}</Text>
-            </View>
+              <View style={styles.detailsContainer}>
+                <Text style={styles.uploadLabel}>Uploaded on:</Text>
+                <Text style={styles.uploadValue}>{item.uploadedOn}</Text>
+              </View>
 
-            <View style={styles.startAllIndia}>
-              <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
-              <Text style={styles.txetAll}>All India Delivery</Text>
-            </View>
+              <View style={styles.startAllIndia}>
+                <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
+                <Text style={styles.txetAll}>All India Delivery</Text>
+              </View>
 
-            <View style={styles.editBtn}>
-              {/* Stock dropdown with loading */}
-              <TouchableOpacity
-                ref={(ref) => {
-                  stockButtonRefs.current[item.id] = ref;
-                }}
-                style={[
-                  styles.dropdownBtn,
-                  isCurrentlyUpdating && styles.dropdownBtnDisabled
-                ]}
-                onPress={() => openStockDropdown(item.id)}
-                disabled={isCurrentlyUpdating}
-              >
-      
-                {isCurrentlyUpdating ? (
-                  <View style={styles.statusRow}>
-                    <ActivityIndicator size="small" color="rgba(255,202,40,1)" />
-                    <Text style={styles.statusTextUpdating}>Updating...</Text>
-                  </View>
-                ) : (
-                  <View style={styles.statusRow}>
-                    <View style={[styles.statusCircle, { backgroundColor: circleColor }]} />
-                    <Text style={[styles.statusText, { color: circleColor }]}>{item.status}</Text>
-                  </View>
-                )}
-                 <Image source={require("../../assets/via-farm-img/icons/downArrow.png")} />
-              </TouchableOpacity>
-
-              {/* Edit button */}
-              <TouchableOpacity 
-                style={styles.editButton} 
-                onPress={() => openModal(item)}
-                disabled={isCurrentlyUpdating}
-              >
-                <Image
-                  source={require("../../assets/via-farm-img/icons/editicon.png")}
+              <View style={styles.editBtn}>
+                {/* Stock dropdown with loading */}
+                <TouchableOpacity
+                  ref={(ref) => {
+                    stockButtonRefs.current[item.id] = ref;
+                  }}
                   style={[
-                    styles.editIcon,
-                    isCurrentlyUpdating && styles.editIconDisabled
+                    styles.dropdownBtn,
+                    isCurrentlyUpdating && styles.dropdownBtnDisabled
                   ]}
-                />
-              </TouchableOpacity>
+                  onPress={(e) => {
+                    // stop propagation so the card onPress doesn't fire
+                    e.stopPropagation?.();
+                    openStockDropdown(item.id);
+                  }}
+                  disabled={isCurrentlyUpdating}
+                >
+        
+                  {isCurrentlyUpdating ? (
+                    <View style={styles.statusRow}>
+                      <ActivityIndicator size="small" color="rgba(255,202,40,1)" />
+                      <Text style={styles.statusTextUpdating}>Updating...</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.statusRow}>
+                      <View style={[styles.statusCircle, { backgroundColor: circleColor }]} />
+                      <Text style={[styles.statusText, { color: circleColor }]}>{item.status}</Text>
+                    </View>
+                  )}
+                  <Image source={require("../../assets/via-farm-img/icons/downArrow.png")} />
+                </TouchableOpacity>
+
+                {/* Edit button */}
+                <TouchableOpacity 
+                  style={styles.editButton}
+                  onPress={(e) => {
+                    e.stopPropagation?.();
+                    openModal(item);
+                  }}
+                  disabled={isCurrentlyUpdating}
+                >
+                  <Image
+                    source={require("../../assets/via-farm-img/icons/editicon.png")}
+                    style={[
+                      styles.editIcon,
+                      isCurrentlyUpdating && styles.editIconDisabled
+                    ]}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 

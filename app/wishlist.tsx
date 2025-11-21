@@ -10,6 +10,7 @@ import {
   Animated,
   FlatList,
   Image,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -166,6 +167,7 @@ const MyWishlist = () => {
   const [favorites, setFavorites] = useState(new Set());
   const [cartItems, setCartItems] = useState({});
   const [selectedOption, setSelectedOption] = useState('All');
+    const [ options ,setAllCategory] = useState([]);
 
   // Fetch wishlist (and convert to product-like items)
   const fetchWishlistData = async () => {
@@ -350,6 +352,26 @@ const MyWishlist = () => {
     }
   };
 
+    useEffect(()=>{
+  const   getAllCategory = async ()=>{
+    try{
+     const token = await AsyncStorage.getItem("userToken");
+     const catRes = await axios.get(`${API_BASE}/api/admin/manage-app/categories`,{
+      headers:{
+       Authorization:`Bearer ${token}`
+      },
+     });
+
+     const onlyNames = catRes.data?.categories?.map((item) => item.name) || [];
+     setAllCategory(onlyNames)
+    }catch(error){
+      console.log("Error",error)
+    }
+  }
+  getAllCategory();
+},[])
+
+
   const handleToggleFavorite = async (product) => {
     const productId = product._id || product.id || product.productId;
     if (favorites.has(productId)) {
@@ -486,7 +508,7 @@ const MyWishlist = () => {
     outputRange: [0, 1],
   });
 
-  const options = ['All', 'Fruits', 'Vegetable', 'Seeds', 'Plants', 'Handicrafts'];
+  // const options = ['All', 'Fruits', 'Vegetable', 'Seeds', 'Plants', 'Handicrafts'];
 
   const handleSelect = (option) => {
     setSelectedOption(option);
@@ -581,11 +603,13 @@ const MyWishlist = () => {
           </TouchableOpacity>
 
           <Animated.View style={[styles.dropdown, { height: dropdownHeight, borderWidth: borderWidth }]}>
+            <ScrollView>
             {options.map(opt => (
               <TouchableOpacity key={opt} style={styles.dropdownItem} onPress={() => handleSelect(opt)}>
                 <Text style={styles.dropdownText}>{opt}</Text>
               </TouchableOpacity>
             ))}
+            </ScrollView>
           </Animated.View>
         </View>
       </View>

@@ -2,6 +2,7 @@ import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -34,6 +35,7 @@ const ProductCard = ({ item, onDelete, onStockUpdate, onEdit }) => {
   const [updatingStock, setUpdatingStock] = useState(false);
   const menuButtonRef = useRef(null);
   const stockButtonRef = useRef(null);
+  const router = useRouter();
 
   const handleMenuPress = () => {
     if (menuButtonRef.current) {
@@ -224,13 +226,22 @@ const ProductCard = ({ item, onDelete, onStockUpdate, onEdit }) => {
     }
   };
 
+const viewPage = () => {
+  // push using query param — this is reliable with expo-router
+  router.push(`/VendorViewProduct?productId=${item._id || item.id}`);
+};
+
   return (
-    <View style={cardStyles.card}>
+    <TouchableOpacity style={cardStyles.card} onPress={viewPage}> 
       <Image
         source={{ uri: item.images?.[0] }}
         style={cardStyles.image}
         resizeMode="cover"
       />
+      <Text style={{position:'absolute',bottom:moderateScale(5),left:moderateScale(5),color:'#fff',flexDirection:'row',alignItems:'center',gap:15,fontWeight:'bold', backgroundColor:'rgba(141, 141, 141, 0.6)',borderRadius:moderateScale(10),paddingVertical:4,paddingHorizontal:5}}>
+       <Text><Image source={require("../../assets/via-farm-img/icons/satar.png")} style={{paddingTop:moderateScale(5)}} /></Text> 
+        <Text>5.0</Text> 
+      </Text>
       <View style={cardStyles.details}>
         <View style={cardStyles.header}>
           <Text style={cardStyles.productName}>{item.name}</Text>
@@ -410,44 +421,9 @@ const ProductCard = ({ item, onDelete, onStockUpdate, onEdit }) => {
           </View>
         </TouchableOpacity>
       </Modal>
-    </View>
+    </TouchableOpacity>
   );
 };
-
-// --- ProductFilter Component ---
-
-
-// useEffect(()=>{
-//   const   getAllCategory = async ()=>{
-//     try{
-//      const token = await AsyncStorage.getItem("userToken");
-//      const catRes = await axios.get(`${API_BASE}/api/admin/manage-app/categories`,{
-//       headers:{
-//        Authorization:`Bearer ${token}`
-//       },
-//      });
-
-//      const onlyNames = catRes.data?.categories?.map((item) => item.name) || [];
-//      console.log("Category Name",onlyNames)
-
-//      setAllCategory(onlyNames)
-//     }catch(error){
-//       console.log("Error",error)
-//     }
-//   }
-//   getAllCategory();
-// },[])
-
-
-
-// const categories = [
-//   "All",
-//   "Fruits",
-//   "Vegetables",
-//   "Seeds",
-//   "Plants",
-//   "Handicrafts",
-// ];
 
 
 const stockOptions = ["Out of Stock", "In Stock"];
