@@ -995,7 +995,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#fff',
     paddingHorizontal: moderateScale(16),
-    // paddingVertical: moderateScale(8),
+    paddingVertical: moderateScale(8),
     borderBottomColor: '#f0f0f0',
   },
   topRow: {

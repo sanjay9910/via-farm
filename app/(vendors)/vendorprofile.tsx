@@ -223,7 +223,7 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
       });
     }
 
-    console.log("Sanjay name ",formData)
+    // console.log("Sanjay name ",formData)
 
     // farm images (multiple) — accept array of {uri} or strings
     if (farmImages && Array.isArray(farmImages) && farmImages.length > 0) {
@@ -847,7 +847,7 @@ const VendorProfile = () => {
               <Text style={styles.userRole}>{userInfo?.status}</Text>
             </View>
             <View>
-              <TouchableOpacity style={{ borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.4)", paddingHorizontal: moderateScale(6), borderRadius: 5, flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: moderateScale(3) }} onPress={() => navigation.navigate("VendorProfileView", { user: fullUser })}>
+              <TouchableOpacity style={{ borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.4)", paddingHorizontal: moderateScale(6), borderRadius: 5, flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: moderateScale(1) }} onPress={() => navigation.navigate("VendorProfileView", { user: fullUser })}>
                 <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
                  <Text >{userInfo?.rating}</Text>
               </TouchableOpacity>
@@ -979,8 +979,8 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: normalizeFont(24), fontWeight: '600', color: '#fff' },
 
   userInfo: { flex: 1, marginLeft: moderateScale(15) },
-  userName: { fontSize: normalizeFont(scale(15)), fontWeight: '600', color: '#333', paddingVertical: moderateScale(2) },
-  userPhone: { fontSize: normalizeFont(13), color: '#666', paddingVertical: moderateScale(1) },
+  userName: { fontSize: normalizeFont(scale(13)), fontWeight: '600', color: '#333', paddingVertical: moderateScale(2) },
+  userPhone: { fontSize: normalizeFont(12), color: '#666', paddingVertical: moderateScale(1) },
   userRole: { fontSize: normalizeFont(11), color: '#4CAF50', fontWeight: '500', marginTop: moderateScale(2), paddingVertical: moderateScale(1) },
 
   editButtonContainer: { padding: moderateScale(8) },

@@ -1,4 +1,4 @@
-import { moderateScale, normalizeFont } from "@/app/Responsive";
+import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useNavigation } from "expo-router";
@@ -9,7 +9,6 @@ import {
   Dimensions,
   Image,
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,7 +20,6 @@ import ProductModal from "../components/vendors/ProductEditModel";
 const { width } = Dimensions.get("window");
 
 const API_BASE = "https://viafarm-1.onrender.com";
-
 
 const AllRecently = () => {
   const [listingsData, setListingsData] = useState([]);
@@ -38,20 +36,31 @@ const AllRecently = () => {
   const [currentProductId, setCurrentProductId] = useState(null);
   const [updatingStock, setUpdatingStock] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
+  const [categories, setAllCategory] = useState([]);
 
   const stockButtonRefs = useRef({});
   const actionMenuRefs = useRef({});
   const categoryButtonRef = useRef(null);
   const navigation = useNavigation();
 
-  const categories = [
-    "All Categories",
-    "Fruits",
-    "Vegetables",
-    "Plants",
-    "Seeds",
-    "Handicrafts",
-  ];
+  useEffect(() => {
+    const getAllCategory = async () => {
+      try {
+        const token = await AsyncStorage.getItem("userToken");
+        const catRes = await axios.get(`${API_BASE}/api/admin/manage-app/categories`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const onlyNames = catRes.data?.categories?.map((item) => item.name) || [];
+        setAllCategory(onlyNames);
+      } catch (error) {
+        console.log("Error", error);
+      }
+    };
+    getAllCategory();
+  }, []);
 
   // Fetch products
   const fetchProducts = async () => {
@@ -80,6 +89,8 @@ const AllRecently = () => {
           image: product.images && product.images.length ? product.images[0] : "",
           status: product.status || "In Stock",
           category: product.category || "Fruits",
+          // include raw product in case we want to pass whole object
+          _raw: product,
         }));
         setListingsData(formattedData);
         setFilteredData(formattedData);
@@ -102,6 +113,7 @@ const AllRecently = () => {
     if (!modalVisible) {
       fetchProducts();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modalVisible]);
 
   // Filter products by category
@@ -137,22 +149,30 @@ const AllRecently = () => {
   // Stock dropdown
   const openStockDropdown = (productId) => {
     const ref = stockButtonRefs.current[productId];
-    if (ref) {
+    if (ref && ref.measureInWindow) {
       ref.measureInWindow((x, y, w, h) => {
         setStockDropdownPosition({ x: x - 60, y: y + h + 5 });
         setCurrentProductId(productId);
         setIsStockDropdownOpen(true);
       });
+    } else {
+      // fallback: just open in center
+      setStockDropdownPosition({ x: width / 2 - 80, y: 200 });
+      setCurrentProductId(productId);
+      setIsStockDropdownOpen(true);
     }
   };
 
   // Category dropdown
   const openCategoryDropdown = () => {
-    if (categoryButtonRef.current) {
+    if (categoryButtonRef.current && categoryButtonRef.current.measureInWindow) {
       categoryButtonRef.current.measureInWindow((x, y, w, h) => {
         setCategoryDropdownPosition({ x: x, y: y + h + 5 });
         setIsCategoryDropdownOpen(true);
       });
+    } else {
+      setCategoryDropdownPosition({ x: 16, y: 80 });
+      setIsCategoryDropdownOpen(true);
     }
   };
 
@@ -164,12 +184,16 @@ const AllRecently = () => {
   // Action menu (3 dots)
   const openActionMenu = (productId) => {
     const ref = actionMenuRefs.current[productId];
-    if (ref) {
+    if (ref && ref.measureInWindow) {
       ref.measureInWindow((x, y, w, h) => {
         setActionMenuPosition({ x: x - 100, y: y + h + 5 });
         setCurrentProductId(productId);
         setIsActionMenuOpen(true);
       });
+    } else {
+      setActionMenuPosition({ x: width - 160, y: 200 });
+      setCurrentProductId(productId);
+      setIsActionMenuOpen(true);
     }
   };
 
@@ -312,13 +336,42 @@ const AllRecently = () => {
     }
   };
 
+  // NAVIGATION: open VendorViewProduct screen on card press
+  const handleCardPress = (item) => {
+    try {
+      // try push first (expo-router exposes push)
+      if (navigation?.push) {
+        navigation.push("VendorViewProduct", { productId: item.id, product: item._raw ?? item });
+      } else if (navigation?.navigate) {
+        navigation.navigate("VendorViewProduct", { productId: item.id, product: item._raw ?? item });
+      } else {
+        console.warn("Navigation method not found");
+        Alert.alert("Navigation error", "Unable to open product view");
+      }
+    } catch (err) {
+      console.log("Navigation error:", err);
+      // fallback
+      try {
+        navigation.navigate("VendorViewProduct", { productId: item.id, product: item._raw ?? item });
+      } catch (e) {
+        console.log("Fallback navigation failed:", e);
+        Alert.alert("Navigation error", "Unable to open product view");
+      }
+    }
+  };
+
   // Render card — DESIGN MATCHED to MyRecentListing card style
   const renderCard = (item) => {
     const circleColor = item.status?.toLowerCase() === "in stock" ? "#22c55e" : "#ef4444";
     const isCurrentlyUpdating = updatingStock && currentProductId === item.id;
 
     return (
-      <View key={item.id} style={styles.listingCard}>
+      <TouchableOpacity
+        key={item.id}
+        activeOpacity={0.9}
+        onPress={() => handleCardPress(item)}
+        style={styles.listingCard}
+      >
         <View style={styles.cardContent}>
           <View style={styles.imageContainer}>
             {item.image ? (
@@ -328,6 +381,10 @@ const AllRecently = () => {
                 <Text style={{ color: "#999" }}>No image</Text>
               </View>
             )}
+            <View style={{ position: "absolute", flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(141, 141, 141, 0.6)", bottom: moderateScale(5), left: moderateScale(5), borderRadius: 10, paddingHorizontal: 5 }}>
+              <Image source={require("../assets/via-farm-img/icons/satar.png")} />
+              <Text style={{ color: "#fff" }}>5.0</Text>
+            </View>
           </View>
 
           <View style={styles.textContainer}>
@@ -342,14 +399,18 @@ const AllRecently = () => {
                     actionMenuRefs.current[item.id] = ref;
                   }}
                   style={styles.threeDotsButton}
-                  onPress={() => openActionMenu(item.id)}
+                  onPress={(e) => {
+                    // prevent card onPress from firing when pressing action menu
+                    e && e.stopPropagation && e.stopPropagation();
+                    openActionMenu(item.id);
+                  }}
                 >
                   <Text style={styles.threeDotsText}>⋮</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-             <View style={styles.startAllIndia}>
+            <View style={styles.startAllIndia}>
               <Text style={styles.priceText}>{item.categories}</Text>
               <Text style={styles.priceText}>₹{item.price}/{item.unit}</Text>
               <Text style={styles.quantity}>{item.weightPerPiece}</Text>
@@ -367,7 +428,10 @@ const AllRecently = () => {
                   stockButtonRefs.current[item.id] = ref;
                 }}
                 style={[styles.dropdownBtn, isCurrentlyUpdating && styles.dropdownBtnDisabled]}
-                onPress={() => openStockDropdown(item.id)}
+                onPress={(e) => {
+                  e && e.stopPropagation && e.stopPropagation(); // prevent card navigation
+                  openStockDropdown(item.id);
+                }}
                 disabled={isCurrentlyUpdating}
               >
                 {isCurrentlyUpdating ? (
@@ -387,7 +451,7 @@ const AllRecently = () => {
             </View>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -461,20 +525,22 @@ const AllRecently = () => {
         <TouchableWithoutFeedback onPress={() => setIsCategoryDropdownOpen(false)}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
-              <View style={[styles.categoryDropdown, { position: "absolute", top: categoryDropdownPosition.y, left: categoryDropdownPosition.x }]}>
-                {categories.map((category, index) => (
-                  <View key={category}>
-                    <TouchableOpacity
-                      style={[styles.categoryOption, category === selectedCategory && styles.categoryOptionSelected]}
-                      onPress={() => handleCategorySelect(category)}
-                    >
-                      <Text style={[styles.categoryOptionText, category === selectedCategory && styles.categoryOptionTextSelected]}>
-                        {category}
-                      </Text>
-                    </TouchableOpacity>
-                    {index < categories.length - 1 && <View style={styles.categoryDivider} />}
-                  </View>
-                ))}
+              <View style={[styles.categoryDropdown, { position: "absolute", top: categoryDropdownPosition.y, left: categoryDropdownPosition.x, maxHeight: scale(300) }]}>
+                <ScrollView showsVerticalScrollIndicator={true} scrollEnabled={true}>
+                  {categories.map((category, index) => (
+                    <View key={category}>
+                      <TouchableOpacity
+                        style={[styles.categoryOption, category === selectedCategory && styles.categoryOptionSelected]}
+                        onPress={() => handleCategorySelect(category)}
+                      >
+                        <Text style={[styles.categoryOptionText, category === selectedCategory && styles.categoryOptionTextSelected]}>
+                          {category}
+                        </Text>
+                      </TouchableOpacity>
+                      {index < categories.length - 1 && <View style={styles.categoryDivider} />}
+                    </View>
+                  ))}
+                </ScrollView>
               </View>
             </TouchableWithoutFeedback>
           </View>
@@ -742,7 +808,7 @@ export const styles = StyleSheet.create({
     paddingVertical: moderateScale(8),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: moderateScale(4) },
-    shadowOpacity: Platform.OS === "ios" ? 0.3 : 0.36,
+    // shadowOpacity: Platform.OS === "ios" ? 0.3 : 0.36,
     shadowRadius: moderateScale(12),
     elevation: moderateScale(10),
     borderWidth: moderateScale(1),
@@ -782,7 +848,7 @@ export const styles = StyleSheet.create({
     borderColor: "rgba(255, 202, 40, 0.3)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: moderateScale(2) },
-    shadowOpacity: Platform.OS === "ios" ? 0.1 : 0.18,
+    // shadowOpacity: Platform.OS === "ios" ? 0.1 : 0.18,
     shadowRadius: moderateScale(4),
     elevation: moderateScale(5),
   },
@@ -808,13 +874,13 @@ export const styles = StyleSheet.create({
   categoryDropdown: {
     backgroundColor: "#fff",
     borderRadius: moderateScale(12),
-    minWidth: moderateScale(180),
+    minWidth: moderateScale(140),
     paddingVertical: moderateScale(8),
     borderWidth: moderateScale(1),
     borderColor: "rgba(255, 202, 40, 0.3)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: moderateScale(2) },
-    shadowOpacity: Platform.OS === "ios" ? 0.1 : 0.18,
+    // shadowOpacity: Platform.OS === "ios" ? 0.1 : 0.18,
     shadowRadius: moderateScale(4),
     elevation: moderateScale(5),
   },
@@ -826,7 +892,7 @@ export const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 202, 40, 0.1)",
   },
   categoryOptionText: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     fontWeight: "500",
     color: "#374151",
   },

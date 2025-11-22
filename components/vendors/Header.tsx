@@ -260,7 +260,7 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
             <TouchableOpacity onPress={onClose} style={modalStyles.headerIcon}>
              <Image source={require('../../assets/via-farm-img/icons/groupArrow.png')} />
             </TouchableOpacity>
-            <Text style={modalStyles.headerTitle}>Edit Location & Charges</Text>
+            <Text style={modalStyles.headerTitle}>Location</Text>
             <View style={{ width: scale(40) }} />
           </View>
 
@@ -585,7 +585,7 @@ const modalStyles = StyleSheet.create({
     fontWeight: "600",
   },
   headerTitle: {
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(15),
     fontWeight: "600",
     color: "#333",
   },
@@ -594,7 +594,7 @@ const modalStyles = StyleSheet.create({
     paddingHorizontal: moderateScale(20),
   },
   sectionTitle: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     fontWeight: "600",
     color: "#333",
     marginBottom: moderateScale(15),
@@ -616,7 +616,7 @@ const modalStyles = StyleSheet.create({
   },
   locationButtonText: {
     flex: 1,
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(11),
     color: "#00B0FF",
     marginLeft: moderateScale(10),
     fontWeight: "500",
@@ -641,7 +641,7 @@ const modalStyles = StyleSheet.create({
     paddingHorizontal: moderateScale(15),
     paddingVertical: moderateScale(12),
     color: "#333",
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     backgroundColor: "#f9f9f9",
     marginBottom: moderateScale(15),
   },
@@ -672,7 +672,7 @@ const modalStyles = StyleSheet.create({
   },
   deliveryInput: {
     flex: 1,
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     color: "#333",
     paddingVertical: moderateScale(10),
     textAlign: "center",
@@ -695,7 +695,7 @@ const modalStyles = StyleSheet.create({
   },
   updateButtonText: {
     color: "#fff",
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(13),
     fontWeight: "600",
   },
 });

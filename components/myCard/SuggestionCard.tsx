@@ -1,8 +1,7 @@
-// SuggestionCard.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -38,57 +37,107 @@ const normalizeFont = (size) => {
 };
 // -----------------------------------------
 
-const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
+/**
+ * SuggestionCard
+ * - Fetches a product by productId and displays recommendedProducts in a horizontal carousel.
+ * - Props:
+ *    - productId (string): id of the product whose recommendedProducts should be used.
+ */
+const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
   const navigation = useNavigation();
 
   const [favorites, setFavorites] = useState(new Set());
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [cartItems, setCartItems] = useState({});
 
+  // combine dependencies that should trigger reload
   useEffect(() => {
-    fetchProducts();
-    fetchWishlist();
-    fetchCart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vendorId]);
-
-  // Fetch vendor products
-  const fetchProducts = async () => {
-    try {
+    let mounted = true;
+    const loadAll = async () => {
       setLoading(true);
       setError(null);
+      await Promise.all([fetchProductAndRecommendations(productId, mounted), fetchWishlist(), fetchCart()]);
+      if (mounted) setLoading(false);
+    };
+    loadAll();
+    return () => {
+      mounted = false;
+    };
+  }, [productId]);
 
+  // Fetch product detail and recommendedProducts (defensive parsing)
+  const fetchProductAndRecommendations = async (pid, mounted = true) => {
+    try {
+      setError(null);
       const token = await AsyncStorage.getItem('userToken');
-
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers.Authorization = `Bearer ${token}`;
 
-      const response = await axios.get(
-        `${API_BASE}/api/buyer/vendor/${vendorId}/products`,
-        { headers, timeout: 10000 }
-      );
+      // This endpoint was used in your example: /api/buyer/products/{id}
+      const url = `${API_BASE}/api/buyer/products/${pid}`;
+      const resp = await axios.get(url, { headers, timeout: 10000 });
 
-      if (response.data && response.data.success && response.data.products) {
-        const prodArr = Array.isArray(response.data.products)
-          ? response.data.products
-          : Object.values(response.data.products || {});
-        setProducts(prodArr);
-      } else {
-        setProducts([]);
-        setError('No products found');
+      // defensive extraction of recommended products
+      const recommended =
+        resp?.data?.data?.recommendedProducts ||
+        resp?.data?.recommendedProducts ||
+        resp?.data?.data?.recommendedProducts ||
+        resp?.data?.data?.recommendedProducts ||
+        resp?.data?.products ||
+        resp?.data?.data?.product?.recommendedProducts ||
+        [];
+
+      // recommended might be array of items where category may be object or string
+      const normalized = Array.isArray(recommended)
+        ? recommended.map((p) => normalizeProductObject(p))
+        : [];
+
+      if (mounted) {
+        setProducts(normalized);
+        if (!normalized || normalized.length === 0) {
+          // fallback: sometimes API returns single product under data.product -> show similar or product itself
+          const single = resp?.data?.data?.product || resp?.data?.product;
+          if (single && typeof single === 'object') {
+            const fallbackArr = [normalizeProductObject(single)];
+            setProducts(fallbackArr);
+          } else {
+            setProducts([]);
+          }
+        }
       }
     } catch (err) {
-      console.error('Error fetching products:', err);
-      setProducts([]);
-      setError(err?.response?.data?.message || 'Failed to load products');
-    } finally {
-      setLoading(false);
+      console.error('Error fetching product/recommended:', err);
+      if (mounted) {
+        setProducts([]);
+        setError(err?.response?.data?.message || 'Failed to load suggestions');
+      }
     }
   };
 
-  // Fetch cart items
+  // Normalize product shape to be used by UI
+  const normalizeProductObject = (p) => {
+    if (!p) return null;
+    const id = String(p._id ?? p.id ?? p.productId ?? '');
+    const images = p.images ?? p.imageUrls ?? p.photos ?? [];
+    const image = Array.isArray(images) && images.length > 0 ? images[0] : p.imageUrl ?? p.image ?? null;
+    const category = typeof p.category === 'object' ? (p.category.name ?? p.category) : p.category ?? 'General';
+    return {
+      id,
+      name: p.name ?? p.title ?? '',
+      price: typeof p.price === 'number' ? p.price : Number(p.price) || 0,
+      quantity: p.quantity ?? 1,
+      unit: p.unit ?? 'pc',
+      variety: p.variety ?? '',
+      image,
+      rating: p.rating ?? 0,
+      category,
+      raw: p,
+    };
+  };
+
+  // Fetch cart items (map by productId)
   const fetchCart = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -99,13 +148,14 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
 
       const response = await axios.get(`${API_BASE}/api/buyer/cart`, {
         headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000,
       });
 
-      if (response.data && response.data.success) {
+      if (response?.data?.success) {
         const items = (response.data.data && response.data.data.items) || [];
         const cartMap = {};
         items.forEach((item) => {
-          const pid = item.productId || item.id;
+          const pid = String(item.productId ?? item.product?._id ?? item.id);
           cartMap[pid] = {
             quantity: item.quantity || 1,
             cartItemId: item._id || item.id,
@@ -122,7 +172,7 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
     }
   };
 
-  // Fetch wishlist
+  // Fetch wishlist (set of product ids)
   const fetchWishlist = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -133,17 +183,19 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
 
       const response = await axios.get(`${API_BASE}/api/buyer/wishlist`, {
         headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000,
       });
 
-      if (response.data && response.data.success) {
+      if (response?.data?.success) {
         const wishlistItems = (response.data.data && response.data.data.items) || [];
-        const favSet = new Set(wishlistItems.map((it) => String(it.productId || it.id)));
+        const favSet = new Set(wishlistItems.map((it) => String(it.productId ?? it.product?._id ?? it._id ?? it.id)));
         setFavorites(favSet);
       } else {
         setFavorites(new Set());
       }
     } catch (err) {
       console.error('Error fetching wishlist:', err);
+      setFavorites(new Set());
     }
   };
 
@@ -156,15 +208,15 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
         return false;
       }
 
-      const productId = String(product.id);
+      const productId = String(product.id ?? product._id ?? '');
 
       const cartData = {
         productId,
         name: product.name || product.title || '',
-        image: product.imageUrl || product.image || null,
+        image: product.image || null,
         price: product.price || 0,
         quantity: 1,
-        category: 'General',
+        category: product.category || 'General',
         variety: product.variety || 'Standard',
         unit: product.unit || 'piece',
       };
@@ -174,18 +226,17 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
         timeout: 10000,
       });
 
-      if (response.data && response.data.success) {
+      if (response?.data?.success) {
         Alert.alert('Success', 'Product added to cart!');
         await fetchCart();
         return true;
       } else {
-        throw new Error(response.data?.message || 'Failed to add to cart');
+        throw new Error(response?.data?.message || 'Failed to add to cart');
       }
     } catch (err) {
-      console.error('❌ Error adding to cart:', err);
+      console.error('Error adding to cart:', err);
       if (err.response?.status === 400) {
-        const msg = err.response?.data?.message || 'Product is already in your cart';
-        Alert.alert('Info', msg);
+        Alert.alert('Info', err.response?.data?.message || 'Product is already in your cart');
         await fetchCart();
       } else if (err.response?.status === 401) {
         Alert.alert('Login Required', 'Please login to add items to cart');
@@ -196,7 +247,7 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
     }
   };
 
-  // Wishlist handlers
+  // Wishlist add
   const addToWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -206,11 +257,11 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
       }
 
       const payload = {
-        productId: product.id,
-        name: product.name || product.title || '',
-        image: product.imageUrl || product.image || null,
+        productId: String(product.id ?? product._id ?? ''),
+        name: product.name || '',
+        image: product.image || null,
         price: product.price || 0,
-        category: 'General',
+        category: product.category || 'General',
         variety: product.variety || 'Standard',
         unit: product.unit || 'piece',
       };
@@ -220,24 +271,23 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
         timeout: 10000,
       });
 
-      if (response.data && response.data.success) {
-        Alert.alert('Success', 'Product added to wishlist!');
+      if (response?.data?.success) {
         setFavorites((prev) => {
           const n = new Set(prev);
-          n.add(String(product.id));
+          n.add(String(payload.productId));
           return n;
         });
         return true;
       } else {
-        throw new Error(response.data?.message || 'Failed to add to wishlist');
+        throw new Error(response?.data?.message || 'Failed to add to wishlist');
       }
     } catch (err) {
-      console.error('❌ Error adding to wishlist:', err);
+      console.error('Error adding to wishlist:', err);
       if (err.response?.status === 400) {
         Alert.alert('Info', err.response?.data?.message || 'Product already in wishlist');
         setFavorites((prev) => {
           const n = new Set(prev);
-          n.add(String(product.id));
+          n.add(String(product.id ?? product._id ?? ''));
           return n;
         });
       } else if (err.response?.status === 401) {
@@ -249,6 +299,7 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
     }
   };
 
+  // Wishlist remove
   const removeFromWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -257,23 +308,24 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
         return false;
       }
 
-      const response = await axios.delete(`${API_BASE}${WISHLIST_REMOVE_ENDPOINT}/${String(product.id)}`, {
+      const pid = String(product.id ?? product._id ?? '');
+      const response = await axios.delete(`${API_BASE}${WISHLIST_REMOVE_ENDPOINT}/${pid}`, {
         headers: { Authorization: `Bearer ${token}` },
         timeout: 10000,
       });
 
-      if (response.data && response.data.success) {
+      if (response?.data?.success) {
         setFavorites((prev) => {
           const n = new Set(prev);
-          n.delete(String(product.id));
+          n.delete(pid);
           return n;
         });
         return true;
       } else {
-        throw new Error(response.data?.message || 'Failed to remove from wishlist');
+        throw new Error(response?.data?.message || 'Failed to remove from wishlist');
       }
     } catch (err) {
-      console.error('❌ Error removing from wishlist:', err);
+      console.error('Error removing from wishlist:', err);
       Alert.alert('Error', err.response?.data?.message || 'Failed to remove from wishlist');
       return false;
     }
@@ -288,7 +340,8 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
         const ok = await removeFromWishlist(product);
         if (ok) Alert.alert('Removed', 'Product removed from wishlist');
       } else {
-        await addToWishlist(product);
+        const ok = await addToWishlist(product);
+        if (ok) Alert.alert('Added', 'Product added to wishlist');
       }
     } catch (err) {
       console.error('Error in favorite press:', err);
@@ -318,6 +371,7 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
   // On product press -> navigate to ViewProduct
   const onProductPress = (product) => {
     try {
+      // Navigate and pass product object for faster rendering in details screen
       navigation.navigate('ViewProduct', { productId: String(product.id), product });
     } catch (err) {
       console.error('Navigation error to ViewProduct:', err);
@@ -327,6 +381,7 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
 
   const renderSuggestionCard = useCallback(
     ({ item }) => {
+      if (!item) return null;
       const inCart = !!cartItems[String(item.id)];
       const quantity = cartItems[String(item.id)] ? cartItems[String(item.id)].quantity : 0;
 
@@ -334,11 +389,11 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
         <View style={styles.itemWrapper}>
           <ProductCard
             id={String(item.id)}
-            title={item.name || item.title}
+            title={item.name}
             subtitle={item.variety || ''}
-            price={item.price || 0}
-            rating={item.rating || 0}
-            image={item.imageUrl || item.image || null}
+            price={item.price}
+            rating={item.rating}
+            image={item.image}
             isFavorite={favorites.has(String(item.id))}
             onPress={() => onProductPress(item)}
             onFavoritePress={() => handleFavoritePress(item.id)}
@@ -358,10 +413,12 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
     [favorites, products, cartItems]
   );
 
+  const title = useMemo(() => 'You May Also Like', []);
+
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>You May Also Like</Text>
+        <Text style={styles.title}>{title}</Text>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#4CAF50" />
         </View>
@@ -372,7 +429,7 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
   if (error) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>You May Also Like</Text>
+        <Text style={styles.title}>{title}</Text>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
         </View>
@@ -383,7 +440,7 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
   if (!products || products.length === 0) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>You May Also Like</Text>
+        <Text style={styles.title}>{title}</Text>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>No products available</Text>
         </View>
@@ -393,12 +450,12 @@ const SuggestionCard = ({ vendorId = '68d63155abec554d6931b766' }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>You May Also Like</Text>
+      <Text style={styles.title}>{title}</Text>
 
       <FlatList
         data={products}
         renderItem={renderSuggestionCard}
-        keyExtractor={(item) => String(item.id)}
+        keyExtractor={(item) => String(item?.id ?? item?._id ?? Math.random())}
         horizontal
         contentContainerStyle={styles.listContainer}
         showsHorizontalScrollIndicator={false}

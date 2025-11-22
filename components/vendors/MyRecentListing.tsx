@@ -265,6 +265,10 @@ const MyRecentListing = () => {
                 style={styles.itemImage} 
                 resizeMode="cover"
               />
+               <View style={{position:'absolute', flexDirection:'row',alignItems:'center',gap:5,backgroundColor:"rgba(141, 141, 141, 0.6)", bottom:5, left:5, borderRadius:10,paddingHorizontal:5}}>
+                <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
+                <Text style={{color:"#fff"}}>5.0</Text>
+               </View>
             </View>
 
             <View style={styles.textContainer}>
@@ -510,7 +514,7 @@ const styles = StyleSheet.create({
     gap: moderateScale(12),
   },
   imageContainer: {
-    width: scale(120),
+    width: scale(130),
     height: moderateScale(150),
   },
   itemImage: {
