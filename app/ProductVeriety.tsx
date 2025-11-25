@@ -5,16 +5,16 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import axios from 'axios';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, normalizeFont, scale } from './Responsive';
@@ -97,7 +97,7 @@ const ProductCard = ({
             <Image
               source={require("../assets/via-farm-img/icons/cardMap.png")}
             />
-            <Text style={{ fontSize: 12, color: '#444' }}>
+            <Text style={{ fontSize: normalizeFont(11) }}>
               {distance ?? "0.0 km"}
             </Text>
           </View>
@@ -538,7 +538,7 @@ const ProductVarieties = () => {
       {!loading && !error && (
         <>
           {filteredVarieties.length === 0 ? (
-            <View style={{ padding: 20, alignItems: 'center' }}>
+            <View style={{ padding: moderateScale(20), alignItems: 'center' }}>
               <Text style={{ color: '#444' }}>No products match "{query}"</Text>
             </View>
           ) : (
@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     color: '#222',
     paddingVertical: 0
   },
@@ -673,8 +673,8 @@ const cardStyles = StyleSheet.create({
   },
   favoriteButton: {
     position: 'absolute',
-    top: moderateScale(8),
-    right: moderateScale(8),
+    top: moderateScale(3),
+    right: moderateScale(3),
     borderRadius: 15,
     width: scale(30),
     height: scale(30),
@@ -702,13 +702,13 @@ const cardStyles = StyleSheet.create({
     padding: moderateScale(5),
   },
   productTitle: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     color: '#333',
   },
   productVeriety: {
     color: 'rgba(66, 66, 66, 0.7)',
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(11),
     paddingVertical: 1,
   },
   priceContainer: {
@@ -718,7 +718,7 @@ const cardStyles = StyleSheet.create({
     marginTop: moderateScale(4),
   },
   productUnit: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(11),
     color: '#666',
     marginLeft: 2,
   },

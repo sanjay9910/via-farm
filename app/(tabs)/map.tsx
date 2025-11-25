@@ -404,13 +404,15 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 6,
-    paddingVertical: moderateScale(8),
-    paddingHorizontal: moderateScale(6),
+    marginTop:moderateScale(10),
+    paddingVertical: moderateScale(3),
+    paddingHorizontal: moderateScale(2),
   },
   searchInput: {
     flex: 1,
     paddingHorizontal: moderateScale(10),
     height: scale(40),
+    fontSize:normalizeFont(12)
   },
   suggestionsBox: {
     marginTop: moderateScale(8),

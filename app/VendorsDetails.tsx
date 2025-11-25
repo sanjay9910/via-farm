@@ -18,7 +18,6 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import ProductCard from '../components/common/ProductCard';
 import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const { width } = Dimensions.get('window');
@@ -44,7 +43,7 @@ const FarmImage = ({ item, onPress }) => {
     <TouchableOpacity style={{ marginRight: 8 }} activeOpacity={0.85} onPress={() => onPress(uri)}>
       <Image
         source={{ uri }}
-        style={{ width: scale(80), height: scale(80), borderRadius:moderateScale(8), backgroundColor: '#eee' }}
+        style={{ width: scale(80), height: scale(80), borderRadius: moderateScale(8), backgroundColor: '#eee' }}
         resizeMode="cover"
       />
     </TouchableOpacity>
@@ -72,6 +71,156 @@ const ReviewCard = ({ item, onImagePress }) => (
   </TouchableOpacity>
 );
 
+/* ---------------------------
+   Inline ProductCard (copied from ProductVarieties)
+   Props:
+     - item
+     - isFavorite
+     - onToggleFavorite
+     - cartQuantity
+     - onAddToCart
+     - onUpdateQuantity
+     - onPress
+   --------------------------- */
+const ProductCardLocal = ({
+  item,
+  isFavorite,
+  onToggleFavorite,
+  cartQuantity,
+  onAddToCart,
+  onUpdateQuantity,
+  onPress
+}) => {
+  const inCart = (cartQuantity || 0) > 0;
+
+  const imageUri = item?.image
+    || (Array.isArray(item?.images) && item.images.length > 0 && item.images[0])
+    || "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image";
+
+  const distance =
+    item?.distanceFromVendor ??
+    item?.distance ??
+    item?.vendor?.distanceFromVendor ??
+    null;
+
+  const status = item?.status ?? (item?.stock === 0 ? "Out of Stock" : "In Stock");
+
+  const rating = (typeof item?.rating === "number") ? item.rating : (item?.rating ? Number(item.rating) : 0);
+
+  return (
+    <View style={[cardStyles.container]}>
+      <TouchableOpacity
+        style={cardStyles.card}
+        activeOpacity={0.85}
+        onPress={() => onPress && onPress(item)}
+      >
+        <View style={[cardStyles.imageContainer, { height: cardStyles.imageHeight }]}>
+          <Image
+            source={{ uri: imageUri }}
+            style={cardStyles.productImage}
+            resizeMode="cover"
+          />
+
+          <TouchableOpacity
+            style={cardStyles.favoriteButton}
+            activeOpacity={0.7}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              onToggleFavorite && onToggleFavorite(item);
+            }}
+          >
+            <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={23}
+              color={isFavorite ? '#ff4444' : '#fff'}
+            />
+          </TouchableOpacity>
+
+          <View style={cardStyles.ratingContainer}>
+            <Ionicons name="star" size={12} color="#FFD700" />
+            <Text style={cardStyles.ratingText}>
+              {rating ? Number(rating).toFixed(1) : "0.0"}
+            </Text>
+          </View>
+        </View>
+
+        <View style={cardStyles.cardContent}>
+          <Text style={cardStyles.productTitle} numberOfLines={1}>
+            {item?.name ?? "Unnamed product"}
+          </Text>
+
+          <Text style={cardStyles.productVeriety} numberOfLines={1}>
+            Variety: {item?.variety ?? "Unnamed product"}
+          </Text>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <Image
+              source={require("../assets/via-farm-img/icons/cardMap.png")}
+            />
+            <Text style={{ fontSize: 12, color: '#444' }}>
+              {distance ?? "0.0 km"}
+            </Text>
+          </View>
+
+          <View style={cardStyles.priceContainer}>
+            <Text style={cardStyles.productUnit}>₹{item?.price ?? "0"}</Text>
+            <Text style={cardStyles.productUnit}>/{item?.unit ?? "unit"}</Text>
+            {item?.weightPerPiece ? <Text style={cardStyles.productUnit}>{item.weightPerPiece}</Text> : null}
+          </View>
+
+          <View style={cardStyles.buttonContainer}>
+            {!inCart ? (
+              <TouchableOpacity
+                style={[
+                  cardStyles.addToCartButton,
+                  status !== "In Stock" && cardStyles.disabledButton
+                ]}
+                activeOpacity={0.8}
+                disabled={status !== "In Stock"}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  onAddToCart && onAddToCart(item);
+                }}
+              >
+                <Text style={cardStyles.addToCartText}>
+                  {status === "In Stock" ? "Add to Cart" : status}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={cardStyles.quantityContainer}>
+                <TouchableOpacity
+                  style={cardStyles.quantityButton}
+                  onPress={(e) => {
+                    e.stopPropagation?.();
+                    onUpdateQuantity && onUpdateQuantity(item, -1);
+                  }}
+                >
+                  <Ionicons name="remove" size={16} color="rgba(76, 175, 80, 1)" />
+                </TouchableOpacity>
+                <View style={cardStyles.quantityValueContainer}>
+                  <Text style={cardStyles.quantityText}>{cartQuantity}</Text>
+                </View>
+                <TouchableOpacity
+                  style={cardStyles.quantityButton}
+                  onPress={(e) => {
+                    e.stopPropagation?.();
+                    onUpdateQuantity && onUpdateQuantity(item, 1);
+                  }}
+                >
+                  <Ionicons name="add" size={16} color="rgba(76, 175, 80, 1)" />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+/* ---------------------------
+   VendorsDetails main component
+   --------------------------- */
 const VendorsDetails = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
@@ -255,7 +404,7 @@ const VendorsDetails = () => {
         name: product.name,
         image: product.images?.[0] || product.image || '',
         price: product.price,
-        category: product.category || 'Uncategorized',
+        category: product.categoryName || 'Uncategorized',
         variety: product.variety || 'Standard',
         unit: product.unit || 'kg'
       };
@@ -471,7 +620,7 @@ const VendorsDetails = () => {
   }, []);
 
   const ListHeader = () => (
-    <View style={{ width: '100%', paddingBottom: moderateScale(10), backgroundColor: '#fff' }}>
+    <View style={{ width: '100%', paddingBottom: moderateScale(10), backgroundColor: '#fff', overflow: 'visible', zIndex: 9999, elevation: 999 }}>
       <View style={styles.imageBox}>
         <Image source={{ uri: image }} style={styles.image} />
         <TouchableOpacity
@@ -481,7 +630,7 @@ const VendorsDetails = () => {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.cardContainer}>
+      <View style={[styles.cardContainer, { overflow: 'visible', zIndex: 9999, elevation: 999 }]}>
         <View style={styles.rowBetween}>
           <Text style={styles.vendorName}>{v.name}</Text>
           <View style={styles.ratingBox}>
@@ -513,13 +662,13 @@ const VendorsDetails = () => {
             }
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal:moderateScale(10) }}
+            contentContainerStyle={{ paddingHorizontal: moderateScale(10) }}
           />
         ) : null}
       </View>
 
       {allReviewImages.length > 0 && (
-        <View style={{ backgroundColor: '#fff', paddingVertical: moderateScale(10), }}>
+        <View style={{ backgroundColor: '#fff', paddingVertical: moderateScale(10),paddingLeft:moderateScale(10) }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={styles.sectionHeader}>Reviews <Text style={{ fontSize: normalizeFont(12), fontWeight: (400), }}>({reviews.length} reviews)</Text> </Text>
             <TouchableOpacity
@@ -558,7 +707,7 @@ const VendorsDetails = () => {
             keyExtractor={(item, index) => (item?._id ? item._id.toString() : index.toString())}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: moderateScale(10),marginLeft:moderateScale(10) }}
+            contentContainerStyle={{ paddingHorizontal: moderateScale(10), marginLeft: moderateScale(10) }}
           />
         ) : (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -574,11 +723,11 @@ const VendorsDetails = () => {
         )}
       </View>
 
-      <View style={styles.productsHeaderContainer}>
+      <View style={[styles.productsHeaderContainer, { zIndex: 9999, elevation: 999 }]}>
         <Text style={[styles.sectionHeader, { marginLeft: 0, marginVertical: 0 }]}>
           Listing Product
         </Text>
-        <View style={styles.filterWrapper}>
+        <View style={[styles.filterWrapper, { zIndex: 9999, elevation: 999 }]}>
           <TouchableOpacity
             style={styles.filterBtn}
             onPress={toggleDropdown}
@@ -600,6 +749,12 @@ const VendorsDetails = () => {
                 height: animation.interpolate({ inputRange: [0, 1], outputRange: [0, moderateScale(240)] }),
                 borderWidth: animation.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }),
                 opacity: animation,
+                zIndex: 99999,
+                elevation: 999,
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top:-208,
               },
             ]}
           >
@@ -649,22 +804,16 @@ const VendorsDetails = () => {
           const isFavorite = favorites.has(productId);
           const cartQuantity = cartItems[productId]?.quantity || 0;
 
+          // Use the local ProductCard implementation
           return (
-            <ProductCard
-              id={item?._id}
-              title={item?.name || 'Unnamed Product'}
-              subtitle={item?.variety || ''}
-              distance={item?.distance || ''}
-              price={item?.price || 0}
-              rating={item?.rating || 0}
-              image={item?.images?.[0] || 'https://via.placeholder.com/150'}
-              width={CARD_WIDTH}
-              onPress={() => openProductDetails(item)}
-              onAddToCart={() => handleAddToCart(item)}
-              onToggleFavorite={() => handleToggleFavorite(item)}
-              onUpdateQuantity={(diff) => handleUpdateQuantity(item, diff)}
-              cartQuantity={cartQuantity}
+            <ProductCardLocal
+              item={item}
               isFavorite={isFavorite}
+              onToggleFavorite={handleToggleFavorite}
+              cartQuantity={cartQuantity}
+              onAddToCart={handleAddToCart}
+              onUpdateQuantity={handleUpdateQuantity}
+              onPress={openProductDetails}
             />
           );
         }}
@@ -844,12 +993,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderColor: 'rgba(66, 66, 66, 0.7)',
     borderRadius: moderateScale(6),
-    position: 'absolute',
-    top: moderateScale(35),
-    left: 0,
-    right: 0,
-    zIndex: 1000,
-    elevation: 10,
+    zIndex: 99999,
+    elevation: 999,
+    // iOS shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
   },
   dropdownScrollContent: {
     paddingVertical: moderateScale(6),
@@ -900,13 +1050,6 @@ const styles = StyleSheet.create({
     color: "#444",
     fontSize: normalizeFont(11),
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: moderateScale(12),
-    paddingVertical: moderateScale(8),
-    gap: 8,
-  },
   // Image Viewer Styles
   imageViewerContainer: {
     flex: 1,
@@ -942,6 +1085,151 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+});
+
+/* ---------------------------
+   cardStyles copied from ProductVarieties
+   --------------------------- */
+const cardStyles = StyleSheet.create({
+  container: {
+    width: Dimensions.get("window").width / 2 - 25,
+    marginLeft: moderateScale(5),
+    marginTop: moderateScale(10),
+    marginBottom: moderateScale(5),
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: moderateScale(5),
+    shadowColor: 'rgba(0, 0, 0, 0.2)',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderWidth: 2,
+    borderColor: 'rgba(0, 0, 0, 0.2)',
+    elevation: 7,
+  },
+  imageContainer: {
+    position: 'relative',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    overflow: 'hidden',
+  },
+  imageHeight: scale(120),
+  productImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: moderateScale(3),
+    right: moderateScale(3),
+    borderRadius: 15,
+    width: scale(30),
+    height: scale(30),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ratingContainer: {
+    position: 'absolute',
+    bottom: moderateScale(8),
+    left: moderateScale(8),
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: moderateScale(6),
+    paddingVertical: moderateScale(2),
+    borderRadius: moderateScale(12),
+  },
+  ratingText: {
+    color: '#fff',
+    fontSize: normalizeFont(11),
+    marginLeft: 2,
+    fontWeight: '500',
+  },
+  cardContent: {
+    padding: moderateScale(5),
+  },
+  productTitle: {
+    fontSize: normalizeFont(14),
+    fontWeight: '600',
+    color: '#333',
+  },
+  productVeriety: {
+    color: 'rgba(66, 66, 66, 0.7)',
+    fontSize: normalizeFont(12),
+    paddingVertical: 1,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: moderateScale(6),
+    marginTop: moderateScale(4),
+  },
+  productUnit: {
+    fontSize: normalizeFont(12),
+    color: '#666',
+    marginLeft: 2,
+  },
+  buttonContainer: {
+    minHeight: scale(26),
+    maxWidth: scale(158),
+    justifyContent: 'center',
+  },
+  addToCartButton: {
+    backgroundColor: 'rgba(76, 175, 80, 1)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(20),
+    borderRadius: 10,
+  },
+  disabledButton: {
+    backgroundColor: '#cccccc',
+  },
+  addToCartText: {
+    color: '#fff',
+    fontSize: normalizeFont(12),
+    fontWeight: '500',
+  },
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: 'rgba(76, 175, 80, 1)',
+    borderRadius: 10,
+    paddingHorizontal: moderateScale(4),
+    height: scale(36),
+    minWidth: scale(100),
+    backgroundColor: '#fff',
+  },
+  quantityButton: {
+    width: scale(36),
+    height: scale(36),
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
+  },
+  quantityValueContainer: {
+    minWidth: scale(48),
+    paddingHorizontal: moderateScale(6),
+    height: scale(36),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(76, 175, 80, 1)',
+    flexDirection: 'row',
+  },
+  quantityText: {
+    fontSize: normalizeFont(16),
+    color: 'rgba(76, 175, 80, 1)',
+    fontWeight: '600',
+    textAlign: 'center',
+    includeFontPadding: false,
   },
 });
 

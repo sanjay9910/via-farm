@@ -304,7 +304,7 @@ const SmartPicks = () => {
           image: product.image || product.raw?.image,
           price: Number(product.price || 0),
           quantity: 1,
-          category: product.category || 'General',
+          category: product.categoryName || 'General',
           variety: product.subtitle || product.raw?.variety || 'Standard',
           unit: 'piece',
         };

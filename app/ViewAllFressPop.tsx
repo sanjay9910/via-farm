@@ -29,7 +29,17 @@ const ProductCard = ({
   onUpdateQuantity,
   onPress, // <-- handler when card pressed
 }) => {
-  const inCart = cartQuantity > 0;
+  const qty = cartQuantity || 0;
+  const inCart = qty > 0;
+
+  const imageUri =
+    item?.images && Array.isArray(item.images) && item.images.length > 0
+      ? item.images[0]
+      : item?.image ||
+        "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image";
+
+  const rating = (item?.rating && Number(item.rating)) ? Number(item.rating) : 0;
+  const status = item?.status ?? (item?.stock === 0 ? "Out of Stock" : "In Stock");
 
   return (
     <View style={[cardStyles.container]}>
@@ -40,12 +50,7 @@ const ProductCard = ({
       >
         <View style={[cardStyles.imageContainer, { height: cardStyles.imageHeight }]}>
           <Image
-            source={{
-              uri:
-                item.images && item.images.length > 0
-                  ? item.images[0]
-                  : "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
-            }}
+            source={{ uri: imageUri }}
             style={cardStyles.productImage}
           />
 
@@ -69,46 +74,29 @@ const ProductCard = ({
           <View style={cardStyles.ratingContainer}>
             <Ionicons name="star" size={12} color="#FFD700" />
             <Text style={cardStyles.ratingText}>
-              {item.rating && item.rating > 0 ? Number(item.rating).toFixed(1) : "0.0"}
+              {rating ? rating.toFixed(1) : "0.0"}
             </Text>
           </View>
-
-          {/* Status Badge */}
-          {/* <View
-            style={[
-              cardStyles.statusBadge,
-              {
-                backgroundColor:
-                  item.status === "In Stock"
-                    ? "#4CAF50"
-                    : item.status === "Out of Stock"
-                      ? "#f44336"
-                      : "#ff9800",
-              },
-            ]}
-          >
-            <Text style={cardStyles.statusText}>{item.status}</Text>
-          </View> */}
         </View>
 
         <View style={cardStyles.cardContent}>
           <Text style={cardStyles.productTitle} numberOfLines={1}>
-            {item.name}
+            {item?.name || "Unnamed product"}
           </Text>
           <Text style={cardStyles.productSubtitle} numberOfLines={1}>
-            by {item.vendor?.name || "Unknown Vendor"}
+            by {item?.vendor?.name || "Unknown Vendor"}
           </Text>
 
           {/* Price and Unit in same line */}
           <View style={cardStyles.priceContainer}>
-            <Text style={cardStyles.productPrice}>₹{item.price}</Text>
-            <Text style={cardStyles.productUnit}>/{item.unit}</Text>
+            <Text style={cardStyles.productPrice}>₹{item?.price ?? "0"}</Text>
+            <Text style={cardStyles.productUnit}>/{item?.unit ?? "unit"}</Text>
           </View>
 
           {/* Variety */}
-          {item.variety && (
+          {item?.variety ? (
             <Text style={cardStyles.varietyText}>Variety: {item.variety}</Text>
-          )}
+          ) : null}
 
           {/* Add to Cart / Quantity Control */}
           <View style={cardStyles.buttonContainer}>
@@ -116,17 +104,17 @@ const ProductCard = ({
               <TouchableOpacity
                 style={[
                   cardStyles.addToCartButton,
-                  item.status !== "In Stock" && cardStyles.disabledButton
+                  status !== "In Stock" && cardStyles.disabledButton
                 ]}
                 activeOpacity={0.7}
-                disabled={item.status !== "In Stock"}
+                disabled={status !== "In Stock"}
                 onPress={(e) => {
                   e.stopPropagation?.();
                   onAddToCart && onAddToCart(item);
                 }}
               >
                 <Text style={cardStyles.addToCartText}>
-                  {item.status === "In Stock" ? "Add to Cart" : item.status}
+                  {status === "In Stock" ? "Add to Cart" : status}
                 </Text>
               </TouchableOpacity>
             ) : (
@@ -141,7 +129,7 @@ const ProductCard = ({
                   <Ionicons name="remove" size={16} color="rgba(76, 175, 80, 1)" />
                 </TouchableOpacity>
                 <View style={cardStyles.quantityValueContainer}>
-                  <Text style={cardStyles.quantityText}>{cartQuantity}</Text>
+                  <Text style={cardStyles.quantityText}>{qty}</Text>
                 </View>
                 <TouchableOpacity
                   style={cardStyles.quantityButton}
@@ -176,16 +164,13 @@ const ViewAllFressPop = () => {
       setError(null);
 
       const token = await AsyncStorage.getItem("userToken");
-      if (!token) {
-        console.warn("No user token found - calling endpoint without auth header");
-      }
-
       const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
       const res = await axios.get(`${API_BASE}/api/buyer/fresh-and-popular`, {
         headers,
         timeout: 10000,
       });
+
       let fetched = [];
       if (!res || !res.data) {
         fetched = [];
@@ -201,7 +186,7 @@ const ViewAllFressPop = () => {
         fetched = res.data.data || [];
       }
 
-      setItems(fetched);
+      setItems(Array.isArray(fetched) ? fetched : []);
     } catch (err) {
       console.error("Error fetching fresh & popular:", err);
       if (err.response?.status === 401) {
@@ -218,7 +203,7 @@ const ViewAllFressPop = () => {
     }
   };
 
-  // Wishlist and cart functions (reuse your existing endpoints)
+  // Wishlist and cart functions
   const fetchWishlist = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -230,7 +215,7 @@ const ViewAllFressPop = () => {
 
       if (response.data?.success) {
         const wishlistItems = response.data.data?.items || [];
-        const favoriteIds = new Set(wishlistItems.map(item => item.productId || item._id));
+        const favoriteIds = new Set(wishlistItems.map(item => item.productId || item._id || item.id));
         setFavorites(favoriteIds);
       }
     } catch (error) {
@@ -251,10 +236,10 @@ const ViewAllFressPop = () => {
         const items = response.data.data?.items || [];
         const cartMap = {};
         items.forEach(item => {
-          const productId = item.productId || item._id;
+          const productId = item.productId || item._id || item.id;
           cartMap[productId] = {
-            quantity: item.quantity || 1,
-            cartItemId: item._id || item.id
+            quantity: item.quantity || item.qty || 1,
+            cartItemId: item._id || item.id || item.cartItemId
           };
         });
         setCartItems(cartMap);
@@ -268,6 +253,7 @@ const ViewAllFressPop = () => {
     fetchFreshAndPopular();
     fetchWishlist();
     fetchCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Add to / remove from wishlist
@@ -282,7 +268,7 @@ const ViewAllFressPop = () => {
       const payload = {
         productId,
         name: product.name,
-        image: product.images?.[0] || '',
+        image: (product.images && product.images[0]) || product.image || '',
         price: product.price,
         category: product.category || '',
         variety: product.variety || '',
@@ -354,7 +340,7 @@ const ViewAllFressPop = () => {
       const payload = {
         productId,
         name: product.name,
-        image: product.images?.[0] || '',
+        image: (product.images && product.images[0]) || product.image || '',
         price: product.price,
         quantity: 1,
         category: product.category || '',
@@ -397,7 +383,7 @@ const ViewAllFressPop = () => {
       const currentItem = cartItems[productId];
       if (!currentItem) return;
 
-      const newQuantity = currentItem.quantity + change;
+      const newQuantity = (currentItem.quantity || 0) + change;
 
       if (newQuantity < 1) {
         const res = await axios.delete(`${API_BASE}/api/buyer/cart/${currentItem.cartItemId}`, {
@@ -410,9 +396,12 @@ const ViewAllFressPop = () => {
             return next;
           });
           Alert.alert('Removed', 'Item removed from cart');
+        } else {
+          await fetchCart();
+          Alert.alert('Error', 'Failed to remove item');
         }
       } else {
-        // optimistic
+        // optimistic UI update
         setCartItems(prev => ({
           ...prev,
           [productId]: { ...currentItem, quantity: newQuantity }
@@ -423,7 +412,6 @@ const ViewAllFressPop = () => {
         });
 
         if (!res.data?.success) {
-          // rollback
           setCartItems(prev => ({ ...prev, [productId]: currentItem }));
           Alert.alert('Error', 'Failed to update quantity');
         }
@@ -514,6 +502,13 @@ const ViewAllFressPop = () => {
             );
           }}
           columnWrapperStyle={{ justifyContent: "space-between" }}
+          ListEmptyComponent={() =>
+            !loading && (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <Text style={{ color: '#444' }}>No items found</Text>
+              </View>
+            )
+          }
         />
       )}
     </SafeAreaView>

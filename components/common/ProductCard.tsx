@@ -112,7 +112,7 @@ const ProductCard = ({
           <Text
             style={[
               styles.productTitle,
-              { fontSize: normalizeFont(14), height: verticalScale(20) },
+              { fontSize: normalizeFont(11), height: verticalScale(15) },
             ]}
             numberOfLines={1}
           >
@@ -121,14 +121,14 @@ const ProductCard = ({
           <Text
             style={[
               styles.productSubtitle,
-              { fontSize: normalizeFont(12), height: verticalScale(18) },
+              { fontSize: normalizeFont(11), height: verticalScale(15) },
             ]}
             numberOfLines={1}
           >
             by {subtitle}
           </Text>
           <Text
-            style={[styles.productPrice, { fontSize: normalizeFont(13) }]}
+            style={[styles.productPrice, { fontSize: normalizeFont(11) }]}
           >{`₹${price}`}</Text>
 
 
@@ -147,7 +147,7 @@ const ProductCard = ({
                 onPress={handleAddToCart}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.addToCartText, { fontSize: normalizeFont(14) }]}>
+                <Text style={[styles.addToCartText, { fontSize: normalizeFont(12) }]}>
                   Add to Cart
                 </Text>
               </TouchableOpacity>

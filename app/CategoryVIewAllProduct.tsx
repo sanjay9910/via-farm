@@ -723,8 +723,8 @@ const cardStyles = StyleSheet.create({
   },
   favoriteButton: {
     position: 'absolute',
-    top: moderateScale(8),
-    right: moderateScale(8),
+    top: moderateScale(2),
+    right: moderateScale(2),
     borderRadius: 15,
     width: scale(30),
     height: scale(30),

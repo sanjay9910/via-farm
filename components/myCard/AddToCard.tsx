@@ -74,7 +74,7 @@ const MyCart = () => {
   // Available coupons
   const availableCoupons = [
     { code: 'SAVE10', discount: 10, type: 'percentage' },
-    { code: 'SAVE20', discount: 20, type: 'percentage' },
+    { code: 'SAVE20', discount: 70, type: 'percentage' },
     { code: 'FREESHIP', discount: 50, type: 'fixed' },
   ];
 

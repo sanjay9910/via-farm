@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import axios from 'axios';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -26,7 +26,8 @@ const guidelineBaseWidth = 375;
 const guidelineBaseHeight = 812;
 const scale = (size) => (SCREEN_WIDTH / guidelineBaseWidth) * size;
 const verticalScale = (size) => (SCREEN_HEIGHT / guidelineBaseHeight) * size;
-const moderateScale = (size, factor = 0.5) => size + (scale(size) - size) * factor;
+const moderateScale = (size, factor = 0.5) =>
+  size + (scale(size) - size) * factor;
 const normalizeFont = (size) => {
   const newSize = moderateScale(size);
   if (Platform.OS === 'ios') {
@@ -35,19 +36,16 @@ const normalizeFont = (size) => {
     return Math.round(PixelRatio.roundToNearestPixel(newSize)) - 1;
   }
 };
-// -----------------------------------------
 
-/**
- * SuggestionCard
- * - Fetches a product by productId and displays recommendedProducts in a horizontal carousel.
- * - Props:
- *    - productId (string): id of the product whose recommendedProducts should be used.
- */
-const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
+const SuggestionCard = ({ productId: propProductId }) => {
   const navigation = useNavigation();
+  const route = useRoute();
+
+  // ✅ yahan se final productId decide hoga
+  const productId = propProductId || route?.params?.productId;
 
   const [favorites, setFavorites] = useState(new Set());
-  const [products, setProducts] = useState([]); 
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [cartItems, setCartItems] = useState({});
@@ -55,12 +53,25 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
   // combine dependencies that should trigger reload
   useEffect(() => {
     let mounted = true;
+
     const loadAll = async () => {
+      // agar productId hi nahi mila to kuch mat call karo
+      if (!productId) {
+        setLoading(false);
+        setProducts([]);
+        return;
+      }
+
       setLoading(true);
       setError(null);
-      await Promise.all([fetchProductAndRecommendations(productId, mounted), fetchWishlist(), fetchCart()]);
+      await Promise.all([
+        fetchProductAndRecommendations(productId, mounted),
+        fetchWishlist(),
+        fetchCart(),
+      ]);
       if (mounted) setLoading(false);
     };
+
     loadAll();
     return () => {
       mounted = false;
@@ -70,12 +81,14 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
   // Fetch product detail and recommendedProducts (defensive parsing)
   const fetchProductAndRecommendations = async (pid, mounted = true) => {
     try {
+      if (!pid) return;
+
       setError(null);
       const token = await AsyncStorage.getItem('userToken');
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers.Authorization = `Bearer ${token}`;
 
-      // This endpoint was used in your example: /api/buyer/products/{id}
+      // ✅ yahan API dynamic hai: /api/buyer/products/${pid}
       const url = `${API_BASE}/api/buyer/products/${pid}`;
       const resp = await axios.get(url, { headers, timeout: 10000 });
 
@@ -83,24 +96,25 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
       const recommended =
         resp?.data?.data?.recommendedProducts ||
         resp?.data?.recommendedProducts ||
-        resp?.data?.data?.recommendedProducts ||
-        resp?.data?.data?.recommendedProducts ||
         resp?.data?.products ||
         resp?.data?.data?.product?.recommendedProducts ||
         [];
 
       // recommended might be array of items where category may be object or string
       const normalized = Array.isArray(recommended)
-        ? recommended.map((p) => normalizeProductObject(p))
+        ? recommended.map((p) => normalizeProductObject(p)).filter(Boolean)
         : [];
 
       if (mounted) {
-        setProducts(normalized);
-        if (!normalized || normalized.length === 0) {
-          // fallback: sometimes API returns single product under data.product -> show similar or product itself
+        if (normalized && normalized.length > 0) {
+          setProducts(normalized);
+        } else {
+          // fallback: sometimes API returns single product under data.product
           const single = resp?.data?.data?.product || resp?.data?.product;
           if (single && typeof single === 'object') {
-            const fallbackArr = [normalizeProductObject(single)];
+            const fallbackArr = [normalizeProductObject(single)].filter(
+              Boolean
+            );
             setProducts(fallbackArr);
           } else {
             setProducts([]);
@@ -111,7 +125,9 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
       console.error('Error fetching product/recommended:', err);
       if (mounted) {
         setProducts([]);
-        setError(err?.response?.data?.message || 'Failed to load suggestions');
+        setError(
+          err?.response?.data?.message || 'Failed to load suggestions'
+        );
       }
     }
   };
@@ -120,9 +136,25 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
   const normalizeProductObject = (p) => {
     if (!p) return null;
     const id = String(p._id ?? p.id ?? p.productId ?? '');
+    if (!id) return null;
+
     const images = p.images ?? p.imageUrls ?? p.photos ?? [];
-    const image = Array.isArray(images) && images.length > 0 ? images[0] : p.imageUrl ?? p.image ?? null;
-    const category = typeof p.category === 'object' ? (p.category.name ?? p.category) : p.category ?? 'General';
+    const image =
+      Array.isArray(images) && images.length > 0
+        ? images[0]
+        : p.imageUrl ?? p.image ?? null;
+
+    const category =
+      typeof p.category === 'object'
+        ? p.category.name ?? p.category
+        : p.category ?? 'General';
+
+    // ✅ yahan se vendor ka name nikal rahe hain (recommendedProducts me `vendor.name` aata hai)
+    const vendorName =
+      p.vendor?.name ||
+      p.vendorName ||
+      '';
+
     return {
       id,
       name: p.name ?? p.title ?? '',
@@ -133,6 +165,7 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
       image,
       rating: p.rating ?? 0,
       category,
+      vendorName, // ✅ yahi use hoga card me
       raw: p,
     };
   };
@@ -187,8 +220,13 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
       });
 
       if (response?.data?.success) {
-        const wishlistItems = (response.data.data && response.data.data.items) || [];
-        const favSet = new Set(wishlistItems.map((it) => String(it.productId ?? it.product?._id ?? it._id ?? it.id)));
+        const wishlistItems =
+          (response.data.data && response.data.data.items) || [];
+        const favSet = new Set(
+          wishlistItems.map((it) =>
+            String(it.productId ?? it.product?._id ?? it._id ?? it.id)
+          )
+        );
         setFavorites(favSet);
       } else {
         setFavorites(new Set());
@@ -221,27 +259,45 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
         unit: product.unit || 'piece',
       };
 
-      const response = await axios.post(`${API_BASE}${CART_ADD_ENDPOINT}`, cartData, {
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        timeout: 10000,
-      });
+      const response = await axios.post(
+        `${API_BASE}${CART_ADD_ENDPOINT}`,
+        cartData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          timeout: 10000,
+        }
+      );
 
       if (response?.data?.success) {
         Alert.alert('Success', 'Product added to cart!');
         await fetchCart();
         return true;
       } else {
-        throw new Error(response?.data?.message || 'Failed to add to cart');
+        throw new Error(
+          response?.data?.message || 'Failed to add to cart'
+        );
       }
     } catch (err) {
       console.error('Error adding to cart:', err);
       if (err.response?.status === 400) {
-        Alert.alert('Info', err.response?.data?.message || 'Product is already in your cart');
+        Alert.alert(
+          'Info',
+          err.response?.data?.message || 'Product is already in your cart'
+        );
         await fetchCart();
       } else if (err.response?.status === 401) {
-        Alert.alert('Login Required', 'Please login to add items to cart');
+        Alert.alert(
+          'Login Required',
+          'Please login to add items to cart'
+        );
       } else {
-        Alert.alert('Error', err.response?.data?.message || 'Failed to add to cart');
+        Alert.alert(
+          'Error',
+          err.response?.data?.message || 'Failed to add to cart'
+        );
       }
       return false;
     }
@@ -252,7 +308,10 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
-        Alert.alert('Login Required', 'Please login to add items to wishlist');
+        Alert.alert(
+          'Login Required',
+          'Please login to add items to wishlist'
+        );
         return false;
       }
 
@@ -266,10 +325,17 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
         unit: product.unit || 'piece',
       };
 
-      const response = await axios.post(`${API_BASE}${WISHLIST_ADD_ENDPOINT}`, payload, {
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        timeout: 10000,
-      });
+      const response = await axios.post(
+        `${API_BASE}${WISHLIST_ADD_ENDPOINT}`,
+        payload,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          timeout: 10000,
+        }
+      );
 
       if (response?.data?.success) {
         setFavorites((prev) => {
@@ -279,21 +345,32 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
         });
         return true;
       } else {
-        throw new Error(response?.data?.message || 'Failed to add to wishlist');
+        throw new Error(
+          response?.data?.message || 'Failed to add to wishlist'
+        );
       }
     } catch (err) {
       console.error('Error adding to wishlist:', err);
       if (err.response?.status === 400) {
-        Alert.alert('Info', err.response?.data?.message || 'Product already in wishlist');
+        Alert.alert(
+          'Info',
+          err.response?.data?.message || 'Product already in wishlist'
+        );
         setFavorites((prev) => {
           const n = new Set(prev);
           n.add(String(product.id ?? product._id ?? ''));
           return n;
         });
       } else if (err.response?.status === 401) {
-        Alert.alert('Login Required', 'Please login to add items to wishlist');
+        Alert.alert(
+          'Login Required',
+          'Please login to add items to wishlist'
+        );
       } else {
-        Alert.alert('Error', err.response?.data?.message || 'Failed to add to wishlist');
+        Alert.alert(
+          'Error',
+          err.response?.data?.message || 'Failed to add to wishlist'
+        );
       }
       return false;
     }
@@ -304,15 +381,21 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
-        Alert.alert('Login Required', 'Please login to manage wishlist');
+        Alert.alert(
+          'Login Required',
+          'Please login to manage wishlist'
+        );
         return false;
       }
 
       const pid = String(product.id ?? product._id ?? '');
-      const response = await axios.delete(`${API_BASE}${WISHLIST_REMOVE_ENDPOINT}/${pid}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 10000,
-      });
+      const response = await axios.delete(
+        `${API_BASE}${WISHLIST_REMOVE_ENDPOINT}/${pid}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 10000,
+        }
+      );
 
       if (response?.data?.success) {
         setFavorites((prev) => {
@@ -322,18 +405,25 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
         });
         return true;
       } else {
-        throw new Error(response?.data?.message || 'Failed to remove from wishlist');
+        throw new Error(
+          response?.data?.message || 'Failed to remove from wishlist'
+        );
       }
     } catch (err) {
       console.error('Error removing from wishlist:', err);
-      Alert.alert('Error', err.response?.data?.message || 'Failed to remove from wishlist');
+      Alert.alert(
+        'Error',
+        err.response?.data?.message || 'Failed to remove from wishlist'
+      );
       return false;
     }
   };
 
   const handleFavoritePress = async (productId) => {
     try {
-      const product = products.find((p) => String(p.id) === String(productId));
+      const product = products.find(
+        (p) => String(p.id) === String(productId)
+      );
       if (!product) return;
 
       if (favorites.has(String(productId))) {
@@ -350,11 +440,16 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
 
   const handleAddToCart = async (productId) => {
     try {
-      const product = products.find((p) => String(p.id) === String(productId));
+      const product = products.find(
+        (p) => String(p.id) === String(productId)
+      );
       if (!product) return;
 
       if (cartItems[String(productId)]) {
-        Alert.alert('Already in Cart', 'This product is already in your cart');
+        Alert.alert(
+          'Already in Cart',
+          'This product is already in your cart'
+        );
         return;
       }
 
@@ -371,8 +466,10 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
   // On product press -> navigate to ViewProduct
   const onProductPress = (product) => {
     try {
-      // Navigate and pass product object for faster rendering in details screen
-      navigation.navigate('ViewProduct', { productId: String(product.id), product });
+      navigation.navigate('ViewProduct', {
+        productId: String(product.id),
+        product,
+      });
     } catch (err) {
       console.error('Navigation error to ViewProduct:', err);
       Alert.alert('Error', 'Unable to open product details.');
@@ -383,14 +480,22 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
     ({ item }) => {
       if (!item) return null;
       const inCart = !!cartItems[String(item.id)];
-      const quantity = cartItems[String(item.id)] ? cartItems[String(item.id)].quantity : 0;
+      const quantity = cartItems[String(item.id)]
+        ? cartItems[String(item.id)].quantity
+        : 0;
+
+      // ✅ variety + vendorName dono ek line me (subtitle)
+      const subtitleParts = [];
+      if (item.variety) subtitleParts.push(item.variety);
+      if (item.vendorName) subtitleParts.push(item.vendorName);
+      const subtitleText = subtitleParts.join(' • ');
 
       return (
         <View style={styles.itemWrapper}>
           <ProductCard
             id={String(item.id)}
             title={item.name}
-            subtitle={item.variety || ''}
+            subtitle={subtitleText} // yahi pe vendor ka naam dikhega
             price={item.price}
             rating={item.rating}
             image={item.image}
@@ -409,7 +514,6 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
         </View>
       );
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [favorites, products, cartItems]
   );
 
@@ -455,11 +559,15 @@ const SuggestionCard = ({ productId = '69216b9fc2ced29b3d3c7128' }) => {
       <FlatList
         data={products}
         renderItem={renderSuggestionCard}
-        keyExtractor={(item) => String(item?.id ?? item?._id ?? Math.random())}
+        keyExtractor={(item) =>
+          String(item?.id ?? item?._id ?? Math.random())
+        }
         horizontal
         contentContainerStyle={styles.listContainer}
         showsHorizontalScrollIndicator={false}
-        ItemSeparatorComponent={() => <View style={{ width: Math.round(moderateScale(12)) }} />}
+        ItemSeparatorComponent={() => (
+          <View style={{ width: Math.round(moderateScale(12)) }} />
+        )}
       />
     </View>
   );
@@ -469,22 +577,22 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
     paddingVertical: Math.round(verticalScale(8)),
-    paddingHorizontal: 0, // <-- left/right 0
+    paddingHorizontal: 0,
   },
   title: {
     fontSize: normalizeFont(15),
     fontWeight: '600',
     color: '#333',
     marginBottom: Math.round(verticalScale(8)),
-    paddingHorizontal: 0, // <-- left/right 0
+    paddingHorizontal: 0,
     alignSelf: 'flex-start',
-    marginLeft: Math.round(moderateScale(10)), // small indent for title readability; set to 0 if you want exact edge
+    marginLeft: Math.round(moderateScale(10)),
   },
   listContainer: {
-    paddingHorizontal: 0, // <-- ensure flatlist has no outer padding
+    paddingHorizontal: 0,
   },
   itemWrapper: {
-    marginHorizontal: 0, // ensure card wrapper has no extra margins
+    marginHorizontal: 0,
   },
   loadingContainer: {
     height: Math.round(verticalScale(180)),
