@@ -1,3 +1,4 @@
+// AllRecently.js — Updated card styling to match screenshot exactly
 import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -78,18 +79,17 @@ const AllRecently = () => {
       });
 
       if (res.data.success) {
-        const formattedData = res.data.products.map((product) => ({
+        const formattedData = (res.data.products || []).map((product) => ({
           id: product._id,
           name: product.name,
           price: product.price,
           quantity: product.quantity,
           unit: product.unit || "",
           weightPerPiece: product.weightPerPiece || "",
-          uploadedOn: new Date(product.datePosted).toLocaleDateString(),
+          uploadedOn: product.datePosted ? new Date(product.datePosted).toLocaleDateString() : "",
           image: product.images && product.images.length ? product.images[0] : "",
           status: product.status || "In Stock",
-          category: product.category || "Fruits",
-          // include raw product in case we want to pass whole object
+          category: product.category || "Fruit",
           _raw: product,
         }));
         setListingsData(formattedData);
@@ -360,93 +360,92 @@ const AllRecently = () => {
     }
   };
 
-  // Render card — DESIGN MATCHED to MyRecentListing card style
+  // Render card — DESIGN MATCHED to screenshot
   const renderCard = (item) => {
-    const circleColor = item.status?.toLowerCase() === "in stock" ? "#22c55e" : "#ef4444";
+    const lower = (item.status || "").toLowerCase();
+    const circleColor = lower.includes("in stock") ? "#22c55e" : "#ef4444";
     const isCurrentlyUpdating = updatingStock && currentProductId === item.id;
 
     return (
       <TouchableOpacity
         key={item.id}
-        activeOpacity={0.9}
+        activeOpacity={0.95}
         onPress={() => handleCardPress(item)}
         style={styles.listingCard}
       >
-        <View style={styles.cardContent}>
-          <View style={styles.imageContainer}>
+        <View style={styles.cardInner}>
+          {/* Left image */}
+          <View style={styles.leftImageWrap}>
             {item.image ? (
               <Image source={{ uri: item.image }} style={styles.itemImage} resizeMode="cover" />
             ) : (
-              <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+              <View style={styles.noImage}>
                 <Text style={{ color: "#999" }}>No image</Text>
               </View>
             )}
-            <View style={{ position: "absolute", flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(141, 141, 141, 0.6)", bottom: moderateScale(5), left: moderateScale(5), borderRadius: 10, paddingHorizontal: 5 }}>
-              <Image source={require("../assets/via-farm-img/icons/satar.png")} />
-              <Text style={{ color: "#fff" }}>5.0</Text>
+
+            {/* Rating badge bottom-left on image */}
+            <View style={styles.ratingBadge}>
+              <Image source={require("../assets/via-farm-img/icons/satar.png")} style={styles.starIcon} />
+              <Text style={styles.ratingText}>4.5</Text>
             </View>
           </View>
 
-          <View style={styles.textContainer}>
-            <View style={styles.headerRow}>
+          {/* Right content */}
+          <View style={styles.rightContent}>
+            <View style={styles.titleRow}>
               <Text style={styles.itemName} numberOfLines={1}>
                 {item.name}
               </Text>
 
-              <View style={styles.priceQuantityContainer}>
-                <TouchableOpacity
-                  ref={(ref) => {
-                    actionMenuRefs.current[item.id] = ref;
-                  }}
-                  style={styles.threeDotsButton}
-                  onPress={(e) => {
-                    // prevent card onPress from firing when pressing action menu
-                    e && e.stopPropagation && e.stopPropagation();
-                    openActionMenu(item.id);
-                  }}
-                >
-                  <Text style={styles.threeDotsText}>⋮</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                ref={(ref) => {
+                  actionMenuRefs.current[item.id] = ref;
+                }}
+                style={styles.dotsBtn}
+                onPress={(e) => {
+                  e && e.stopPropagation && e.stopPropagation();
+                  openActionMenu(item.id);
+                }}
+              >
+                <Text style={styles.dotsText}>⋮</Text>
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.startAllIndia}>
-              <Text style={styles.priceText}>{item.categories}</Text>
-              <Text style={styles.priceText}>₹{item.price}/{item.unit}</Text>
-              <Text style={styles.quantity}>{item.weightPerPiece}</Text>
+            {/* two-column rows (label : value) */}
+            {/* <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Category</Text>
+              <Text style={styles.infoSeparator}>:</Text>
+              <Text style={styles.infoValue}>{item.category}</Text>
+            </View> */}
+
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Price</Text>
+              <Text style={styles.infoSeparator}>:</Text>
+              <Text style={styles.infoValue}>₹{item.price}/{item.unit || "pc"}</Text>
             </View>
 
-            <View style={styles.detailsContainer}>
-              <Text style={styles.uploadLabel}>Uploaded on:</Text>
+            <View style={styles.uploadRow}>
+              <Text style={styles.uploadLabel}>Uploaded on</Text>
               <Text style={styles.uploadValue}>{item.uploadedOn}</Text>
             </View>
 
-            <View style={styles.editBtn}>
-              {/* Stock dropdown trigger */}
+            {/* Stock pill */}
+            <View style={styles.stockRow}>
               <TouchableOpacity
                 ref={(ref) => {
                   stockButtonRefs.current[item.id] = ref;
                 }}
-                style={[styles.dropdownBtn, isCurrentlyUpdating && styles.dropdownBtnDisabled]}
+                style={styles.stockPill}
                 onPress={(e) => {
-                  e && e.stopPropagation && e.stopPropagation(); // prevent card navigation
+                  e && e.stopPropagation && e.stopPropagation();
                   openStockDropdown(item.id);
                 }}
                 disabled={isCurrentlyUpdating}
               >
-                {isCurrentlyUpdating ? (
-                  <View style={styles.statusRow}>
-                    <ActivityIndicator size="small" color="rgba(255,202,40,1)" />
-                    <Text style={styles.statusTextUpdating}>Updating...</Text>
-                  </View>
-                ) : (
-                  <View style={styles.statusRow}>
-                    <View style={[styles.statusCircle, { backgroundColor: circleColor }]} />
-                    <Text style={[styles.statusText, { color: circleColor }]}>{item.status}</Text>
-                  </View>
-                )}
-
-                <Image source={require("../assets/via-farm-img/icons/downArrow.png")} />
+                <View style={[styles.stockDot, { backgroundColor: circleColor }]} />
+                <Text style={styles.stockText}>{item.status}</Text>
+                <Image source={require("../assets/via-farm-img/icons/downArrow.png")} style={styles.downIcon} />
               </TouchableOpacity>
             </View>
           </View>
@@ -484,7 +483,7 @@ const AllRecently = () => {
     <View style={styles.container}>
       {renderHeader()}
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: moderateScale(16), paddingBottom: moderateScale(24) }}>
         {filteredData.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No products found</Text>
@@ -500,7 +499,7 @@ const AllRecently = () => {
       </ScrollView>
 
       {/* Stock Dropdown Modal */}
-      <Modal visible={isStockDropdownOpen} transparent={true} animationType="fade" onRequestClose={() => setIsStockDropdownOpen(false)}>
+      <Modal visible={isStockDropdownOpen} transparent animationType="fade" onRequestClose={() => setIsStockDropdownOpen(false)}>
         <TouchableWithoutFeedback onPress={() => setIsStockDropdownOpen(false)}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
@@ -521,21 +520,16 @@ const AllRecently = () => {
       </Modal>
 
       {/* Category Dropdown Modal */}
-      <Modal visible={isCategoryDropdownOpen} transparent={true} animationType="fade" onRequestClose={() => setIsCategoryDropdownOpen(false)}>
+      <Modal visible={isCategoryDropdownOpen} transparent animationType="fade" onRequestClose={() => setIsCategoryDropdownOpen(false)}>
         <TouchableWithoutFeedback onPress={() => setIsCategoryDropdownOpen(false)}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
               <View style={[styles.categoryDropdown, { position: "absolute", top: categoryDropdownPosition.y, left: categoryDropdownPosition.x, maxHeight: scale(300) }]}>
-                <ScrollView showsVerticalScrollIndicator={true} scrollEnabled={true}>
+                <ScrollView showsVerticalScrollIndicator>
                   {categories.map((category, index) => (
                     <View key={category}>
-                      <TouchableOpacity
-                        style={[styles.categoryOption, category === selectedCategory && styles.categoryOptionSelected]}
-                        onPress={() => handleCategorySelect(category)}
-                      >
-                        <Text style={[styles.categoryOptionText, category === selectedCategory && styles.categoryOptionTextSelected]}>
-                          {category}
-                        </Text>
+                      <TouchableOpacity style={[styles.categoryOption, category === selectedCategory && styles.categoryOptionSelected]} onPress={() => handleCategorySelect(category)}>
+                        <Text style={[styles.categoryOptionText, category === selectedCategory && styles.categoryOptionTextSelected]}>{category}</Text>
                       </TouchableOpacity>
                       {index < categories.length - 1 && <View style={styles.categoryDivider} />}
                     </View>
@@ -548,7 +542,7 @@ const AllRecently = () => {
       </Modal>
 
       {/* Action Menu Modal (3 dots) */}
-      <Modal visible={isActionMenuOpen} transparent={true} animationType="fade" onRequestClose={() => setIsActionMenuOpen(false)}>
+      <Modal visible={isActionMenuOpen} transparent animationType="fade" onRequestClose={() => setIsActionMenuOpen(false)}>
         <TouchableWithoutFeedback onPress={() => setIsActionMenuOpen(false)}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
@@ -567,7 +561,7 @@ const AllRecently = () => {
       </Modal>
 
       {/* Product Edit Modal */}
-      {selectedProduct && <ProductModal visible={modalVisible} onClose={closeModal} onSubmit={submitModal} product={selectedProduct} />}
+      <ProductModal visible={modalVisible} onClose={closeModal} onSubmit={submitModal} product={selectedProduct} />
     </View>
   );
 };
@@ -578,6 +572,7 @@ export const styles = StyleSheet.create({
   container: {
     backgroundColor: "#fff",
     flex: 1,
+    marginTop: 50,
   },
   loadingContainer: {
     flex: 1,
@@ -608,16 +603,13 @@ export const styles = StyleSheet.create({
     fontSize: normalizeFont(12),
     color: "#666",
     textAlign: "center",
-    // lineHeight: moderateScale(20),
   },
 
-  // Header Styles
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: moderateScale(13),
-    // marginTop: moderateScale(50),
     paddingVertical: moderateScale(10),
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#e0e0e0",
@@ -633,27 +625,26 @@ export const styles = StyleSheet.create({
     marginRight: moderateScale(12),
   },
   headerTitle: {
-    fontSize: normalizeFont(12),
-    fontWeight: "600",
+    fontSize: normalizeFont(16),
+    fontWeight: "700",
     color: "#333",
   },
   categoryDropdownButton: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: moderateScale(12),
-    paddingVertical: moderateScale(10),
+    paddingVertical: moderateScale(8),
     borderRadius: moderateScale(12),
-    borderWidth:1,
-    borderColor:'rgba(0, 0, 0, 0.3)',
-    minWidth: moderateScale(100),
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.3)",
+    minWidth: moderateScale(120),
   },
   categoryDropdownText: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     fontWeight: "500",
     color: "#333",
     marginRight: moderateScale(8),
-    minWidth: moderateScale(90),
-    maxWidth: moderateScale(90),
+    maxWidth: moderateScale(120),
   },
   dropdownArrow: {
     fontSize: normalizeFont(12),
@@ -661,142 +652,165 @@ export const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-  // Card Styles (DESIGN MATCHED)
+  // Card
   listingCard: {
     backgroundColor: "#fff",
-    borderRadius: moderateScale(8),
-    marginBottom: moderateScale(16),
-    borderWidth: moderateScale(1),
-    borderColor: "rgba(255, 202, 40, 1)",
-    width: width * 0.9,
+    borderRadius: moderateScale(12),
+    marginBottom: moderateScale(14),
+    borderWidth: 1.5,
+    borderColor: "rgba(255,202,40,1)", // #FFCA28
+    width: width * 0.95,
     alignSelf: "center",
+    overflow: "hidden",
   },
-  cardContent: {
+  cardInner: {
     flexDirection: "row",
     alignItems: "center",
-    gap: moderateScale(12),
+    padding: moderateScale(10),
   },
-  imageContainer: {
-    width: moderateScale(135),
-    height: moderateScale(170),
+
+  // Left image block
+  leftImageWrap: {
+    width: moderateScale(110),
+    height: moderateScale(110),
+    borderRadius: moderateScale(8),
+    overflow: "hidden",
+    backgroundColor: "#f3f3f3",
   },
   itemImage: {
     width: "100%",
     height: "100%",
-    borderTopLeftRadius: moderateScale(6),
-    borderBottomLeftRadius: moderateScale(6),
   },
-  textContainer: {
+  noImage: {
     flex: 1,
-    // paddingRight: moderateScale(12),
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
-    // marginBottom: moderateScale(8),
+  },
+
+  ratingBadge: {
+    position: "absolute",
+    left: moderateScale(6),
+    bottom: moderateScale(6),
+    backgroundColor: "rgba(141,141,141,0.6)",
+    paddingHorizontal: moderateScale(6),
+    paddingVertical: moderateScale(4),
+    borderRadius: moderateScale(10),
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  starIcon: {
+    width: moderateScale(14),
+    height: moderateScale(14),
+  },
+  ratingText: {
+    color: "#fff",
+    marginLeft: moderateScale(6),
+    fontSize: normalizeFont(12),
+    fontWeight: "600",
+  },
+
+  // Right content
+  rightContent: {
+    flex: 1,
+    marginLeft: moderateScale(12),
+    justifyContent: "center",
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   itemName: {
-    fontSize: normalizeFont(15),
-    fontWeight: "600",
-    color: "#424242",
+    fontSize: normalizeFont(16),
+    fontWeight: "700",
+    color: "#222",
     flex: 1,
     marginRight: moderateScale(8),
   },
-  priceQuantityContainer: {
-    alignItems: "flex-end",
+  dotsBtn: {
+    paddingHorizontal: moderateScale(6),
+    paddingVertical: moderateScale(6),
   },
-  priceText: {
-    fontSize: normalizeFont(13),
-    fontWeight: "700",
-    color: "#2E7D32",
-  },
-  quantity: {
-    fontSize: normalizeFont(11),
+  dotsText: {
+    fontSize: normalizeFont(20),
     color: "#666",
-    marginTop: moderateScale(2),
+    fontWeight: "700",
   },
-  detailsContainer: {
+
+  // Label-value rows
+  infoRow: {
     flexDirection: "row",
-    gap: moderateScale(4),
-    marginBottom: moderateScale(4),
+    alignItems: "center",
+    marginTop: moderateScale(6),
+  },
+  infoLabel: {
+    width: moderateScale(72),
+    fontSize: normalizeFont(12),
+    color: "#666",
+    fontWeight: "500",
+  },
+  infoSeparator: {
+    width: moderateScale(8),
+    fontSize: normalizeFont(12),
+    color: "#666",
+    marginRight: moderateScale(6),
+    textAlign: "left",
+  },
+  infoValue: {
+    flex: 1,
+    fontSize: normalizeFont(13),
+    color: "#111",
+    fontWeight: "600",
+  },
+
+  uploadRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: moderateScale(8),
   },
   uploadLabel: {
     fontSize: normalizeFont(11),
     color: "#666",
+    marginRight: moderateScale(8),
   },
   uploadValue: {
     fontSize: normalizeFont(11),
-    color: "#000",
-    fontWeight: "500",
-  },
-  startAllIndia: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: moderateScale(5),
-    marginVertical: moderateScale(4),
-  },
-  txetAll: {
-    fontSize: normalizeFont(11),
-    color: "#666",
-  },
-  editBtn: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: moderateScale(8),
-  },
-  dropdownBtn: {
-    padding: moderateScale(3),
-    borderRadius: moderateScale(6),
-    borderWidth: moderateScale(1),
-    borderColor: "rgba(0, 0, 0, 0.3)",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: moderateScale(5),
-  },
-  dropdownBtnDisabled: {
-    opacity: 0.6,
-    borderColor: "rgba(0, 0, 0, 0.15)",
-  },
-  statusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: moderateScale(6),
-    minWidth: moderateScale(80),
-  },
-  statusCircle: {
-    width: moderateScale(10),
-    height: moderateScale(10),
-    borderRadius: moderateScale(5),
-  },
-  statusText: {
-    fontSize: normalizeFont(12),
-    fontWeight: "500",
-  },
-  statusTextUpdating: {
-    fontSize: normalizeFont(12),
-    fontWeight: "500",
-    color: "#666",
-  },
-
-  // Three Dots Menu Styles
-  threeDotsButton: {
-    padding: moderateScale(8),
-    borderRadius: moderateScale(8),
-    width: moderateScale(65),
-    height: moderateScale(65),
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  threeDotsText: {
-    fontSize: normalizeFont(22),
-    fontWeight: "700",
     color: "#333",
-    transform: [{ rotate: "180deg" }],
+    fontWeight: "500",
   },
 
-  // Modal Styles (stock/category/action)
+  stockRow: {
+    marginTop: moderateScale(10),
+  },
+  stockPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(6),
+    borderRadius: moderateScale(18),
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    backgroundColor: "#fff",
+  },
+  stockDot: {
+    width: moderateScale(8),
+    height: moderateScale(8),
+    borderRadius: moderateScale(8),
+    marginRight: moderateScale(8),
+  },
+  stockText: {
+    fontSize: normalizeFont(12),
+    fontWeight: "600",
+    marginRight: moderateScale(8),
+    color: "#444",
+  },
+  downIcon: {
+    width: moderateScale(12),
+    height: moderateScale(12),
+  },
+
+  // Modal & dropdown styles (kept simple)
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
@@ -806,51 +820,36 @@ export const styles = StyleSheet.create({
     borderRadius: moderateScale(8),
     minWidth: moderateScale(140),
     paddingVertical: moderateScale(8),
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: moderateScale(4) },
-    // shadowOpacity: Platform.OS === "ios" ? 0.3 : 0.36,
-    shadowRadius: moderateScale(12),
-    elevation: moderateScale(10),
-    borderWidth: moderateScale(1),
-    borderColor: "rgba(255, 202, 40, 1)",
-    zIndex: 1000,
+    borderWidth: 1,
+    borderColor: "rgba(255,202,40,1)",
+    elevation: 6,
   },
   stockOption: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: moderateScale(8),
     paddingHorizontal: moderateScale(12),
-    gap: moderateScale(8),
   },
   stockOptionText: {
     fontSize: normalizeFont(14),
     fontWeight: "500",
     color: "#374151",
+    marginLeft: moderateScale(8),
   },
   stockDivider: {
-    height: moderateScale(1),
+    height: 1,
     backgroundColor: "#f3f4f6",
-    marginHorizontal: moderateScale(8),
-  },
-  stockDot: {
-    width: moderateScale(8),
-    height: moderateScale(8),
-    borderRadius: moderateScale(4),
   },
 
-  // Action Menu Styles
+  // Action menu
   actionMenu: {
     backgroundColor: "#fff",
-    borderRadius: moderateScale(12),
-    minWidth: moderateScale(140),
+    borderRadius: moderateScale(10),
+    minWidth: moderateScale(120),
     paddingVertical: moderateScale(8),
-    borderWidth: moderateScale(1),
-    borderColor: "rgba(255, 202, 40, 0.3)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: moderateScale(2) },
-    // shadowOpacity: Platform.OS === "ios" ? 0.1 : 0.18,
-    shadowRadius: moderateScale(4),
-    elevation: moderateScale(5),
+    borderWidth: 1,
+    borderColor: "rgba(255,202,40,0.3)",
+    elevation: 6,
   },
   actionOption: {
     paddingVertical: moderateScale(12),
@@ -867,42 +866,32 @@ export const styles = StyleSheet.create({
   actionDivider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: "#f3f4f6",
-    marginHorizontal: moderateScale(12),
   },
 
-  // Category Dropdown Styles
+  // Category dropdown
   categoryDropdown: {
     backgroundColor: "#fff",
     borderRadius: moderateScale(12),
-    minWidth: moderateScale(140),
+    minWidth: moderateScale(160),
     paddingVertical: moderateScale(8),
-    borderWidth: moderateScale(1),
-    borderColor: "rgba(255, 202, 40, 0.3)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: moderateScale(2) },
-    // shadowOpacity: Platform.OS === "ios" ? 0.1 : 0.18,
-    shadowRadius: moderateScale(4),
-    elevation: moderateScale(5),
+    borderWidth: 1,
+    borderColor: "rgba(255,202,40,0.3)",
+    elevation: 6,
   },
   categoryOption: {
     paddingVertical: moderateScale(12),
     paddingHorizontal: moderateScale(16),
   },
   categoryOptionSelected: {
-    backgroundColor: "rgba(255, 202, 40, 0.1)",
+    backgroundColor: "rgba(255,202,40,0.08)",
   },
   categoryOptionText: {
     fontSize: normalizeFont(12),
     fontWeight: "500",
     color: "#374151",
   },
-  categoryOptionTextSelected: {
-    color: "rgba(255, 202, 40, 1)",
-    fontWeight: "600",
-  },
   categoryDivider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: "#f3f4f6",
-    marginHorizontal: moderateScale(12),
   },
 });

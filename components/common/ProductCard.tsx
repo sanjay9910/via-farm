@@ -83,7 +83,7 @@ const ProductCard = ({
               <Ionicons
                 name={isFavorite ? "heart" : "heart-outline"}
                 size={moderateScale(25)}
-                color={isFavorite ? "#ff4757" : "#666"}
+                color={isFavorite ? "#ff4757" : "#fff"}
               />
             </TouchableOpacity>
           )}
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   },
   favoriteButton: {
     position: "absolute",
-    top: moderateScale(2),
+    // top: moderateScale(2),
     right: moderateScale(2),
     justifyContent: "center",
     alignItems: "center",

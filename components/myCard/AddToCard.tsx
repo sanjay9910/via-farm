@@ -955,7 +955,7 @@ const MyCart = () => {
       <Modal visible={showSuccessModal} transparent animationType="fade">
         <View style={styles.successModalOverlay}>
           <View style={styles.successModalBox}>
-            <Image source={require('../../assets/via-farm-img/icons/confirm.png')} style={{ width: scale(64), height: scale(64), marginBottom: moderateScale(12) }} />
+            <Image source={require('../../assets/via-farm-img/icons/confirm.png')} style={{ width: scale(70), height: scale(64), marginBottom: moderateScale(12) }} />
             <Text style={{ fontSize: normalizeFont(12), fontWeight: '600', marginBottom: moderateScale(6) }}>Order Placed</Text>
             <Text style={{ color: '#555' }}>Your order was placed successfully!</Text>
           </View>
@@ -1251,10 +1251,10 @@ const styles = StyleSheet.create({
   },
 
   quantityText: {
+    paddingTop:moderateScale(5),
     width: scale(28),
     height: scale(27),
     textAlign: 'center',
-    // borderWidth: 1,
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderColor: 'rgba(76, 175, 80, 1)',

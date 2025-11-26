@@ -19,6 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const API_BASE = "https://viafarm-1.onrender.com";
+const CARD_WIDTH = Dimensions.get("window").width / 2 - 25;
 
 // ✅ ProductCard - Exact same design
 const ProductCard = ({
@@ -57,7 +58,7 @@ const ProductCard = ({
           <Image
             source={{ uri: imageUri }}
             style={cardStyles.productImage}
-            resizeMode="cover"
+            resizeMode="stretch"
           />
 
           <TouchableOpacity
@@ -89,14 +90,14 @@ const ProductCard = ({
           </Text>
 
           <Text style={cardStyles.productVeriety} numberOfLines={1}>
-            Veriety :{item?.variety ?? "Unnamed product"}
+            By {item?.vendor?.name ?? "Unnamed product"}
           </Text>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, }}>
             <Image
-              source={require("../assets/via-farm-img/icons/cardMap.png")}
+              source={require("../assets/via-farm-img/icons/loca.png")}
             />
-            <Text style={{ fontSize: 12, color: '#444' }}>
+            <Text style={cardStyles.productVeriety}>
               {distance ?? "0.0 km"}
             </Text>
           </View>
@@ -197,7 +198,6 @@ const CategoryViewAllProduct = () => {
         }
       );
 
-      // console.log("📦 All Categories Response:", response.data);
 
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         setAllCategories(response.data.data);
@@ -530,7 +530,7 @@ const CategoryViewAllProduct = () => {
         </TouchableOpacity>
 
         <View style={styles.searchWrapper}>
-          <Ionicons name="search" size={18} color="#888" style={{ marginRight: 8 }} />
+          <Ionicons name="search" size={15} color="#888" style={{ marginRight:moderateScale(8) }} />
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -549,8 +549,8 @@ const CategoryViewAllProduct = () => {
       </View>
 
       {/* Category Title */}
-      <View style={styles.categoryTitleContainer}>
-        <Text style={styles.categoryTitle}>{categoryName}</Text>
+      <View style={{paddingLeft:moderateScale(20),paddingBottom:moderateScale(10)}}>
+        <Text style={{fontSize:normalizeFont(15)}}>{categoryName}</Text>
       </View>
 
       {/* Loading */}
@@ -575,7 +575,7 @@ const CategoryViewAllProduct = () => {
       {!loading && !error && (
         <>
           {filteredProducts.length === 0 ? (
-            <View style={{ padding: 20, alignItems: 'center', flex: 1, justifyContent: 'center' }}>
+            <View style={{ padding: moderateScale(20), alignItems: 'center', flex: 1, justifyContent: 'center' }}>
               <Text style={{ color: '#444', fontSize: normalizeFont(14) }}>
                 No products match "{query}"
               </Text>
@@ -586,7 +586,7 @@ const CategoryViewAllProduct = () => {
               keyExtractor={(item) => item._id || item.id || String(item?.name)}
               numColumns={2}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 13, paddingBottom: 20 }}
+              contentContainerStyle={{ paddingHorizontal:moderateScale(13), paddingBottom:moderateScale(20) }}
               renderItem={({ item }) => {
                 const productId = item._id || item.id;
                 const isFavorite = favorites.has(productId);
@@ -628,30 +628,34 @@ const styles = StyleSheet.create({
     marginHorizontal: moderateScale(8),
     flexDirection: 'row',
     backgroundColor: 'rgba(252, 252, 252, 1)',
-    paddingVertical: moderateScale(10),
+    paddingVertical: moderateScale(7),
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.1)',
-    paddingHorizontal: moderateScale(10),
+    paddingHorizontal: moderateScale(7),
     alignItems: 'center',
-    borderRadius: 5,
+    borderRadius:10,
   },
   searchInput: {
     flex: 1,
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     color: '#222',
     paddingVertical: 0
   },
-  clearButton: {
-    padding: moderateScale(4),
+  backButtonContainer: {
+    padding: 1,
   },
-  categoryTitleContainer: {
-    paddingHorizontal: moderateScale(20),
-    paddingVertical: moderateScale(10),
+  riceContainer: {
+    flex: 1,
+    gap: scale(5),
   },
-  categoryTitle: {
-    fontSize: normalizeFont(18),
-    fontWeight: '600',
-    color: '#333',
+  backIcon: {
+    width: scale(24),
+    height: scale(24),
+  },
+  headerTitle: {
+    fontSize: normalizeFont(20),
+    fontWeight: "600",
+    color: "#333",
   },
   loadingContainer: {
     alignItems: "center",
@@ -676,7 +680,7 @@ const styles = StyleSheet.create({
     color: "#d32f2f",
     textAlign: "center",
     marginBottom: moderateScale(15),
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(12),
   },
   retryButton: {
     backgroundColor: "#1976d2",
@@ -690,120 +694,156 @@ const styles = StyleSheet.create({
   },
 });
 
-// ✅ Card Styles - Exact same design
 const cardStyles = StyleSheet.create({
   container: {
-    width: Dimensions.get("window").width / 2 - 25,
-    marginLeft: moderateScale(5),
-    marginTop: moderateScale(10),
-    marginBottom: moderateScale(5),
+    width: CARD_WIDTH,
+    marginLeft: moderateScale(6),
+    marginTop: moderateScale(12),
+    marginBottom: moderateScale(8),
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: moderateScale(5),
+    borderRadius:12,
+    overflow: 'hidden',
     shadowColor: 'rgba(0, 0, 0, 0.2)',
     shadowOpacity: 0.1,
     shadowRadius: 4,
     borderWidth: 2,
     borderColor: 'rgba(0, 0, 0, 0.2)',
     elevation: 7,
+    shadowOffset: { width: 0, height: 3 },
   },
+
+  // image area
   imageContainer: {
-    position: 'relative',
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    overflow: 'hidden',
+    width: '100%',
+    height: scale(140),
+    backgroundColor: '#f6f6f6',
   },
-  imageHeight: scale(120),
+  imageHeight: scale(135),
   productImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
+    borderTopLeftRadius:10,
+    borderTopRightRadius:10,
   },
+
+
   favoriteButton: {
     position: 'absolute',
     top: moderateScale(2),
     right: moderateScale(2),
-    borderRadius: 15,
+    borderRadius: 16,
     width: scale(30),
     height: scale(30),
     justifyContent: 'center',
     alignItems: 'center',
+    shadowRadius: 4,
   },
+
+
   ratingContainer: {
     position: 'absolute',
-    bottom: moderateScale(8),
+    bottom: moderateScale(10),
     left: moderateScale(8),
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(141, 141, 141, 0.6)',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: moderateScale(6),
-    paddingVertical: moderateScale(2),
-    borderRadius: moderateScale(12),
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateScale(4),
+    borderRadius: moderateScale(14),
   },
   ratingText: {
     color: '#fff',
     fontSize: normalizeFont(11),
-    marginLeft: 2,
-    fontWeight: '500',
+    marginLeft: moderateScale(6),
+    fontWeight: '600',
   },
+
   cardContent: {
-    padding: moderateScale(5),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(10),
   },
   productTitle: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     fontWeight: '600',
-    color: '#333',
+    color: '#2b2b2b',
+
   },
+
   productVeriety: {
     color: 'rgba(66, 66, 66, 0.7)',
-    fontSize: normalizeFont(12),
-    paddingVertical: 1,
+    fontSize: normalizeFont(11),
+    paddingVertical:moderateScale(5),
   },
+
+  productSubtitle: {
+    fontSize: normalizeFont(12),
+    color: '#666',
+    marginBottom: moderateScale(8),
+    height: scale(20),
+  },
+
   priceContainer: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: moderateScale(6),
-    marginTop: moderateScale(4),
+    // alignItems: 'flex-end',
+    marginBottom: moderateScale(3),
+    marginTop: moderateScale(3),
+  },
+  productPrice: {
+    fontSize: normalizeFont(13),
+    fontWeight: '800',
+    color: '#666',
   },
   productUnit: {
     fontSize: normalizeFont(12),
-    color: '#666',
-    marginLeft: 2,
+    color: '#000',
+    marginLeft: moderateScale(6),
+    marginBottom: moderateScale(2),
   },
+  weightText: {
+    fontSize: normalizeFont(11),
+    color: '#777',
+    marginLeft: moderateScale(6),
+  },
+
+
   buttonContainer: {
-    minHeight: scale(26),
-    maxWidth: scale(158),
-    justifyContent: 'center',
+    marginTop: moderateScale(6),
+    alignItems: 'stretch',
   },
   addToCartButton: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
-    flexDirection: 'row',
+    borderRadius: 8,
+    paddingVertical: moderateScale(10),
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: moderateScale(10),
-    paddingHorizontal: moderateScale(20),
-    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   disabledButton: {
     backgroundColor: '#cccccc',
   },
   addToCartText: {
     color: '#fff',
-    fontSize: normalizeFont(12),
-    fontWeight: '500',
+    fontSize: normalizeFont(13),
+    fontWeight: '700',
   },
+
+
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: 'rgba(76, 175, 80, 1)',
-    borderRadius: 10,
+    borderRadius: 8,
     paddingHorizontal: moderateScale(4),
     height: scale(36),
-    minWidth: scale(100),
+    minWidth: scale(120),
     backgroundColor: '#fff',
   },
   quantityButton: {
@@ -811,7 +851,6 @@ const cardStyles = StyleSheet.create({
     height: scale(36),
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 0,
   },
   quantityValueContainer: {
     minWidth: scale(48),
@@ -827,8 +866,7 @@ const cardStyles = StyleSheet.create({
   quantityText: {
     fontSize: normalizeFont(16),
     color: 'rgba(76, 175, 80, 1)',
-    fontWeight: '600',
+    fontWeight: '700',
     textAlign: 'center',
-    includeFontPadding: false,
   },
 });

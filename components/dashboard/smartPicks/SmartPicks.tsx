@@ -55,7 +55,7 @@ const SmartPicks = () => {
   const navigation = useNavigation();
 
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [categories, setCategories] = useState(['All']); // populated from API
+  const [categories, setCategories] = useState(['All']); 
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);

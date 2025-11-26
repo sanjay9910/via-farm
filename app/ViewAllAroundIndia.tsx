@@ -700,13 +700,13 @@ const cardStyles = StyleSheet.create({
     marginTop: moderateScale(4),
   },
   productPrice: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     fontWeight: '700',
     color: '#000',
   },
   productUnit: {
     fontSize: normalizeFont(12),
-    color: '#666',
+    
     marginLeft: 2,
   },
   varietyText: {

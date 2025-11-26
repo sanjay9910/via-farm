@@ -161,7 +161,7 @@ const CategoryCard = () => {
   return (
     <View style={styles.container}>
       <View style={styles.Categoryheader}>
-        <Text style={styles.heading}>All Categories</Text>
+        <Text style={styles.heading}>Categories</Text>
         <TouchableOpacity onPress={gotoAllCategory}>
           {/* See All button placeholder if you want */}
         </TouchableOpacity>

@@ -987,6 +987,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
     zIndex: 1,
+    height:170,
   },
   headerWrapper: {
     backgroundColor: '#fff',
