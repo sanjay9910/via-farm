@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     left: moderateScale(0),
     right: moderateScale(0),
     textAlign: 'center',
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(13),
     fontWeight: '700',
     color: '#1e293b',
     alignSelf: 'center',
@@ -331,20 +331,20 @@ const styles = StyleSheet.create({
 
   loadingText: {
     marginTop: moderateScale(16),
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(11),
     color: '#64748b',
     fontWeight: '500',
   },
 
   errorText: {
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(12),
     fontWeight: '700',
     color: '#dc2626',
     marginBottom: moderateScale(8),
   },
 
   errorMessage: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(11),
     color: '#7f1d1d',
     textAlign: 'center',
     marginBottom: moderateScale(16),
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#ffffff',
     fontWeight: '700',
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(11),
   },
 
   introCard: {
@@ -378,14 +378,14 @@ const styles = StyleSheet.create({
   },
 
   introTitle: {
-    fontSize: normalizeFont(18),
+    fontSize: normalizeFont(11),
     fontWeight: '800',
     color: '#1e293b',
     marginBottom: moderateScale(8),
   },
 
   introSubtitle: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(11),
     color: '#64748b',
     lineHeight: moderateScale(20),
     fontWeight: '500',
@@ -424,14 +424,14 @@ const styles = StyleSheet.create({
   },
 
   sectionNumber: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     fontWeight: '700',
     color: '#ffffff',
   },
 
   sectionTitle: {
     flex: 1,
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     fontWeight: '700',
     color: '#1e293b',
   },
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
 
   pointText: {
     flex: 1,
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(11),
     color: '#475569',
     lineHeight: moderateScale(21),
     fontWeight: '500',

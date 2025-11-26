@@ -19,7 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const API_BASE = "https://viafarm-1.onrender.com";
-const CARD_WIDTH = Dimensions.get("window").width / 2 - 25;
+const CARD_WIDTH = Dimensions.get("window").width / 2- 25;
 
 // ==================== ProductCard ====================
 const ProductCard = ({
@@ -498,8 +498,8 @@ const ViewAllLocalBest = () => {
         <ViewVendors title="Vendors" />
       </View>
 
-      <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 6 }}>
-        <Text style={{ fontSize: 16, fontWeight: "700" }}>Products</Text>
+      <View style={{ paddingHorizontal:moderateScale(10) }}>
+        <Text style={{ fontSize:normalizeFont(13), fontWeight: "700" }}>Products</Text>
       </View>
     </View>
   );
@@ -528,10 +528,10 @@ const ViewAllLocalBest = () => {
       ) : (
         <FlatList
           data={localBestProducts}
-          keyExtractor={(item) => item._id || item.id || String(item?.name)}
+          keyExtractor={(item, index) => item._id || item.id || String(item?.name) || String(index)}
           numColumns={2}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 20 }}
+          contentContainerStyle={{ paddingHorizontal:11, paddingBottom: 20 }}
           renderItem={({ item }) => {
             const productId = item._id || item.id;
             const isFavorite = favorites.has(productId);
@@ -562,8 +562,8 @@ export default ViewAllLocalBest;
 // ✅ Styles
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: moderateScale(12),
-    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(5),
+    paddingVertical: moderateScale(5),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between'
@@ -598,13 +598,13 @@ const styles = StyleSheet.create({
     height: scale(24),
   },
   headerTitle: {
-    fontSize: normalizeFont(20),
+    fontSize: normalizeFont(15),
     fontWeight: "600",
     color: "#333",
   },
   loadingContainer: {
     alignItems: "center",
-    padding: moderateScale(20),
+    padding: moderateScale(15),
     flex: 1,
     justifyContent: 'center',
     alignContent: 'center',
@@ -643,12 +643,12 @@ const cardStyles = StyleSheet.create({
   container: {
     width: CARD_WIDTH,
     marginLeft: moderateScale(6),
-    marginTop: moderateScale(12),
-    marginBottom: moderateScale(8),
+    marginTop: moderateScale(7),
+    // marginBottom: moderateScale(8),
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius:12,
+    borderRadius:10,
     overflow: 'hidden',
     shadowColor: 'rgba(0, 0, 0, 0.2)',
     shadowOpacity: 0.1,
@@ -669,8 +669,8 @@ const cardStyles = StyleSheet.create({
   productImage: {
     width: '100%',
     height: '100%',
-    borderTopLeftRadius:10,
-    borderTopRightRadius:10,
+    borderTopLeftRadius:5,
+    borderTopRightRadius:5,
   },
 
 

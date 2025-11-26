@@ -43,6 +43,8 @@ const ProductCard = ({
   const status = item?.status ?? (item?.stock === 0 ? "Out of Stock" : "In Stock");
 
   return (
+    <View>
+      {/* <ViewVendors/> */}
     <View style={[cardStyles.container]}>
       <TouchableOpacity
         style={cardStyles.card}
@@ -152,12 +154,13 @@ const ProductCard = ({
         </View>
       </TouchableOpacity>
     </View>
+    </View>
   );
 };
 
 const ViewAllFressPop = () => {
   const navigation = useNavigation();
-  const [items, setItems] = useState([]); // fresh & popular items
+  const [items, setItems] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [favorites, setFavorites] = useState(new Set());
@@ -462,7 +465,7 @@ const ViewAllFressPop = () => {
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Fresh & Popular</Text>
-        <View style={{ width: 50 }} />
+        <View style={{ width: scale(50) }} />
       </View>
 
       {/* Loading */}
@@ -490,7 +493,7 @@ const ViewAllFressPop = () => {
           keyExtractor={(item) => item._id || item.id || String(item?.name)}
           numColumns={2}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 20 }}
+          contentContainerStyle={{ paddingHorizontal: moderateScale(10), paddingBottom: moderateScale(20) }}
           renderItem={({ item }) => {
             const productId = item._id || item.id;
             const isFavorite = favorites.has(productId);
@@ -511,7 +514,7 @@ const ViewAllFressPop = () => {
           columnWrapperStyle={{ justifyContent: "space-between" }}
           ListEmptyComponent={() =>
             !loading && (
-              <View style={{ padding: 20, alignItems: 'center' }}>
+              <View style={{ padding: moderateScale(20), alignItems: 'center' }}>
                 <Text style={{ color: '#444' }}>No items found</Text>
               </View>
             )

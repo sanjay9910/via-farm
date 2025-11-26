@@ -1,14 +1,13 @@
-// app/screens/ViewVendors_responsive.jsx
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
+  FlatList,
   Image,
   PixelRatio,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -105,9 +104,15 @@ const ViewVendors = ({ title = 'Vendors Near You' }) => {
     navigation.navigate('VendorsDetails', { vendorId });
   };
 
+  // Layout math for card width and spacing
+  const horizontalPadding = moderateScale(16);
+  const CARD_VISIBLE_WIDTH = Math.min(windowWidth - horizontalPadding * 2, 360); // clamp width
+  const CARD_SPACING = moderateScale(12);
+  const snapInterval = CARD_VISIBLE_WIDTH + CARD_SPACING;
+
   // ✅ Header now takes "title" prop from parent
   const Header = ({ title }) => (
-    <View style={[styles.headerRow, { paddingHorizontal: moderateScale(16) }]}>
+    <View style={[styles.headerRow, { paddingHorizontal: moderateScale(16) ,paddingVertical:5,}]}>
       <Text style={styles.heading}>{title}</Text>
 
       <TouchableOpacity
@@ -158,46 +163,53 @@ const ViewVendors = ({ title = 'Vendors Near You' }) => {
     );
   }
 
-  const horizontalPadding = moderateScale(16);
-  const contentWidth = Math.max(windowWidth - horizontalPadding * 2, 320);
-
   return (
     <View style={{ flex: 1 }}>
       <Header title={title} />
 
-      <ScrollView
-        contentContainerStyle={[styles.container, { paddingHorizontal: horizontalPadding }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {vendors.length === 0 ? (
-          <EmptyState />
-        ) : (
-          vendors.slice(0, 2).map((vendor) => (
+      {vendors.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <FlatList
+          data={vendors}
+          horizontal
+          keyExtractor={(item) => String(item.id)}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: horizontalPadding,
+            flexDirection: 'row-reverse',
+            alignItems: 'flex-start',
+          }}
+          snapToInterval={snapInterval}
+          decelerationRate="fast"
+          snapToAlignment="start"
+          pagingEnabled={false}
+          renderItem={({ item }) => (
             <TouchableOpacity
-              key={String(vendor.id)}
-              onPress={() => handleVendorPress(vendor.id)}
+              key={String(item.id)}
+              onPress={() => handleVendorPress(item.id)}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel={`Open ${vendor.name} details`}
+              accessibilityLabel={`Open ${item.name} details`}
+              style={{ width: CARD_VISIBLE_WIDTH, marginRight: CARD_SPACING }}
             >
               <ProfileCard
-                image={vendor.image}
-                name={vendor.name}
-                rating={vendor.rating}
-                distance={vendor.distance}
-                category={vendor.category}
+                image={item.image}
+                name={item.name}
+                rating={item.rating}
+                distance={item.distance}
+                category={item.category}
               />
             </TouchableOpacity>
-          ))
-        )}
+          )}
+        />
+      )}
 
-        {error && vendors.length > 0 && (
-          <View style={styles.apiErrorNote}>
-            <Text style={styles.apiErrorText}>Note: Showing cached data - {error}</Text>
-          </View>
-        )}
-        <View style={{ height: moderateScale(32) }} />
-      </ScrollView>
+      {error && vendors.length > 0 && (
+        <View style={styles.apiErrorNote}>
+          <Text style={styles.apiErrorText}>Note: Showing cached data - {error}</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -207,11 +219,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: verticalScale(20),
-    marginBottom: verticalScale(12),
+    marginBottom: verticalScale(5),
   },
   heading: {
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(13),
     fontWeight: '700',
     color: '#333',
   },
@@ -244,7 +255,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(11),
     color: 'red',
     marginBottom: verticalScale(10),
   },
@@ -256,7 +267,7 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: '#fff',
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(11),
     fontWeight: '600',
   },
   emptyContainer: {
@@ -265,15 +276,16 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(40),
   },
   emptyText: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(11),
     color: '#666',
     marginBottom: verticalScale(10),
   },
   apiErrorNote: {
     marginTop: verticalScale(10),
+    paddingHorizontal: moderateScale(16),
   },
   apiErrorText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(11),
     color: '#999',
   },
 });

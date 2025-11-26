@@ -100,19 +100,12 @@ export default function AllOrders() {
     }
   };
 
-  // ========================
-  // Status update handler (PATCH with { status: "<value>" })
-  // ========================
   const handleStatusChange = async (orderId, newStatus) => {
     if (!orderId) {
       console.warn("Missing orderId for status update");
       return;
     }
-
-    // keep previous snapshot to revert on failure
     const prevOrders = [...orders];
-
-    // optimistic update: set new status and __updating flag
     const optimistic = (list) =>
       list.map((o) => (o.id === orderId ? { ...o, status: newStatus, __updating: true } : o));
 
@@ -125,9 +118,6 @@ export default function AllOrders() {
 
       const url = `${API_BASE}/api/vendor/orders/${orderId}/update-status`;
       const payload = { status: newStatus };
-
-      // console.log("[StatusUpdate] PATCH", url, "payload:", JSON.stringify(payload));
-
       const resp = await axios.put(url, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -136,17 +126,13 @@ export default function AllOrders() {
         timeout: 10000
       });
 
-      // console.log("[StatusUpdate] response:", resp.status, resp.data);
-
       if (!(resp && resp.status >= 200 && resp.status < 300 && (resp.data?.success || resp.data))) {
         throw new Error("Unexpected server response");
       }
 
-      // Pull status from server response (works with many shapes)
       const updated = resp.data?.data ?? resp.data ?? {};
       const serverStatus = updated.orderStatus ?? updated.status ?? newStatus;
 
-      // Clear updating flag and sync status with server
       setOrders((prev) =>
         prev.map((o) =>
           o.id === orderId ? { ...o, status: serverStatus, __updating: false } : o
@@ -187,12 +173,8 @@ export default function AllOrders() {
     }
   };
 
-  // ========================
-  // Filtering & searching
-  // ========================
   useEffect(() => {
     applyFiltersAndSearch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchText, filters, orders]);
 
   const applyFiltersAndSearch = () => {
@@ -300,8 +282,8 @@ export default function AllOrders() {
         <View style={styles.center}>
           <Text style={styles.noOrdersText}>
             {searchText || Object.values(filters).some(f => f)
-              ? "No orders match your search/filters"
-              : "No orders found."}
+              ? " No orders found"
+              : "No orders match your search/filters."}
           </Text>
         </View>
       ) : (

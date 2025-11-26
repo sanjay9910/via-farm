@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalTitle: {
-    fontSize: normalizeFont(18),
+    fontSize: normalizeFont(13),
     fontWeight: '600',
     color: '#333',
   },
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     padding: moderateScale(4),
   },
   closeButton: {
-    fontSize: normalizeFont(20),
+    fontSize: normalizeFont(13),
     color: '#333',
     fontWeight: '400',
   },
@@ -326,11 +326,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: moderateScale(12),
+    paddingVertical: moderateScale(5),
     backgroundColor: '#ffffff',
   },
   filterTitle: {
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(12),
     fontWeight: '400',
     color: '#333',
   },
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   },
 
   optionText: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     color: '#6b7280',
     fontWeight: '500',
   },
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
   },
   clearButtonText: {
     color: '#6b7280',
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(12),
     fontWeight: '600',
   },
 
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
   },
   applyButtonText: {
     color: '#fff',
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(12),
     fontWeight: '600',
   },
 });

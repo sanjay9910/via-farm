@@ -29,7 +29,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
       <Image
         source={{ uri: image }}
         style={styles.profileImage}
-        resizeMode="cover"
+        resizeMode="stretch"
       />
 
       {/* Content Section */}
@@ -39,13 +39,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
           {name}
         </Text>
 
-        {/* Distance */}
         <View style={styles.distanceContainer}>
-          {/* <Ionicons
-            name="location-outline"
-            size={moderateScale(14)}
-            color="rgba(66, 66, 66, 1)"
-          /> */}
           <Image source={require('../../assets/via-farm-img/icons/loca.png')} />
           <Text style={styles.distance}>{distance}</Text>
         </View>
@@ -79,9 +73,9 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#ffffff",
-    borderRadius: moderateScale(20),
+    borderRadius: moderateScale(10),
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     borderWidth: moderateScale(1),
     borderColor: "rgba(255, 202, 40, 1)",
     marginBottom: verticalScale(12),
@@ -106,8 +100,8 @@ const styles = StyleSheet.create({
   },
 
   name: {
-    fontSize: normalizeFont(16),
-    fontWeight: "700",
+    fontSize: normalizeFont(13),
+    fontWeight: "600",
     color: "#333",
     marginBottom: verticalScale(6),
   },
@@ -119,7 +113,7 @@ const styles = StyleSheet.create({
   },
 
   distance: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(12),
     color: "rgba(66, 66, 66, 0.9)",
     marginLeft: moderateScale(6),
   },
@@ -131,7 +125,7 @@ const styles = StyleSheet.create({
   },
 
   category: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(12),
     color: "rgba(66, 66, 66, 0.7)",
     marginLeft: moderateScale(6),
     flexShrink: 1,
@@ -149,8 +143,8 @@ const styles = StyleSheet.create({
     borderWidth: moderateScale(1),
     borderColor: "#81C784",
     borderRadius: moderateScale(8),
-    paddingVertical: verticalScale(6),
-    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(4),
+    paddingHorizontal: moderateScale(10),
     alignItems: "center",
     justifyContent: "center",
     marginRight: moderateScale(8),
@@ -161,21 +155,21 @@ const styles = StyleSheet.create({
     borderWidth: moderateScale(1),
     borderColor: "#FFD54F",
     borderRadius: moderateScale(8),
-    paddingVertical: verticalScale(6),
-    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(4),
+    paddingHorizontal: moderateScale(10),
     alignItems: "center",
     justifyContent: "center",
   },
 
   deliveryButtonText: {
     color: "#2E7D32",
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(10),
     fontWeight: "600",
   },
 
   pickupButtonText: {
     color: "#9E7B00",
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(10),
     fontWeight: "500",
   },
 });

@@ -1,4 +1,4 @@
-// VendorViewProduct.tsx
+
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -73,7 +73,7 @@ const ImageModalViewer = ({
           <Image
             source={{ uri: images[currentIndex] }}
             style={styles.modalImage}
-            resizeMode="contain"
+            resizeMode="stretch"
           />
         </View>
 
@@ -110,7 +110,7 @@ const ImageModalViewer = ({
    ------------------------- */
 const RatingBadge = ({ rating }: { rating: number }) => (
   <View style={styles.ratingBadge}>
-    <Ionicons name="star" size={moderateScale(12)} color="#FFC107" />
+   <Image source={require("../assets/via-farm-img/icons/satar.png")} />
     <Text style={styles.ratingBadgeText}>{Number(rating ?? 0).toFixed(1)}</Text>
   </View>
 );
@@ -137,7 +137,7 @@ const ReviewCard = ({
   return (
     <View style={styles.reviewCard}>
       <View style={styles.reviewHeader}>
-        <Image source={{ uri: avatar }} style={styles.reviewAvatar} />
+        <Image source={{ uri: avatar }} style={styles.reviewAvatar} resizeMode="stretch" />
         <View style={{ flex: 1 }}>
           <Text style={styles.reviewUser}>{name}</Text>
           <View
@@ -146,10 +146,10 @@ const ReviewCard = ({
               alignItems: "center",
               justifyContent: "center",
               gap: 5,
-              marginVertical: 10,
+              marginVertical: moderateScale(10),
               borderWidth: 1,
               width: scale(44),
-              borderRadius: 8,
+              borderRadius: moderateScale(8),
               borderColor: "rgba(255, 202, 40, 0.5)",
             }}
           >
@@ -173,6 +173,7 @@ const ReviewCard = ({
               <Image
                 source={{ uri: img }}
                 style={styles.reviewImage}
+                resizeMode="stretch"
               />
             </TouchableOpacity>
           ))}
@@ -406,6 +407,7 @@ export default function VendorViewProduct() {
                 <Image
                   source={{ uri: item }}
                   style={styles.galleryThumb}
+                  resizeMode="stretch"
                 />
               </TouchableOpacity>
             )}
@@ -462,7 +464,7 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(8),
   },
   title: {
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(13),
     fontWeight: "700",
     color: "#111",
     flex: 1,
@@ -471,11 +473,10 @@ const styles = StyleSheet.create({
   ratingBadge: {
     backgroundColor: "#fff",
     borderWidth: 1,
-    gap: 5,
     borderColor: "#f0c14b",
-    paddingHorizontal: moderateScale(8),
-    paddingVertical: moderateScale(6),
-    borderRadius: moderateScale(16),
+    paddingHorizontal: moderateScale(4),
+    paddingVertical: moderateScale(3),
+    borderRadius: moderateScale(10),
     flexDirection: "row",
     alignItems: "center",
   },
@@ -483,6 +484,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginLeft: moderateScale(6),
     color: "#111",
+    fontSize:normalizeFont(12)
   },
 
   metaRow: {
@@ -498,7 +500,7 @@ const styles = StyleSheet.create({
     paddingVertical: moderateScale(4),
     borderRadius: moderateScale(6),
   },
-  priceValue: { fontWeight: "700", color: "#000", fontSize: normalizeFont(16) },
+  priceValue: { fontWeight: "700", color: "#000", fontSize: normalizeFont(12) },
 
   sectionTitle: {
     fontSize: normalizeFont(11),
@@ -590,7 +592,7 @@ const styles = StyleSheet.create({
 
   galleryThumb: {
     width: moderateScale(130),
-    height: moderateScale(110),
+    height: moderateScale(130),
     borderRadius: moderateScale(8),
     marginRight: moderateScale(10),
     backgroundColor: "#eee",

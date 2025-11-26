@@ -243,7 +243,7 @@ export default function ProductDetailScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>{product.name}</Text>
 
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={headerWishlistPress} style={{ marginRight: 12 }}>
+          <TouchableOpacity onPress={headerWishlistPress} style={{ marginRight:moderateScale(12) }}>
             <Ionicons name={"heart-outline"} size={24} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate?.('myCard')}>
@@ -253,7 +253,7 @@ export default function ProductDetailScreen() {
       </View>
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <Image source={{ uri: product.images?.[0] }} style={styles.heroImage} />
+        <Image source={{ uri: product.images?.[0] }} style={styles.heroImage} resizeMode='stretch' />
 
         <TouchableOpacity style={styles.favButton} onPress={toggleWishlist}>
           <Ionicons name={inWishlist ? "heart" : "heart-outline"} size={26} color={inWishlist ? "red" : "white"} />
@@ -261,11 +261,11 @@ export default function ProductDetailScreen() {
 
         <View style={styles.infoCard}>
           <View style={styles.rowBetween}>
-            <View style={{ flex: 1, paddingRight: 8 }}>
+            <View style={{ flex: 1, paddingRight:moderateScale(8) }}>
               <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
                 <Text style={styles.title}>{product.name}</Text>
                 <View style={styles.ratingPill}>
-                  <Ionicons name="star" size={14} color="#FFD700" />
+                  <Image source={require("../assets/via-farm-img/icons/satar.png")} />
                   <Text style={{ marginLeft: 6, fontWeight: '700' }}>{product.rating ?? 0}</Text>
                 </View>
               </View>
@@ -275,11 +275,11 @@ export default function ProductDetailScreen() {
             </View>
           </View>
 
-          <Text style={[styles.sectionTitle, { marginTop: 12 }]}>About the product</Text>
+          <Text style={[styles.sectionTitle, { marginTop:moderateScale(12) }]}>About the product</Text>
           <Text style={{fontSize:normalizeFont(12),marginVertical:moderateScale(5)}}>Category: {product.category}</Text>
           <Text style={{fontSize:normalizeFont(12)}}>Variety: {product.variety}</Text>
-
-          <Text style={styles.description}>{product.description}</Text>
+    
+          <Text style={styles.description}>Description: {product.description}</Text>
 
           <TouchableOpacity style={styles.vendorHeader} onPress={() => setVendorExpanded(v => !v)}>
             <Text style={styles.sectionTitle}>About the vendor</Text>
@@ -290,9 +290,9 @@ export default function ProductDetailScreen() {
             // Wrap vendor area in TouchableOpacity so clicking image or text opens vendor details
             <TouchableOpacity onPress={openVendorDetails} activeOpacity={0.8} style={styles.vendorExpanded}>
               <Image source={{ uri: vendor?.profilePicture ?? product.vendor?.profilePicture }} style={styles.vendorImage} />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={{ fontWeight: '600' }}>{vendor?.name ?? product.vendor?.name}</Text>
-                <Text style={{ color: '#666', marginTop: 6 }}>{vendorAddr.houseNumber ? `${vendorAddr.houseNumber}, ` : ''}{vendorAddr.locality ?? vendorAddr.street ?? ''}{vendorAddr.city ? `, ${vendorAddr.city}` : ''}</Text>
+              <View style={{ flex: 1, marginLeft: moderateScale(12) }}>
+                <Text style={{ fontWeight: '600',fontSize:11, }}>{vendor?.name ?? product.vendor?.name}</Text>
+                <Text style={{ color: '#666', marginTop:moderateScale(6) ,fontSize:11}}>{vendorAddr.houseNumber ? `${vendorAddr.houseNumber}, ` : ''}{vendorAddr.locality ?? vendorAddr.street ?? ''}{vendorAddr.city ? `, ${vendorAddr.city}` : ''}</Text>
                 {/* <Text style={{ color: '#777', marginTop: 8 }}>{vendor?.about ?? ''}</Text> */}
               </View>
             </TouchableOpacity>
@@ -300,25 +300,26 @@ export default function ProductDetailScreen() {
 
           <View style={styles.pickupRow}>
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-              <Ionicons name="location-sharp" size={18} color="#444" />
-              <View style={{ marginLeft: 10 }}>
-                <Text style={{ fontWeight: '500' }}>Pickup Location</Text>
-                <Text style={{ color: '#666', maxWidth: SCREEN_W - 120 }} numberOfLines={1}>{pickupAddress}</Text>
+              {/* <Ionicons name="location-sharp" size={18} color="#444" /> */}
+              <Image source={require("../assets/via-farm-img/icons/loca.png")} />
+              <View style={{ marginLeft: moderateScale(10) }}>
+                <Text style={{ fontWeight: '500', fontSize:normalizeFont(12)}}>Pickup Location</Text>
+                <Text style={{ color: '#666',fontSize:normalizeFont(12), maxWidth: SCREEN_W - scale(120) }} numberOfLines={1}>{pickupAddress}</Text>
               </View>
             </View>
-            <TouchableOpacity onPress={openVendorMap} style={{ padding: 8 }}>
+            <TouchableOpacity onPress={openVendorMap} style={{ padding: scale(8) }}>
               <Image source={require("../assets/via-farm-img/icons/directionLocation.png")} />
             </TouchableOpacity>
           </View>
 
           <View style={{ marginTop: 6 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4 }}>
-              <Text style={{ fontWeight: '700' }}>Ratings & Reviews</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal:moderateScale(4) }}>
+              <Text style={{ fontWeight: '600',fontSize:normalizeFont(12) }}>Ratings & Reviews</Text>
               <TouchableOpacity onPress={() => navigation.navigate?.('SeeAllReview', {
                   vendor,
                   reviews,
                 })} style={{flexDirection:'row',alignItems:'center',gap:5}}>
-                <Text style={{ color: '#3b82f6',fontSize:normalizeFont(12) }}>See All</Text>
+                <Text style={{ color: '#3b82f6',fontSize:normalizeFont(10) }}>See All</Text>
                 <Image source={require('../assets/via-farm-img/icons/see.png')} />
               </TouchableOpacity>
             </View>
@@ -377,9 +378,9 @@ export default function ProductDetailScreen() {
 
       {/* Bottom bar */}
       <View style={styles.bottomBar}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex:1, }}>
           <Text style={{ color: '#666', fontSize: normalizeFont(12) }}>Price</Text>
-          <Text style={{ fontWeight: '800', fontSize: normalizeFont(18) }}>₹{product.price}</Text>
+          <Text style={{ fontWeight: '600', fontSize: normalizeFont(15) }}>₹{product.price}</Text>
         </View>
 
         {inCart ? (
@@ -421,15 +422,15 @@ const styles = StyleSheet.create({
   heroImage: { width: SCREEN_W, height: SCREEN_W * 0.7, backgroundColor: '#f3f3f3' },
   favButton: { position: 'absolute', right: moderateScale(18), top:6, backgroundColor: 'transparent' },
 
-  infoCard: { backgroundColor: '#fff', marginTop: -18,  padding: 16, minHeight: 220 },
+  infoCard: { backgroundColor: '#fff', marginTop: -14,  padding:moderateScale(14), minHeight: 220 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize:normalizeFont(15),fontWeight:600,  },
-  smallText: { color: '#666', fontSize:normalizeFont(13)},
-  mrp: { fontSize:normalizeFont(14), marginTop:5 },
-  ratingPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff4d9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, marginTop: 8 },
+  title: { fontSize:normalizeFont(12),fontWeight:600,  },
+  smallText: { color: '#666', fontSize:normalizeFont(12)},
+  mrp: { fontSize:normalizeFont(12), marginTop:5 },
+  ratingPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal:moderateScale(10), borderRadius:7, marginTop:8,borderWidth:1, borderColor:'rgba(0, 0, 0, 0.4)' },
 
-  sectionTitle: { fontSize:normalizeFont(14), fontWeight: '600' },
-  description: { color: '#444', marginTop: 6, fontSize:normalizeFont(14) },
+  sectionTitle: { fontSize:normalizeFont(12), fontWeight: '600' },
+  description: { color: '#444', marginTop: 6, fontSize:normalizeFont(11) },
 
   nutriRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: moderateScale(12) },
   nutriCol: { alignItems: 'center', flex: 1 },
@@ -438,7 +439,7 @@ const styles = StyleSheet.create({
 
   vendorHeader: { marginTop: moderateScale(12), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   vendorExpanded: { flexDirection: 'row', marginTop:10, alignItems: 'center' },
-  vendorImage: { width: scale(90), height: scale(90), borderRadius: moderateScale(10), backgroundColor: '#f3f3f3' },
+  vendorImage: { width: scale(70), height: scale(70), borderRadius: moderateScale(10), backgroundColor: '#f3f3f3' },
 
   pickupRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: moderateScale(12), padding: moderateScale(8), backgroundColor: '#fafafa', borderRadius: 8 },
 
@@ -450,7 +451,7 @@ const styles = StyleSheet.create({
   couponSub: { color: '#3b82f6', marginTop: moderateScale(4) },
   couponInput: { borderWidth: 1, borderColor: '#e0e0e0', borderRadius: moderateScale(8), padding: moderateScale(10), marginTop: moderateScale(8) },
 
-  reviewCard: { width:scale(300), backgroundColor: '#fff', borderRadius: moderateScale(12), padding: moderateScale(14), marginRight: moderateScale(12), elevation: 2 },
+  reviewCard: { width:scale(300), backgroundColor: '#fff', borderRadius: moderateScale(12), padding: moderateScale(12), marginRight: moderateScale(12), elevation: 2 },
 
   bottomBar: { flexDirection: 'row', alignItems: 'center', padding: moderateScale(12), borderTopWidth: 0.6, borderTopColor: '#eee', backgroundColor: '#fff' },
   cartBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#22c55e', paddingHorizontal: moderateScale(18), paddingVertical: moderateScale(12), borderRadius: moderateScale(10) },
@@ -466,9 +467,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   qtyBtn: {
-    paddingHorizontal: moderateScale(14),
+    paddingHorizontal: moderateScale(11),
     paddingVertical: moderateScale(6),
-    minWidth: moderateScale(36),
+    minWidth: moderateScale(30),
     alignItems: 'center',
     justifyContent: 'center',
     borderLeftWidth: 0,
@@ -479,7 +480,7 @@ const styles = StyleSheet.create({
     color: '#22c55e',
   },
   qtyDisplay: {
-    minWidth: 48,
+    minWidth:35,
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderColor: '#22c55e',
@@ -490,7 +491,7 @@ const styles = StyleSheet.create({
   },
   qtyText: {
     fontWeight: '700',
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(13),
     color: '#22c55e',
   },
 });

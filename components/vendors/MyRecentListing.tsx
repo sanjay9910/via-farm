@@ -20,6 +20,7 @@ import ProductModal from "../../components/vendors/ProductEditModel";
 
 const API_BASE = "https://viafarm-1.onrender.com";
 const { width } = Dimensions.get("window");
+const PLACEHOLDER_IMAGE = "https://via.placeholder.com/300x300.png?text=No+Image";
 
 const MyRecentListing = () => {
   const [listingsData, setListingsData] = useState([]);
@@ -34,7 +35,7 @@ const MyRecentListing = () => {
   const stockButtonRefs = useRef({});
   const router = useRouter();
 
-  // Fetch products
+  // Fetch products (ensure stable id + dedupe)
   const fetchProducts = async () => {
     setLoading(true);
     try {
@@ -49,19 +50,28 @@ const MyRecentListing = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (res.data.success) {
-        const formattedData = res.data.products.map((product) => ({
-          id: product._id,
-          name: product.name,
-          price: product.price,
-          unit: product.unit,
-          weightPerPiece:product.weightPerPiece,
-          quantity: product.quantity,
-          uploadedOn: new Date(product.datePosted).toLocaleDateString(),
-          image: product.images[0] || "",
-          status: product.status || "In Stock",
-        }));
-        setListingsData(formattedData);
+      if (res?.data?.success && Array.isArray(res.data.products)) {
+        const formatted = res.data.products.map((product, idx) => {
+          // prefer backend _id; fallback deterministic to avoid undefined keys
+          const rawId = product.id ?? `${product.name ?? "product"}-${idx}`;
+          return {
+            id: String(rawId),
+            name: product.name ?? "Untitled product",
+            price: product.price ?? 0,
+            unit: product.unit ?? "",
+            weightPerPiece: product.weightPerPiece ?? "",
+            quantity: product.quantity ?? 0,
+            uploadedOn: product.datePosted ? new Date(product.datePosted).toLocaleDateString() : "",
+            image: (product.images && product.images.length && product.images[0]) ? product.images[0] : "",
+            status: product.status ?? "In Stock",
+          };
+        });
+
+        // Deduplicate by id (last occurrence wins)
+        const map = new Map<string, any>();
+        formatted.forEach(p => map.set(p.id, p));
+        const uniqueList = Array.from(map.values());
+        setListingsData(uniqueList);
       } else {
         Alert.alert("Error", "Could not fetch recent products");
       }
@@ -77,11 +87,9 @@ const MyRecentListing = () => {
     fetchProducts();
   }, []);
 
-  // Refresh list when modal closes
+  // Refresh when modal closes
   useEffect(() => {
-    if (!modalVisible) {
-      fetchProducts();
-    }
+    if (!modalVisible) fetchProducts();
   }, [modalVisible]);
 
   // Modal handlers
@@ -96,59 +104,46 @@ const MyRecentListing = () => {
   };
 
   const submitModal = (updatedProduct) => {
-    const updatedList = listingsData.map((item) =>
-      item.id === updatedProduct.id ? updatedProduct : item
-    );
-    setListingsData(updatedList);
+    setListingsData(prev => prev.map(item => item.id === updatedProduct.id ? updatedProduct : item));
     closeModal();
   };
 
-  const viewAll = () => {
-    router.push("/MyRecentlyAllProduct");
-  };
+  const viewAll = () => router.push("/MyRecentlyAllProduct");
 
-  // NAV: open VendorViewProduct with productId (uses list endpoint on destination)
   const handleOpenProduct = (id) => {
     if (!id) {
       Alert.alert("Error", "Product id missing");
       return;
     }
-    // push using query param (expo-router)
     router.push(`/VendorViewProduct?productId=${encodeURIComponent(id)}`);
   };
 
-  // Stock Dropdown Handler
+  // Stock Dropdown Handler (keeps your measureInWindow approach)
   const openStockDropdown = (productId) => {
     const ref = stockButtonRefs.current[productId];
-    
-    if (ref && ref.measureInWindow) {
+
+    if (ref && typeof ref.measureInWindow === "function") {
       ref.measureInWindow((x, y, w, h) => {
-        setStockDropdownPosition({ 
-          x: x - 60, 
-          y: y + h + 5 
+        setStockDropdownPosition({
+          x: Math.max(8, x - 60),
+          y: y + h + 5,
         });
         setCurrentProductId(productId);
         setIsStockDropdownOpen(true);
       });
     } else {
-      // Fallback: show centered dropdown if measure fails
       setStockDropdownPosition({ x: width / 2 - 80, y: 200 });
       setCurrentProductId(productId);
       setIsStockDropdownOpen(true);
     }
   };
 
-  // Stock Status Update Handler
   const handleStockChange = async (newStatus) => {
     if (!currentProductId) {
       Alert.alert("Error", "No product selected");
       return;
     }
-
-    // Close dropdown immediately
     setIsStockDropdownOpen(false);
-    
-    // Start loading
     setUpdatingStock(true);
 
     try {
@@ -160,7 +155,6 @@ const MyRecentListing = () => {
         return;
       }
 
-      // Try multiple API methods
       let response = null;
       let lastError = null;
 
@@ -168,42 +162,31 @@ const MyRecentListing = () => {
         response = await axios.patch(
           `${API_BASE}/api/vendor/products/${currentProductId}/status`,
           { status: newStatus },
-          { 
-            headers: { 
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            timeout: 10000
+          {
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            timeout: 10000,
           }
         );
       } catch (err) {
         lastError = err;
-        
         try {
           response = await axios.patch(
             `${API_BASE}/api/vendor/products/${currentProductId}`,
             { status: newStatus },
-            { 
-              headers: { 
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              },
-              timeout: 10000
+            {
+              headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+              timeout: 10000,
             }
           );
         } catch (err2) {
           lastError = err2;
-          
           try {
             response = await axios.put(
               `${API_BASE}/api/vendor/products/${currentProductId}`,
               { status: newStatus },
-              { 
-                headers: { 
-                  Authorization: `Bearer ${token}`,
-                  'Content-Type': 'application/json'
-                },
-                timeout: 10000
+              {
+                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                timeout: 10000,
               }
             );
           } catch (err3) {
@@ -213,18 +196,13 @@ const MyRecentListing = () => {
       }
 
       if (response && response.data && response.data.success) {
-        const updatedList = listingsData.map((item) =>
-          item.id === currentProductId ? { ...item, status: newStatus } : item
-        );
-        setListingsData(updatedList);
+        setListingsData(prev => prev.map(item => item.id === currentProductId ? { ...item, status: newStatus } : item));
         Alert.alert("Success", `Product marked as ${newStatus}`);
       } else {
         throw lastError || new Error("Failed to update status");
       }
-
     } catch (error) {
       console.log("Stock update error:", error);
-      
       if (error.response?.status === 404) {
         Alert.alert("Error", "API endpoint not found. Please check server.");
       } else if (error.response?.status === 401) {
@@ -233,9 +211,9 @@ const MyRecentListing = () => {
         Alert.alert("Error", "You don't have permission to update this product.");
       } else if (error.response?.status === 500) {
         Alert.alert("Server Error", error.response?.data?.message || "Internal server error");
-      } else if (error.code === 'ECONNABORTED') {
+      } else if (error.code === "ECONNABORTED") {
         Alert.alert("Timeout", "Request took too long.");
-      } else if (error.message === 'Network Error') {
+      } else if (error.message === "Network Error") {
         Alert.alert("Network Error", "Cannot connect to server.");
       } else {
         Alert.alert("Error", "Something went wrong while updating stock");
@@ -246,12 +224,11 @@ const MyRecentListing = () => {
     }
   };
 
-  const renderItem = ({ item }) => {
+  const renderItem = ({ item, index }) => {
     const circleColor = (item.status || "").toLowerCase() === "in stock" ? "#22c55e" : "#ef4444";
     const isCurrentlyUpdating = updatingStock && currentProductId === item.id;
 
     return (
-      // wrap item card to navigate on press
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => handleOpenProduct(item.id)}
@@ -260,15 +237,15 @@ const MyRecentListing = () => {
         <View style={styles.listingCard}>
           <View style={styles.cardContent}>
             <View style={styles.imageContainer}>
-              <Image 
-                source={{ uri: item.image }} 
-                style={styles.itemImage} 
-                resizeMode="cover"
+              <Image
+                source={{ uri: item.image || PLACEHOLDER_IMAGE }}
+                style={styles.itemImage}
+                resizeMode="stretch"
               />
-               <View style={{position:'absolute', flexDirection:'row',alignItems:'center',gap:5,backgroundColor:"rgba(141, 141, 141, 0.6)", bottom:5, left:5, borderRadius:10,paddingHorizontal:5}}>
+              <View style={{ position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: "rgba(141, 141, 141, 0.6)", bottom: 5, left: 5, borderRadius: 10, paddingHorizontal: 5 }}>
                 <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
-                <Text style={{color:"#fff"}}>5.0</Text>
-               </View>
+                <Text style={{ color: "#fff", fontSize: normalizeFont(12) }}>5.0</Text>
+              </View>
             </View>
 
             <View style={styles.textContainer}>
@@ -282,7 +259,7 @@ const MyRecentListing = () => {
 
               <View style={styles.detailsContainer}>
                 <Text style={styles.uploadLabel}>Uploaded on:</Text>
-                <Text style={styles.uploadValue}>{item.uploadedOn}</Text>
+                <Text style={styles.uploadLabel}>{item.uploadedOn}</Text>
               </View>
 
               <View style={styles.startAllIndia}>
@@ -291,23 +268,12 @@ const MyRecentListing = () => {
               </View>
 
               <View style={styles.editBtn}>
-                {/* Stock dropdown with loading */}
                 <TouchableOpacity
-                  ref={(ref) => {
-                    stockButtonRefs.current[item.id] = ref;
-                  }}
-                  style={[
-                    styles.dropdownBtn,
-                    isCurrentlyUpdating && styles.dropdownBtnDisabled
-                  ]}
-                  onPress={(e) => {
-                    // stop propagation so the card onPress doesn't fire
-                    e.stopPropagation?.();
-                    openStockDropdown(item.id);
-                  }}
+                  ref={(ref) => { stockButtonRefs.current[item.id] = ref; }}
+                  style={[styles.dropdownBtn, isCurrentlyUpdating && styles.dropdownBtnDisabled]}
+                  onPress={(e) => { e.stopPropagation?.(); openStockDropdown(item.id); }}
                   disabled={isCurrentlyUpdating}
                 >
-        
                   {isCurrentlyUpdating ? (
                     <View style={styles.statusRow}>
                       <ActivityIndicator size="small" color="rgba(255,202,40,1)" />
@@ -322,21 +288,14 @@ const MyRecentListing = () => {
                   <Image source={require("../../assets/via-farm-img/icons/downArrow.png")} />
                 </TouchableOpacity>
 
-                {/* Edit button */}
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.editButton}
-                  onPress={(e) => {
-                    e.stopPropagation?.();
-                    openModal(item);
-                  }}
+                  onPress={(e) => { e.stopPropagation?.(); openModal(item); }}
                   disabled={isCurrentlyUpdating}
                 >
                   <Image
                     source={require("../../assets/via-farm-img/icons/editicon.png")}
-                    style={[
-                      styles.editIcon,
-                      isCurrentlyUpdating && styles.editIconDisabled
-                    ]}
+                    style={[styles.editIcon, isCurrentlyUpdating && styles.editIconDisabled]}
                   />
                 </TouchableOpacity>
               </View>
@@ -347,19 +306,21 @@ const MyRecentListing = () => {
     );
   };
 
+  const keyExtractor = (item, index) => {
+    if (item?.id) return String(item.id);
+    return `listing-fallback-${index}`;
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator 
-          size="large" 
-          color="rgba(255,202,40,1)" 
-        />
+        <ActivityIndicator size="large" color="rgba(255,202,40,1)" />
         <Text style={styles.loadingText}>Loading products...</Text>
       </View>
     );
   }
 
-  if (listingsData.length === 0) {
+  if (!listingsData || listingsData.length === 0) {
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>No products found</Text>
@@ -372,9 +333,9 @@ const MyRecentListing = () => {
     <View style={styles.container}>
       <View style={styles.headerRowContainer}>
         <Text style={styles.headerTitle}>My Recent Listings</Text>
-        <TouchableOpacity onPress={viewAll} style={{flexDirection:'row',justifyContent:'center',alignItems:'center',gap:5,}}>
+        <TouchableOpacity onPress={viewAll} style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
           <Text style={styles.seeAll}>See All</Text>
-          <Image  source={require("../../assets/via-farm-img/icons/see.png")} />
+          <Image source={require("../../assets/via-farm-img/icons/see.png")} />
         </TouchableOpacity>
       </View>
 
@@ -382,7 +343,7 @@ const MyRecentListing = () => {
         data={listingsData}
         horizontal
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.flatListContent}
       />
@@ -390,37 +351,22 @@ const MyRecentListing = () => {
       {/* Stock Dropdown Modal */}
       <Modal
         visible={isStockDropdownOpen}
-        transparent={true}
+        transparent
         animationType="fade"
         onRequestClose={() => setIsStockDropdownOpen(false)}
       >
         <TouchableWithoutFeedback onPress={() => setIsStockDropdownOpen(false)}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
-              <View
-                style={[
-                  styles.stockDropdown,
-                  { 
-                    position: 'absolute',
-                    top: stockDropdownPosition.y, 
-                    left: stockDropdownPosition.x 
-                  },
-                ]}
-              >
-                <TouchableOpacity 
-                  style={styles.stockOption} 
-                  onPress={() => handleStockChange("In Stock")}
-                >
+              <View style={[styles.stockDropdown, { position: 'absolute', top: stockDropdownPosition.y, left: stockDropdownPosition.x }]}>
+                <TouchableOpacity style={styles.stockOption} onPress={() => handleStockChange("In Stock")}>
                   <View style={[styles.stockDot, { backgroundColor: "#22c55e" }]} />
                   <Text style={styles.stockOptionText}>In Stock</Text>
                 </TouchableOpacity>
-                
+
                 <View style={styles.stockDivider} />
-                
-                <TouchableOpacity 
-                  style={styles.stockOption} 
-                  onPress={() => handleStockChange("Out of Stock")}
-                >
+
+                <TouchableOpacity style={styles.stockOption} onPress={() => handleStockChange("Out of Stock")}>
                   <View style={[styles.stockDot, { backgroundColor: "#ef4444" }]} />
                   <Text style={styles.stockOptionText}>Out of Stock</Text>
                 </TouchableOpacity>
@@ -432,12 +378,7 @@ const MyRecentListing = () => {
 
       {/* Product Edit Modal */}
       {selectedProduct && (
-        <ProductModal
-          visible={modalVisible}
-          onClose={closeModal}
-          onSubmit={submitModal}
-          product={selectedProduct}
-        />
+        <ProductModal visible={modalVisible} onClose={closeModal} onSubmit={submitModal} product={selectedProduct} />
       )}
     </View>
   );
@@ -445,6 +386,7 @@ const MyRecentListing = () => {
 
 export default MyRecentListing;
 
+/* styles (kept same as your original) */
 const styles = StyleSheet.create({
   container: {
     paddingVertical: moderateScale(16),
@@ -505,7 +447,7 @@ const styles = StyleSheet.create({
     marginRight: scale(15),
     borderWidth: 1,
     borderColor: "rgba(255, 202, 40, 1)",
-    width: Math.min(width * 0.94, scale(520)), 
+    width: Math.min(width * 0.94, scale(520)),
     alignSelf: "center",
   },
   cardContent: {
@@ -514,7 +456,7 @@ const styles = StyleSheet.create({
     gap: moderateScale(12),
   },
   imageContainer: {
-    width: scale(130),
+    width: scale(140),
     height: moderateScale(150),
   },
   itemImage: {
@@ -587,9 +529,9 @@ const styles = StyleSheet.create({
   },
   dropdownBtn: {
     padding: moderateScale(3),
+    paddingHorizontal: moderateScale(10),
     borderRadius: moderateScale(6),
     borderWidth: 1,
-    width:scale(89),
     borderColor: "rgba(0, 0, 0, 0.3)",
     flexDirection: "row",
     alignItems: "center",
@@ -634,9 +576,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.1)",
   },
   stockDropdown: {
+    marginLeft: moderateScale(50),
     backgroundColor: "#fff",
     borderRadius: moderateScale(8),
-    minWidth: scale(60),
     paddingVertical: moderateScale(8),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: moderateScale(4) },

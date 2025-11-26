@@ -94,7 +94,7 @@ const ProductCard = ({
           </Text>
 
           <View style={{flexDirection:'row',alignItems:'center',gap:scale(6), marginTop: moderateScale(6)}}>
-            <Image source={require("../assets/via-farm-img/icons/cardMap.png")} />
+            <Image source={require("../assets/via-farm-img/icons/loca.png")} />
             <Text style={cardStyles.distanceText}>
               {distance ?? "0.0 km"}
             </Text>

@@ -186,18 +186,16 @@ const ProductCard = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#fff",
-    borderRadius: moderateScale(8),
-    marginLeft: moderateScale(5),
-    marginTop: moderateScale(10),
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: moderateScale(4),
-    borderWidth: moderateScale(1),
-    borderColor: "rgba(108, 59, 28, 1)",
-    marginBottom: moderateScale(5),
-    // elevation: 3,
-    overflow: "hidden",
+    backgroundColor: '#fff',
+    borderRadius:10,
+    overflow: 'hidden',
+    shadowColor: 'rgba(0, 0, 0, 0.2)',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderWidth: 2,
+    borderColor: 'rgba(0, 0, 0, 0.2)',
+    elevation: 7,
+    shadowOffset: { width: 0, height: 3 },
   },
   imageContainer: {
     position: "relative",
@@ -253,7 +251,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(76, 175, 80, 1)",
     flexDirection: "row",
     alignItems: "center",
-    height:scale(35),
+    height: scale(35),
     justifyContent: "center",
   },
   addToCartText: {

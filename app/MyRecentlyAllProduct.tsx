@@ -1,4 +1,4 @@
-// AllRecently.js — Updated card styling to match screenshot exactly
+
 import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -17,6 +17,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import ProductModal from "../components/vendors/ProductEditModel";
 const { width } = Dimensions.get("window");
 
@@ -80,7 +81,7 @@ const AllRecently = () => {
 
       if (res.data.success) {
         const formattedData = (res.data.products || []).map((product) => ({
-          id: product._id,
+          id: product.id,
           name: product.name,
           price: product.price,
           quantity: product.quantity,
@@ -377,7 +378,7 @@ const AllRecently = () => {
           {/* Left image */}
           <View style={styles.leftImageWrap}>
             {item.image ? (
-              <Image source={{ uri: item.image }} style={styles.itemImage} resizeMode="cover" />
+              <Image source={{ uri: item.image }} style={styles.itemImage} resizeMode="stretch" />
             ) : (
               <View style={styles.noImage}>
                 <Text style={{ color: "#999" }}>No image</Text>
@@ -408,16 +409,17 @@ const AllRecently = () => {
                   openActionMenu(item.id);
                 }}
               >
-                <Text style={styles.dotsText}>⋮</Text>
+                <Image source={require("../assets/via-farm-img/icons/threeDot.png")} />
               </TouchableOpacity>
             </View>
 
-            {/* two-column rows (label : value) */}
-            {/* <View style={styles.infoRow}>
+
+
+            <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Category</Text>
               <Text style={styles.infoSeparator}>:</Text>
               <Text style={styles.infoValue}>{item.category}</Text>
-            </View> */}
+            </View>
 
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Price</Text>
@@ -480,7 +482,7 @@ const AllRecently = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {renderHeader()}
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: moderateScale(16), paddingBottom: moderateScale(24) }}>
@@ -562,7 +564,7 @@ const AllRecently = () => {
 
       {/* Product Edit Modal */}
       <ProductModal visible={modalVisible} onClose={closeModal} onSubmit={submitModal} product={selectedProduct} />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -572,7 +574,6 @@ export const styles = StyleSheet.create({
   container: {
     backgroundColor: "#fff",
     flex: 1,
-    marginTop: 50,
   },
   loadingContainer: {
     flex: 1,
@@ -629,14 +630,18 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#333",
   },
+  dotsBtn:{
+   paddingVertical:moderateScale(10),
+   paddingHorizontal:moderateScale(20)
+  },
   categoryDropdownButton: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: moderateScale(12),
     paddingVertical: moderateScale(8),
-    borderRadius: moderateScale(12),
+    borderRadius: moderateScale(10),
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.3)",
+    borderColor: "rgba(0, 0, 0, 0.3)",
     minWidth: moderateScale(120),
   },
   categoryDropdownText: {
@@ -666,14 +671,14 @@ export const styles = StyleSheet.create({
   cardInner: {
     flexDirection: "row",
     alignItems: "center",
-    padding: moderateScale(10),
   },
 
   // Left image block
   leftImageWrap: {
-    width: moderateScale(110),
-    height: moderateScale(110),
-    borderRadius: moderateScale(8),
+    width: moderateScale(145),
+    height: moderateScale(170),
+    borderTopLeftRadius: moderateScale(8),
+    borderBottomLeftRadius: moderateScale(8),
     overflow: "hidden",
     backgroundColor: "#f3f3f3",
   },
@@ -721,15 +726,11 @@ export const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   itemName: {
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(12),
     fontWeight: "700",
     color: "#222",
     flex: 1,
     marginRight: moderateScale(8),
-  },
-  dotsBtn: {
-    paddingHorizontal: moderateScale(6),
-    paddingVertical: moderateScale(6),
   },
   dotsText: {
     fontSize: normalizeFont(20),
@@ -744,8 +745,8 @@ export const styles = StyleSheet.create({
     marginTop: moderateScale(6),
   },
   infoLabel: {
-    width: moderateScale(72),
-    fontSize: normalizeFont(12),
+    width: moderateScale(65),
+    fontSize: normalizeFont(11),
     color: "#666",
     fontWeight: "500",
   },
@@ -753,13 +754,11 @@ export const styles = StyleSheet.create({
     width: moderateScale(8),
     fontSize: normalizeFont(12),
     color: "#666",
-    marginRight: moderateScale(6),
-    textAlign: "left",
   },
   infoValue: {
     flex: 1,
-    fontSize: normalizeFont(13),
-    color: "#111",
+    fontSize: normalizeFont(11),
+    color: "#666",
     fontWeight: "600",
   },
 
@@ -775,7 +774,7 @@ export const styles = StyleSheet.create({
   },
   uploadValue: {
     fontSize: normalizeFont(11),
-    color: "#333",
+    color: "#666",
     fontWeight: "500",
   },
 
@@ -788,10 +787,11 @@ export const styles = StyleSheet.create({
     alignSelf: "flex-start",
     paddingHorizontal: moderateScale(10),
     paddingVertical: moderateScale(6),
-    borderRadius: moderateScale(18),
+    borderRadius: moderateScale(10),
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.08)",
+    borderColor: "rgba(0, 0, 0, 0.3)",
     backgroundColor: "#fff",
+    marginBottom:moderateScale(10)
   },
   stockDot: {
     width: moderateScale(8),
@@ -821,6 +821,7 @@ export const styles = StyleSheet.create({
     minWidth: moderateScale(140),
     paddingVertical: moderateScale(8),
     borderWidth: 1,
+    marginLeft:moderateScale(10),
     borderColor: "rgba(255,202,40,1)",
     elevation: 6,
   },
@@ -831,7 +832,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(12),
   },
   stockOptionText: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     fontWeight: "500",
     color: "#374151",
     marginLeft: moderateScale(8),
@@ -856,7 +857,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(16),
   },
   actionOptionText: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     fontWeight: "500",
     color: "#374151",
   },
@@ -872,7 +873,7 @@ export const styles = StyleSheet.create({
   categoryDropdown: {
     backgroundColor: "#fff",
     borderRadius: moderateScale(12),
-    minWidth: moderateScale(160),
+    minWidth: scale(123),
     paddingVertical: moderateScale(8),
     borderWidth: 1,
     borderColor: "rgba(255,202,40,0.3)",

@@ -25,7 +25,13 @@ import { moderateScale, normalizeFont, scale } from '../Responsive';
 const { height } = Dimensions.get('window');
 const API_BASE = 'https://viafarm-1.onrender.com';
 
+
+
+
+
 // ---------------- EditProfileModal ----------------
+
+
 
 const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
   const [name, setName] = useState(initialData?.name || '');
@@ -35,7 +41,6 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
   const [about, SetAbout] = useState(initialData?.about || '');
   const [profileImageUri, setProfileImageUri] = useState(initialData?.profilePicture || initialData?.image || null);
 
-  // farmImages stored as array of { uri } objects
   const [farmImages, SetFarmImages] = useState(() => {
     const fromInitial = initialData?.farmImages || initialData?.images || [];
     if (!fromInitial) return [];
@@ -61,13 +66,82 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
     else if (typeof fromInitial === 'string') SetFarmImages([{ uri: fromInitial }]);
   }, [initialData]);
 
-  // Helper: safe mediaTypes option across expo-image-picker versions
   const getMediaTypesOption = () => {
-    // prefer MediaType.Image, else fallback to MediaTypeOptions.Images, else undefined
     return ImagePicker?.MediaType?.Image || ImagePicker?.MediaTypeOptions?.Images || undefined;
   };
 
-  // Single profile image picker
+  // Enhanced compression with aggressive settings for large files
+  const compressImage = async (uri, isFarmImage = false) => {
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(uri);
+      const fileSizeInMB = fileInfo.size / (1024 * 1024);
+
+      console.log(`Original image size: ${fileSizeInMB.toFixed(2)} MB`);
+
+      // If less than 300KB, no compression needed
+      if (fileSizeInMB < 0.3) {
+        console.log('Image already small, skipping compression');
+        return uri;
+      }
+
+      // Aggressive compression for farm images and large files
+      let quality = 0.7;
+      let maxWidth = 1200;
+
+      if (isFarmImage) {
+        // Farm images can be more compressed since they're in gallery
+        maxWidth = 1000;
+        if (fileSizeInMB > 10) quality = 0.3;
+        else if (fileSizeInMB > 5) quality = 0.35;
+        else if (fileSizeInMB > 3) quality = 0.4;
+        else if (fileSizeInMB > 2) quality = 0.45;
+        else if (fileSizeInMB > 1) quality = 0.5;
+        else quality = 0.6;
+      } else {
+        // Profile picture
+        if (fileSizeInMB > 5) quality = 0.4;
+        else if (fileSizeInMB > 2) quality = 0.5;
+        else if (fileSizeInMB > 1) quality = 0.6;
+      }
+
+      console.log(`Compressing with quality: ${quality}, max width: ${maxWidth}`);
+
+      const manipResult = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: maxWidth } }],
+        { 
+          compress: quality, 
+          format: ImageManipulator.SaveFormat.JPEG,
+          base64: false 
+        }
+      );
+
+      const compressedInfo = await FileSystem.getInfoAsync(manipResult.uri);
+      const compressedSizeInMB = compressedInfo.size / (1024 * 1024);
+      
+      console.log(`Compressed to: ${compressedSizeInMB.toFixed(2)} MB (${((1 - compressedSizeInMB / fileSizeInMB) * 100).toFixed(1)}% reduction)`);
+
+      // If still too large, compress again more aggressively
+      if (compressedSizeInMB > 2 && isFarmImage) {
+        console.log('Still too large, compressing again...');
+        const secondPass = await ImageManipulator.manipulateAsync(
+          manipResult.uri,
+          [{ resize: { width: 800 } }],
+          { compress: 0.3, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        const finalInfo = await FileSystem.getInfoAsync(secondPass.uri);
+        const finalSizeInMB = finalInfo.size / (1024 * 1024);
+        console.log(`Second pass compressed to: ${finalSizeInMB.toFixed(2)} MB`);
+        return secondPass.uri;
+      }
+
+      return manipResult.uri;
+    } catch (err) {
+      console.log('Compression error:', err);
+      return uri;
+    }
+  };
+
   const pickImage = async () => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -87,7 +161,8 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
       const result = await ImagePicker.launchImageLibraryAsync(options);
 
       if (!result.canceled && Array.isArray(result.assets) && result.assets[0]) {
-        setProfileImageUri(result.assets[0].uri);
+        const compressedUri = await compressImage(result.assets[0].uri, false);
+        setProfileImageUri(compressedUri);
       }
     } catch (err) {
       console.log('pickImage error', err);
@@ -95,7 +170,6 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
     }
   };
 
-  // Multiple farm images picker (up to 5)
   const ImageFarm = async () => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -105,20 +179,40 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
       }
 
       const mediaTypesOption = getMediaTypesOption();
-      const pickerOptions = { allowsMultipleSelection: true, quality: 0.7 };
+      const pickerOptions = { 
+        allowsMultipleSelection: true, 
+        quality: 0.5,  // Lower initial quality for picker
+      };
       if (mediaTypesOption) pickerOptions.mediaTypes = mediaTypesOption;
 
       const result = await ImagePicker.launchImageLibraryAsync(pickerOptions);
 
       if (!result.canceled && Array.isArray(result.assets)) {
-        const picked = result.assets.map(a => ({ uri: a.uri }));
+        console.log(`Processing ${result.assets.length} farm images...`);
+        
+        const compressedPromises = result.assets.map(async (asset, idx) => {
+          try {
+            console.log(`Compressing farm image ${idx + 1}/${result.assets.length}`);
+            const compressedUri = await compressImage(asset.uri, true);
+            return { uri: compressedUri, success: true };
+          } catch (err) {
+            console.log(`Failed to compress farm image ${idx + 1}:`, err);
+            return { uri: null, success: false };
+          }
+        });
+
+        const results = await Promise.all(compressedPromises);
+        const picked = results.filter(r => r.success && r.uri).map(r => ({ uri: r.uri }));
+        
+        console.log(`Successfully compressed ${picked.length}/${result.assets.length} images`);
 
         SetFarmImages(prev => {
           const prevArr = Array.isArray(prev) ? prev : [];
           const combined = [...prevArr, ...picked];
-          // dedupe by uri and cap to 5
           const unique = Array.from(new Map(combined.map(item => [item.uri, item])).values());
-          return unique.slice(0, 5);
+          const final = unique.slice(0, 5);
+          console.log(`Total farm images: ${final.length}`);
+          return final;
         });
       }
     } catch (err) {
@@ -135,181 +229,185 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
     });
   };
 
-
-
-
-  // Submit handler — IMPORTANT: do NOT set Content-Type header manually
   const handleSubmit = async () => {
-  if (!name || !mobileNumber || !upiId) {
-    Alert.alert('Error', 'Please fill all required fields.');
-    return;
-  }
-
-  setLoading(true);
-
-  // helper: guess mime from filename
-  const guessMime = (filename) => {
-    const match = /\.(\w+)$/.exec(filename);
-    if (!match) return 'image/jpeg';
-    const ext = match[1].toLowerCase();
-    if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
-    if (ext === 'png') return 'image/png';
-    if (ext === 'webp') return 'image/webp';
-    if (ext === 'gif') return 'image/gif';
-    if (ext === 'heic' || ext === 'heif') return 'image/heic';
-    return 'image/jpeg';
-  };
-
-  const prepareUriForUpload = async (uri) => {
-    try {
-      if (!uri) return null;
-
-      if (uri.startsWith('http://') || uri.startsWith('https://')) return uri;
-
-      if (Platform.OS === 'android') {
-
-        if (uri.startsWith('content://')) {
-          const filename = uri.split('/').pop() || `img_${Date.now()}.jpg`;
-          const dest = `${FileSystem.cacheDirectory}${filename}`;
-          try {
-            // Try copyAsync; fallback to downloadAsync
-            await FileSystem.copyAsync({ from: uri, to: dest }).catch(async () => {
-              await FileSystem.downloadAsync(uri, dest);
-            });
-            return dest;
-          } catch (err) {
-            console.warn('prepareUriForUpload: copy/download failed, returning original uri', err);
-            return uri;
-          }
-        }
-        // file:// or other - return as-is
-        return uri;
-      } else {
-        // iOS: remove file:// prefix for FormData on iOS
-        if (uri.startsWith('file://')) return uri.replace('file://', '');
-        return uri;
-      }
-    } catch (err) {
-      console.warn('prepareUriForUpload error:', err);
-      return uri;
-    }
-  };
-
-  try {
-    const token = await AsyncStorage.getItem('userToken');
-    if (!token) {
-      Alert.alert('Error', 'User not authenticated.');
-      setLoading(false);
+    if (!name || !mobileNumber || !upiId) {
+      Alert.alert('Error', 'Please fill all required fields.');
       return;
     }
 
-    const formData = new FormData();
-    formData.append('name', name);
-    formData.append('mobileNumber', String(mobileNumber));
-    formData.append('upiId', upiId);
-    formData.append('status', status);
-    formData.append('about', about || '');
+    setLoading(true);
 
-    // profile picture
-    if (profileImageUri) {
-      const prepared = await prepareUriForUpload(profileImageUri);
-      const filename = (prepared && prepared.split('/').pop()) || `profile_${Date.now()}.jpg`;
-      const mimeType = guessMime(filename);
+    const prepareUriForUpload = async (uri) => {
+      try {
+        if (!uri) return null;
 
-      formData.append('profilePicture', {
-        uri: Platform.OS === 'android' ? prepared : prepared,
-        name: filename,
-        type: mimeType,
-      });
-    }
+        if (uri.startsWith('http://') || uri.startsWith('https://')) {
+          return uri;
+        }
 
-    // console.log("Sanjay name ",formData)
+        if (Platform.OS === 'android') {
+          if (uri.startsWith('content://')) {
+            const filename = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
+            const dest = `${FileSystem.cacheDirectory}${filename}`;
+            
+            try {
+              await FileSystem.copyAsync({ from: uri, to: dest });
+              return dest;
+            } catch (copyErr) {
+              try {
+                await FileSystem.downloadAsync(uri, dest);
+                return dest;
+              } catch (downloadErr) {
+                console.log('URI preparation failed, using original', downloadErr);
+                return uri;
+              }
+            }
+          }
+          return uri;
+        }
 
-    // farm images (multiple) — accept array of {uri} or strings
-    if (farmImages && Array.isArray(farmImages) && farmImages.length > 0) {
-      // normalize to array of URIs, dedupe and limit to 10 (or 5 as you prefer)
-      const uris = Array.from(
-        new Map(
-          farmImages
-            .map((i) => (typeof i === 'string' ? i : i?.uri))
-            .filter(Boolean)
-            .map((u) => [u, u])
-        ).values()
-      ).slice(0, 5);
+        if (Platform.OS === 'ios') {
+          if (uri.startsWith('file://')) {
+            return uri.replace('file://', '');
+          }
+        }
 
-      for (let i = 0; i < uris.length; i++) {
-        const rawUri = uris[i];
-        const prepared = await prepareUriForUpload(rawUri);
-        const filename = (prepared && prepared.split('/').pop()) || `farm_${Date.now()}_${i}.jpg`;
-        const mimeType = guessMime(filename);
-
-        // Append multiple entries with same field name to create an array on server
-        formData.append('farmImages', {
-          uri: Platform.OS === 'android' ? prepared : prepared,
-          name: filename,
-          type: mimeType,
-        });
+        return uri;
+      } catch (err) {
+        console.log('prepareUriForUpload error:', err);
+        return uri;
       }
-    }
+    };
 
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        Alert.alert('Error', 'User not authenticated.');
+        setLoading(false);
+        return;
+      }
 
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('mobileNumber', String(mobileNumber));
+      formData.append('upiId', upiId);
+      formData.append('status', status);
+      formData.append('about', about || '');
 
-    // Do NOT set Content-Type header — let RN/axios set multipart boundary
-    const response = await axios.put(`${API_BASE}/api/vendor/profile`, formData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      timeout: 120000,
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity,
-    });
+      // Profile picture
+      if (profileImageUri && !profileImageUri.startsWith('http')) {
+        console.log('Processing profile picture...');
+        const prepared = await prepareUriForUpload(profileImageUri);
+        const filename = `profile_${Date.now()}.jpg`;
 
-    // For debugging: log server response (not the FormData itself)
-    console.log('upload response status:', response.status);
-    console.log('upload response data:', response.data);
+        formData.append('profilePicture', {
+          uri: Platform.OS === 'android' ? prepared : `file://${prepared}`,
+          name: filename,
+          type: 'image/jpeg',
+        });
+        console.log('Profile picture added');
+      }
 
-    if (response.data?.success) {
-      const payload = response.data?.user || response.data?.data || response.data;
-      onUpdate({
-        name: payload?.name || name,
-        mobileNumber: payload?.mobileNumber || mobileNumber,
-        upiId: payload?.upiId || upiId,
-        status: payload?.status || status,
-        about: payload?.about || about,
-        profileImageUri: payload?.profilePicture || payload?.profileImage || profileImageUri,
-        farmImages: Array.isArray(payload?.farmImages)
-          ? payload.farmImages
-          : payload?.farmImages
-          ? [payload.farmImages]
-          : (farmImages || []).map((i) => (typeof i === 'string' ? i : i?.uri)),
+      // Farm images - Process each one carefully
+      if (farmImages && Array.isArray(farmImages) && farmImages.length > 0) {
+        console.log(`Processing ${farmImages.length} farm images...`);
+        
+        const newImages = farmImages.filter(img => {
+          const uri = typeof img === 'string' ? img : img?.uri;
+          return uri && !uri.startsWith('http://') && !uri.startsWith('https://');
+        });
+
+        console.log(`${newImages.length} new farm images to upload`);
+
+        for (let i = 0; i < newImages.length; i++) {
+          try {
+            const rawUri = typeof newImages[i] === 'string' ? newImages[i] : newImages[i]?.uri;
+            
+            console.log(`Processing farm image ${i + 1}/${newImages.length}`);
+            
+            // Get file info to log size
+            const fileInfo = await FileSystem.getInfoAsync(rawUri);
+            const sizeInMB = fileInfo.size / (1024 * 1024);
+            console.log(`Farm image ${i + 1} size: ${sizeInMB.toFixed(2)} MB`);
+            
+            const prepared = await prepareUriForUpload(rawUri);
+            const filename = `farm_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}.jpg`;
+
+            const imageFile = {
+              uri: Platform.OS === 'android' ? prepared : `file://${prepared}`,
+              name: filename,
+              type: 'image/jpeg',
+            };
+
+            formData.append('farmImages', imageFile);
+            console.log(`Farm image ${i + 1} added successfully`);
+          } catch (imgErr) {
+            console.log(`Error processing farm image ${i + 1}:`, imgErr);
+            // Continue with other images even if one fails
+          }
+        }
+      }
+
+      console.log('Uploading to:', `${API_BASE}/api/vendor/profile`);
+
+      const response = await axios({
+        method: 'PUT',
+        url: `${API_BASE}/api/vendor/profile`,
+        data: formData,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 300000, // 5 minutes for multiple large images
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            console.log(`Upload: ${percent}%`);
+          }
+        },
       });
 
-      Alert.alert('Success', 'Profile updated successfully!');
-      onClose();
-    } else {
-      console.log('server returned success:false', response.data);
-      Alert.alert('Error', response.data?.message || 'Something went wrong!');
-    }
-  } catch (err) {
-    console.error('Profile update error (full):', err);
+      console.log('Response:', response.status, response.data);
 
-    // axios network error or other
-    if (err?.response) {
-      console.error('Server response status:', err.response.status);
-      console.error('Server response data:', err.response.data);
-      Alert.alert('Server error', err.response.data?.message || `Status ${err.response.status}`);
-    } else if (err?.message && err.message.toLowerCase().includes('network')) {
-      // network error - give helpful hint
-      console.error('Network error while uploading. Check device network and API URL.');
-      Alert.alert('Network Error', 'Failed to reach server. Check your internet connection and API URL.');
-    } else {
-      Alert.alert('Error', err?.message || 'Failed to update profile. Please try again.');
-    }
-  } finally {
-    setLoading(false);
-  }
-};
+      if (response.data?.success) {
+        const payload = response.data?.user || response.data?.data || response.data;
+        onUpdate({
+          name: payload?.name || name,
+          mobileNumber: payload?.mobileNumber || mobileNumber,
+          upiId: payload?.upiId || upiId,
+          status: payload?.status || status,
+          about: payload?.about || about,
+          profileImageUri: payload?.profilePicture || payload?.profileImage || profileImageUri,
+          farmImages: Array.isArray(payload?.farmImages)
+            ? payload.farmImages
+            : payload?.farmImages
+            ? [payload.farmImages]
+            : (farmImages || []).map((i) => (typeof i === 'string' ? i : i?.uri)),
+        });
 
+        Alert.alert('Success', 'Profile updated successfully!');
+        onClose();
+      } else {
+        Alert.alert('Error', response.data?.message || 'Something went wrong!');
+      }
+    } catch (err) {
+      console.log('Upload error:', err);
+
+      if (err?.response) {
+        Alert.alert('Server Error', err.response.data?.message || `Status ${err.response.status}`);
+      } else if (err?.code === 'ECONNABORTED') {
+        Alert.alert('Timeout', 'Upload took too long. Try fewer or smaller images.');
+      } else if (err?.message?.toLowerCase().includes('network')) {
+        Alert.alert('Network Error', 'Check your internet connection and try again.');
+      } else {
+        Alert.alert('Error', err?.message || 'Upload failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
 
@@ -486,7 +584,7 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
           </ScrollView>
 
           <TouchableOpacity style={modalStyles.updateButton} onPress={handleSubmit} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" style={{ marginRight: 8 }} /> : <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight: 8 }} />}
+            {loading ? <ActivityIndicator color="#fff" style={{ marginRight:moderateScale(8) }} /> : <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight: 8 }} />}
             <Text style={modalStyles.updateButtonText}>{loading ? 'Updating...' : 'Update Details'}</Text>
           </TouchableOpacity>
         </View>
@@ -650,16 +748,6 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
               <Ionicons name="chevron-forward" size={16} color="#00B0FF" />
             </TouchableOpacity>
 
-            {/* <TouchableOpacity
-              style={modalStyles.locationButton}
-              onPress={handleSearchLocation}
-            >
-              <Ionicons name="search" size={18} color="#00B0FF" />
-              <Text style={modalStyles.locationButtonText}>Search Location</Text>
-              <Ionicons name="chevron-forward" size={16} color="#00B0FF" />
-            </TouchableOpacity> */}
-
-            {/* Address Inputs */}
             <TextInput
               style={modalStyles.textInput}
               placeholder="Pin Code *"
@@ -847,9 +935,9 @@ const VendorProfile = () => {
               <Text style={styles.userRole}>{userInfo?.status}</Text>
             </View>
             <View>
-              <TouchableOpacity style={{ borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.4)", paddingHorizontal: moderateScale(6), borderRadius: 5, flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: moderateScale(1) }} onPress={() => navigation.navigate("VendorProfileView", { user: fullUser })}>
+              <TouchableOpacity style={{ borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.2)", paddingHorizontal: moderateScale(6), borderRadius:7, flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: moderateScale(1) }} onPress={() => navigation.navigate("VendorProfileView", { user: fullUser })}>
                 <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
-                 <Text >{userInfo?.rating}</Text>
+                 <Text style={{fontSize:normalizeFont(10)}} >{userInfo?.rating}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.editButtonContainer}
@@ -983,7 +1071,7 @@ const styles = StyleSheet.create({
   userPhone: { fontSize: normalizeFont(12), color: '#666', paddingVertical: moderateScale(1) },
   userRole: { fontSize: normalizeFont(11), color: '#4CAF50', fontWeight: '500', marginTop: moderateScale(2), paddingVertical: moderateScale(1) },
 
-  editButtonContainer: { padding: moderateScale(8) },
+  editButtonContainer: { padding: moderateScale(8) ,marginTop:moderateScale(15)},
 
   menuSection: {
     backgroundColor: '#fff',

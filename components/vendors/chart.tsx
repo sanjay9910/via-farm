@@ -163,7 +163,7 @@ const Chart = () => {
             
             {hoveredBar !== null && (
               <View style={styles.tooltip}>
-                <Text style={styles.tooltipMonth}>{months[hoveredBar]}</Text>
+                <Text  style={styles.tooltipMonth}>{months[hoveredBar]}</Text>
                 <Text style={styles.tooltipValue}>
                   {chartValues[hoveredBar]?.toLocaleString() || 0} users
                 </Text>
@@ -193,7 +193,8 @@ export default Chart;
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#fff",
-    padding:moderateScale(16),
+    paddingHorizontal:moderateScale(16),
+    paddingVertical:moderateScale(10),
     marginVertical: moderateScale(15),
     shadowColor: "rgba(255, 202, 40, 1)",
     shadowOffset: { width: 0, height: 2 },
@@ -220,7 +221,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9f9f9",
     minWidth: scale(100),
   },
-  dropdownText: { fontSize: normalizeFont(12), color: "#333", fontWeight: "500" },
+  dropdownText: { fontSize: normalizeFont(10), color: "#333", fontWeight: "500" },
   dropdownTextActive: { color: "#2ecc71", fontWeight: "600" },
   dropdownMenu: {
     position: "absolute",
@@ -240,7 +241,7 @@ const styles = StyleSheet.create({
   },
   dropdownItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: moderateScale(8), paddingHorizontal: moderateScale(12) },
   dropdownItemActive: { backgroundColor: "#f0f9f4" },
-  chartWrapper: { position: "relative", height: scale(230), justifyContent: "center", alignItems: "center" },
+  chartWrapper: { position: "relative", height: scale(250), justifyContent: "center", alignItems: "center" },
   loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.8)', justifyContent: 'center', alignItems: 'center', zIndex: 999 },
   loadingText: { marginTop: moderateScale(10), color: '#666', fontSize: normalizeFont(10) },
   noDataContainer: { height: '100%', justifyContent: 'center', alignItems: 'center' },
@@ -266,7 +267,7 @@ const styles = StyleSheet.create({
     zIndex: 1001,
   },
   tooltipMonth: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(15),
     fontWeight: '600',
     color: '#2ecc71',
     marginBottom: moderateScale(4),

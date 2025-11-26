@@ -389,12 +389,7 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
             {loading ? (
               <ActivityIndicator color="#fff" style={{ marginRight: moderateScale(8) }} />
             ) : (
-              <Ionicons
-                name="reload-outline"
-                size={20}
-                color="#fff"
-                style={{ marginRight: 8 }}
-              />
+             <Image source={require("../../assets/via-farm-img/icons/updateDetails.png")} />
             )}
             <Text style={modalStyles.updateButtonText}>
               {loading ? "Updating..." : "Update Details"}
@@ -685,6 +680,7 @@ const modalStyles = StyleSheet.create({
   updateButton: {
     backgroundColor: "#4CAF50",
     flexDirection: "row",
+    gap:4,
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: moderateScale(15),

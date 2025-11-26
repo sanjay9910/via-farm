@@ -236,12 +236,12 @@ const viewPage = () => {
       <Image
         source={{ uri: item.images?.[0] }}
         style={cardStyles.image}
-        resizeMode="cover"
+        resizeMode="stretch"
       />
-      <Text style={{position:'absolute',bottom:moderateScale(5),left:moderateScale(5),color:'#fff',flexDirection:'row',alignItems:'center',gap:15,fontWeight:'bold', backgroundColor:'rgba(141, 141, 141, 0.6)',borderRadius:moderateScale(10),paddingVertical:4,paddingHorizontal:5}}>
-       <Text><Image source={require("../../assets/via-farm-img/icons/satar.png")} style={{paddingTop:moderateScale(5)}} /></Text> 
-        <Text>5.0</Text> 
-      </Text>
+      <View style={{position:'absolute',bottom:moderateScale(5),left:moderateScale(5),flexDirection:'row',alignItems:'center',gap:5, backgroundColor:'rgba(141, 141, 141, 0.6)',borderRadius:moderateScale(10),paddingVertical:3,paddingHorizontal:3}}>
+       <Text><Image source={require("../../assets/via-farm-img/icons/satar.png")} /></Text> 
+        <Text style={{color:'#fff',fontSize:normalizeFont(12)}}>5.0</Text> 
+      </View>
       <View style={cardStyles.details}>
         <View style={cardStyles.header}>
           <Text style={cardStyles.productName}>{item.name}</Text>
@@ -540,7 +540,7 @@ const ProductFilter = ({
         >
           <Image
             source={require("../../assets/via-farm-img/icons/filter.png")}
-            style={{ width: 20, height: 20 }}
+            style={{ width: scale(20), height: scale(20) }}
           />
         </TouchableOpacity>
       </View>
@@ -560,7 +560,7 @@ const ProductFilter = ({
           filterStyles.dropdownMenu,
           {
             position: "absolute",
-            top:scale(216),
+            top:scale(223),
             left: dropdownPos.left,
             width: dropdownPos.width,
             maxHeight: scale(300), 
@@ -1003,23 +1003,23 @@ export default ProductList;
 
 // ---- STYLES ----
 export const cardStyles = StyleSheet.create({
-  listContainer: { padding: moderateScale(16), gap: moderateScale(16) },
+  listContainer: { paddingHorizontal: moderateScale(16), gap: moderateScale(16) },
 
   card: {
     flexDirection: "row",
     backgroundColor: "#fff",
     borderRadius: moderateScale(16),
-    borderWidth: moderateScale(2),
+    borderWidth: moderateScale(1),
     borderColor: "rgba(255, 202, 40, 1)",
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: scale(2) },
-    shadowOpacity: Platform.OS === "ios" ? 0.08 : 0.16,
-    shadowRadius: moderateScale(8),
-    elevation: moderateScale(3),
+    // shadowColor: "#000",
+    // shadowOffset: { width: 0, height: scale(2) },
+    // shadowOpacity: Platform.OS === "ios" ? 0.08 : 0.16,
+    // shadowRadius: moderateScale(8),
+    // elevation: moderateScale(3),
   },
 
-  image: { width: moderateScale(150), height: "100%", minHeight: moderateScale(180) },
+  image: { width: moderateScale(155), height: "100%", minHeight: moderateScale(180) },
 
   details: { flex: 1, padding: moderateScale(8), justifyContent: "space-between" },
 
@@ -1031,7 +1031,7 @@ export const cardStyles = StyleSheet.create({
   },
 
   productName: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(13),
     fontWeight: "600",
     color: "#1f2937",
     flex: 1,
@@ -1042,11 +1042,11 @@ export const cardStyles = StyleSheet.create({
 
   row: { flexDirection: "row", alignItems: "center", marginBottom: moderateScale(6) },
 
-  label: { fontSize: normalizeFont(12), color: "#6b7280", width: moderateScale(80) },
+  label: { fontSize: normalizeFont(12), color: "#6b7280", width: moderateScale(60) },
 
   colon: { fontSize: normalizeFont(12), color: "#6b7280", marginHorizontal: moderateScale(8) },
 
-  value: { fontSize: normalizeFont(12), color: "#374151", fontWeight: "500", flex: 1 },
+  value: { fontSize: normalizeFont(12), color: "#6b7280", fontWeight: "500", flex: 1 },
 
   uploadDate: {
     fontSize: normalizeFont(11),
@@ -1181,13 +1181,13 @@ export const filterStyles = StyleSheet.create({
     minWidth: moderateScale(110),
   },
 
-  dropdownText: { fontSize: normalizeFont(13), color: "#374151", fontWeight: "400" },
+  dropdownText: { fontSize: normalizeFont(11), color: "#374151", fontWeight: "400" },
 
   filterButton: {
-    padding: moderateScale(10),
+    padding: moderateScale(5),
     backgroundColor: "#fff",
     borderWidth: moderateScale(1),
-    borderColor: "#d1d5db",
+    borderColor: "rgba(0,0,0,0.3)",
     borderRadius: moderateScale(8),
     alignItems: "center",
     justifyContent: "center",
@@ -1197,8 +1197,9 @@ export const filterStyles = StyleSheet.create({
 
   dropdownMenu: {
     backgroundColor: "#fff",
-    borderRadius: moderateScale(12),
+    borderRadius: moderateScale(10),
     shadowColor: "#000",
+    paddingVertical:moderateScale(3),
     shadowOffset: { width: 0, height: moderateScale(4) },
     shadowOpacity: Platform.OS === "ios" ? 0.15 : 0.22,
     shadowRadius: moderateScale(12),

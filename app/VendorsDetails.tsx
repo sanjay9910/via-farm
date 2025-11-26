@@ -155,9 +155,9 @@ const ProductCardLocal = ({
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
             <Image
-              source={require("../assets/via-farm-img/icons/cardMap.png")}
+              source={require("../assets/via-farm-img/icons/loca.png")}
             />
-            <Text style={{ fontSize: 12, color: '#444' }}>
+            <Text style={{ fontSize:normalizeFont(12),paddingVertical:moderateScale(4), color: '#444' }}>
               {distance ?? "0.0 km"}
             </Text>
           </View>
@@ -995,7 +995,6 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(6),
     zIndex: 99999,
     elevation: 999,
-    // iOS shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
@@ -1093,117 +1092,152 @@ const styles = StyleSheet.create({
    --------------------------- */
 const cardStyles = StyleSheet.create({
   container: {
-    width: Dimensions.get("window").width / 2 - 25,
-    marginLeft: moderateScale(5),
-    marginTop: moderateScale(10),
-    marginBottom: moderateScale(5),
+    width: CARD_WIDTH,
+    marginLeft: moderateScale(6),
+    marginTop: moderateScale(12),
+    marginBottom: moderateScale(8),
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: moderateScale(5),
+    borderRadius:10,
+    overflow: 'hidden',
     shadowColor: 'rgba(0, 0, 0, 0.2)',
     shadowOpacity: 0.1,
     shadowRadius: 4,
     borderWidth: 2,
     borderColor: 'rgba(0, 0, 0, 0.2)',
     elevation: 7,
+    shadowOffset: { width: 0, height: 3 },
   },
+
+  // image area
   imageContainer: {
-    position: 'relative',
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    overflow: 'hidden',
+    width: '100%',
+    height: scale(140),
+    backgroundColor: '#f6f6f6',
   },
-  imageHeight: scale(120),
+  imageHeight: scale(135),
   productImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
+    borderTopLeftRadius:5,
+    borderTopRightRadius:5,
   },
+
+
   favoriteButton: {
     position: 'absolute',
-    top: moderateScale(3),
-    right: moderateScale(3),
-    borderRadius: 15,
+    top: moderateScale(2),
+    right: moderateScale(2),
+    borderRadius: 16,
     width: scale(30),
     height: scale(30),
     justifyContent: 'center',
     alignItems: 'center',
+    shadowRadius: 4,
   },
+
+
   ratingContainer: {
     position: 'absolute',
-    bottom: moderateScale(8),
+    bottom: moderateScale(10),
     left: moderateScale(8),
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(141, 141, 141, 0.6)',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: moderateScale(6),
-    paddingVertical: moderateScale(2),
-    borderRadius: moderateScale(12),
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateScale(4),
+    borderRadius: moderateScale(14),
   },
   ratingText: {
     color: '#fff',
     fontSize: normalizeFont(11),
-    marginLeft: 2,
-    fontWeight: '500',
+    marginLeft: moderateScale(6),
+    fontWeight: '600',
   },
+
   cardContent: {
-    padding: moderateScale(5),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(10),
   },
   productTitle: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(13),
     fontWeight: '600',
-    color: '#333',
+    color: '#2b2b2b',
+
   },
+
   productVeriety: {
     color: 'rgba(66, 66, 66, 0.7)',
     fontSize: normalizeFont(12),
-    paddingVertical: 1,
   },
+
+  productSubtitle: {
+    fontSize: normalizeFont(12),
+    color: '#666',
+    marginBottom: moderateScale(8),
+    height: scale(20),
+  },
+
   priceContainer: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: moderateScale(6),
-    marginTop: moderateScale(4),
+    alignItems: 'flex-end',
+    marginBottom: moderateScale(5),
+  },
+  productPrice: {
+    fontSize: normalizeFont(13),
+    fontWeight: '800',
+    color: '#666',
   },
   productUnit: {
     fontSize: normalizeFont(12),
     color: '#666',
-    marginLeft: 2,
+    marginLeft: moderateScale(6),
+    marginBottom: moderateScale(2),
   },
+  weightText: {
+    fontSize: normalizeFont(11),
+    color: '#777',
+    marginLeft: moderateScale(6),
+  },
+
+
   buttonContainer: {
-    minHeight: scale(26),
-    maxWidth: scale(158),
-    justifyContent: 'center',
+    marginTop: moderateScale(6),
+    alignItems: 'stretch',
   },
   addToCartButton: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
-    flexDirection: 'row',
+    borderRadius: 8,
+    paddingVertical: moderateScale(10),
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: moderateScale(10),
-    paddingHorizontal: moderateScale(20),
-    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   disabledButton: {
     backgroundColor: '#cccccc',
   },
   addToCartText: {
     color: '#fff',
-    fontSize: normalizeFont(12),
-    fontWeight: '500',
+    fontSize: normalizeFont(13),
+    fontWeight: '700',
   },
+
+
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: 'rgba(76, 175, 80, 1)',
-    borderRadius: 10,
+    borderRadius: 8,
     paddingHorizontal: moderateScale(4),
     height: scale(36),
-    minWidth: scale(100),
+    minWidth: scale(120),
     backgroundColor: '#fff',
   },
   quantityButton: {
@@ -1211,7 +1245,6 @@ const cardStyles = StyleSheet.create({
     height: scale(36),
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 0,
   },
   quantityValueContainer: {
     minWidth: scale(48),
@@ -1227,11 +1260,11 @@ const cardStyles = StyleSheet.create({
   quantityText: {
     fontSize: normalizeFont(16),
     color: 'rgba(76, 175, 80, 1)',
-    fontWeight: '600',
+    fontWeight: '700',
     textAlign: 'center',
-    includeFontPadding: false,
   },
 });
+
 
 export default VendorsDetails;
 
