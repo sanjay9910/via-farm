@@ -848,10 +848,14 @@ export default function HeaderDesign() {
           >
             {/* Header */}
             <View style={styles.addressModalHeader}>
-              <Text style={styles.addressModalTitle}>Add New Address</Text>
-              <TouchableOpacity onPress={closeAddressModal} style={styles.addressCloseBtn}>
-                <Ionicons name="close" size={24} color="#000" />
+              <TouchableOpacity  onPress={closeAddressModal} >
+                <Image source={require("../../assets/via-farm-img/icons/groupArrow.png")} />
               </TouchableOpacity>
+              <Text style={styles.addressModalTitle}>Add New Address</Text>
+              <Text></Text>
+              {/* <TouchableOpacity onPress={closeAddressModal} style={styles.addressCloseBtn}>
+                <Ionicons name="close" size={24} color="#000" />
+              </TouchableOpacity> */}
             </View>
 
             <ScrollView
@@ -987,7 +991,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
     zIndex: 1,
-    height:170,
+    // height:170,
   },
   headerWrapper: {
     backgroundColor: '#fff',
@@ -1382,8 +1386,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   addressModalTitle: {
-    fontSize: normalizeFont(15),
-    fontWeight: '700',
+    fontSize: normalizeFont(13),
+    fontWeight: '600',
     color: '#1a1a1a',
   },
   addressCloseBtn: {

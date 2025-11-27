@@ -1,5 +1,6 @@
+// components/common/ProductCard.js
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React from "react";
 import {
   Dimensions,
   Image,
@@ -17,8 +18,7 @@ const guidelineBaseHeight = 812;
 
 const scale = (size) => (SCREEN_WIDTH / guidelineBaseWidth) * size;
 const verticalScale = (size) => (SCREEN_HEIGHT / guidelineBaseHeight) * size;
-const moderateScale = (size, factor = 0.5) =>
-  size + (scale(size) - size) * factor;
+const moderateScale = (size, factor = 0.5) => size + (scale(size) - size) * factor;
 const normalizeFont = (size) => {
   const newSize = moderateScale(size);
   if (Platform.OS === "ios") {
@@ -38,7 +38,9 @@ const ProductCard = ({
   isFavorite = false,
   onPress,
   onFavoritePress,
-  onAddToCart,
+  onAddToCart,            // should be () => handleAddToCart(productId)
+  onQuantityChange,       // should be (change) => handleQuantityChange(productId, change)
+  cartQuantity = 0,       // controlled prop from parent
   width = moderateScale(140),
   showRating = true,
   showFavorite = true,
@@ -46,15 +48,22 @@ const ProductCard = ({
   cardStyle = {},
   imageHeight = moderateScale(120),
 }) => {
-  const [quantity, setQuantity] = useState(0);
+  // Use controlled cartQuantity prop (no internal state)
+  const qty = Number(cartQuantity || 0);
 
-  const handleAddToCart = () => {
-    setQuantity(1);
-    onAddToCart?.(id);
+  const handleAdd = () => {
+    // Parent expects no args (you pass a bound function), so call it directly
+    onAddToCart?.();
   };
 
-  const increment = () => setQuantity((q) => q + 1);
-  const decrement = () => setQuantity((q) => (q > 1 ? q - 1 : 0));
+  const handleIncrement = () => {
+    onQuantityChange?.(1);
+  };
+
+  const handleDecrement = () => {
+    // for decrement we send -1; parent will compute newQty and call API / delete if needed
+    onQuantityChange?.(-1);
+  };
 
   return (
     <View style={[{ width }, cardStyle]}>
@@ -65,7 +74,7 @@ const ProductCard = ({
       >
         {/* Product Image */}
         <View style={[styles.imageContainer, { height: imageHeight }]}>
-          <Image source={{ uri: image }} style={styles.productImage} />
+          <Image source={{ uri: image }} style={styles.productImage} resizeMode="stretch" />
 
           {showFavorite && (
             <TouchableOpacity
@@ -82,7 +91,7 @@ const ProductCard = ({
             >
               <Ionicons
                 name={isFavorite ? "heart" : "heart-outline"}
-                size={moderateScale(25)}
+                size={moderateScale(22)}
                 color={isFavorite ? "#ff4757" : "#fff"}
               />
             </TouchableOpacity>
@@ -100,9 +109,7 @@ const ProductCard = ({
               ]}
             >
               <Ionicons name="star" size={moderateScale(12)} color="#FFD700" />
-              <Text style={[styles.ratingText, { fontSize: normalizeFont(11) }]}>
-                {rating}
-              </Text>
+              <Text style={[styles.ratingText, { fontSize: normalizeFont(11) }]}>{rating ?? 0}</Text>
             </View>
           )}
         </View>
@@ -127,14 +134,11 @@ const ProductCard = ({
           >
             by {subtitle}
           </Text>
-          <Text
-            style={[styles.productPrice, { fontSize: normalizeFont(11) }]}
-          >{`₹${price}`}</Text>
+          <Text style={[styles.productPrice, { fontSize: normalizeFont(11) }]}>{`₹${price}`}</Text>
 
-
-          {/* Add to Cart / Quantity */}
+          {/* Add to Cart / Quantity (controlled) */}
           <View style={[styles.buttonContainer, { minHeight: verticalScale(36) }]}>
-            {quantity === 0 ? (
+            {qty <= 0 ? (
               <TouchableOpacity
                 style={[
                   styles.addToCartButton,
@@ -144,7 +148,7 @@ const ProductCard = ({
                     borderRadius: moderateScale(6),
                   },
                 ]}
-                onPress={handleAddToCart}
+                onPress={handleAdd}
                 activeOpacity={0.7}
               >
                 <Text style={[styles.addToCartText, { fontSize: normalizeFont(12) }]}>
@@ -161,18 +165,15 @@ const ProductCard = ({
                 ]}
               >
                 <TouchableOpacity
-                  onPress={decrement}
+                  onPress={handleDecrement}
                   style={[styles.sideBtn, { borderRightWidth: 1 }]}
                 >
                   <Text style={styles.qtyBtnText}>−</Text>
                 </TouchableOpacity>
-                <Text style={styles.qtyText}>
-                  {quantity.toString().padStart(2, "0")}
-                </Text>
-                <TouchableOpacity
-                  onPress={increment}
-                  style={[styles.sideBtn, { borderLeftWidth: 1 }]}
-                >
+
+                <Text style={styles.qtyText}>{String(qty).padStart(2, "0")}</Text>
+
+                <TouchableOpacity onPress={handleIncrement} style={[styles.sideBtn, { borderLeftWidth: 1 }]}>
                   <Text style={styles.qtyBtnText}>+</Text>
                 </TouchableOpacity>
               </View>
@@ -186,14 +187,14 @@ const ProductCard = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
-    borderRadius:10,
-    overflow: 'hidden',
-    shadowColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    overflow: "hidden",
+    shadowColor: "rgba(0, 0, 0, 0.2)",
     shadowOpacity: 0.1,
     shadowRadius: 4,
     borderWidth: 2,
-    borderColor: 'rgba(0, 0, 0, 0.2)',
+    borderColor: "rgba(0, 0, 0, 0.2)",
     elevation: 7,
     shadowOffset: { width: 0, height: 3 },
   },
@@ -211,7 +212,6 @@ const styles = StyleSheet.create({
   },
   favoriteButton: {
     position: "absolute",
-    // top: moderateScale(2),
     right: moderateScale(2),
     justifyContent: "center",
     alignItems: "center",
@@ -258,8 +258,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "600",
   },
-
-  /** ✅ New Quantity Box (Same Design as Image) **/
   quantityBox: {
     flexDirection: "row",
     alignItems: "center",

@@ -5,6 +5,7 @@ import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from 'expo-location';
 import { useRouter } from "expo-router";
+import { goBack } from "expo-router/build/global-state/routing";
 import { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -486,6 +487,13 @@ const ProfileScreen = () => {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.profile}>
+          <TouchableOpacity onPress={goBack}>
+            <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
+          </TouchableOpacity>
+          <Text>My Profile</Text>
+          <Text></Text>
+        </View>
         <View style={styles.profileSection}>
           <View style={styles.profileInfo}>
             <View style={styles.avatarContainer}>
@@ -1182,6 +1190,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginTop: moderateScale(20),
+  },
+  profile:{
+   flexDirection:'row',
+   alignItems:'center',
+   justifyContent:'space-between',
+   paddingHorizontal:moderateScale(22),
+   paddingVertical:moderateScale(10)
   },
   fieldRowContainer: {
     flexDirection: "row",

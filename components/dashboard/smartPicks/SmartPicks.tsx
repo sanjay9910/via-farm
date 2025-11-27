@@ -1,3 +1,4 @@
+// SmartPicks.js (success alerts removed; errors/info kept)
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -26,6 +27,7 @@ const ENDPOINT = '/api/buyer/smart-picks';
 const WISHLIST_ADD_ENDPOINT = '/api/buyer/wishlist/add';
 const WISHLIST_REMOVE_ENDPOINT = '/api/buyer/wishlist';
 const CART_ADD_ENDPOINT = '/api/buyer/cart/add';
+const CART_GET = '/api/buyer/cart';
 
 // ---------- Responsive helpers ----------
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -51,11 +53,13 @@ const ITEM_CARD_WIDTH = Math.round(moderateScale(150));
 const ITEM_HORIZONTAL_MARGIN = Math.round(moderateScale(8));
 const ITEM_FULL = ITEM_CARD_WIDTH + ITEM_HORIZONTAL_MARGIN * 2;
 
+const log = (...args) => console.log('[SmartPicks]', ...args);
+
 const SmartPicks = () => {
   const navigation = useNavigation();
 
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [categories, setCategories] = useState(['All']); 
+  const [categories, setCategories] = useState(['All']);
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +67,15 @@ const SmartPicks = () => {
   const [favorites, setFavorites] = useState(new Set());
   const [showDropdown, setShowDropdown] = useState(false);
   const [cartItems, setCartItems] = useState({});
+  // map productId -> boolean indicating update in progress
+  const [cartUpdating, setCartUpdating] = useState({});
+
+  // ref to always read latest cartItems inside callbacks
+  const cartItemsRef = useRef(cartItems);
+  useEffect(() => {
+    cartItemsRef.current = cartItems;
+  }, [cartItems]);
+
   const animation = useRef(new Animated.Value(0)).current;
 
   // Normalize API item to a stable shape
@@ -70,7 +83,6 @@ const SmartPicks = () => {
     const productId = String(item.productId ?? item._id ?? item.id ?? '');
     const id = String(item.id ?? item._id ?? productId);
 
-    // Vendor name extraction
     let vendorName = '';
     if (item.vendor?.name) {
       vendorName = item.vendor.name;
@@ -155,7 +167,7 @@ const SmartPicks = () => {
         return;
       }
 
-      const response = await axios.get(`${API_BASE}/api/buyer/cart`, {
+      const response = await axios.get(`${API_BASE}${CART_GET}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -164,9 +176,11 @@ const SmartPicks = () => {
         const cartMap = {};
         items.forEach((item) => {
           const productIdKey = String(item.productId ?? item._id ?? item.id ?? '');
+          // Try to capture cartItemId robustly
+          const cartItemId = item._id ?? item.id ?? item.cartItemId ?? null;
           cartMap[productIdKey] = {
             quantity: item.quantity ?? 1,
-            cartItemId: item._id ?? item.id ?? null,
+            cartItemId,
             raw: item,
           };
         });
@@ -201,15 +215,12 @@ const SmartPicks = () => {
     }
   }, []);
 
-  // NEW: fetch categories from API and set dropdown (trim + unique)
   const fetchCategories = useCallback(async () => {
     try {
       const res = await axios.get(`${API_BASE}/api/admin/manage-app/categories`, {
         timeout: 10000,
       });
-      // API returns { success: true, categories: [...] }
       const catArr = Array.isArray(res.data?.categories) ? res.data.categories : [];
-      // Trim + unique + preserve order
       const seen = new Set();
       const names = [];
       for (const c of catArr) {
@@ -223,7 +234,6 @@ const SmartPicks = () => {
         }
       }
       setCategories(['All', ...names]);
-      // if currently selected category isn't in new list, reset to All
       if (selectedCategory && selectedCategory !== 'All') {
         const found = names.find((n) => n.toLowerCase() === selectedCategory.toLowerCase());
         if (!found) setSelectedCategory('All');
@@ -274,7 +284,12 @@ const SmartPicks = () => {
     else openDropdown();
   }, [showDropdown, openDropdown, closeDropdown]);
 
-  // Add to Cart
+  // Helper: set updating flag per product
+  const setUpdatingFlag = (productId, flag) => {
+    setCartUpdating((prev) => ({ ...prev, [productId]: flag }));
+  };
+
+  // Add to Cart (atomic)
   const addToCart = useCallback(
     async (product) => {
       try {
@@ -287,26 +302,35 @@ const SmartPicks = () => {
         const productId = String(
           product.productId ?? product.raw?._id ?? product.raw?.id ?? product.id ?? ''
         );
-
         if (!productId) {
           Alert.alert('Error', 'Invalid product id');
           return false;
         }
 
-        if (cartItems[productId]) {
+        // prevent duplicate concurrent adds
+        if (cartUpdating[productId]) {
+          log('addToCart: update already in progress for', productId);
+          return false;
+        }
+
+        if (cartItemsRef.current[productId]) {
           Alert.alert('Info', 'Product already in cart');
           return false;
         }
 
+        // Optimistic UI: mark as updating and set qty=1 locally
+        setUpdatingFlag(productId, true);
+        setCartItems((prev) => ({ ...prev, [productId]: { ...(prev[productId] || {}), quantity: 1 } }));
+
         const cartData = {
           productId,
           name: product.title,
-          image: product.image || product.raw?.image,
+          image: product.image || product.raw?.image || '',
           price: Number(product.price || 0),
           quantity: 1,
-          category: product.categoryName || 'General',
+          category: product.category || 'General',
           variety: product.subtitle || product.raw?.variety || 'Standard',
-          unit: 'piece',
+          unit: product.raw?.unit || 'piece',
         };
 
         const response = await axios.post(`${API_BASE}${CART_ADD_ENDPOINT}`, cartData, {
@@ -317,12 +341,14 @@ const SmartPicks = () => {
         if (response.data?.success) {
           await fetchCart();
           DeviceEventEmitter.emit('cartUpdated');
-          Alert.alert('Success', 'Product added to cart!');
+          // success alert removed as requested
+          setUpdatingFlag(productId, false);
           return true;
         } else {
           const msg = response.data?.message || 'Failed to add to cart';
           Alert.alert('Info', msg);
           await fetchCart();
+          setUpdatingFlag(productId, false);
           return false;
         }
       } catch (error) {
@@ -336,50 +362,104 @@ const SmartPicks = () => {
         } else {
           Alert.alert('Error', msg);
         }
+        // refresh authoritative state and clear flag
         await fetchCart();
+        const productId = String(product.productId ?? product.raw?._id ?? product.raw?.id ?? product.id ?? '');
+        setUpdatingFlag(productId, false);
         return false;
       }
     },
-    [cartItems, fetchCart]
+    [fetchCart, cartUpdating]
   );
 
-  // Update cart quantity
+  // Update cart quantity (atomic, prevents multi-click)
   const updateCartQuantity = useCallback(
     async (product, newQty) => {
       try {
         const token = await AsyncStorage.getItem('userToken');
-        if (!token) return;
+        if (!token) {
+          Alert.alert('Login Required', 'Please login to update cart');
+          return;
+        }
 
         const productIdKey = String(product.productId ?? product.id ?? '');
-        const entry = cartItems[productIdKey];
+        const entry = cartItemsRef.current[productIdKey];
+
+        if (cartUpdating[productIdKey]) {
+          log('updateCartQuantity: already updating', productIdKey);
+          return;
+        }
+
         if (!entry || !entry.cartItemId) {
+          // Might be a race - refresh cart and abort
+          log('updateCartQuantity: missing entry or cartItemId, refreshing cart');
           await fetchCart();
           return;
         }
+
         const cartItemId = entry.cartItemId;
+
+        // Set updating flag immediately and optimistic local update
+        setUpdatingFlag(productIdKey, true);
+        setCartItems((prev) => {
+          const prevEntry = prev[productIdKey] || { quantity: 0, cartItemId };
+          return {
+            ...prev,
+            [productIdKey]: { ...prevEntry, quantity: newQty },
+          };
+        });
+
+        // If newQty <= 0 treat as delete
+        if (newQty <= 0) {
+          const delRes = await axios.delete(`${API_BASE}/api/buyer/cart/${cartItemId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+            timeout: 10000,
+          });
+          if (delRes.data?.success) {
+            await fetchCart();
+            DeviceEventEmitter.emit('cartUpdated');
+            setUpdatingFlag(productIdKey, false);
+            return;
+          } else {
+            Alert.alert('Error', delRes.data?.message || 'Failed to remove item');
+            await fetchCart();
+            setUpdatingFlag(productIdKey, false);
+            return;
+          }
+        }
+
+        // Normal update flow
         const res = await axios.put(
           `${API_BASE}/api/buyer/cart/${cartItemId}/quantity`,
           { quantity: newQty },
           {
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            timeout: 10000,
           }
         );
+
         if (res.data?.success) {
           await fetchCart();
           DeviceEventEmitter.emit('cartUpdated');
+          setUpdatingFlag(productIdKey, false);
         } else {
           Alert.alert('Error', res.data?.message || 'Failed to update quantity');
+          await fetchCart();
+          setUpdatingFlag(productIdKey, false);
         }
       } catch (err) {
         console.error('Error updating cart quantity:', err);
-        Alert.alert('Error', 'Failed to update cart quantity');
+        const msg = err.response?.data?.message || 'Failed to update cart quantity';
+        Alert.alert('Error', msg);
         await fetchCart();
+        const productIdKey = String(product.productId ?? product.id ?? '');
+        setUpdatingFlag(productIdKey, false);
       }
     },
-    [cartItems, fetchCart]
+    [fetchCart, cartUpdating]
   );
 
-  // Wishlist functions
+  // Wishlist functions (success alerts removed)
   const addToWishlist = useCallback(async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -408,7 +488,7 @@ const SmartPicks = () => {
           next.add(String(product.productId || product.id));
           return next;
         });
-        Alert.alert('Success', 'Product added to wishlist!');
+        // success alert removed as requested
         return true;
       } else {
         throw new Error(response.data?.message || 'Failed to add to wishlist');
@@ -450,7 +530,7 @@ const SmartPicks = () => {
     }
   }, []);
 
-  // Navigate to product view
+  // Navigation / handlers
   const handleCardPress = useCallback(
     (productId, item) => {
       try {
@@ -497,16 +577,20 @@ const SmartPicks = () => {
     async (productId, change) => {
       const product = filteredProducts.find((p) => p.id === productId);
       if (!product) return;
+
       const key = String(product.productId ?? product.id);
-      const currentQty = cartItems[key]?.quantity ?? 0;
+      const currentQty = cartItemsRef.current[key]?.quantity ?? 0;
       const newQty = Math.max(0, currentQty + change);
-      if (newQty === 0) {
-        await updateCartQuantity(product, 0);
-      } else {
-        await updateCartQuantity(product, newQty);
+
+      // If updating in progress, ignore the click
+      if (cartUpdating[key]) {
+        log('handleQuantityChange: click ignored — updating in progress for', key);
+        return;
       }
+
+      await updateCartQuantity(product, newQty);
     },
-    [filteredProducts, cartItems, updateCartQuantity]
+    [filteredProducts, updateCartQuantity, cartUpdating]
   );
 
   // Memoized renderItem
@@ -515,6 +599,7 @@ const SmartPicks = () => {
       const productIdKey = item.productId || item.id;
       const inCart = !!cartItems[productIdKey];
       const quantity = cartItems[productIdKey]?.quantity || 0;
+      const isUpdating = !!cartUpdating[productIdKey];
 
       return (
         <View style={[styles.cardWrapper, { width: ITEM_CARD_WIDTH }]}>
@@ -528,8 +613,21 @@ const SmartPicks = () => {
             isFavorite={favorites.has(String(item.productId ?? item.id))}
             onPress={() => handleCardPress(item.productId ?? item.id, item)}
             onFavoritePress={() => handleFavoritePress(item.id)}
-            onAddToCart={() => handleAddToCart(item.id)}
-            onQuantityChange={(change) => handleQuantityChange(item.id, change)}
+            // important: pass bound handlers expected by ProductCard (no args)
+            onAddToCart={() => {
+              if (isUpdating) {
+                log('addToCart click ignored for', productIdKey);
+                return;
+              }
+              handleAddToCart(item.id);
+            }}
+            onQuantityChange={(change) => {
+              if (isUpdating) {
+                log('quantity click ignored for', productIdKey);
+                return;
+              }
+              handleQuantityChange(item.id, change);
+            }}
             inCart={inCart}
             cartQuantity={quantity}
             width={ITEM_CARD_WIDTH}
@@ -540,7 +638,7 @@ const SmartPicks = () => {
         </View>
       );
     },
-    [favorites, cartItems, handleCardPress, handleFavoritePress, handleAddToCart, handleQuantityChange]
+    [favorites, cartItems, handleCardPress, handleFavoritePress, handleAddToCart, handleQuantityChange, cartUpdating]
   );
 
   if (loading && !refreshing) {
@@ -566,12 +664,6 @@ const SmartPicks = () => {
               <Ionicons name={showDropdown ? 'chevron-up' : 'chevron-down'} size={normalizeFont(14)} color="#666" />
             </View>
           </TouchableOpacity>
-
-          {/* Animated dropdown */}
-          {/*
-            Animated.View has absolute positioning.
-            We give it elevation on Android and zIndex on iOS so it renders above other elements.
-          */}
           <Animated.View
             pointerEvents={showDropdown ? 'auto' : 'none'}
             style={[
@@ -597,9 +689,7 @@ const SmartPicks = () => {
                     style={[styles.dropdownItem, isSelected && styles.selectedDropdownItem]}
                     activeOpacity={0.7}
                     onPress={() => {
-                      // set selected and close dropdown
                       setSelectedCategory(category);
-                      // animate close
                       closeDropdown();
                     }}
                   >
@@ -632,7 +722,7 @@ const SmartPicks = () => {
         }
         initialNumToRender={5}
         removeClippedSubviews={false}
-        extraData={{ favorites: Array.from(favorites), cartItems, selectedCategory }}
+        extraData={{ favorites: Array.from(favorites), cartItems, selectedCategory, cartUpdating }}
         getItemLayout={(data, index) => ({ length: ITEM_FULL, offset: ITEM_FULL * index, index })}
         windowSize={5}
         maxToRenderPerBatch={6}
@@ -649,107 +739,26 @@ const SmartPicks = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  loadingContainer: {
-    paddingVertical: verticalScale(30),
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-  },
-  loadingText: {
-    marginTop: verticalScale(10),
-    fontSize: normalizeFont(13),
-    color: '#666',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: verticalScale(6),
-    paddingTop: verticalScale(10),
-    paddingHorizontal: moderateScale(13),
-  },
-  title: {
-    fontSize: normalizeFont(13),
-    fontWeight: '600',
-    color: '#333',
-  },
-  filterWrapper: {
-    position: 'relative',
-    minWidth: moderateScale(120),
-  },
-  filterBtn: {
-    paddingHorizontal: moderateScale(12),
-    paddingVertical: verticalScale(8),
-    borderRadius: moderateScale(6),
-    borderWidth: 1,
-    borderColor: 'rgba(66, 66, 66, 0.7)',
-  },
-  filterExpand: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterText: {
-    color: 'rgba(66, 66, 66, 0.9)',
-    textAlign: 'center',
-    fontSize: normalizeFont(11),
-    marginRight: moderateScale(6),
-    maxWidth: moderateScale(90),
-  },
-  dropdown: {
-    overflow: 'hidden',
-    backgroundColor: '#fff',
-    borderColor: 'rgba(66, 66, 66, 0.7)',
-    borderRadius: moderateScale(6),
-    position: 'absolute',
-    top: moderateScale(35),
-    left: 0,
-    right: 0,
-    zIndex: 1000,
-    elevation: 10, // android elevation
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  loadingContainer: { paddingVertical: verticalScale(30), justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8f9fa' },
+  loadingText: { marginTop: verticalScale(10), fontSize: normalizeFont(13), color: '#666' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: verticalScale(6), paddingTop: verticalScale(10), paddingHorizontal: moderateScale(13) },
+  title: { fontSize: normalizeFont(13), fontWeight: '600', color: '#333' },
+  filterWrapper: { position: 'relative', minWidth: moderateScale(120) },
+  filterBtn: { paddingHorizontal: moderateScale(12), paddingVertical: verticalScale(8), borderRadius: moderateScale(6), borderWidth: 1, borderColor: 'rgba(66, 66, 66, 0.7)' },
+  filterExpand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  filterText: { color: 'rgba(66, 66, 66, 0.9)', textAlign: 'center', fontSize: normalizeFont(11), marginRight: moderateScale(6), maxWidth: moderateScale(90) },
+  dropdown: { overflow: 'hidden', backgroundColor: '#fff', borderColor: 'rgba(66, 66, 66, 0.7)', borderRadius: moderateScale(6), position: 'absolute', top: moderateScale(35), left: 0, right: 0, zIndex: 1000, elevation: 10 },
   dropdownScrollContent: { paddingVertical: 6 },
-  dropdownItem: {
-    padding: moderateScale(12),
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(66, 66, 66, 0.06)',
-  },
-  selectedDropdownItem: {
-    backgroundColor: 'rgba(76, 175, 80, 0.08)',
-  },
-  dropdownText: {
-    color: 'rgba(66, 66, 66, 0.9)',
-    fontSize: normalizeFont(11),
-  },
-  selectedDropdownText: {
-    color: '#4CAF50',
-    fontWeight: '600',
-  },
-  listContainer: {
-    alignItems: 'flex-start',
-    paddingHorizontal: moderateScale(5),
-    paddingVertical: verticalScale(8),
-  },
-  flatListStyle: {
-    paddingBottom: moderateScale(10),
-  },
-  cardWrapper: {
-    marginHorizontal: ITEM_HORIZONTAL_MARGIN,
-  },
-  emptyContainer: {
-    padding: moderateScale(20),
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: '#666',
-    fontSize: normalizeFont(14),
-    textAlign: 'center',
-    marginBottom: verticalScale(10),
-  },
+  dropdownItem: { padding: moderateScale(12), borderBottomWidth: 1, borderBottomColor: 'rgba(66, 66, 66, 0.06)' },
+  selectedDropdownItem: { backgroundColor: 'rgba(76, 175, 80, 0.08)' },
+  dropdownText: { color: 'rgba(66, 66, 66, 0.9)', fontSize: normalizeFont(11) },
+  selectedDropdownText: { color: '#4CAF50', fontWeight: '600' },
+  listContainer: { alignItems: 'flex-start', paddingHorizontal: moderateScale(5), paddingVertical: verticalScale(8) },
+  flatListStyle: { paddingBottom: moderateScale(10) },
+  cardWrapper: { marginHorizontal: ITEM_HORIZONTAL_MARGIN },
+  emptyContainer: { padding: moderateScale(20), alignItems: 'center' },
+  emptyText: { color: '#666', fontSize: normalizeFont(14), textAlign: 'center', marginBottom: verticalScale(10) },
 });
 
 export default SmartPicks;
