@@ -449,8 +449,6 @@ const MyCart = () => {
       paymentMethod: paymentMethod === 'online' ? 'Online' : 'Cash',
       comments: '',
     };
-
-    // If Online -> navigate to Payment screen with amount and payload
     if (paymentMethod === 'online') {
       closePickupModal();
       setTimeout(() => {
@@ -458,11 +456,10 @@ const MyCart = () => {
           amount: finalAmount,
           orderPayload,
         });
-      }, 300); // small delay ensures modal fully closes before navigating
+      }, 300); 
       return;
     }
 
-    // If Cash -> call place-order API, show success modal after closing
     try {
       const token = authToken || (await getAuthToken());
       if (!token) {
@@ -484,17 +481,13 @@ const MyCart = () => {
       if (res.ok && json.success) {
         // Close pickup modal smoothly first
         closePickupModal();
-
-        // ✅ Wait for modal close animation before showing success modal
         setTimeout(() => {
           setShowSuccessModal(true);
-
-          // Hide success modal after 2 seconds and navigate home
           setTimeout(() => {
             setShowSuccessModal(false);
             navigation.navigate('index');
           }, 3000);
-        }, 350); // matches pickup modal animation timing
+        }, 350); 
       } else {
         console.warn('Place order failed:', json);
         Alert.alert('Order Failed', json.message || 'Could not place order.');
@@ -506,7 +499,6 @@ const MyCart = () => {
   };
 
   const goReviewPage = () => {
-    // deprecated for pickup; we now use handlePlaceOrderPickup for pickup flow
     if (!slot.date || !slot.startTime || !slot.endTime) {
       Alert.alert('Error', 'Please select date and time slot');
       return;
@@ -519,11 +511,14 @@ const MyCart = () => {
     });
   };
 
+
   // Cart Card Component
   const CartCard = ({ item }) => (
     <View style={styles.cartCard}>
-      <Image source={{ uri: item.image || 'https://via.placeholder.com/300' }} style={styles.productImage} />
+     <TouchableOpacity onPress={() => navigation.navigate('ViewProduct', { productId: item._id || item.id, product: item })}>
 
+      <Image source={{ uri: item.image || 'https://via.placeholder.com/300' }} style={styles.productImage}  resizeMode='stretch' />
+      </TouchableOpacity>
       <View style={styles.productDetails}>
         <View style={styles.productInfo}>
           <Text style={styles.productTitle}>{item.title}</Text>

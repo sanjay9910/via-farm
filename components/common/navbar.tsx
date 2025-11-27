@@ -526,7 +526,7 @@ export default function HeaderDesign() {
           </Text>
 
           <View style={styles.searchContainer}>
-            <Ionicons name="search" size={normalizeFont(18)} color="#999" style={styles.searchIcon} />
+            <Ionicons name="search" size={normalizeFont(22)} color="#999" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
               placeholder={placeholders[index]}
@@ -551,7 +551,7 @@ export default function HeaderDesign() {
                 onPress={openFilterPopup}
                 activeOpacity={0.7}
               >
-                <Ionicons name="options" size={normalizeFont(20)} color="#666" />
+                <Image source={require("../../assets/via-farm-img/icons/filter.png")}/>
               </TouchableOpacity>
             )}
           </View>
@@ -607,7 +607,7 @@ export default function HeaderDesign() {
           >
             <View style={styles.filterHeader}>
               <View style={styles.filterTitleContainer}>
-                <Ionicons name="options" size={normalizeFont(18)} color="#333" />
+                <Image source={require("../../assets/via-farm-img/icons/filter.png")} />
                 <Text style={styles.filterTitle}>Filters</Text>
               </View>
               <TouchableOpacity onPress={closeFilterPopup} activeOpacity={0.7}>
@@ -871,7 +871,7 @@ export default function HeaderDesign() {
                   <Text style={styles.locationTextModal}>
                     {locating ? 'Fetching location...' : 'Use Current Location'}
                   </Text>
-                  {locating && <ActivityIndicator size="small" color="#3b82f6" style={{ marginLeft: 10 }} />}
+                  {locating && <ActivityIndicator size="small" color="#3b82f6" style={{ marginLeft:moderateScale(10) }} />}
                 </TouchableOpacity>
               </View>
 
@@ -967,7 +967,7 @@ export default function HeaderDesign() {
                 disabled={addressLoading}
               >
                 {addressLoading ? (
-                  <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+                  <ActivityIndicator color="#fff" size="small" style={{ marginRight:moderateScale(8) }} />
                 ) : null}
                 <Text style={styles.addressSaveButtonText}>
                   {addressLoading ? 'Saving...' : 'Save Address'}
@@ -1050,7 +1050,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#fff',
     borderRadius: moderateScale(8),
     paddingHorizontal: moderateScale(10),
     paddingVertical: moderateScale(8),
@@ -1062,7 +1062,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(13),
     color: '#333',
     paddingVertical: 0,
   },
@@ -1187,7 +1187,7 @@ const styles = StyleSheet.create({
   filterPopup: {
     position: 'absolute',
     right: 0,
-    top: 190,
+    top: scale(190),
     bottom: 0,
     width: moderateScale(280),
     backgroundColor: '#fff',
@@ -1218,7 +1218,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterTitle: {
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(13),
     fontWeight: '600',
     color: '#333',
     marginLeft: moderateScale(8),
@@ -1243,7 +1243,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f5f5f5',
   },
   filterOptionText: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     fontWeight: '500',
     color: '#333',
   },
@@ -1339,7 +1339,7 @@ const styles = StyleSheet.create({
   },
   applyButtonText: {
     color: '#fff',
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     fontWeight: '600',
   },
 

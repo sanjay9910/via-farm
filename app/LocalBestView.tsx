@@ -1,4 +1,3 @@
-import ViewVendors from '@/components/dashboard/vendorsNearYou/VendorsNearYou';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
@@ -16,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import LocalVendor from "../components/common/LocalVendor";
 import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const API_BASE = "https://viafarm-1.onrender.com";
@@ -495,7 +495,7 @@ const ViewAllLocalBest = () => {
       </View>
 
       <View>
-        <ViewVendors title="Vendors" />
+        <LocalVendor/>
       </View>
 
       <View style={{ paddingHorizontal:moderateScale(10) }}>
@@ -644,7 +644,7 @@ const cardStyles = StyleSheet.create({
     width: CARD_WIDTH,
     marginLeft: moderateScale(6),
     marginTop: moderateScale(7),
-    // marginBottom: moderateScale(8),
+    marginBottom: moderateScale(8),
   },
   card: {
     backgroundColor: '#fff',

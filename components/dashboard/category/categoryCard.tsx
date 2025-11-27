@@ -199,13 +199,13 @@ export default CategoryCard;
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: moderateScale(10),
+    // marginVertical: moderateScale(10),
   },
   heading: {
-    fontSize:normalizeFont(16),
+    fontSize:normalizeFont(13),
     marginLeft: moderateScale(20),
     fontWeight: '500',
-    marginBottom: moderateScale(10),
+    // marginBottom: moderateScale(10),
   },
   Categoryheader:{
     flexDirection:'row',

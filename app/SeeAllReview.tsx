@@ -23,10 +23,8 @@ const SeeAllReview = () => {
   const v = vendor;
   const image = v.profilePicture || 'https://picsum.photos/800/600';
 
-  // Helper: if address is object, build a readable string
   const formatAddressObject = (addr: any) => {
     if (!addr) return '';
-    // prefer common fields in good order
     const parts = [];
     if (addr.houseNumber) parts.push(String(addr.houseNumber));
     if (addr.street) parts.push(String(addr.street));
@@ -39,7 +37,6 @@ const SeeAllReview = () => {
     return parts.filter(Boolean).join(', ');
   };
 
-  // Main vendorLocation: try locationText (string), then addressesText, then address object, etc.
   let vendorLocationRaw: any =
     v.locationText ?? v.addressesText ?? v.address ?? v.addresses ?? v.location ?? null;
 
@@ -47,7 +44,6 @@ const SeeAllReview = () => {
   if (typeof vendorLocationRaw === 'string') {
     vendorLocation = vendorLocationRaw;
   } else if (Array.isArray(vendorLocationRaw) && vendorLocationRaw.length > 0) {
-    // if array, try first element (could be strings or objects)
     const first = vendorLocationRaw[0];
     if (typeof first === 'string') vendorLocation = first;
     else vendorLocation = formatAddressObject(first);
@@ -63,6 +59,7 @@ const SeeAllReview = () => {
         <Image
           source={{ uri: item?.user?.profilePicture || 'https://via.placeholder.com/50' }}
           style={styles.avatar}
+          resizeMode='stretch'
         />
         <View style={{ flex: 1, marginLeft: 10 }}>
           <Text style={styles.reviewerName}>{item?.user?.name || 'Anonymous'}</Text>
@@ -110,7 +107,6 @@ const SeeAllReview = () => {
       <View style={styles.vendorInfo}>
         <Text style={styles.vendorName}>{v.name || 'Vendor'}</Text>
         <View style={styles.row}>
-          {/* <Ionicons name="location-sharp" size={16} color="#757575" /> */}
           <Image source={require("../assets/via-farm-img/icons/loca.png")} />
           <Text style={styles.vendorLocation}>
             {vendorLocation} {v.distance ? `(${v.distance})` : ''}
@@ -161,7 +157,7 @@ const styles = StyleSheet.create({
   },
   imageBox: {
     width: '100%',
-    height: scale(220),
+    height: scale(350),
   },
   headerImage: {
     width: '100%',
@@ -185,7 +181,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
   },
   vendorName: {
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(13),
     fontWeight: 'bold',
     color: '#333',
   },
@@ -195,12 +191,12 @@ const styles = StyleSheet.create({
     marginVertical: moderateScale(4),
   },
   vendorLocation: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(10),
     color: '#757575',
     marginLeft: moderateScale(5),
   },
   aboutHeader: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(12),
     fontWeight: 'bold',
     marginTop: moderateScale(10),
     color: '#333',
@@ -215,7 +211,7 @@ const styles = StyleSheet.create({
     padding:moderateScale(15),
   },
   allReviewsTitle: {
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(12),
     fontWeight: 'bold',
     color: '#333',
     marginBottom: moderateScale(10),
@@ -238,7 +234,7 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(25),
   },
   reviewerName: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(12),
     fontWeight: 'bold',
     color: '#333',
   },
@@ -251,14 +247,14 @@ const styles = StyleSheet.create({
     color: '#9E9E9E',
   },
   reviewComment: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(11),
     color: '#444',
     marginTop: normalizeFont(5),
     lineHeight: scale(20),
   },
   reviewImage: {
-    width: scale(70),
-    height: scale(70),
+    width: scale(50),
+    height: scale(50),
     borderRadius: moderateScale(8),
     marginRight: moderateScale(8),
   },

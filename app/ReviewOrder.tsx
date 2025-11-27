@@ -188,55 +188,149 @@ const ReviewOrder = () => {
   };
 
   // Apply coupon API integration
-const applyCoupon = async () => {
-  if (!couponCode || couponCode.trim().length === 0) {
-    Alert.alert('Invalid', 'Please enter a coupon code');
-    return;
-  }
-
-  setApplyingCoupon(true);
-  // normalize coupon
-  const code = couponCode.trim().toUpperCase();
-
-  try {
-    const token = await AsyncStorage.getItem('userToken');
-    if (!token) {
-      Alert.alert('Error', 'Please login to apply coupon');
-      setApplyingCoupon(false);
+  const applyCoupon = async () => {
+    if (!couponCode || couponCode.trim().length === 0) {
+      Alert.alert('Invalid', 'Please enter a coupon code');
       return;
     }
 
-    // List of endpoints + payload shapes to try (ordered by preference)
-    const attempts = [
-      // cart-level endpoints (preferred — should not place order)
-      { url: `${API_BASE}/api/buyer/cart/apply-coupon`, body: { couponCode: code } },
-      { url: `${API_BASE}/api/buyer/cart/apply-coupon`, body: { coupon: code } },
-      { url: `${API_BASE}/api/buyer/cart/apply-coupon`, body: { code } },
-      { url: `${API_BASE}/api/buyer/cart/applyCoupon`, body: { couponCode: code } },
-      { url: `${API_BASE}/api/buyer/cart/apply`, body: { couponCode: code } },
-      // sometimes backend expects cart update endpoint
-      { url: `${API_BASE}/api/buyer/cart/update-coupon`, body: { couponCode: code } },
-    ];
+    setApplyingCoupon(true);
+    // normalize coupon
+    const code = couponCode.trim().toUpperCase();
 
-    let succeeded = false;
-    let lastError = null;
-    let respData = null;
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        Alert.alert('Error', 'Please login to apply coupon');
+        setApplyingCoupon(false);
+        return;
+      }
 
-    for (let i = 0; i < attempts.length; i++) {
-      const a = attempts[i];
+      // List of endpoints + payload shapes to try (ordered by preference)
+      const attempts = [
+        // cart-level endpoints (preferred — should not place order)
+        { url: `${API_BASE}/api/buyer/cart/apply-coupon`, body: { couponCode: code } },
+        { url: `${API_BASE}/api/buyer/cart/apply-coupon`, body: { coupon: code } },
+        { url: `${API_BASE}/api/buyer/cart/apply-coupon`, body: { code } },
+        { url: `${API_BASE}/api/buyer/cart/applyCoupon`, body: { couponCode: code } },
+        { url: `${API_BASE}/api/buyer/cart/apply`, body: { couponCode: code } },
+        // sometimes backend expects cart update endpoint
+        { url: `${API_BASE}/api/buyer/cart/update-coupon`, body: { couponCode: code } },
+      ];
+
+      let succeeded = false;
+      let lastError = null;
+      let respData = null;
+
+      for (let i = 0; i < attempts.length; i++) {
+        const a = attempts[i];
+        try {
+          console.log('Trying coupon endpoint:', a.url, a.body);
+          const res = await axios.post(a.url, a.body, {
+            headers: { Authorization: `Bearer ${token}` },
+            timeout: 12000,
+          });
+
+          console.log('Response for', a.url, res?.status, res?.data);
+
+          // if server accepted and returned success true
+          if (res?.data?.success) {
+            // parse price details if present
+            const pd = res.data.data?.priceDetails ?? res.data.data ?? res.data;
+            if (pd) {
+              setServerPriceDetails({
+                totalMRP: Number(pd.totalMRP ?? pd.subtotal ?? 0),
+                couponDiscount: Number(pd.couponDiscount ?? pd.discountAmount ?? 0),
+                deliveryCharge: Number(pd.deliveryCharge ?? 0),
+                totalAmount: Number(pd.totalAmount ?? pd.total ?? 0),
+              });
+            } else {
+              await fetchCartProducts();
+            }
+
+            setAppliedCoupon({ code, discount: res.data.data?.discountAmount ?? 0 });
+            Alert.alert('Success', res.data.message || 'Coupon applied');
+            succeeded = true;
+            respData = res.data;
+            break;
+          }
+
+          // server responded success:false -> capture message and continue
+          lastError = { status: res.status, data: res.data };
+          // If message is explicit coupon invalid, stop trying other cart endpoints
+          const msg = String(res.data?.message || '').toLowerCase();
+          if (/valid coupon code|invalid coupon|coupon code is required|invalid code/.test(msg)) {
+            // show server message to user and stop trying further cart endpoints
+            Alert.alert('Coupon Error', res.data.message || 'Coupon rejected by server');
+            setApplyingCoupon(false);
+            return;
+          }
+
+          // otherwise try next attempt
+        } catch (err) {
+          // network / server error — keep trying other endpoints
+          lastError = { err };
+          console.log(`coupon attempt error for ${a.url}`, err?.response?.status, err?.response?.data || err.message);
+          // If server returned explicit "A valid coupon code is required." we want to show it and stop,
+          // because other payload shapes are unlikely to change that.
+          const serverMsg = err?.response?.data?.message;
+          if (serverMsg && /valid coupon code|required|invalid coupon/i.test(serverMsg)) {
+            Alert.alert('Coupon Error', serverMsg);
+            setApplyingCoupon(false);
+            return;
+          }
+          // continue trying
+        }
+      } // end for attempts
+
+      if (succeeded) {
+        setApplyingCoupon(false);
+        return;
+      }
+
+      // If none of the cart endpoints worked, we try orders/place in validate-only mode (only if address selected).
+      // Many backends require deliveryType/address on order-level validation.
+      if (!selectedAddress?.id) {
+        // Show last server message if any
+        const serverMsg = lastError?.data?.message || lastError?.err?.response?.data?.message || 'Coupon not applied. Select an address to validate coupon.';
+        Alert.alert('Coupon Error', serverMsg);
+        setApplyingCoupon(false);
+        return;
+      }
+
+      // Build a safe payload for validation. Do NOT reference undefined `comments`.
+      const validatePayload = {
+        deliveryType: 'Delivery',
+        addressId: selectedAddress.id,
+        paymentMethod: 'UPI',
+        comments: '', // safe default
+        couponCode: code,
+        validateOnly: true, // dry-run hint (backend may ignore)
+      };
+
       try {
-        console.log('Trying coupon endpoint:', a.url, a.body);
-        const res = await axios.post(a.url, a.body, {
+        console.log('Trying orders/place for coupon validation', validatePayload);
+        const resOrder = await axios.post(`${API_BASE}/api/buyer/orders/place`, validatePayload, {
           headers: { Authorization: `Bearer ${token}` },
-          timeout: 12000,
+          timeout: 15000,
         });
 
-        console.log('Response for', a.url, res?.status, res?.data);
+        console.log('orders/place response', resOrder?.status, resOrder?.data);
 
-        // if server accepted and returned success true
-        if (res?.data?.success) {
-          // parse price details if present
-          const pd = res.data.data?.priceDetails ?? res.data.data ?? res.data;
+        if (resOrder?.data?.success) {
+          // If server returned orderIds -> they placed order; handle gracefully
+          if (Array.isArray(resOrder.data.orderIds) && resOrder.data.orderIds.length > 0) {
+            Alert.alert('Note', 'Server created an order while validating coupon. Redirecting to payment.');
+            const payments = resOrder.data.payments ?? resOrder.data.data?.payments ?? [];
+            const totalAmountToPay = Number(resOrder.data.totalAmountToPay ?? resOrder.data.data?.totalAmountToPay ?? 0);
+            const orderIds = resOrder.data.orderIds ?? resOrder.data.data?.orderIds ?? [];
+            navigation.navigate('Payment', { payments, totalAmountToPay, orderIds, comments: resOrder.data.comments ?? '' });
+            setApplyingCoupon(false);
+            return;
+          }
+
+          // Parse price details (validateOnly success)
+          const pd = resOrder.data.data?.priceDetails ?? resOrder.data.data ?? resOrder.data;
           if (pd) {
             setServerPriceDetails({
               totalMRP: Number(pd.totalMRP ?? pd.subtotal ?? 0),
@@ -248,127 +342,33 @@ const applyCoupon = async () => {
             await fetchCartProducts();
           }
 
-          setAppliedCoupon({ code, discount: res.data.data?.discountAmount ?? 0 });
-          Alert.alert('Success', res.data.message || 'Coupon applied');
-          succeeded = true;
-          respData = res.data;
-          break;
-        }
-
-        // server responded success:false -> capture message and continue
-        lastError = { status: res.status, data: res.data };
-        // If message is explicit coupon invalid, stop trying other cart endpoints
-        const msg = String(res.data?.message || '').toLowerCase();
-        if (/valid coupon code|invalid coupon|coupon code is required|invalid code/.test(msg)) {
-          // show server message to user and stop trying further cart endpoints
-          Alert.alert('Coupon Error', res.data.message || 'Coupon rejected by server');
+          setAppliedCoupon({ code, discount: resOrder.data.data?.discountAmount ?? resOrder.data.totalDiscount ?? 0 });
+          Alert.alert('Success', resOrder.data.message || 'Coupon validated');
           setApplyingCoupon(false);
           return;
-        }
-
-        // otherwise try next attempt
-      } catch (err) {
-        // network / server error — keep trying other endpoints
-        lastError = { err };
-        console.log(`coupon attempt error for ${a.url}`, err?.response?.status, err?.response?.data || err.message);
-        // If server returned explicit "A valid coupon code is required." we want to show it and stop,
-        // because other payload shapes are unlikely to change that.
-        const serverMsg = err?.response?.data?.message;
-        if (serverMsg && /valid coupon code|required|invalid coupon/i.test(serverMsg)) {
-          Alert.alert('Coupon Error', serverMsg);
-          setApplyingCoupon(false);
-          return;
-        }
-        // continue trying
-      }
-    } // end for attempts
-
-    if (succeeded) {
-      setApplyingCoupon(false);
-      return;
-    }
-
-    // If none of the cart endpoints worked, we try orders/place in validate-only mode (only if address selected).
-    // Many backends require deliveryType/address on order-level validation.
-    if (!selectedAddress?.id) {
-      // Show last server message if any
-      const serverMsg = lastError?.data?.message || lastError?.err?.response?.data?.message || 'Coupon not applied. Select an address to validate coupon.';
-      Alert.alert('Coupon Error', serverMsg);
-      setApplyingCoupon(false);
-      return;
-    }
-
-    // Build a safe payload for validation. Do NOT reference undefined `comments`.
-    const validatePayload = {
-      deliveryType: 'Delivery',
-      addressId: selectedAddress.id,
-      paymentMethod: 'UPI',
-      comments: '', // safe default
-      couponCode: code,
-      validateOnly: true, // dry-run hint (backend may ignore)
-    };
-
-    try {
-      console.log('Trying orders/place for coupon validation', validatePayload);
-      const resOrder = await axios.post(`${API_BASE}/api/buyer/orders/place`, validatePayload, {
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 15000,
-      });
-
-      console.log('orders/place response', resOrder?.status, resOrder?.data);
-
-      if (resOrder?.data?.success) {
-        // If server returned orderIds -> they placed order; handle gracefully
-        if (Array.isArray(resOrder.data.orderIds) && resOrder.data.orderIds.length > 0) {
-          Alert.alert('Note', 'Server created an order while validating coupon. Redirecting to payment.');
-          const payments = resOrder.data.payments ?? resOrder.data.data?.payments ?? [];
-          const totalAmountToPay = Number(resOrder.data.totalAmountToPay ?? resOrder.data.data?.totalAmountToPay ?? 0);
-          const orderIds = resOrder.data.orderIds ?? resOrder.data.data?.orderIds ?? [];
-          navigation.navigate('Payment', { payments, totalAmountToPay, orderIds, comments: resOrder.data.comments ?? '' });
-          setApplyingCoupon(false);
-          return;
-        }
-
-        // Parse price details (validateOnly success)
-        const pd = resOrder.data.data?.priceDetails ?? resOrder.data.data ?? resOrder.data;
-        if (pd) {
-          setServerPriceDetails({
-            totalMRP: Number(pd.totalMRP ?? pd.subtotal ?? 0),
-            couponDiscount: Number(pd.couponDiscount ?? pd.discountAmount ?? 0),
-            deliveryCharge: Number(pd.deliveryCharge ?? 0),
-            totalAmount: Number(pd.totalAmount ?? pd.total ?? 0),
-          });
         } else {
-          await fetchCartProducts();
+          // server returned success:false
+          const message = resOrder?.data?.message || 'Coupon could not be validated';
+          Alert.alert('Coupon Error', message);
+          setApplyingCoupon(false);
+          return;
         }
-
-        setAppliedCoupon({ code, discount: resOrder.data.data?.discountAmount ?? resOrder.data.totalDiscount ?? 0 });
-        Alert.alert('Success', resOrder.data.message || 'Coupon validated');
-        setApplyingCoupon(false);
-        return;
-      } else {
-        // server returned success:false
-        const message = resOrder?.data?.message || 'Coupon could not be validated';
-        Alert.alert('Coupon Error', message);
+      } catch (errOrders) {
+        console.log('orders/place validate error', errOrders?.response?.status, errOrders?.response?.data || errOrders.message);
+        const serverMsg = errOrders?.response?.data?.message || errOrders?.message || 'Coupon validation failed';
+        Alert.alert('Coupon Error', serverMsg);
         setApplyingCoupon(false);
         return;
       }
-    } catch (errOrders) {
-      console.log('orders/place validate error', errOrders?.response?.status, errOrders?.response?.data || errOrders.message);
-      const serverMsg = errOrders?.response?.data?.message || errOrders?.message || 'Coupon validation failed';
-      Alert.alert('Coupon Error', serverMsg);
+    } catch (fatal) {
+      console.error('Unexpected error applying coupon:', fatal);
+      Alert.alert('Error', (fatal?.response?.data?.message) || fatal?.message || 'Failed to apply coupon');
       setApplyingCoupon(false);
       return;
+    } finally {
+      setApplyingCoupon(false);
     }
-  } catch (fatal) {
-    console.error('Unexpected error applying coupon:', fatal);
-    Alert.alert('Error', (fatal?.response?.data?.message) || fatal?.message || 'Failed to apply coupon');
-    setApplyingCoupon(false);
-    return;
-  } finally {
-    setApplyingCoupon(false);
-  }
-};
+  };
 
 
 
@@ -520,7 +520,23 @@ const applyCoupon = async () => {
   const ProductCard = ({ product }) => (
     <View style={styles.productCard}>
       <View style={styles.mainContainer}>
-        <Image source={product.image} style={styles.productImage} />
+
+
+        <TouchableOpacity
+          onPress={() => {
+            const pid = product?._id || product?.id;
+            if (!pid) {
+              Alert.alert("Error", "Product id missing");
+              return;
+            }
+            navigation.navigate("ViewProduct", { productId: pid, product });
+          }}
+        >
+
+
+
+          <Image source={product.image} style={styles.productImage} resizeMode='stretch' />
+        </TouchableOpacity>
         <View style={styles.productDetails}>
           <Text style={styles.productName}>{product.name}</Text>
           <Text style={styles.productDescription}>{product.description}</Text>
@@ -621,7 +637,7 @@ const applyCoupon = async () => {
               justifyContent: "space-between",
             }}
           >
-            <Text style={{ fontSize: normalizeFont(16), color: "#333", flex: 1 }}>
+            <Text style={{ fontSize: normalizeFont(13), color: "#333", flex: 1 }}>
               Do you want to donate?
             </Text>
 
@@ -654,7 +670,7 @@ const applyCoupon = async () => {
           {/* Donation amount input (only if checked) */}
           {wantDonation && (
             <View style={{ marginTop: moderateScale(12) }}>
-              <Text style={{ fontSize: normalizeFont(14), color: "#555", marginBottom: moderateScale(4) }}>
+              <Text style={{ fontSize: normalizeFont(12), color: "#555", marginBottom: moderateScale(4) }}>
                 Enter donation amount
               </Text>
               <TextInput
@@ -698,7 +714,7 @@ const applyCoupon = async () => {
 
           {!appliedCoupon ? (
             <TouchableOpacity style={styles.Button} onPress={applyCoupon} disabled={applyingCoupon}>
-              {applyingCoupon ? <ActivityIndicator /> : <Text style={{ color: '#fff' ,fontSize: normalizeFont(12)}} >Apply</Text>}
+              {applyingCoupon ? <ActivityIndicator /> : <Text style={{ color: '#fff', fontSize: normalizeFont(12) }} >Apply</Text>}
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.Button} onPress={removeCoupon} disabled={applyingCoupon}>
@@ -720,7 +736,7 @@ const applyCoupon = async () => {
           <View style={styles.priceRow}><Text style={styles.priceLabel}>Coupon Discount</Text><Text style={styles.priceValue}>₹{(-totalsForRender.couponDiscount).toFixed(2)}</Text></View>
           <View style={styles.priceRow}><Text style={styles.priceLabel}>Delivery Charge</Text><Text style={styles.priceValue}>₹{totalsForRender.deliveryCharge.toFixed(2)}</Text></View>
           <View style={styles.totalRow}><Text style={styles.totalLabel}>Total Amount</Text><Text style={styles.totalValue}>₹{totalsForRender.totalAmount.toFixed(2)}</Text></View>
-          {totalsForRender.usedServer && <Text style={{ fontSize: normalizeFont(12), color: '#666', marginTop: moderateScale(6) }}>Using server-calculated charges</Text>}
+          {totalsForRender.usedServer && <Text style={{ fontSize: normalizeFont(10), color: '#666', marginTop: moderateScale(6) }}>Using server-calculated charges</Text>}
         </View>
 
         <View style={styles.commentsSection}>
@@ -787,7 +803,7 @@ const applyCoupon = async () => {
                     <Text style={styles.addressName}>{address.name}, {address.pincode}</Text>
                     <Text style={styles.addressText}>{address.address}</Text>
                   </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(10), }}>
                     <TouchableOpacity
                       onPress={() => {
                         closeModal(); // first close the modal
@@ -861,7 +877,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent:'space-between',
+    justifyContent: 'space-between',
     paddingHorizontal: moderateScale(20),
     paddingBottom: moderateScale(30),
   },
@@ -876,7 +892,7 @@ const styles = StyleSheet.create({
     alignContent: 'center',
   },
   productImage: {
-    width:scale(167),
+    width: scale(167),
     height: scale(128),
     borderRadius: 8,
   },
@@ -909,7 +925,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingHorizontal:moderateScale(10),
+    paddingHorizontal: moderateScale(10),
   },
   scrollContent: {
     paddingBottom: moderateScale(100),

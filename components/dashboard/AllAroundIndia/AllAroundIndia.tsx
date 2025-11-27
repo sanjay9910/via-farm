@@ -242,7 +242,7 @@ const AllAroundIndia = () => {
 export default AllAroundIndia;
 
 const styles = StyleSheet.create({
-  heading: { fontSize: normalizeFont(16), marginLeft: moderateScale(20), fontWeight: "600" },
+  heading: { fontSize: normalizeFont(13), marginLeft: moderateScale(20), fontWeight: "600" },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: verticalScale(15), paddingRight: moderateScale(20) },
   link: { color: "rgba(1, 151, 218, 1)", fontWeight: "600", fontSize: normalizeFont(12) },
 

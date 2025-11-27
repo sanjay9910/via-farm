@@ -65,7 +65,7 @@ const ProductCard = ({
         onPress={() => onPress && onPress(item)}
       >
         <View style={[cardStyles.imageContainer, { height: cardStyles.imageHeight }]}>
-          <Image source={{ uri: imageUri }} style={cardStyles.productImage} resizeMode="cover" />
+          <Image source={{ uri: imageUri }} style={cardStyles.productImage} resizeMode="stretch" />
 
           {/* wishlist */}
           <TouchableOpacity
@@ -93,14 +93,14 @@ const ProductCard = ({
           </Text>
 
           <View style={{ marginVertical: 5 }}>
-            <Text numberOfLines={1} style={{ color: "#444", fontSize: 12 }}>
+            <Text numberOfLines={1} style={{ color: "#444", fontSize:normalizeFont(11) }}>
               By {vendorName}
             </Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <Image source={require("../assets/via-farm-img/icons/cardMap.png")} />
-            <Text style={{ fontSize: 12, color: "#444" }}>{distance ?? "0.0 km"}</Text>
+            <Image source={require("../assets/via-farm-img/icons/loca.png")} />
+            <Text style={{ fontSize:normalizeFont(11), color: "#444" }}>{distance ?? "0.0 km"}</Text>
           </View>
 
           <View style={cardStyles.priceContainer}>
@@ -442,7 +442,7 @@ const ViewAllAroundIndia = () => {
         </TouchableOpacity>
 
         <View style={styles.searchWrapper}>
-          <Ionicons name="search" size={18} color="#888" style={{ marginRight: 8 }} />
+          <Ionicons name="search" size={20} color="#888" style={{ marginRight:moderateScale(6) }} />
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -459,7 +459,7 @@ const ViewAllAroundIndia = () => {
           )}
         </View>
 
-        <View style={{ width: 50 }} />
+        <View  />
       </View>
 
       {/* Loading */}
@@ -493,7 +493,7 @@ const ViewAllAroundIndia = () => {
               keyExtractor={(item) => item._id || item.id || String(item?.name)}
               numColumns={2}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 30 }}
+              contentContainerStyle={{ paddingHorizontal:moderateScale(10), paddingBottom:moderateScale(20) }}
               renderItem={({ item }) => {
                 const productId = item._id || item.id;
                 const isFavorite = favorites.has(productId);
@@ -510,7 +510,7 @@ const ViewAllAroundIndia = () => {
                   />
                 );
               }}
-              columnWrapperStyle={{ justifyContent: "space-between", marginBottom: 15 }}
+              columnWrapperStyle={{ justifyContent: "space-between", marginBottom: moderateScale(15) }}
             />
           )}
         </>
@@ -535,12 +535,12 @@ const styles = StyleSheet.create({
     marginHorizontal: moderateScale(8),
     flexDirection: 'row',
     backgroundColor: 'rgba(252, 252, 252, 1)',
-    paddingVertical: moderateScale(7),
+    paddingVertical: moderateScale(12),
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.1)',
     paddingHorizontal: moderateScale(7),
     alignItems: 'center',
-    borderRadius:10,
+    borderRadius:5,
   },
   searchInput: {
     flex: 1,
@@ -606,19 +606,14 @@ const cardStyles = StyleSheet.create({
     width: CARD_WIDTH,
     marginLeft: moderateScale(6),
     marginTop: moderateScale(12),
-    marginBottom: moderateScale(8),
+    // marginBottom: moderateScale(6),
   },
   card: {
     backgroundColor: '#fff',
     borderRadius:10,
     overflow: 'hidden',
-    shadowColor: 'rgba(0, 0, 0, 0.2)',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
     borderWidth: 2,
     borderColor: 'rgba(0, 0, 0, 0.2)',
-    elevation: 7,
-    shadowOffset: { width: 0, height: 3 },
   },
 
   // image area
@@ -631,8 +626,8 @@ const cardStyles = StyleSheet.create({
   productImage: {
     width: '100%',
     height: '100%',
-    borderTopLeftRadius:10,
-    borderTopRightRadius:10,
+    borderTopLeftRadius:5,
+    borderTopRightRadius:5,
   },
 
 
@@ -680,12 +675,12 @@ const cardStyles = StyleSheet.create({
 
   productVeriety: {
     color: 'rgba(66, 66, 66, 0.7)',
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(10),
     paddingVertical:moderateScale(5),
   },
 
   productSubtitle: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(11),
     color: '#666',
     marginBottom: moderateScale(8),
     height: scale(20),

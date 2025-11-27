@@ -438,7 +438,7 @@ const ViewAllVegetables = () => {
         </TouchableOpacity>
 
         <View style={styles.searchWrapper}>
-          <Ionicons name="search" size={18} color="#888" style={{ marginRight: 8 }} />
+          <Ionicons name="search" size={18} color="#888" style={{ marginRight:moderateScale(8) }} />
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -480,7 +480,7 @@ const ViewAllVegetables = () => {
       {!loading && !error && (
         <>
           {filteredVegetables.length === 0 ? (
-            <View style={{ padding: 20, alignItems: "center" }}>
+            <View style={{ padding:moderateScale(20), alignItems: "center" }}>
               <Text style={{ color: "#444" }}>No vegetables match “{query}”</Text>
             </View>
           ) : (
@@ -489,7 +489,7 @@ const ViewAllVegetables = () => {
               keyExtractor={(item) => item._id || item.id || String(item?.name)}
               numColumns={2}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal:13, paddingBottom: 20 }}
+              contentContainerStyle={{ paddingHorizontal:moderateScale(13), paddingBottom:moderateScale(20) }}
               renderItem={({ item }) => {
                 const productId = item._id || item.id;
                 const isFavorite = favorites.has(productId);
@@ -507,7 +507,7 @@ const ViewAllVegetables = () => {
                   />
                 );
               }}
-              columnWrapperStyle={{ justifyContent: "space-between", marginBottom: 15 }}
+              columnWrapperStyle={{ justifyContent: "space-between", marginBottom:moderateScale(15) }}
             />
           )}
         </>

@@ -673,7 +673,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(13),
   },
   title: {
-    fontSize: normalizeFont(18),
+    fontSize: normalizeFont(13),
     fontWeight: '600',
     color: '#333',
   },

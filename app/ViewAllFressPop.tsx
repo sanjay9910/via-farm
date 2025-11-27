@@ -15,12 +15,12 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import FreshVendor from "../components/common/FreshVendor";
 import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const API_BASE = "https://viafarm-1.onrender.com";
 const CARD_WIDTH = Dimensions.get("window").width / 2 - 25;
 
-// ✅ Product Card with Wishlist & Cart functionality
 const ProductCard = ({
   item,
   isFavorite,
@@ -28,7 +28,7 @@ const ProductCard = ({
   cartQuantity,
   onAddToCart,
   onUpdateQuantity,
-  onPress, // <-- handler when card pressed
+  onPress, 
 }) => {
   const qty = cartQuantity || 0;
   const inCart = qty > 0;
@@ -468,6 +468,8 @@ const ViewAllFressPop = () => {
         <View style={{ width: scale(50) }} />
       </View>
 
+     <FreshVendor/>
+
       {/* Loading */}
       {loading && (
         <View style={styles.loadingContainer}>
@@ -566,7 +568,7 @@ const styles = StyleSheet.create({
     height: scale(24),
   },
   headerTitle: {
-    fontSize: normalizeFont(20),
+    fontSize: normalizeFont(15),
     fontWeight: "600",
     color: "#333",
   },

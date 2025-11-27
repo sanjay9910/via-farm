@@ -4,7 +4,6 @@ import {
   scale,
   verticalScale,
 } from "@/app/Responsive";
-import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -23,6 +22,22 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
   distance,
   category,
 }) => {
+
+
+  const formatCategories = (categories = []) => {
+    if (!Array.isArray(categories)) return "Not Listing";
+
+    if (categories.length <= 2) {
+      return categories.join(", ");
+    }
+
+    const firstTwo = categories.slice(0, 2).join(", ");
+    const remaining = categories.length - 2;
+
+    return `${firstTwo} (+${remaining})`;
+  };
+
+
   return (
     <View style={styles.card}>
       {/* Profile Image */}
@@ -46,16 +61,11 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
 
         {/* Category */}
         <View style={styles.categoryContainer}>
-          <MaterialIcons
-            name="local-grocery-store"
-            size={moderateScale(14)}
-            color="#666"
-          />
+          <Image source={require(".././../assets/via-farm-img/icons/catagory.png")} />
           <Text style={styles.category} numberOfLines={1} ellipsizeMode="tail">
-            {category}
+            {formatCategories(category)} 
           </Text>
         </View>
-
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.deliveryButton} activeOpacity={0.8}>
@@ -81,7 +91,7 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(12),
     overflow: "hidden",
     maxWidth: "100%",
-    padding: moderateScale(0), 
+    padding: moderateScale(0),
   },
 
   profileImage: {
@@ -134,7 +144,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: moderateScale(10), 
+    gap: moderateScale(10),
     marginTop: verticalScale(6),
   },
 

@@ -246,9 +246,9 @@ export default function ProductDetailScreen() {
           <TouchableOpacity onPress={headerWishlistPress} style={{ marginRight:moderateScale(12) }}>
             <Ionicons name={"heart-outline"} size={24} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate?.('myCard')}>
+          {/* <TouchableOpacity onPress={() => navigation.navigate?.('myCard')}>
             <Ionicons name="cart" size={22} color="#333" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 
@@ -266,7 +266,7 @@ export default function ProductDetailScreen() {
                 <Text style={styles.title}>{product.name}</Text>
                 <View style={styles.ratingPill}>
                   <Image source={require("../assets/via-farm-img/icons/satar.png")} />
-                  <Text style={{ marginLeft: 6, fontWeight: '700' }}>{product.rating ?? 0}</Text>
+                  <Text style={{ marginLeft:moderateScale(6), fontWeight: '700' }}>{product.rating ?? 0}</Text>
                 </View>
               </View>
 
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
   title: { fontSize:normalizeFont(12),fontWeight:600,  },
   smallText: { color: '#666', fontSize:normalizeFont(12)},
   mrp: { fontSize:normalizeFont(12), marginTop:5 },
-  ratingPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal:moderateScale(10), borderRadius:7, marginTop:8,borderWidth:1, borderColor:'rgba(0, 0, 0, 0.4)' },
+  ratingPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal:moderateScale(10),paddingVertical:moderateScale(3) ,borderRadius:7, marginTop:moderateScale(8),borderWidth:1, borderColor:'rgba(0, 0, 0, 0.4)' },
 
   sectionTitle: { fontSize:normalizeFont(12), fontWeight: '600' },
   description: { color: '#444', marginTop: 6, fontSize:normalizeFont(11) },

@@ -38,15 +38,15 @@ const normalizeFont = (size) => {
 
 // Styles
 const cardStyles = StyleSheet.create({
-  container: { marginHorizontal: moderateScale(8), width: moderateScale(140) },
-  card: { borderRadius: 8, overflow: 'hidden', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 3 },
-  image: { width: '100%', height: moderateScale(140), backgroundColor: '#f0f0f0' },
+  container: { marginHorizontal: moderateScale(8), width: moderateScale(130) },
+  card: { borderRadius: 8, overflow: 'hidden' },
+  image: { width: '100%', height: moderateScale(130), backgroundColor: '#f0f0f0' },
   name: { fontSize: normalizeFont(12), fontWeight: '600', color: '#333', marginTop: moderateScale(8), textAlign: 'center', paddingHorizontal: 4 }
 });
 
 const styles = StyleSheet.create({
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: moderateScale(12), marginBottom: verticalScale(12) },
-  heading: { fontSize: normalizeFont(15), fontWeight: '600', color: '#333' },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: moderateScale(20), marginBottom: verticalScale(12) },
+  heading: { fontSize: normalizeFont(13), fontWeight: '600', color: '#333' },
   seeButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 6 ,gap:5},
   seeIcon: { width: moderateScale(16), height: moderateScale(16), marginRight: 4 },
   link: { fontSize: normalizeFont(12), color: 'rgba(1, 151, 218, 1)', fontWeight: '600' },
