@@ -1,3 +1,4 @@
+import { moderateScale, scale } from '@/app/Responsive';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import React, { useEffect, useRef, useState } from 'react';
@@ -13,11 +14,8 @@ import {
 } from 'react-native';
 
 const { width } = Dimensions.get('window');
-
-// Define constants for clean and readable spacing
 const SCREEN_PADDING = 10; 
 const ITEM_GAP = 10;       
-// Width calculation: width - (2 * 10) = width - 20
 const VISIBLE_ITEM_WIDTH = width - (2 * SCREEN_PADDING); 
 
 const BASE_URL = 'https://viafarm-1.onrender.com';
@@ -60,15 +58,12 @@ const BannerCard = () => {
     fetchBanners();
   }, []);
 
-  // Auto slide every 3 seconds (सुधार यहां किया गया है)
   useEffect(() => {
     if (banners.length > 1) {
       const interval = setInterval(() => {
         let nextIndex = currentIndex + 1;
-        
-        // Loop Logic: If the index is past the last banner, go back to index 0 (the first banner)
         if (nextIndex >= banners.length) {
-            nextIndex = 0; // index 0 पर रीसेट करें
+            nextIndex = 0; 
         }
         
         flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
@@ -80,7 +75,6 @@ const BannerCard = () => {
   }, [banners, currentIndex]);
 
   const onMomentumScrollEnd = (event) => {
-    // Total snap width is the banner width PLUS the gap between banners (10 + 10 = 20)
     const totalSnapWidth = VISIBLE_ITEM_WIDTH + (ITEM_GAP * 2); 
     const index = Math.round(event.nativeEvent.contentOffset.x / totalSnapWidth);
     setCurrentIndex(index);
@@ -115,7 +109,6 @@ const BannerCard = () => {
         horizontal
         showsHorizontalScrollIndicator={false}
         pagingEnabled
-        // Snap to the width of the banner + gap (width - 20 + 20 = width)
         snapToInterval={VISIBLE_ITEM_WIDTH + (ITEM_GAP * 2)}
         decelerationRate="fast"
         onMomentumScrollEnd={onMomentumScrollEnd}
@@ -124,13 +117,8 @@ const BannerCard = () => {
             style={[
               styles.container,
               {
-                // First item gets the screen padding (10)
                 marginLeft: index === 0 ? SCREEN_PADDING : ITEM_GAP,
-                // All items get the item gap (10) on the right
                 marginRight: ITEM_GAP,
-                // Last item adjustment: The right margin of the last item needs to match SCREEN_PADDING (10) 
-                // Currently, marginRight is 10. To make it 10 total, we add 0 padding. 
-                // The gap between the last banner and screen edge is 10 (from marginRight)
                 paddingRight: index === banners.length - 1 ? 0 : 0, 
               }
             ]}
@@ -154,13 +142,12 @@ const BannerCard = () => {
 export default BannerCard;
 
 const styles = StyleSheet.create({
-  mainContainer: { position: 'relative', marginVertical: 15 },
-  loaderContainer: { height: 180, justifyContent: 'center', alignItems: 'center' },
+  mainContainer: { position: 'relative', marginVertical:moderateScale(15), marginTop:moderateScale(41)},
+  loaderContainer: { height: scale(180), justifyContent: 'center', alignItems: 'center' },
   container: {
-    // Banner width: screen width - 20 (10 left padding + 10 right padding)
     width: VISIBLE_ITEM_WIDTH, 
-    height: 155,
-    borderRadius: 15,
+    height: scale(155),
+    borderRadius: moderateScale(15),
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -168,5 +155,5 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     // elevation: 5,
   },
-  bannerImage: { width: '100%', height: '100%', borderRadius: 15 },
+  bannerImage: { width: '100%', height: '100%', borderRadius:moderateScale(15) },
 });

@@ -70,8 +70,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "081c48d9-7fc2-4d77-af5f-cd0201243cdb"
+        "projectId": "c0583762-adbb-40cb-adf2-37c0b7cecbd1"
       }
-    }
+    },
+    "owner": "sagjay"
   }
 }

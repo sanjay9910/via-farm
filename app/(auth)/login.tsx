@@ -258,11 +258,15 @@ import { useContext, useState } from "react";
 import {
   Alert,
   Image,
+  Keyboard,
+  KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -273,7 +277,7 @@ import { saveToken } from "../utility/Storage";
 export default function LoginScreen() {
   const navigation = useNavigation();
   const [mobile, setMobile] = useState("7777777777");
-  const [password, setPassword] = useState("1234567");
+  const [password, setPassword] = useState("123456");
   const { login, user } = useContext(AuthContext);
 
   const handleLogin = async () => {
@@ -337,104 +341,123 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* LOGO */}
-      <Image
-        style={styles.logoImage}
-        source={require("../../assets/via-farm-img/icons/logo.png")}
-      />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            bounces={false}
+          >
+            {/* LOGO */}
+            <Image
+              style={styles.logoImage}
+              source={require("../../assets/via-farm-img/icons/logo.png")}
+            />
 
-      {/* Card */}
-      <View style={styles.card}>
-        {/* Heading */}
-        <Text style={styles.heading}>Welcome Back !</Text>
+            {/* Card */}
+            <View style={styles.card}>
+              {/* Heading */}
+              <Text style={styles.heading}>Welcome Back !</Text>
 
-        {/* Mobile Number Field */}
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Mobile Number</Text>
-          <TextInput
-            keyboardType="numeric"
-            value={mobile}
-            onChangeText={setMobile}
-            style={styles.input}
-          />
-        </View>
+              {/* Mobile Number Field */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Mobile Number</Text>
+                <TextInput
+                  keyboardType="numeric"
+                  value={mobile}
+                  onChangeText={setMobile}
+                  style={styles.input}
+                  maxLength={10}
+                />
+              </View>
 
-        {/* Password Field */}
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-            style={styles.input}
-          />
-        </View>
+              {/* Password Field */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Password</Text>
+                <TextInput
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                  style={styles.input}
+                />
+              </View>
 
-        {/* Forgot Password */}
-        <TouchableOpacity style={styles.forgotWrapper} onPress={ForgetPassword}>
-          <Text style={styles.forgotText}>Forgot password?</Text>
-        </TouchableOpacity>
+              {/* Forgot Password */}
+              <TouchableOpacity style={styles.forgotWrapper} onPress={ForgetPassword}>
+                <Text style={styles.forgotText}>Forgot password?</Text>
+              </TouchableOpacity>
 
-        {/* Login Button */}
-        <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
-          <Ionicons name="log-in-outline" size={20} color="#fff" />
-          <Text style={styles.loginText}>Login</Text>
-        </TouchableOpacity>
+              {/* Login Button */}
+              <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
+                <Ionicons name="log-in-outline" size={20} color="#fff" />
+                <Text style={styles.loginText}>Login</Text>
+              </TouchableOpacity>
 
-        {/* Login with OTP */}
-        <TouchableOpacity style={styles.otpBtn} onPress={handleOtpLogin}>
-          <Ionicons name="key-outline" size={20} color="green" />
-          <Text style={styles.otpText}>Login with OTP</Text>
-        </TouchableOpacity>
+              {/* Login with OTP */}
+              <TouchableOpacity style={styles.otpBtn} onPress={handleOtpLogin}>
+                {/* <Ionicons name="key-outline" size={20} color="green" /> */}
+                <Text style={styles.otpText}>Login with OTP</Text>
+              </TouchableOpacity>
 
-        {/* SignUp */}
-        <View style={styles.signupWrapper}>
-          <Text style={styles.signupText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={registerNew}>
-            <Text style={styles.signupLink}>Sign Up</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+              {/* SignUp */}
+              <View style={styles.signupWrapper}>
+                <Text style={styles.signupText}>Don't have an account? </Text>
+                <TouchableOpacity onPress={registerNew}>
+                  <Text style={styles.signupLink}>Sign Up</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
- container: {
-  flex: 1,
-  backgroundColor: "#fff",
-  alignItems: "center",
-  paddingTop: Platform.OS === "ios" ? 40 : 30,
-  paddingBottom: 0,
-  marginBottom: 0,
-},
-
-
-  logoImage: {
-    width: scale(250),
-    height: scale(250),
-    resizeMode: "contain",
-    marginBottom: moderateScale(-60), 
-  },
-
-  card: {
-    width: "100%",
+  container: {
     flex: 1,
+    backgroundColor: "#fff",
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    alignItems: "center",
+    paddingTop: Platform.OS === "ios" ? 40 : 30,
+    paddingBottom: moderateScale(20),
+  },
+  logoImage: {
+    width: scale(200),
+    height: scale(200),
+    resizeMode: "contain",
+    marginBottom: moderateScale(-60),
+  },
+  card: {
+    height: '80%',
+    width: "100%",
     backgroundColor: "#fff",
     borderRadius: moderateScale(20),
     padding: moderateScale(28),
-    marginTop:moderateScale(60),
-    marginBottom:scale(-35),
-    borderWidth:1,
+    marginTop: moderateScale(60),
+    marginBottom: moderateScale(20),
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderTopWidth: 3,
     borderColor: "rgba(255, 202, 40, 1)",
     elevation: 6,
-    shadowColor: "rgba(0,0,0,0.08)",
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: -4 },
     alignItems: "center",
   },
-
   heading: {
     fontSize: normalizeFont(15),
     fontWeight: "600",
@@ -493,8 +516,8 @@ const styles = StyleSheet.create({
     width: "70%",
     height: scale(50),
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "green",
+    borderWidth:2,
+    borderColor: "rgba(76, 175, 80, 1)",
     marginBottom: moderateScale(20),
   },
   otpText: {

@@ -866,9 +866,7 @@ const ProductList = ({ refreshbut }) => {
     setProducts((prev) => prev.filter((item) => item._id !== id));
   };
 
-  // Edit Modal Handlers
   const handleEditProduct = (product) => {
-    // Convert product data to match modal format
     const formattedProduct = {
       id: product._id,
       name: product.name,
@@ -889,7 +887,6 @@ const ProductList = ({ refreshbut }) => {
   };
 
   const submitModal = (updatedProduct) => {
-    // Update the product in the list
     const updatedList = products.map((item) =>
       item._id === updatedProduct.id 
         ? {
@@ -903,8 +900,7 @@ const ProductList = ({ refreshbut }) => {
         : item
     );
     setProducts(updatedList);
-    closeModal();
-    // Optionally refetch to sync with server
+    closeModal()
     fetchProducts();
   };
 
@@ -934,11 +930,8 @@ const ProductList = ({ refreshbut }) => {
   useEffect(() => {
     fetchProducts();
   }, [refreshbut]);
-
-  // Refetch when modal closes
   useEffect(() => {
     if (!modalVisible) {
-      // Optional: refetch to ensure sync
     }
   }, [modalVisible]);
 
@@ -1012,11 +1005,6 @@ export const cardStyles = StyleSheet.create({
     borderWidth: moderateScale(1),
     borderColor: "rgba(255, 202, 40, 1)",
     overflow: "hidden",
-    // shadowColor: "#000",
-    // shadowOffset: { width: 0, height: scale(2) },
-    // shadowOpacity: Platform.OS === "ios" ? 0.08 : 0.16,
-    // shadowRadius: moderateScale(8),
-    // elevation: moderateScale(3),
   },
 
   image: { width: moderateScale(155), height: "100%", minHeight: moderateScale(180) },
@@ -1256,7 +1244,7 @@ export const filterStyles = StyleSheet.create({
 
   closeButton: { fontSize: moderateScale(22), color: "#333" },
 
-  modalBody: { flex: 1, backgroundColor: "#fff", padding: moderateScale(20) },
+  modalBody: { flex: 1, backgroundColor: "#fff" },
 
   filterSection: { borderBottomWidth: moderateScale(1), borderBottomColor: "#f5f5f5" },
 

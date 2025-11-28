@@ -30,7 +30,7 @@ const ProductCard = ({ id, name, image, onPress }) => {
             uri: image || "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
           }}
           style={cardStyles.image}
-          resizeMode="cover"
+          resizeMode="stretch"
         />
       </View>
       <Text style={cardStyles.name} numberOfLines={1}>

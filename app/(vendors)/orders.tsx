@@ -1,16 +1,15 @@
-
 import Header from '@/components/vendors/Header'
 import React from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import OrderAllVendors from '../../components/vendors/OrderAllVendors'
-
+import { moderateScale } from '../Responsive'
 
 const Order = () => {
   return (
-    <SafeAreaView>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <Header />
-      <ScrollView>
+      <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom:moderateScale(30) }}>
         <OrderAllVendors />
       </ScrollView>
     </SafeAreaView>
@@ -22,9 +21,10 @@ export default Order
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#fff',  
   },
+  scroll: {
+    flex: 1,
+    backgroundColor: '#fff', 
+  }
 })

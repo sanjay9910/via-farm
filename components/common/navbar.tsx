@@ -952,7 +952,7 @@ export default function HeaderDesign() {
                 </View>
               </View>
 
-              <View style={{ height: 30 }} />
+              <View  />
             </ScrollView>
 
             {/* Footer Buttons */}
@@ -991,7 +991,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
     zIndex: 1,
-    // height:170,
+    height:scale(110),
   },
   headerWrapper: {
     backgroundColor: '#fff',

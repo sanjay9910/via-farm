@@ -1,4 +1,3 @@
-// MyCoupons.tsx
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import axios from "axios";
@@ -45,7 +44,6 @@ const formatDate = (isoDate) => {
   return `${day}/${month}/${year}`;
 };
 
-// Helper to convert Date to DD/MM/YYYY
 const formatDateToDisplay = (date) => {
   if (!date) return "";
   const day = date.getDate().toString().padStart(2, "0");
@@ -54,7 +52,6 @@ const formatDateToDisplay = (date) => {
   return `${day}/${month}/${year}`;
 };
 
-// Helper to format date to YYYY-MM-DD for API
 const formatDateForAPI = (date) => {
   if (!date) return "";
   const year = date.getFullYear();
@@ -63,11 +60,24 @@ const formatDateForAPI = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-// --- (CategoryProductDropdown, CouponForm, Create/Edit modals kept same as before) ---
-// For brevity I'll reuse the same implementations as you provided but kept intact
-// (They are included below exactly as earlier — unchanged except for minimal key-safety in some maps)
-// CategoryProductDropdown, CouponForm, CreateCouponModal, EditCouponModal
-// ... (full implementations are kept exactly as in your previous file, no functional change)
+// ----------------- NEW: normalization helper -----------------
+const normalizeCoupon = (c) => {
+  if (!c) return null;
+  return {
+    ...c,
+    id: c.id ?? c._id ?? c.couponId ?? (c._doc && c._doc._id) ?? null,
+    code: c.code ?? c.name ?? "",
+    discount: typeof c.discount === "string" ? c.discount : (c.discount?.value ? `${c.discount.value}%` : "0%"),
+    appliesTo: c.appliesTo ?? [],
+    productIds: c.productIds ?? [],
+    startDate: c.startDate ?? c.validFrom ?? null,
+    expiryDate: c.expiryDate ?? c.validTill ?? null,
+    minimumOrder: c.minimumOrder != null ? String(c.minimumOrder) : "0",
+    totalUsageLimit: c.totalUsageLimit ?? 0,
+    usageLimitPerUser: c.usageLimitPerUser ?? 0,
+    status: c.status ?? "Active",
+  };
+};
 
 const CategoryProductDropdown = ({
   visible,
@@ -246,7 +256,7 @@ const CouponForm = ({
 }) => {
   const [couponCode, setCouponCode] = useState(initialData?.code || "");
   const initialDiscount = initialData?.discount
-    ? parseInt(initialData.discount.replace("%", ""))
+    ? parseInt(String(initialData.discount).replace("%", ""))
     : 10;
   const [discount, setDiscount] = useState(initialDiscount);
   const [minimumOrder, setMinimumOrder] = useState(
@@ -261,7 +271,7 @@ const CouponForm = ({
 
   const parseDisplayDate = (dateStr) => {
     if (!dateStr || dateStr === "N/A") return new Date();
-    const parts = dateStr.split("/");
+    const parts = String(dateStr).split("/");
     if (parts.length === 3) {
       return new Date(parts[2], parts[1] - 1, parts[0]);
     }
@@ -780,6 +790,7 @@ const MyCoupons = () => {
     }
   };
 
+  // ----------------- FETCH COUPONS (normalized) -----------------
   const fetchCoupons = async () => {
     setLoading(true);
     setError(null);
@@ -794,24 +805,24 @@ const MyCoupons = () => {
       );
 
       if (response.data && response.data.success) {
-        const fetchedCoupons = response.data.data.map((coupon) => ({
-          id: coupon._id,
-          code: coupon.code,
-          discount: `${coupon.discount?.value || 0}%`,
-          appliesTo: coupon.appliesTo || [],
-          productIds: coupon.productIds || [],
-          startDate: formatDate(coupon.startDate || coupon.validFrom),
-          validTill: formatDate(coupon.expiryDate || coupon.validTill),
-          minimumOrder: coupon.minimumOrder?.toString() || "0",
-          totalUsageLimit: coupon.totalUsageLimit || 0,
-          usageLimitPerUser: coupon.usageLimitPerUser || 0,
-          status: coupon.status || "active",
-        }));
+        // normalize API coupons so UI always has .id
+        const fetchedCoupons = (response.data.data || []).map((coupon) => {
+          const n = normalizeCoupon(coupon);
+          // also convert dates for display
+          return {
+            ...n,
+            startDate: formatDate(n.startDate),
+            validTill: formatDate(n.expiryDate),
+            discount: n.discount ?? "0%",
+            minimumOrder: n.minimumOrder ?? "0",
+          };
+        });
 
+        // console.log("Loaded coupons sample:", fetchedCoupons[0]);
         setOriginalCoupons(fetchedCoupons);
         setCoupons(fetchedCoupons);
       } else {
-        setError(response.data.message || "Failed to fetch coupons.");
+        setError(response.data?.message || "Failed to fetch coupons.");
       }
     } catch (error) {
       const errorMessage =
@@ -825,6 +836,7 @@ const MyCoupons = () => {
       setLoading(false);
     }
   };
+  // --------------------------------------------------------------
 
   useEffect(() => {
     fetchCoupons();
@@ -847,30 +859,23 @@ const MyCoupons = () => {
 
       if (response.data && response.data.success) {
         Alert.alert("Success", "Coupon created successfully!");
+        const created = response.data.data || {};
+        const n = normalizeCoupon(created);
         const newCoupon = {
-          id: response.data.data._id,
-          code: response.data.data.code,
-          discount: `${response.data.data.discount.value}%`,
-          appliesTo: response.data.data.appliesTo || [],
-          productIds: response.data.data.productIds || [],
-          startDate: formatDate(
-            response.data.data.startDate || response.data.data.validFrom
-          ),
-          validTill: formatDate(
-            response.data.data.expiryDate || response.data.data.validTill
-          ),
-          minimumOrder: response.data.data.minimumOrder?.toString() || "0",
-          totalUsageLimit: response.data.data.totalUsageLimit || 0,
-          usageLimitPerUser: response.data.data.usageLimitPerUser || 0,
-          status: response.data.data.status,
+          ...n,
+          startDate: formatDate(n.startDate),
+          validTill: formatDate(n.expiryDate),
         };
 
+        // update both originalCoupons and visible coupons
         setOriginalCoupons((prev) => [newCoupon, ...prev]);
+        setCoupons((prev) => [newCoupon, ...prev]);
+
         setCreateModalVisible(false);
       } else {
         Alert.alert(
           "Error",
-          response.data.message || "Failed to create coupon."
+          response.data?.message || "Failed to create coupon."
         );
       }
     } catch (err) {
@@ -902,34 +907,26 @@ const MyCoupons = () => {
 
       if (response.data && response.data.success) {
         Alert.alert("Success", "Coupon updated successfully!");
+        const updatedRaw = response.data.data || {};
+        const n = normalizeCoupon(updatedRaw);
         const updatedCoupon = {
-          id: response.data.data._id,
-          code: response.data.data.code,
-          discount: `${response.data.data.discount.value}%`,
-          appliesTo: response.data.data.appliesTo || [],
-          productIds: response.data.data.productIds || [],
-          startDate: formatDate(
-            response.data.data.startDate || response.data.data.validFrom
-          ),
-          validTill: formatDate(
-            response.data.data.expiryDate || response.data.data.validTill
-          ),
-          minimumOrder: response.data.data.minimumOrder?.toString() || "0",
-          totalUsageLimit: response.data.data.totalUsageLimit || 0,
-          usageLimitPerUser: response.data.data.usageLimitPerUser || 0,
-          status: response.data.data.status,
+          ...n,
+          startDate: formatDate(n.startDate),
+          validTill: formatDate(n.expiryDate),
         };
 
         setOriginalCoupons((prev) =>
-          prev.map((coupon) =>
-            coupon.id === updatedCoupon.id ? updatedCoupon : coupon
-          )
+          prev.map((coupon) => (String(coupon.id) === String(updatedCoupon.id) ? updatedCoupon : coupon))
         );
+        setCoupons((prev) =>
+          prev.map((coupon) => (String(coupon.id) === String(updatedCoupon.id) ? updatedCoupon : coupon))
+        );
+
         setEditModalVisible(false);
       } else {
         Alert.alert(
           "Error",
-          response.data.message || "Failed to update coupon."
+          response.data?.message || "Failed to update coupon."
         );
       }
     } catch (err) {
@@ -943,39 +940,86 @@ const MyCoupons = () => {
     }
   };
 
-  const handleDeleteCoupon = async (couponId) => {
+  // ----------------- DELETE HANDLER (already robust) -----------------
+  const handleDeleteCoupon = async (couponOrId) => {
     setDeleteLoading(true);
     try {
+      // accept either id string or coupon object
+      const couponId =
+        typeof couponOrId === "object"
+          ? couponOrId.id ?? couponOrId._id ?? couponOrId.couponId
+          : couponOrId;
+
+      // console.log("handleDeleteCoupon -> resolved couponId:", couponId);
+
+      if (!couponId && couponId !== 0) {
+        Alert.alert("Error", "Coupon id is missing.");
+        setDeleteLoading(false);
+        return;
+      }
+
       const token = await getAuthToken();
-      const deleteEndpoint = `${API_BASE_URL}${API_ENDPOINTS.DELETE_COUPON}${couponId}`;
+
+      // Build endpoint carefully: supports templates like '/coupons/:id' or plain '/coupons/'
+      const endpointTemplate = `${API_BASE_URL}${API_ENDPOINTS.DELETE_COUPON}`;
+      const deleteEndpoint = endpointTemplate.includes(":id")
+        ? endpointTemplate.replace(":id", encodeURIComponent(String(couponId)))
+        : `${endpointTemplate}${endpointTemplate.endsWith("/") ? "" : "/"}${encodeURIComponent(String(couponId))}`;
+
       console.log("Delete URL:", deleteEndpoint);
 
-      const response = await axios.delete(deleteEndpoint, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      };
 
-      console.log("Delete Response:", response.data);
+      // Try delete via URL first
+      let response;
+      try {
+        response = await axios.delete(deleteEndpoint, { headers });
+        console.log("Delete Response (url):", response?.data);
+      } catch (errUrlDelete) {
+        // If server expects id in request body (some backends do), retry using the template endpoint
+        console.warn("URL DELETE failed, retrying with body if applicable:", errUrlDelete?.response?.data ?? errUrlDelete.message);
+        try {
+          response = await axios.delete(endpointTemplate, {
+            headers,
+            data: { id: couponId }, // change 'id' -> '_id' or 'couponId' if backend expects that key
+          });
+          // console.log("Delete Response (body):", response?.data);
+        } catch (errBodyDelete) {
+          // rethrow the original failure information (so catch below handles it)
+          console.error("Both delete-by-URL and delete-by-body failed:", errBodyDelete?.response?.data ?? errBodyDelete.message);
+          throw errBodyDelete;
+        }
+      }
 
-      if (response.data && response.data.success) {
+      // Interpret success: many APIs return {success:true} but also check HTTP status
+      const success = Boolean(response?.data?.success) || response?.status === 200 || response?.status === 204;
+
+      if (success) {
         Alert.alert("Success", "Coupon deleted successfully!");
 
+        // Remove from local state — be defensive about id vs _id
         setOriginalCoupons((prev) =>
-          prev.filter((coupon) => coupon.id !== couponId)
+          prev.filter((c) => {
+            const cId = c?.id ?? c?._id ?? c?.couponId;
+            return String(cId) !== String(couponId);
+          })
         );
 
-        setCoupons((prev) => prev.filter((coupon) => coupon.id !== couponId));
-      } else {
-        Alert.alert(
-          "Error",
-          response.data?.message || "Failed to delete coupon. Please try again."
+        setCoupons((prev) =>
+          prev.filter((c) => {
+            const cId = c?.id ?? c?._id ?? c?.couponId;
+            return String(cId) !== String(couponId);
+          })
         );
+      } else {
+        console.log("Delete not successful, response:", response?.data);
+        Alert.alert("Error", response?.data?.message || "Failed to delete coupon. Please try again.");
       }
     } catch (err) {
       console.error("Delete Coupon Error:", err);
-
       if (err.response) {
         console.error("Response Error:", err.response.status, err.response.data);
       } else if (err.request) {
@@ -996,6 +1040,7 @@ const MyCoupons = () => {
       setSelectedCoupon(null);
     }
   };
+  // --------------------------------------------------------------------
 
   const getFilteredCoupons = () => {
     if (filterStatus === "all") {
@@ -1010,26 +1055,22 @@ const MyCoupons = () => {
   useEffect(() => {
     setCoupons(getFilteredCoupons());
   }, [filterStatus, originalCoupons]);
+
   const handleThreeDotsPress = (coupon, index, nativeEvent) => {
     const pageX = nativeEvent?.pageX ?? null;
     const pageY = nativeEvent?.pageY ?? null;
 
-    // default fallback center
     let left = Math.max((SCREEN_WIDTH - modalEstimatedWidth) / 2, 8);
     let top = Math.max((SCREEN_HEIGHT - modalEstimatedHeight) / 2, 8);
 
     if (pageX != null && pageY != null) {
-      // Position the modal so it appears below the tapped point
       left = pageX - modalEstimatedWidth / 2;
       top = pageY + 8;
 
-      // ensure modal doesn't overflow horizontally
       if (left + modalEstimatedWidth > SCREEN_WIDTH - 8) {
         left = SCREEN_WIDTH - modalEstimatedWidth - 8;
       }
       if (left < 8) left = 8;
-
-      // if overflow bottom, show above the touch point
       if (top + modalEstimatedHeight > SCREEN_HEIGHT - 8) {
         const aboveTop = pageY - modalEstimatedHeight - 8;
         top = aboveTop > 8 ? aboveTop : Math.max(SCREEN_HEIGHT - modalEstimatedHeight - 8, 8);
@@ -1037,7 +1078,7 @@ const MyCoupons = () => {
     }
 
     setModalPosition({ x: Math.round(left), y: Math.round(top) });
-    setSelectedCoupon(coupon);
+    setSelectedCoupon(normalizeCoupon(coupon)); // ensure normalized selectedCoupon
     setActionModalVisible(true);
   };
 
@@ -1047,16 +1088,18 @@ const MyCoupons = () => {
   };
 
   const handleDelete = () => {
+    const idToDelete = selectedCoupon?.id ?? selectedCoupon?._id ?? selectedCoupon?.couponId;
+    if (!idToDelete) {
+      Alert.alert("Error", "No coupon selected or coupon id missing.");
+      return;
+    }
+
     Alert.alert(
       "Delete Coupon",
-      `Are you sure you want to delete coupon "${selectedCoupon?.code}"? This action cannot be undone.`,
+      `Are you sure you want to delete coupon "${selectedCoupon?.code ?? idToDelete}"?`,
       [
         { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => handleDeleteCoupon(selectedCoupon.id),
-        },
+        { text: "Delete", style: "destructive", onPress: () => handleDeleteCoupon(idToDelete) },
       ]
     );
   };

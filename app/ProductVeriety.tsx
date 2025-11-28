@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const API_BASE = 'https://viafarm-1.onrender.com';
+const CARD_WIDTH = Dimensions.get("window").width / 2 - 25;
 
 // Same ProductCard as ViewAllFruits
 const ProductCard = ({
@@ -58,7 +59,7 @@ const ProductCard = ({
           <Image
             source={{ uri: imageUri }}
             style={cardStyles.productImage}
-            resizeMode="cover"
+            resizeMode="stretch"
           />
 
           <TouchableOpacity
@@ -90,10 +91,10 @@ const ProductCard = ({
           </Text>
 
           <Text style={cardStyles.productVeriety} numberOfLines={1}>
-            Variety: {item?.variety ?? "Unnamed product"}
+            By: {item?.vendor?.name ?? "Unnamed product"}
           </Text>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap:scale(5) }}>
             <Image
               source={require("../assets/via-farm-img/icons/cardMap.png")}
             />
@@ -598,18 +599,32 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(14),
     color: '#222',
     paddingVertical: 0
   },
-  clearButton: {
-    padding: 4
+  backButtonContainer: {
+    padding: 1,
+  },
+  riceContainer: {
+    flex: 1,
+    gap: scale(5),
+  },
+  backIcon: {
+    width: scale(24),
+    height: scale(24),
+  },
+  headerTitle: {
+    fontSize: normalizeFont(15),
+    fontWeight: "600",
+    color: "#333",
   },
   loadingContainer: {
     alignItems: "center",
     padding: moderateScale(20),
     flex: 1,
     justifyContent: 'center',
+    alignContent: 'center',
   },
   loadingText: {
     marginTop: moderateScale(10),
@@ -627,7 +642,7 @@ const styles = StyleSheet.create({
     color: "#d32f2f",
     textAlign: "center",
     marginBottom: moderateScale(15),
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(12),
   },
   retryButton: {
     backgroundColor: "#1976d2",
@@ -643,117 +658,153 @@ const styles = StyleSheet.create({
 
 const cardStyles = StyleSheet.create({
   container: {
-    width: Dimensions.get("window").width / 2 - 25,
-    marginLeft: moderateScale(5),
-    marginTop: moderateScale(10),
-    marginBottom: moderateScale(5),
+    width: CARD_WIDTH,
+    marginLeft: moderateScale(6),
+    marginTop: moderateScale(12),
+    marginBottom: moderateScale(8),
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: moderateScale(5),
+    borderRadius:10,
+    overflow: 'hidden',
     shadowColor: 'rgba(0, 0, 0, 0.2)',
     shadowOpacity: 0.1,
     shadowRadius: 4,
     borderWidth: 2,
     borderColor: 'rgba(0, 0, 0, 0.2)',
     elevation: 7,
+    shadowOffset: { width: 0, height: 3 },
   },
+
+  // image area
   imageContainer: {
-    position: 'relative',
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    overflow: 'hidden',
+    width: '100%',
+    height: scale(140),
+    backgroundColor: '#f6f6f6',
   },
-  imageHeight: scale(120),
+  imageHeight: scale(135),
   productImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
+    borderTopLeftRadius:10,
+    borderTopRightRadius:10,
   },
+
+
   favoriteButton: {
     position: 'absolute',
-    top: moderateScale(3),
-    right: moderateScale(3),
-    borderRadius: 15,
+    top: moderateScale(2),
+    right: moderateScale(2),
+    borderRadius: 16,
     width: scale(30),
     height: scale(30),
     justifyContent: 'center',
     alignItems: 'center',
+    shadowRadius: 4,
   },
+
+
   ratingContainer: {
     position: 'absolute',
-    bottom: moderateScale(8),
+    bottom: moderateScale(10),
     left: moderateScale(8),
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(141, 141, 141, 0.6)',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: moderateScale(6),
-    paddingVertical: moderateScale(2),
-    borderRadius: moderateScale(12),
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateScale(4),
+    borderRadius: moderateScale(14),
   },
   ratingText: {
     color: '#fff',
     fontSize: normalizeFont(11),
-    marginLeft: 2,
-    fontWeight: '500',
+    marginLeft: moderateScale(6),
+    fontWeight: '600',
   },
+
   cardContent: {
-    padding: moderateScale(5),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(10),
   },
   productTitle: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(13),
     fontWeight: '600',
-    color: '#333',
+    color: '#2b2b2b',
+
   },
+
   productVeriety: {
     color: 'rgba(66, 66, 66, 0.7)',
-    fontSize: normalizeFont(11),
-    paddingVertical: 1,
+    fontSize: normalizeFont(12),
+    paddingVertical:moderateScale(5)
   },
+
+  productSubtitle: {
+    fontSize: normalizeFont(12),
+    color: '#666',
+    marginBottom: moderateScale(3),
+  },
+
   priceContainer: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: moderateScale(6),
-    marginTop: moderateScale(4),
+    alignItems: 'flex-end',
+    paddingTop:moderateScale(4),
+    marginBottom: moderateScale(5),
+  },
+  productPrice: {
+    fontSize: normalizeFont(12),
+    fontWeight: '800',
+    color: '#666',
   },
   productUnit: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(12),
     color: '#666',
-    marginLeft: 2,
+    marginLeft: moderateScale(6),
+    marginBottom: moderateScale(2),
   },
+  weightText: {
+    fontSize: normalizeFont(11),
+    color: '#777',
+    marginLeft: moderateScale(6),
+  },
+
+
   buttonContainer: {
-    minHeight: scale(26),
-    maxWidth: scale(158),
-    justifyContent: 'center',
+    marginTop: moderateScale(6),
+    alignItems: 'stretch',
   },
   addToCartButton: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
-    flexDirection: 'row',
+    borderRadius: 8,
+    paddingVertical: moderateScale(10),
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: moderateScale(10),
-    paddingHorizontal: moderateScale(20),
-    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   disabledButton: {
     backgroundColor: '#cccccc',
   },
   addToCartText: {
     color: '#fff',
-    fontSize: normalizeFont(12),
-    fontWeight: '500',
+    fontSize: normalizeFont(13),
+    fontWeight: '700',
   },
+
+
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: 'rgba(76, 175, 80, 1)',
-    borderRadius: 10,
+    borderRadius: 8,
     paddingHorizontal: moderateScale(4),
     height: scale(36),
-    minWidth: scale(100),
+    minWidth: scale(120),
     backgroundColor: '#fff',
   },
   quantityButton: {
@@ -761,7 +812,6 @@ const cardStyles = StyleSheet.create({
     height: scale(36),
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 0,
   },
   quantityValueContainer: {
     minWidth: scale(48),
@@ -777,8 +827,7 @@ const cardStyles = StyleSheet.create({
   quantityText: {
     fontSize: normalizeFont(16),
     color: 'rgba(76, 175, 80, 1)',
-    fontWeight: '600',
+    fontWeight: '700',
     textAlign: 'center',
-    includeFontPadding: false,
   },
 });

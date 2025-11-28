@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import OrderCard from "./OrderCard";
 
+
 const API_BASE = "https://viafarm-1.onrender.com";
 
 import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
@@ -92,17 +93,11 @@ export default function OrdersScreen() {
   useEffect(() => {
     fetchOrders();
   }, []);
-
-
-
-  // Status update flow: optimistic update + PATCH to backend
   const handleStatusChange = async (orderId, newStatus) => {
     if (!orderId) {
       console.warn("Missing orderId for status update");
       return;
     }
-
-    // Snapshot to revert on failure
     const prevOrders = [...orders];
 
     // Optimistic update
@@ -131,7 +126,6 @@ export default function OrdersScreen() {
       for (let i = 0; i < candidateUrls.length; i++) {
         const url = candidateUrls[i];
         try {
-          // console.log("[StatusUpdate] Trying PATCH", url, "payload:", JSON.stringify(payload));
           const resp = await axios.put(url, payload, {
             headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
             timeout: 10000,
@@ -158,7 +152,6 @@ export default function OrdersScreen() {
 
       if (!successfulResp) throw lastErr || new Error("All endpoint attempts failed");
 
-      // console.log("[StatusUpdate] Success from", usedUrl, successfulResp.status, successfulResp.data);
 
       const updated = successfulResp.data?.data ?? successfulResp.data ?? {};
       const serverStatus = updated.orderStatus ?? updated.status ?? newStatus;
@@ -197,10 +190,6 @@ export default function OrdersScreen() {
       {/* Header */}
       <View style={styles.headerRow}>
         <Text style={styles.headerTitle}>Today’s Orders</Text>
-        {/* <TouchableOpacity onPress={ALLView} style={{flexDirection:'row',alignItems:'center',gap:5}}>
-          <Text style={styles.seeAll}>See All</Text>
-          <Image source={require("../../assets/via-farm-img/icons/see.png")} />
-        </TouchableOpacity> */}
       </View>
 
       {loading ? (
@@ -218,7 +207,7 @@ export default function OrdersScreen() {
               />
             ))
           ) : (
-            <Text style={{ textAlign: "center", marginTop: 20, color: "#666" }}>
+            <Text style={{ textAlign: "center", marginTop:moderateScale(20)  , color: "#666" }}>
               No orders today
             </Text>
           )}
@@ -256,7 +245,6 @@ const styles = StyleSheet.create({
 
   container: {
     paddingHorizontal: scale(12),
-    paddingBottom: scale(30),
   },
   smallText: {
     fontSize: normalizeFont(12),

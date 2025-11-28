@@ -48,6 +48,7 @@ const MyCart = () => {
   const [endAMPM, setEndAMPM] = useState('AM');
   const [paymentMethod, setPaymentMethod] = useState('cash');
 
+  // priceDetails will hold last-known price set (either server apply response or computed)
   const [priceDetails, setPriceDetails] = useState({
     totalMRP: 0,
     couponDiscount: 0,
@@ -66,12 +67,12 @@ const MyCart = () => {
   // Success modal for cash flow
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // Coupon state
+  // Coupon state: appliedCoupon = null unless user applied explicitly
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState('');
 
-  // Available coupons
+  // Available coupons (local fallback)
   const availableCoupons = [
     { code: 'SAVE10', discount: 10, type: 'percentage' },
     { code: 'SAVE20', discount: 70, type: 'percentage' },
@@ -91,6 +92,8 @@ const MyCart = () => {
   };
 
   // --- Fetch Cart ---
+  // IMPORTANT: This will NOT auto-apply any coupon returned by server.
+  // When there is no appliedCoupon (user hasn't applied), we compute totals locally and set couponDiscount = 0.
   const fetchCartItems = useCallback(async (token) => {
     if (!token) {
       setLoading(false);
@@ -103,6 +106,7 @@ const MyCart = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
+      console.log('Fetch cart response:', res.status, json);
       if (res.ok && json.success) {
         const items = json.data.items || [];
 
@@ -133,20 +137,37 @@ const MyCart = () => {
         }));
         setCartItems(transformed);
 
-        const summary = json.data.priceDetails || {};
-        setPriceDetails({
-          totalMRP: Number(summary.totalMRP ?? transformed.reduce((s, i) => s + i.price * i.quantity, 0)),
-          couponDiscount: Number(summary.couponDiscount ?? 0),
-          deliveryCharge: Number(summary.deliveryCharge ?? 0),
-          totalAmount: Number(summary.totalAmount ?? 0),
-        });
+        // Calculate subtotal locally
+        const subtotalLocal = transformed.reduce((s, i) => s + (Number(i.price) || 0) * (i.quantity || 0), 0);
 
-        if (json.data.couponCode) {
-          setCouponCode(json.data.couponCode);
-          setAppliedCoupon({
-            code: json.data.couponCode,
-            discount: Number(summary.couponDiscount ?? 0),
+        // Get server-provided deliveryCharge if present otherwise 0
+        const serverSummary = json.data.priceDetails ?? json.data.summary ?? {};
+        const serverDeliveryCharge = Number(serverSummary.deliveryCharge ?? 0);
+
+        // If user has already applied a coupon locally (appliedCoupon != null),
+        // use server summary (it should reflect applied coupon). Otherwise DO NOT use server discount.
+        if (appliedCoupon) {
+          // server priceDetails should reflect applied coupon
+          setPriceDetails({
+            totalMRP: Number(serverSummary.totalMRP ?? subtotalLocal),
+            couponDiscount: Number(serverSummary.discount ?? serverSummary.couponDiscount ?? 0),
+            deliveryCharge: serverDeliveryCharge,
+            totalAmount: Number(serverSummary.totalAmount ?? Math.max(0, subtotalLocal - (serverSummary.discount ?? serverSummary.couponDiscount ?? 0) + serverDeliveryCharge)),
           });
+        } else {
+          // No coupon applied locally: enforce zero discount and compute totalAmount = subtotal + deliveryCharge
+          setPriceDetails({
+            totalMRP: subtotalLocal,
+            couponDiscount: 0,
+            deliveryCharge: serverDeliveryCharge,
+            totalAmount: Number((subtotalLocal + serverDeliveryCharge).toFixed(2)),
+          });
+
+          // Important: DO NOT prefill couponCode or setAppliedCoupon from server response.
+          if (json.data.couponCode) {
+            console.log('Server returned couponCode but not auto-applying:', json.data.couponCode);
+            // do not set couponCode or appliedCoupon here
+          }
         }
       } else {
         setCartItems([]);
@@ -161,7 +182,7 @@ const MyCart = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [appliedCoupon]); // re-run if appliedCoupon changes so fetch honors applied state
 
   useEffect(() => {
     const init = async () => {
@@ -216,6 +237,7 @@ const MyCart = () => {
           prev.map(i => (i.id === itemId ? prevItem : i))
         );
       } else {
+        // refresh cart (will preserve appliedCoupon state because appliedCoupon is in state)
         fetchCartItems(authToken);
       }
     } catch (e) {
@@ -259,21 +281,90 @@ const MyCart = () => {
     }
   };
 
-  const applyCoupon = () => {
+  // APPLY COUPON: call server endpoint to validate & apply coupon.
+  const applyCoupon = async () => {
     setCouponError('');
-    const coupon = availableCoupons.find(c => c.code === couponCode.toUpperCase());
+    const codeToApply = (couponCode || '').toString().trim();
+    if (!codeToApply) {
+      setCouponError('Please enter coupon code');
+      return;
+    }
 
-    if (coupon) {
-      setAppliedCoupon(coupon);
-    } else {
-      setCouponError('Invalid coupon code');
+    console.log('Applying coupon to API:', codeToApply);
+
+    try {
+      const token = authToken || (await getAuthToken());
+      if (!token) {
+        Alert.alert('Error', 'Please login to apply coupon.');
+        return;
+      }
+
+      const res = await fetch(`${BASE_URL}/api/buyer/cart/apply-coupon`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ code: codeToApply }),
+      });
+
+      const json = await res.json();
+      console.log('Apply coupon response:', res.status, json);
+
+      if (res.ok && json.success) {
+        // server price info: prefer priceDetails then summary
+        const pd = json.priceDetails ?? json.summary ?? {};
+
+        // Update priceDetails with server-provided totals (server applied)
+        setPriceDetails({
+          totalMRP: Number(pd.totalMRP ?? pd.totalMRP ?? 0),
+          couponDiscount: Number(pd.discount ?? pd.couponDiscount ?? 0),
+          deliveryCharge: Number(pd.deliveryCharge ?? 0),
+          totalAmount: Number(pd.totalAmount ?? 0),
+        });
+
+        // Determine discount to show. Prefer explicit discount, otherwise compute difference.
+        const serverTotalMRP = Number(pd.totalMRP ?? 0);
+        const serverTotalAmount = Number(pd.totalAmount ?? 0);
+        let computedDiscount = 0;
+        if (serverTotalMRP > 0 && serverTotalAmount >= 0) {
+          computedDiscount = serverTotalMRP - serverTotalAmount;
+        }
+        const explicitDiscount = Number(pd.discount ?? pd.couponDiscount ?? 0);
+        const finalDiscountToShow = explicitDiscount > 0 ? explicitDiscount : computedDiscount;
+
+        // Mark the coupon as applied locally (so UI and calculation functions will respect it)
+        setAppliedCoupon({
+          code: json.couponCode ?? codeToApply,
+          discount: finalDiscountToShow,
+          type: 'fixed', // server returned absolute discount -> treat as fixed amount
+        });
+
+        console.log('Applied coupon resolved discount:', finalDiscountToShow, 'server priceDetails:', pd);
+
+        Alert.alert('Success', json.message || 'Coupon applied successfully.');
+      } else {
+        console.warn('Apply coupon failed:', json);
+        const errMsg = json.message || 'Failed to apply coupon';
+        setCouponError(errMsg);
+        Alert.alert('Coupon Error', errMsg);
+      }
+    } catch (err) {
+      console.error('Apply coupon error:', err);
+      setCouponError('Network error while applying coupon');
+      Alert.alert('Error', 'Network error while applying coupon');
     }
   };
 
   const removeCoupon = () => {
+    // Clear client-side applied coupon and re-fetch cart to restore server state (without coupon)
     setAppliedCoupon(null);
     setCouponCode('');
     setCouponError('');
+    (async () => {
+      const token = authToken || (await getAuthToken());
+      if (token) fetchCartItems(token);
+    })();
   };
 
   const handleDateChange = (event, date) => {
@@ -323,12 +414,19 @@ const MyCart = () => {
 
   const subtotal = cartItems.reduce((s, i) => s + (Number(i.price) || 0) * (i.quantity || 0), 0);
 
+  // Coupon discount calculation: prefer server discount only when coupon is currently applied locally
   const calculateCouponDiscount = () => {
+    // If user has applied coupon locally and server provided couponDiscount in priceDetails, use it
+    const serverCouponDiscount = Number(priceDetails.couponDiscount ?? priceDetails.discount ?? 0);
+    if (appliedCoupon && serverCouponDiscount > 0) return serverCouponDiscount;
+
     if (!appliedCoupon) return 0;
+
+    // If appliedCoupon is local (e.g., local percentage fallback), compute accordingly
     if (appliedCoupon.type === 'percentage') {
       return (subtotal * appliedCoupon.discount) / 100;
     } else {
-      return Math.min(appliedCoupon.discount, subtotal);
+      return Number(appliedCoupon.discount || 0);
     }
   };
 

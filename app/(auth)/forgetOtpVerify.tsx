@@ -2,16 +2,17 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import axios from 'axios';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { moderateScale, normalizeFont, scale } from '../Responsive';
 
 const FORGET_API_BASE = 'https://viafarm-1.onrender.com';
 
@@ -151,13 +152,13 @@ const ForgetOtpVerify = () => {
         <Text style={styles.subtitle}>
           Enter the 4-digit code sent to
         </Text>
-        <Text style={styles.phone}>{mobileNumber}</Text>
+        {/* <Text style={styles.phone}>{mobileNumber}</Text> */}
 
-        {receivedOtp && (
+        {/* {receivedOtp && (
           <View style={styles.otpDisplayContainer}>
             <Text style={styles.otpDisplayText}>Your OTP: {receivedOtp}</Text>
           </View>
-        )}
+        )} */}
 
         <View style={styles.otpContainer}>
           {otp.map((digit, index) => (
@@ -207,45 +208,46 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
     justifyContent: 'center',
-    padding: 20,
+    padding:moderateScale(20),
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 24,
+    borderRadius:moderateScale(12),
+    padding:moderateScale(24),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowRadius:moderateScale(8),
     elevation: 5,
   },
   title: {
-    fontSize: 24,
+    fontSize:normalizeFont(15),
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 8,
+    marginBottom:moderateScale(8),
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 14,
+    fontSize:normalizeFont(12),
     color: '#666',
+    marginBottom:moderateScale(7),
     textAlign: 'center',
   },
   phone: {
-    fontSize: 16,
+    fontSize:normalizeFont(13),
     fontWeight: '600',
     color: '#007AFF',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom:moderateScale(24),
   },
   otpDisplayContainer: {
     backgroundColor: '#E8F5E9',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
+    padding:moderateScale(12),
+    borderRadius:moderateScale(8),
+    marginBottom:moderateScale(20),
   },
   otpDisplayText: {
-    fontSize: 16,
+    fontSize:normalizeFont(13),
     fontWeight: '600',
     color: '#2E7D32',
     textAlign: 'center',
@@ -253,15 +255,15 @@ const styles = StyleSheet.create({
   otpContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom:moderateScale(24),
   },
   otpInput: {
-    width: 60,
-    height: 60,
+    width:scale(50),
+    height:scale(50),
     borderWidth: 2,
     borderColor: '#ddd',
-    borderRadius: 12,
-    fontSize: 24,
+    borderRadius:moderateScale(12),
+    fontSize:normalizeFont(15),
     fontWeight: 'bold',
     textAlign: 'center',
     backgroundColor: '#fafafa',
@@ -272,26 +274,26 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
-    borderRadius: 8,
-    paddingVertical: 14,
+    borderRadius:moderateScale(8),
+    paddingVertical:moderateScale(14),
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom:moderateScale(16),
   },
   buttonDisabled: {
     backgroundColor: '#ccc',
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize:normalizeFont(13),
     fontWeight: '600',
   },
   resendButton: {
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical:moderateScale(8),
   },
   resendText: {
-    fontSize: 14,
+    fontSize:normalizeFont(11),
     color: '#666',
   },
   resendLink: {

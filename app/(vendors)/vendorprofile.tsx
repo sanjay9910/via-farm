@@ -4,6 +4,7 @@ import axios from 'axios';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useNavigation } from 'expo-router';
+import { goBack } from 'expo-router/build/global-state/routing';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -30,8 +31,6 @@ const API_BASE = 'https://viafarm-1.onrender.com';
 
 
 // ---------------- EditProfileModal ----------------
-
-
 
 const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
   const [name, setName] = useState(initialData?.name || '');
@@ -109,16 +108,16 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
       const manipResult = await ImageManipulator.manipulateAsync(
         uri,
         [{ resize: { width: maxWidth } }],
-        { 
-          compress: quality, 
+        {
+          compress: quality,
           format: ImageManipulator.SaveFormat.JPEG,
-          base64: false 
+          base64: false
         }
       );
 
       const compressedInfo = await FileSystem.getInfoAsync(manipResult.uri);
       const compressedSizeInMB = compressedInfo.size / (1024 * 1024);
-      
+
       console.log(`Compressed to: ${compressedSizeInMB.toFixed(2)} MB (${((1 - compressedSizeInMB / fileSizeInMB) * 100).toFixed(1)}% reduction)`);
 
       // If still too large, compress again more aggressively
@@ -179,8 +178,8 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
       }
 
       const mediaTypesOption = getMediaTypesOption();
-      const pickerOptions = { 
-        allowsMultipleSelection: true, 
+      const pickerOptions = {
+        allowsMultipleSelection: true,
         quality: 0.5,  // Lower initial quality for picker
       };
       if (mediaTypesOption) pickerOptions.mediaTypes = mediaTypesOption;
@@ -189,7 +188,7 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
 
       if (!result.canceled && Array.isArray(result.assets)) {
         console.log(`Processing ${result.assets.length} farm images...`);
-        
+
         const compressedPromises = result.assets.map(async (asset, idx) => {
           try {
             console.log(`Compressing farm image ${idx + 1}/${result.assets.length}`);
@@ -203,7 +202,7 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
 
         const results = await Promise.all(compressedPromises);
         const picked = results.filter(r => r.success && r.uri).map(r => ({ uri: r.uri }));
-        
+
         console.log(`Successfully compressed ${picked.length}/${result.assets.length} images`);
 
         SetFarmImages(prev => {
@@ -249,7 +248,7 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
           if (uri.startsWith('content://')) {
             const filename = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
             const dest = `${FileSystem.cacheDirectory}${filename}`;
-            
+
             try {
               await FileSystem.copyAsync({ from: uri, to: dest });
               return dest;
@@ -311,7 +310,7 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
       // Farm images - Process each one carefully
       if (farmImages && Array.isArray(farmImages) && farmImages.length > 0) {
         console.log(`Processing ${farmImages.length} farm images...`);
-        
+
         const newImages = farmImages.filter(img => {
           const uri = typeof img === 'string' ? img : img?.uri;
           return uri && !uri.startsWith('http://') && !uri.startsWith('https://');
@@ -322,14 +321,14 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
         for (let i = 0; i < newImages.length; i++) {
           try {
             const rawUri = typeof newImages[i] === 'string' ? newImages[i] : newImages[i]?.uri;
-            
+
             console.log(`Processing farm image ${i + 1}/${newImages.length}`);
-            
+
             // Get file info to log size
             const fileInfo = await FileSystem.getInfoAsync(rawUri);
             const sizeInMB = fileInfo.size / (1024 * 1024);
             console.log(`Farm image ${i + 1} size: ${sizeInMB.toFixed(2)} MB`);
-            
+
             const prepared = await prepareUriForUpload(rawUri);
             const filename = `farm_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}.jpg`;
 
@@ -383,8 +382,8 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
           farmImages: Array.isArray(payload?.farmImages)
             ? payload.farmImages
             : payload?.farmImages
-            ? [payload.farmImages]
-            : (farmImages || []).map((i) => (typeof i === 'string' ? i : i?.uri)),
+              ? [payload.farmImages]
+              : (farmImages || []).map((i) => (typeof i === 'string' ? i : i?.uri)),
         });
 
         Alert.alert('Success', 'Profile updated successfully!');
@@ -584,7 +583,7 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
           </ScrollView>
 
           <TouchableOpacity style={modalStyles.updateButton} onPress={handleSubmit} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" style={{ marginRight:moderateScale(8) }} /> : <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight: 8 }} />}
+            {loading ? <ActivityIndicator color="#fff" style={{ marginRight: moderateScale(8) }} /> : <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight: 8 }} />}
             <Text style={modalStyles.updateButtonText}>{loading ? 'Updating...' : 'Update Details'}</Text>
           </TouchableOpacity>
         </View>
@@ -851,12 +850,12 @@ const VendorProfile = () => {
       if (res.data.success) {
         const user = res.data.user;
 
-        setFullUser(user);  
+        setFullUser(user);
 
         setUserInfo({
           name: user.name,
           status: user.status,
-          rating:user.rating,
+          rating: user.rating,
           phone: user.mobileNumber,
           upiId: user.upiId,
           image: user.profilePicture,
@@ -918,6 +917,13 @@ const VendorProfile = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <View style={styles.profile}>
+        <TouchableOpacity onPress={goBack}>
+         <Image  source={require("../../assets/via-farm-img/icons/groupArrow.png")} />
+        </TouchableOpacity>
+        <Text style={{fontWeight:700}}>My Profile</Text>
+        <Text></Text>
+      </View>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <TouchableOpacity style={styles.profileSection} onPress={() => navigation.navigate("VendorProfileView", { user: fullUser })}>
           <View style={styles.profileInfo}>
@@ -935,9 +941,9 @@ const VendorProfile = () => {
               <Text style={styles.userRole}>{userInfo?.status}</Text>
             </View>
             <View>
-              <TouchableOpacity style={{ borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.2)", paddingHorizontal: moderateScale(6), borderRadius:7, flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: moderateScale(1) }} onPress={() => navigation.navigate("VendorProfileView", { user: fullUser })}>
+              <TouchableOpacity style={{ borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.2)", paddingHorizontal: moderateScale(6), borderRadius: 7, flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: moderateScale(1) }} onPress={() => navigation.navigate("VendorProfileView", { user: fullUser })}>
                 <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
-                 <Text style={{fontSize:normalizeFont(10)}} >{userInfo?.rating}</Text>
+                <Text style={{ fontSize: normalizeFont(10) }} >{userInfo?.rating}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.editButtonContainer}
@@ -1037,10 +1043,19 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff' },
   container: { flex: 1, backgroundColor: '#fff' },
 
+    profile:{
+   flexDirection:'row',
+   alignItems:'center',
+   justifyContent:'space-between',
+   paddingHorizontal:moderateScale(22),
+   paddingVertical:moderateScale(10),
+   marginTop:moderateScale(5)
+  },
+
   profileSection: {
     backgroundColor: '#fff',
     marginHorizontal: scale(16),
-    marginTop: moderateScale(20),
+    marginTop: moderateScale(10),
     marginBottom: moderateScale(10),
     borderRadius: moderateScale(12),
     borderWidth: 1,
@@ -1071,7 +1086,7 @@ const styles = StyleSheet.create({
   userPhone: { fontSize: normalizeFont(12), color: '#666', paddingVertical: moderateScale(1) },
   userRole: { fontSize: normalizeFont(11), color: '#4CAF50', fontWeight: '500', marginTop: moderateScale(2), paddingVertical: moderateScale(1) },
 
-  editButtonContainer: { padding: moderateScale(8) ,marginTop:moderateScale(15)},
+  editButtonContainer: { padding: moderateScale(8), marginTop: moderateScale(15) },
 
   menuSection: {
     backgroundColor: '#fff',
@@ -1154,10 +1169,10 @@ const modalStyles = StyleSheet.create({
     borderTopRightRadius: moderateScale(20),
     maxHeight: Math.max(moderateScale(200), height - moderateScale(80)),
     paddingBottom: moderateScale(15),
-    borderTopWidth:2,
-    borderLeftWidth:2,
-    borderRightWidth:2,
-    borderColor:'rgba(255, 202, 40, 1)'
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderRightWidth: 2,
+    borderColor: 'rgba(255, 202, 40, 1)'
   },
 
   header: {

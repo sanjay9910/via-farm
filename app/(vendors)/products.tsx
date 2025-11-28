@@ -1,7 +1,6 @@
 import AddProduct from "@/components/vendors/AddProduct";
-// import ProductFilter from '@/components/vendors/filter/ProductFilter'
 import Header from "@/components/vendors/Header";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ProductCard from "../../components/vendors/ProductCard";
@@ -9,17 +8,14 @@ import ProductCard from "../../components/vendors/ProductCard";
 const Products = () => {
   const [refresh, setRefresh] = useState(false);
 
-  useEffect(() => {}, []);
-
   const freshCard = () => {
-    console.log("jhkgfdghj");
     setRefresh((prev) => !prev);
   };
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <Header />
       <AddProduct refreshprops={freshCard} />
-      {/* <ProductFilter/> */}
       <ProductCard refreshbut={refresh} />
     </SafeAreaView>
   );
