@@ -1,7 +1,20 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useContext, useEffect, useRef, useState } from 'react';
-import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  Alert,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import { moderateScale, normalizeFont, scale } from '../Responsive';
 
@@ -10,19 +23,22 @@ export default function RegisterOtpScreen(): JSX.Element {
   const { mobile } = useLocalSearchParams<{ mobile: string }>();
   const router = useRouter();
   const [otp, setOtp] = useState<string[]>(['', '', '', '']);
-  
+
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
   useEffect(() => {
+    // auto-focus first input when screen mounts
+    setTimeout(() => inputRefs.current[0]?.focus(), 200);
     console.log('RegisterOtpScreen loaded with mobile:', mobile);
   }, [mobile]);
 
   const handleOtpChange = (value: string, index: number): void => {
+    const digit = value.replace(/[^0-9]/g, '').slice(-1);
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = digit;
     setOtp(newOtp);
 
-    if (value && index < 3) {
+    if (digit && index < 3) {
       inputRefs.current[index + 1]?.focus();
     }
   };
@@ -41,76 +57,96 @@ export default function RegisterOtpScreen(): JSX.Element {
     }
 
     try {
-      // console.log('Verifying OTP:', otpString, 'for mobile:', mobile);
       const res = await verifyOtp(mobile, otpString);
-      // console.log('Verify response:', res);
-      
+
       if (res.status === 'success') {
         Alert.alert('Success', 'OTP Verified Successfully!', [
           {
             text: 'OK',
             onPress: (): void => {
               router.push(`/(auth)/setPassword?mobile=${mobile}`);
-            }
-          }
+            },
+          },
         ]);
       } else {
         Alert.alert('Error', res.message || 'Invalid OTP');
       }
     } catch (err: any) {
       console.error('Verify OTP error:', err);
-      Alert.alert('Error', err.message || 'Something went wrong');
+      Alert.alert('Error', err?.message || 'Something went wrong');
     }
   };
 
   const handleResendOTP = (): void => {
+    // Keep behaviour same as before; just show alert and reset inputs
     Alert.alert('Resend OTP', 'OTP has been resent to your mobile number');
     setOtp(['', '', '', '']);
-    inputRefs.current[0]?.focus();
+    setTimeout(() => inputRefs.current[0]?.focus(), 200);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.logoContainer}>
-       <Image style={{width:250,height:250}}  source={require("../../assets/via-farm-img/icons/logo.png")} />
-      </View>
-      
-      <View style={styles.formContainer}>
-        <View style={styles.formCard}>
-          <View style={styles.topBorder} />
-          <View style={styles.cardContent}>
-            <Text style={styles.title}>OTP Verification</Text>
-            
-            <View style={styles.otpContainer}>
-              {otp.map((digit, index) => (
-                <TextInput
-                  key={index}
-                  ref={(ref) => (inputRefs.current[index] = ref)}
-                  style={styles.otpInput}
-                  value={digit}
-                  onChangeText={(value) => handleOtpChange(value, index)}
-                  onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
-                  keyboardType="numeric"
-                  maxLength={1}
-                  textAlign="center"
-                  autoFocus={index === 0}
-                />
-              ))}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            bounces={false}
+          >
+            {/* LOGO */}
+            <Image
+              style={styles.logoImage}
+              source={require('../../assets/via-farm-img/icons/logo.png')}
+            />
+
+            {/* Card */}
+            <View style={styles.card}>
+              <View style={styles.topBorder} />
+              <View style={styles.cardContent}>
+                <Text style={styles.title}>OTP Verification</Text>
+
+                <Text style={styles.subtitle}>
+                  Enter the 4-digit code sent to <Text style={styles.bold}>{mobile}</Text>
+                </Text>
+
+                <View style={styles.otpContainer}>
+                  {otp.map((digit, index) => (
+                    <TextInput
+                      key={index}
+                      ref={(ref) => (inputRefs.current[index] = ref)}
+                      style={styles.otpInput}
+                      value={digit}
+                      onChangeText={(value) => handleOtpChange(value, index)}
+                      onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
+                      keyboardType="number-pad"
+                      maxLength={1}
+                      textAlign="center"
+                      autoFocus={index === 0}
+                      returnKeyType="done"
+                    />
+                  ))}
+                </View>
+
+                <View style={styles.resendContainer}>
+                  <Text style={styles.resendText}>Did not receive OTP? </Text>
+                  <TouchableOpacity onPress={handleResendOTP}>
+                    <Text style={styles.resendLink}>Resend OTP</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity style={styles.verifyButton} onPress={handleVerify}>
+                  <Text style={styles.verifyButtonText}>✓ Verify & Proceed</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            
-            <View style={styles.resendContainer}>
-              <Text style={styles.resendText}>Did not receive OTP? </Text>
-              <TouchableOpacity onPress={handleResendOTP}>
-                <Text style={styles.resendLink}>Resend OTP</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <TouchableOpacity style={styles.verifyButton} onPress={handleVerify}>
-              <Text style={styles.verifyButtonText}>✓ Verify & Proceed</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -120,78 +156,93 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  logoContainer: {
+  keyboardView: {
     flex: 1,
-    justifyContent: 'center',
+  },
+  scrollContent: {
+    flexGrow: 1,
     alignItems: 'center',
-    paddingTop: moderateScale(60),
+    paddingTop: Platform.OS === 'ios' ? 40 : 30,
+    paddingBottom: moderateScale(20),
   },
-  logoText: {
-    fontSize: normalizeFont(10),
-    fontWeight: 'bold',
-    color: '#000',
-    letterSpacing: 2,
+  logoImage: {
+    width: scale(200),
+    height: scale(200),
+    resizeMode: 'contain',
+    marginBottom: moderateScale(-60),
   },
-  formContainer: {
-    flex: 2,
-    justifyContent: 'flex-start',
-    paddingTop: moderateScale(20),
-  },
-  formCard: {
+  card: {
+    height: '80%',
+    width: '100%',
     backgroundColor: '#fff',
     borderRadius: moderateScale(20),
-    width:'100%',
-    borderWidth:2,
-    borderColor:'#FFD700',
-    height: '130%',
+    padding: moderateScale(0),
+    marginTop: moderateScale(60),
+    marginBottom: moderateScale(20),
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderTopWidth: 3,
+    borderColor: 'rgba(255, 202, 40, 1)',
+    elevation: 6,
     shadowColor: '#000',
-    shadowOffset: {
-      width: scale(5),
-      height: 2,
-    },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 5,
+    shadowOffset: { width: 0, height: -4 },
+    alignItems: 'center',
     overflow: 'hidden',
   },
   topBorder: {
     width: '100%',
     height: scale(3),
-    backgroundColor: '#FFD700',
+    backgroundColor: 'rgba(255, 202, 40, 1)',
   },
   cardContent: {
-    padding: scale(30),
+    padding: moderateScale(28),
+    width: '100%',
+    alignItems: 'center',
   },
   title: {
     fontSize: normalizeFont(16),
     fontWeight: '600',
     color: '#333',
     textAlign: 'center',
-    marginBottom: moderateScale(40),
+    marginBottom: moderateScale(12),
+  },
+  subtitle: {
+    fontSize: normalizeFont(12),
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: moderateScale(14),
+    lineHeight: scale(20),
+  },
+  bold: {
+    fontWeight: '600',
+    color: '#333',
   },
   otpContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: moderateScale(30),
-    paddingHorizontal: moderateScale(10),
+    paddingHorizontal: moderateScale(20),
+    width: '100%',
   },
   otpInput: {
     width: scale(50),
     height: scale(50),
-    borderWidth: 2,
-    borderColor: '#e0e0e0',
+    borderWidth: 1,
+    borderColor: '#ddd',
     borderRadius: moderateScale(12),
     fontSize: normalizeFont(16),
     fontWeight: 'bold',
     color: '#333',
-    backgroundColor: '#fafafa',
+    backgroundColor: '#fdfdfd',
     textAlign: 'center',
   },
   resendContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: moderateScale(30),
+    marginBottom: moderateScale(20),
   },
   resendText: {
     fontSize: normalizeFont(12),
@@ -203,19 +254,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   verifyButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 8,
-    paddingVertical: moderateScale(15),
-    paddingHorizontal: moderateScale(20),
+    backgroundColor: 'rgba(76, 175, 80, 1)',
+    padding: moderateScale(14),
+    borderRadius: moderateScale(12),
+    width: '70%',
     alignItems: 'center',
-    shadowColor: '#4CAF50',
-    shadowOffset: {
-      width: 0,
-      height: scale(2),
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
   },
   verifyButtonText: {
     color: '#fff',

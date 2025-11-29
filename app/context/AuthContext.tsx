@@ -517,10 +517,9 @@ function AuthProviderComponent({ children }) {
   };
 
   // NEW PASSWORD
-  const newPassword = async (mobileNumber, password, confirmPassword) => {
+  const newPassword = async ( password, confirmPassword) => {
     try {
-      const res = await axios.post(`${API_BASE}/set-Password`, {
-        mobileNumber,
+      const res = await axios.post(`${API_BASE}/password`, {
         password,
         confirmPassword,
       });

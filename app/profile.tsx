@@ -483,17 +483,17 @@ const ProfileScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+                <View style={styles.profile}>
+          <TouchableOpacity onPress={goBack}>
+            <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
+          </TouchableOpacity>
+          <Text style={{fontWeight:700,fontSize:normalizeFont(14)}}>My Profile</Text>
+          <Text></Text>
+        </View>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.profile}>
-          <TouchableOpacity onPress={goBack}>
-            <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
-          </TouchableOpacity>
-          <Text>My Profile</Text>
-          <Text></Text>
-        </View>
         <View style={styles.profileSection}>
           <View style={styles.profileInfo}>
             <View style={styles.avatarContainer}>
@@ -527,7 +527,7 @@ const ProfileScreen = () => {
         <View style={styles.menuSection}>
           <ProfileMenuItem
             icon="location-outline"
-            title="My Location"
+            title="My Address"
             subtitle={savedLocation ? "Edit your saved location" : "Add your location"}
             onPress={handleLocationPress}
           />
@@ -1196,7 +1196,7 @@ const styles = StyleSheet.create({
    alignItems:'center',
    justifyContent:'space-between',
    paddingHorizontal:moderateScale(22),
-   paddingVertical:moderateScale(10)
+   paddingTop:moderateScale(10)
   },
   fieldRowContainer: {
     flexDirection: "row",

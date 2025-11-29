@@ -1,4 +1,3 @@
-import SuggestionCard from '@/components/myCard/SuggestionCard'
 import { Ionicons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import axios from 'axios'
@@ -20,9 +19,14 @@ import {
   View
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import SuggestionCard from '../components/myCard/RelatedProduct'
 import { moderateScale, normalizeFont, scale } from './Responsive'
 
 const API_BASE = 'https://viafarm-1.onrender.com';
+
+// If true, when the cart loads and server reports an already-applied coupon,
+// we will automatically remove it so that coupons are only active when user explicitly applies.
+const AUTO_CLEAR_SERVER_COUPON = true;
 
 const ReviewOrder = () => {
   const router = useRouter();
@@ -32,7 +36,6 @@ const ReviewOrder = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // IMPORTANT: deliveryCharge will come from serverPriceDetails if available
   const [serverPriceDetails, setServerPriceDetails] = useState(null);
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -43,17 +46,14 @@ const ReviewOrder = () => {
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
 
-
-
   const [wantDonation, setWantDonation] = useState(false);
   const [amount, setAmount] = useState("");
 
   // Coupon states
   const [couponCode, setCouponCode] = useState('');
   const [applyingCoupon, setApplyingCoupon] = useState(false);
-  const [appliedCoupon, setAppliedCoupon] = useState(null); // { code: '', discount: 0 }
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
 
-  // Fetch addresses from API
   useEffect(() => {
     fetchBuyerAddresses();
   }, []);
@@ -125,11 +125,8 @@ const ReviewOrder = () => {
         }));
 
         setProducts(mappedProducts);
-
-        // set server price details if provided (authoritative)
         const priceDetails = response.data.data?.priceDetails ?? null;
         if (priceDetails) {
-          // ensure numbers
           setServerPriceDetails({
             totalMRP: Number(priceDetails.totalMRP ?? 0),
             couponDiscount: Number(priceDetails.couponDiscount ?? 0),
@@ -140,11 +137,69 @@ const ReviewOrder = () => {
           setServerPriceDetails(null);
         }
 
-        // If backend returns currently applied coupon info, capture it
+        // --- IMPORTANT CHANGE ---
+        // If server reports an already applied coupon, we will clear it automatically
+        // so coupons are applied only when the user explicitly applies them.
         const applied = response.data.data?.appliedCoupon ?? response.data.data?.coupon ?? null;
         if (applied) {
-          setAppliedCoupon({ code: applied.code || applied.couponCode || applied, discount: applied.discount || 0 });
-          setCouponCode(applied.code || applied.couponCode || applied);
+          // Do NOT set appliedCoupon locally from server; instead clear it server-side (if flag enabled)
+          console.log('Server returned applied coupon on cart load:', applied);
+          if (AUTO_CLEAR_SERVER_COUPON) {
+            try {
+              // attempt to remove server-side coupon silently
+              await axios.delete(`${API_BASE}/api/buyer/cart/remove-coupon`, {
+                headers: { Authorization: `Bearer ${token}` },
+                timeout: 10000,
+              });
+              // refresh cart after clearing coupon
+              const refreshed = await axios.get(`${API_BASE}/api/buyer/cart`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (refreshed.data?.success) {
+                const newItems = refreshed.data.data?.items || [];
+                const newMapped = newItems.map((item) => ({
+                  id: item._id || item.id,
+                  productId: item.productId,
+                  name: item.name || 'Product',
+                  description: item.subtitle || item.variety || 'Fresh Product',
+                  price: Number(item.mrp || item.price || 0),
+                  quantity: item.quantity || 1,
+                  image: { uri: item.imageUrl },
+                  deliveryDate: item.deliveryText || 'Sep 25',
+                }));
+                setProducts(newMapped);
+                const newPriceDetails = refreshed.data.data?.priceDetails ?? null;
+                if (newPriceDetails) {
+                  setServerPriceDetails({
+                    totalMRP: Number(newPriceDetails.totalMRP ?? 0),
+                    couponDiscount: Number(newPriceDetails.couponDiscount ?? 0),
+                    deliveryCharge: Number(newPriceDetails.deliveryCharge ?? 0),
+                    totalAmount: Number(newPriceDetails.totalAmount ?? 0),
+                  });
+                } else {
+                  setServerPriceDetails(null);
+                }
+              }
+              // ensure local applied coupon state is cleared
+              setAppliedCoupon(null);
+              setCouponCode('');
+              console.log('Server-side coupon cleared automatically on load.');
+            } catch (clearErr) {
+              // don't disturb user — log and continue
+              console.warn('Failed to auto-clear server coupon on load:', clearErr?.response?.data || clearErr.message || clearErr);
+              // still clear local state so UI doesn't show an applied coupon from server
+              setAppliedCoupon(null);
+              setCouponCode('');
+            }
+          } else {
+            // If not auto-clearing, simply don't set appliedCoupon locally (so UI won't display it)
+            setAppliedCoupon(null);
+            setCouponCode('');
+          }
+        } else {
+          // no server-side coupon -> clear local
+          setAppliedCoupon(null);
+          setCouponCode('');
         }
       } else {
         Alert.alert('Error', response.data.message || 'Failed to load cart');
@@ -157,12 +212,15 @@ const ReviewOrder = () => {
     }
   };
 
-  // Totals calculation helper
+
+
+
+
+  
+
   const computeTotals = () => {
-    // subtotal computed from client-side product list (source of truth for items)
     const subtotal = products.reduce((sum, p) => sum + (Number(p.price) || 0) * (p.quantity || 0), 0);
 
-    // If serverPriceDetails exists and server provides totalAmount, prefer server numbers
     if (serverPriceDetails && serverPriceDetails.totalAmount > 0) {
       return {
         subtotal: Number((serverPriceDetails.totalMRP ?? subtotal).toFixed(2)),
@@ -173,9 +231,8 @@ const ReviewOrder = () => {
       };
     }
 
-    // Fallback: client-side calculation (no server details)
     const couponDiscount = 0;
-    const deliveryChargeFallback = 0; // If server doesn't provide delivery, default to 0 (avoid surprise)
+    const deliveryChargeFallback = 0;
     const total = subtotal - couponDiscount + deliveryChargeFallback;
 
     return {
@@ -187,7 +244,7 @@ const ReviewOrder = () => {
     };
   };
 
-  // Apply coupon API integration
+
   const applyCoupon = async () => {
     if (!couponCode || couponCode.trim().length === 0) {
       Alert.alert('Invalid', 'Please enter a coupon code');
@@ -195,7 +252,6 @@ const ReviewOrder = () => {
     }
 
     setApplyingCoupon(true);
-    // normalize coupon
     const code = couponCode.trim().toUpperCase();
 
     try {
@@ -206,15 +262,12 @@ const ReviewOrder = () => {
         return;
       }
 
-      // List of endpoints + payload shapes to try (ordered by preference)
       const attempts = [
-        // cart-level endpoints (preferred — should not place order)
         { url: `${API_BASE}/api/buyer/cart/apply-coupon`, body: { couponCode: code } },
         { url: `${API_BASE}/api/buyer/cart/apply-coupon`, body: { coupon: code } },
         { url: `${API_BASE}/api/buyer/cart/apply-coupon`, body: { code } },
         { url: `${API_BASE}/api/buyer/cart/applyCoupon`, body: { couponCode: code } },
         { url: `${API_BASE}/api/buyer/cart/apply`, body: { couponCode: code } },
-        // sometimes backend expects cart update endpoint
         { url: `${API_BASE}/api/buyer/cart/update-coupon`, body: { couponCode: code } },
       ];
 
@@ -233,9 +286,7 @@ const ReviewOrder = () => {
 
           console.log('Response for', a.url, res?.status, res?.data);
 
-          // if server accepted and returned success true
           if (res?.data?.success) {
-            // parse price details if present
             const pd = res.data.data?.priceDetails ?? res.data.data ?? res.data;
             if (pd) {
               setServerPriceDetails({
@@ -255,57 +306,44 @@ const ReviewOrder = () => {
             break;
           }
 
-          // server responded success:false -> capture message and continue
           lastError = { status: res.status, data: res.data };
-          // If message is explicit coupon invalid, stop trying other cart endpoints
           const msg = String(res.data?.message || '').toLowerCase();
           if (/valid coupon code|invalid coupon|coupon code is required|invalid code/.test(msg)) {
-            // show server message to user and stop trying further cart endpoints
             Alert.alert('Coupon Error', res.data.message || 'Coupon rejected by server');
             setApplyingCoupon(false);
             return;
           }
-
-          // otherwise try next attempt
         } catch (err) {
-          // network / server error — keep trying other endpoints
           lastError = { err };
           console.log(`coupon attempt error for ${a.url}`, err?.response?.status, err?.response?.data || err.message);
-          // If server returned explicit "A valid coupon code is required." we want to show it and stop,
-          // because other payload shapes are unlikely to change that.
           const serverMsg = err?.response?.data?.message;
           if (serverMsg && /valid coupon code|required|invalid coupon/i.test(serverMsg)) {
             Alert.alert('Coupon Error', serverMsg);
             setApplyingCoupon(false);
             return;
           }
-          // continue trying
         }
-      } // end for attempts
+      }
 
       if (succeeded) {
         setApplyingCoupon(false);
         return;
       }
 
-      // If none of the cart endpoints worked, we try orders/place in validate-only mode (only if address selected).
-      // Many backends require deliveryType/address on order-level validation.
       if (!selectedAddress?.id) {
-        // Show last server message if any
         const serverMsg = lastError?.data?.message || lastError?.err?.response?.data?.message || 'Coupon not applied. Select an address to validate coupon.';
         Alert.alert('Coupon Error', serverMsg);
         setApplyingCoupon(false);
         return;
       }
 
-      // Build a safe payload for validation. Do NOT reference undefined `comments`.
       const validatePayload = {
         deliveryType: 'Delivery',
         addressId: selectedAddress.id,
         paymentMethod: 'UPI',
-        comments: '', // safe default
+        comments: '',
         couponCode: code,
-        validateOnly: true, // dry-run hint (backend may ignore)
+        validateOnly: true,
       };
 
       try {
@@ -318,7 +356,6 @@ const ReviewOrder = () => {
         console.log('orders/place response', resOrder?.status, resOrder?.data);
 
         if (resOrder?.data?.success) {
-          // If server returned orderIds -> they placed order; handle gracefully
           if (Array.isArray(resOrder.data.orderIds) && resOrder.data.orderIds.length > 0) {
             Alert.alert('Note', 'Server created an order while validating coupon. Redirecting to payment.');
             const payments = resOrder.data.payments ?? resOrder.data.data?.payments ?? [];
@@ -329,7 +366,6 @@ const ReviewOrder = () => {
             return;
           }
 
-          // Parse price details (validateOnly success)
           const pd = resOrder.data.data?.priceDetails ?? resOrder.data.data ?? resOrder.data;
           if (pd) {
             setServerPriceDetails({
@@ -347,7 +383,6 @@ const ReviewOrder = () => {
           setApplyingCoupon(false);
           return;
         } else {
-          // server returned success:false
           const message = resOrder?.data?.message || 'Coupon could not be validated';
           Alert.alert('Coupon Error', message);
           setApplyingCoupon(false);
@@ -370,9 +405,6 @@ const ReviewOrder = () => {
     }
   };
 
-
-
-
   const removeCoupon = async () => {
     try {
       setApplyingCoupon(true);
@@ -390,13 +422,13 @@ const ReviewOrder = () => {
           setCouponCode('');
           await fetchCartProducts();
           Alert.alert('Removed', 'Coupon removed');
+          setApplyingCoupon(false);
           return;
         }
       } catch (e) {
-        // ignore — fallback to re-fetch
+        console.warn('remove-coupon delete failed:', e?.response?.data || e.message || e);
       }
 
-      // fallback: refetch cart (backend should not include coupon then)
       setAppliedCoupon(null);
       setCouponCode('');
       await fetchCartProducts();
@@ -419,7 +451,6 @@ const ReviewOrder = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!response.data.success) throw new Error('Failed to update quantity');
-      // refresh local products and server price details to keep totals accurate
       fetchCartProducts();
     } catch (error) {
       console.error('Error updating quantity:', error);
@@ -520,8 +551,6 @@ const ReviewOrder = () => {
   const ProductCard = ({ product }) => (
     <View style={styles.productCard}>
       <View style={styles.mainContainer}>
-
-
         <TouchableOpacity
           onPress={() => {
             const pid = product?._id || product?.id;
@@ -532,9 +561,6 @@ const ReviewOrder = () => {
             navigation.navigate("ViewProduct", { productId: pid, product });
           }}
         >
-
-
-
           <Image source={product.image} style={styles.productImage} resizeMode='stretch' />
         </TouchableOpacity>
         <View style={styles.productDetails}>
@@ -617,8 +643,7 @@ const ReviewOrder = () => {
           <ProductCard key={product.id} product={product} />
         ))}
 
-
-        {/* Donatio */}
+        {/* Donation */}
         <View
           style={{
             marginVertical: moderateScale(16),
@@ -692,7 +717,6 @@ const ReviewOrder = () => {
           )}
         </View>
 
-
         {/* Coupon / promo area (integrated) */}
         <View style={styles.couponSection}>
           <Image source={require('../assets/via-farm-img/icons/promo-code.png')} />
@@ -751,7 +775,6 @@ const ReviewOrder = () => {
       {/* Bottom Card */}
       <View style={styles.bottomPaymentCard}>
         <View style={styles.paymentLeft}>
-          {/* <Text style={styles.priceLabelBottom}>Price</Text> */}
           <Text style={styles.totalPrice}>₹{totalsForRender.totalAmount.toFixed(2)}</Text>
         </View>
         <TouchableOpacity style={styles.proceedButton} onPress={handleProceedToPayment}>
@@ -770,22 +793,6 @@ const ReviewOrder = () => {
               <Text style={styles.modalTitle}>Select Delivery Location</Text>
               <TouchableOpacity onPress={closeModal} style={styles.closeButton}><Ionicons name="close" size={24} color="#666" /></TouchableOpacity>
             </View>
-
-            {/* <View style={styles.searchSection}>
-              <View style={styles.pincodeInputContainer}>
-                <TextInput style={styles.pincodeInput} placeholder="Enter Pincode" value={pincode} onChangeText={setPincode} />
-                <TouchableOpacity style={styles.checkButton}><Text style={styles.checkButtonText}>Check Pincode</Text></TouchableOpacity>
-              </View>
-              <TouchableOpacity style={styles.locationButton}>
-                <Ionicons name="location" size={16} color="#3b82f6" />
-                <Text style={styles.locationButtonText}>Use my current location</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.searchLocationButton}>
-                <Ionicons name="search" size={16} color="blue" />
-                <Text style={styles.searchLocationButtonText}>Search Location</Text>
-              </TouchableOpacity>
-              <Text style={styles.orText}>OR</Text>
-            </View> */}
 
             <ScrollView style={styles.addressList} showsVerticalScrollIndicator={false}>
               {addresses.map((address) => (
@@ -808,7 +815,6 @@ const ReviewOrder = () => {
                       onPress={() => {
                         closeModal(); // first close the modal
                         setTimeout(() => {
-                          // Pass all fields individually
                           navigation.navigate('aditAddress', {
                             address: {
                               id: address.id,
@@ -863,7 +869,6 @@ const ReviewOrder = () => {
     </SafeAreaView>
   );
 };
-
 
 
 
@@ -1360,14 +1365,13 @@ const styles = StyleSheet.create({
     padding: moderateScale(15),
   },
   NewAddress: {
-    borderWidth: 2,
-    borderColor: 'rgba(76, 175, 80, 1)',
+    backgroundColor:'rgba(76, 175, 80, 1)',
     flexDirection: 'row',
     padding: moderateScale(10),
     borderRadius: moderateScale(10),
   },
   addAddressButtonText: {
-    color: 'rgba(76, 175, 80, 1)',
+    color: '#fff',
     fontWeight: '600',
     fontSize: normalizeFont(12),
     marginLeft: moderateScale(8),

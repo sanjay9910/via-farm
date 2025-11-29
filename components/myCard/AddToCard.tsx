@@ -19,7 +19,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import SuggestionCard from './SuggestionCard';
+import SuggestionCard from '../myCard/RelatedProduct';
 
 const { width, height } = Dimensions.get('window');
 
@@ -48,7 +48,7 @@ const MyCart = () => {
   const [endAMPM, setEndAMPM] = useState('AM');
   const [paymentMethod, setPaymentMethod] = useState('cash');
 
-  // priceDetails will hold last-known price set (either server apply response or computed)
+
   const [priceDetails, setPriceDetails] = useState({
     totalMRP: 0,
     couponDiscount: 0,
@@ -64,7 +64,6 @@ const MyCart = () => {
   const [pickupModalVisible, setPickupModalVisible] = useState(false);
   const pickupSlideAnim = useRef(new Animated.Value(300)).current;
 
-  // Success modal for cash flow
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Coupon state: appliedCoupon = null unless user applied explicitly
@@ -91,9 +90,6 @@ const MyCart = () => {
     }
   };
 
-  // --- Fetch Cart ---
-  // IMPORTANT: This will NOT auto-apply any coupon returned by server.
-  // When there is no appliedCoupon (user hasn't applied), we compute totals locally and set couponDiscount = 0.
   const fetchCartItems = useCallback(async (token) => {
     if (!token) {
       setLoading(false);
@@ -137,17 +133,10 @@ const MyCart = () => {
         }));
         setCartItems(transformed);
 
-        // Calculate subtotal locally
         const subtotalLocal = transformed.reduce((s, i) => s + (Number(i.price) || 0) * (i.quantity || 0), 0);
-
-        // Get server-provided deliveryCharge if present otherwise 0
         const serverSummary = json.data.priceDetails ?? json.data.summary ?? {};
         const serverDeliveryCharge = Number(serverSummary.deliveryCharge ?? 0);
-
-        // If user has already applied a coupon locally (appliedCoupon != null),
-        // use server summary (it should reflect applied coupon). Otherwise DO NOT use server discount.
         if (appliedCoupon) {
-          // server priceDetails should reflect applied coupon
           setPriceDetails({
             totalMRP: Number(serverSummary.totalMRP ?? subtotalLocal),
             couponDiscount: Number(serverSummary.discount ?? serverSummary.couponDiscount ?? 0),
@@ -155,7 +144,6 @@ const MyCart = () => {
             totalAmount: Number(serverSummary.totalAmount ?? Math.max(0, subtotalLocal - (serverSummary.discount ?? serverSummary.couponDiscount ?? 0) + serverDeliveryCharge)),
           });
         } else {
-          // No coupon applied locally: enforce zero discount and compute totalAmount = subtotal + deliveryCharge
           setPriceDetails({
             totalMRP: subtotalLocal,
             couponDiscount: 0,
@@ -163,10 +151,8 @@ const MyCart = () => {
             totalAmount: Number((subtotalLocal + serverDeliveryCharge).toFixed(2)),
           });
 
-          // Important: DO NOT prefill couponCode or setAppliedCoupon from server response.
           if (json.data.couponCode) {
             console.log('Server returned couponCode but not auto-applying:', json.data.couponCode);
-            // do not set couponCode or appliedCoupon here
           }
         }
       } else {
@@ -413,16 +399,10 @@ const MyCart = () => {
   };
 
   const subtotal = cartItems.reduce((s, i) => s + (Number(i.price) || 0) * (i.quantity || 0), 0);
-
-  // Coupon discount calculation: prefer server discount only when coupon is currently applied locally
   const calculateCouponDiscount = () => {
-    // If user has applied coupon locally and server provided couponDiscount in priceDetails, use it
     const serverCouponDiscount = Number(priceDetails.couponDiscount ?? priceDetails.discount ?? 0);
     if (appliedCoupon && serverCouponDiscount > 0) return serverCouponDiscount;
-
     if (!appliedCoupon) return 0;
-
-    // If appliedCoupon is local (e.g., local percentage fallback), compute accordingly
     if (appliedCoupon.type === 'percentage') {
       return (subtotal * appliedCoupon.discount) / 100;
     } else {
@@ -433,7 +413,6 @@ const MyCart = () => {
   const couponDiscount = calculateCouponDiscount();
   const deliveryCharge = Number(priceDetails.deliveryCharge || 0);
   const finalAmount = Number((subtotal - couponDiscount + deliveryCharge).toFixed(2));
-
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onPanResponderMove: (evt, gestureState) => {
@@ -492,7 +471,6 @@ const MyCart = () => {
   };
 
   const handleOptionSelect = (option) => {
-    // stays same: open pickup modal for pickup option
     if (option === 'pickup') {
       openPickupModal();
     } else {
@@ -524,7 +502,7 @@ const MyCart = () => {
     });
   };
 
-  // NEW: place order function used in Pickup modal's Place Order
+
   const handlePlaceOrderPickup = async () => {
     // Validation
     if (!slot.date || !slot.startTime || !slot.endTime) {
@@ -577,7 +555,6 @@ const MyCart = () => {
       const json = await res.json();
 
       if (res.ok && json.success) {
-        // Close pickup modal smoothly first
         closePickupModal();
         setTimeout(() => {
           setShowSuccessModal(true);
@@ -771,7 +748,7 @@ const MyCart = () => {
             </View>
           )}
 
-          {cartItems.length > 0 && <SuggestionCard />}
+         {Array.isArray(cartItems) && cartItems.length > 0 && <SuggestionCard />}
         </ScrollView>
       )}
 
@@ -1018,12 +995,12 @@ const MyCart = () => {
                     }}
                   />
                   <View style={styles.vendorDetails}>
-                    <Text style={styles.vendorName}>
+                    {/* <Text style={styles.vendorName}>
                       {vendorDetails?.name || "Vendor Name"}
-                    </Text>
-                    <Text style={styles.vendorLocation}>
+                    </Text> */}
+                    {/* <Text style={styles.vendorLocation}>
                       {vendorDetails?.pickupLocationText || "Vendor Location"}
-                    </Text>
+                    </Text> */}
                     <Text style={styles.vendorPhone}>
                       Phone: {vendorDetails?.phoneNo || "N/A"}
                     </Text>
@@ -1048,7 +1025,7 @@ const MyCart = () => {
       <Modal visible={showSuccessModal} transparent animationType="fade">
         <View style={styles.successModalOverlay}>
           <View style={styles.successModalBox}>
-            <Image source={require('../../assets/via-farm-img/icons/confirm.png')} style={{ width: scale(70), height: scale(64), marginBottom: moderateScale(12) }} />
+            <Image source={require('../../assets/via-farm-img/icons/confirm.png')} style={{ width: scale(80), height: scale(70), marginBottom: moderateScale(12) }} />
             <Text style={{ fontSize: normalizeFont(12), fontWeight: '600', marginBottom: moderateScale(6) }}>Order Placed</Text>
             <Text style={{ color: '#555' }}>Your order was placed successfully!</Text>
           </View>
@@ -1121,7 +1098,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal:moderateScale(40),
   },
   emptyCartImage: {
     width: scale(150),
@@ -1267,7 +1244,7 @@ const styles = StyleSheet.create({
   productImage: {
     width: moderateScale(180),
     height: moderateScale(148),
-    borderRadius: 8,
+    borderRadius:moderateScale(8),
     backgroundColor: '#f8f8f8',
   },
   productDetails: {
@@ -1447,8 +1424,8 @@ const styles = StyleSheet.create({
   },
   deliveryModalContainer: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius:moderateScale(20),
+    borderTopRightRadius:moderateScale(20),
     maxHeight: '70%',
     borderWidth: 2,
     borderColor: 'rgba(255, 202, 40, 1)',
@@ -1459,7 +1436,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ddd',
     borderRadius: 2,
     alignSelf: 'center',
-    marginVertical: 8,
+    marginVertical:moderateScale(8),
     borderWidth: 2,
   },
   deliveryModalHeader: {
@@ -1683,7 +1660,7 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(13),
     fontWeight: '600',
     color: '#333',
-    marginBottom: 2,
+    marginBottom:moderateScale(2),
   },
   vendorLocation: {
     fontSize: normalizeFont(12),
@@ -1704,7 +1681,7 @@ const styles = StyleSheet.create({
   proceedButtonStyle: {
     padding: moderateScale(10),
     backgroundColor: 'rgba(76, 175, 80, 1)',
-    borderRadius: 10,
+    borderRadius:moderateScale(10),
     alignItems: 'center',
     width: '60%',
   },
@@ -1721,12 +1698,12 @@ const styles = StyleSheet.create({
   successModalBox: {
     backgroundColor: '#fff',
     width: '75%',
-    borderRadius: 16,
+    borderRadius:moderateScale(16),
     paddingVertical: moderateScale(30),
     paddingHorizontal: moderateScale(20),
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: scale(4) },
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 10,

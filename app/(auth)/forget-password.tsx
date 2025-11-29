@@ -4,13 +4,20 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import { moderateScale, normalizeFont } from '../Responsive';
+import { moderateScale, normalizeFont, scale } from '../Responsive';
 
 const FORGET_API_BASE = 'https://viafarm-1.onrender.com';
 
@@ -20,14 +27,13 @@ const ForgetPassword = () => {
   const navigation = useNavigation();
 
   const handleGetOTP = async () => {
-    // Validate mobile number
     if (!mobileNumber || mobileNumber.trim().length === 0) {
       Alert.alert('Error', 'Please enter mobile number');
       return;
     }
 
     if (mobileNumber.length < 10) {
-      Alert.alert('Error', 'Please enter valid mobile number');
+      Alert.alert('Error', 'Please enter a valid 10-digit mobile number');
       return;
     }
 
@@ -41,29 +47,23 @@ const ForgetPassword = () => {
         }
       );
 
-      // console.log('Forget Password Response:', response.data);
-
       if (response.data.status === 'success') {
-        // Check if OTP is null or undefined
-        if (!response.data.otp || response.data.otp === null) {
+        if (!response.data.otp) {
           Alert.alert('Error', 'This number is not registered');
           return;
         }
 
-        // Show OTP in alert
         Alert.alert(
           'OTP Sent Successfully',
           `Your OTP is: ${response.data.otp}`,
           [
             {
               text: 'OK',
-              onPress: () => {
-                // Navigate to verify OTP page with mobile number
+              onPress: () =>
                 navigation.navigate('forgetOtpVerify', {
                   mobileNumber: mobileNumber.trim(),
                   otp: response.data.otp,
-                });
-              },
+                }),
             },
           ]
         );
@@ -71,22 +71,13 @@ const ForgetPassword = () => {
         Alert.alert('Error', response.data.message || 'Something went wrong');
       }
     } catch (error) {
-      console.error('Forget Password Error:', error);
-
       if (error.response) {
-        // Server responded with error
-        const errorMessage = error.response.data?.message || 'Account does not exist';
-        
-        if (error.response.status === 404 || errorMessage.toLowerCase().includes('not found')) {
-          Alert.alert('Error', 'This number is not registered');
-        } else {
-          Alert.alert('Error', errorMessage);
-        }
+        const msg =
+          error.response.data?.message || 'This number is not registered';
+        Alert.alert('Error', msg);
       } else if (error.request) {
-        // Request made but no response
         Alert.alert('Error', 'Network error. Please check your connection');
       } else {
-        // Something else happened
         Alert.alert('Error', 'Something went wrong. Please try again');
       }
     } finally {
@@ -95,103 +86,148 @@ const ForgetPassword = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Forget Password</Text>
-        <Text style={styles.subtitle}>
-          Enter your mobile number to receive OTP
-        </Text>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* LOGO */}
+            <Image
+              style={styles.logoImage}
+              source={require('../../assets/via-farm-img/icons/logo.png')}
+            />
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Mobile Number</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your mobile number"
-            keyboardType="phone-pad"
-            value={mobileNumber}
-            onChangeText={setMobileNumber}
-            maxLength={10}
-            editable={!loading}
-          />
-        </View>
+            {/* CARD */}
+            <View style={styles.card}>
+              <Text style={styles.heading}>Forget Password</Text>
+              <Text style={styles.subtitle}>
+                Enter your mobile number to receive OTP
+              </Text>
 
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleGetOTP}
-          disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Get OTP</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Mobile Number</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your mobile number"
+                  keyboardType="phone-pad"
+                  value={mobileNumber}
+                  onChangeText={setMobileNumber}
+                  maxLength={10}
+                  editable={!loading}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={handleGetOTP}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Get OTP</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
+/* SAME DESIGN STYLE AS ALL OTHER AUTH SCREENS */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    padding:moderateScale(20),
+    backgroundColor: '#fff',
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 40 : 30,
+    paddingBottom: moderateScale(20),
+  },
+  logoImage: {
+    width: scale(200),
+    height: scale(200),
+    resizeMode: 'contain',
+    marginBottom: moderateScale(-60),
   },
   card: {
+    height: '80%',
+    width: '100%',
     backgroundColor: '#fff',
-    borderRadius:moderateScale(12),
-    padding:moderateScale(24),
+    borderRadius: moderateScale(20),
+    padding: moderateScale(28),
+    marginTop: moderateScale(60),
+    marginBottom: moderateScale(20),
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderTopWidth: 3,
+    borderColor: 'rgba(255, 202, 40, 1)',
+    elevation: 6,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius:moderateScale(8),
-    elevation: 5,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: -4 },
+    alignItems: 'center',
   },
-  title: {
-    fontSize:normalizeFont(15),
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom:moderateScale(8),
-    textAlign: 'center',
+  heading: {
+    fontSize: normalizeFont(15),
+    fontWeight: '600',
+    marginBottom: moderateScale(8),
   },
   subtitle: {
     fontSize: normalizeFont(12),
     color: '#666',
-    marginBottom:moderateScale(24),
     textAlign: 'center',
+    marginBottom: moderateScale(18),
+    lineHeight: scale(20),
   },
   inputContainer: {
-    marginBottom:moderateScale(20),
+    width: '100%',
+    marginBottom: moderateScale(18),
   },
   label: {
-    fontSize:normalizeFont(12),
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     color: '#333',
-    marginBottom:moderateScale(8),
+    marginBottom: moderateScale(8),
+    marginLeft: 2,
   },
   input: {
+    width: '100%',
+    height: scale(50),
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius:moderateScale(8),
-    paddingHorizontal:moderateScale(16),
-    paddingVertical:moderateScale(12),
-    fontSize:normalizeFont(12),
-    backgroundColor: '#fafafa',
+    borderRadius: moderateScale(10),
+    paddingHorizontal: moderateScale(14),
+    backgroundColor: '#fdfdfd',
+    fontSize: normalizeFont(13),
   },
   button: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
-    borderRadius:moderateScale(8),
-    paddingVertical:moderateScale(14),
+    padding: moderateScale(15),
+    borderRadius: moderateScale(12),
+    width: '70%',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop:moderateScale(8),
   },
   buttonDisabled: {
     backgroundColor: '#ccc',
   },
   buttonText: {
     color: '#fff',
-    fontSize:normalizeFont(13),
+    fontSize: normalizeFont(13),
     fontWeight: '600',
   },
 });

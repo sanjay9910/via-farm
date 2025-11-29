@@ -156,6 +156,8 @@ export default function HeaderDesign() {
     return () => clearInterval(interval);
   }, []);
 
+
+  
   // Handle search text change
   const handleSearchChange = async (text) => {
     setSearchText(text);
@@ -192,6 +194,8 @@ export default function HeaderDesign() {
       setShowSuggestions(false);
     }
   };
+
+
 
   // Apply filters to suggestions
   const applyFiltersToSuggestions = (products) => {
@@ -1079,8 +1083,10 @@ const styles = StyleSheet.create({
   suggestionsDropdown: {
     position: 'absolute',
     top: '100%',
-    left: 0,
-    right: 0,
+    marginTop:scale(25),
+    left:moderateScale(15),
+    right:moderateScale(15),
+    borderRadius:moderateScale(15),
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',

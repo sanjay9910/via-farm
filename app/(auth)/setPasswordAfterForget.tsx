@@ -3,16 +3,22 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import axios from "axios";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { moderateScale, normalizeFont, scale } from "../Responsive";
 
 const FORGET_API_BASE = "https://viafarm-1.onrender.com";
 
@@ -26,8 +32,7 @@ const SetPasswordAfterForget = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
-  // ✅ Mobile number passed from previous screen
-  const { mobileNumber } = route.params || {};
+  const mobileNumber = route.params?.mobileNumber || "";
 
   const handleSetPassword = async () => {
     if (!newPassword.trim()) {
@@ -58,32 +63,24 @@ const SetPasswordAfterForget = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        `${FORGET_API_BASE}/api/auth/reset-password`,
-        {
-          mobileNumber,
-          newPassword,
-          confirmPassword,
-        }
-      );
+      const response = await axios.post(`${FORGET_API_BASE}/api/auth/password`, {
+        mobileNumber,
+        password: newPassword,
+        confirmPassword: confirmPassword,
+      });
 
-      // console.log("Reset Password Response:", response.data);
-
-      if (response.data.status === "success") {
-        Alert.alert("Success", "Password reset successful!", [
+      // success flow
+      if (response.data?.status === "success") {
+        Alert.alert("Success", response.data.message || "Password reset successful!", [
           { text: "OK", onPress: () => navigation.navigate("login") },
         ]);
       } else {
-        Alert.alert(
-          "Error",
-          response.data.message || "Failed to reset password"
-        );
+        Alert.alert("Error", response.data?.message || "Failed to reset password");
       }
     } catch (error) {
       console.error("Reset Password Error:", error);
       const errorMessage =
-        error.response?.data?.message ||
-        "Something went wrong. Please try again.";
+        error.response?.data?.message || "Something went wrong. Please try again.";
       Alert.alert("Error", errorMessage);
     } finally {
       setLoading(false);
@@ -91,171 +88,206 @@ const SetPasswordAfterForget = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <View style={styles.card}>
-        <Text style={styles.title}>Set New Password</Text>
-        <Text style={styles.subtitle}>
-          Create a strong password for your account
-        </Text>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>New Password</Text>
-          <View style={styles.passwordContainer}>
-            <TextInput
-              style={styles.passwordInput}
-              placeholder="Enter new password"
-              secureTextEntry={!showNewPassword}
-              value={newPassword}
-              onChangeText={setNewPassword}
-              editable={!loading}
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            bounces={false}
+          >
+            {/* LOGO */}
+            <Image
+              style={styles.logoImage}
+              source={require("../../assets/via-farm-img/icons/logo.png")}
             />
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setShowNewPassword(!showNewPassword)}
-            >
-              <Ionicons
-                name={showNewPassword ? "eye-off" : "eye"}
-                size={24}
-                color="#666"
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Confirm Password</Text>
-          <View style={styles.passwordContainer}>
-            <TextInput
-              style={styles.passwordInput}
-              placeholder="Confirm your password"
-              secureTextEntry={!showConfirmPassword}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              editable={!loading}
-            />
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() =>
-                setShowConfirmPassword(!showConfirmPassword)
-              }
-            >
-              <Ionicons
-                name={showConfirmPassword ? "eye-off" : "eye"}
-                size={24}
-                color="#666"
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
+            {/* Card */}
+            <View style={styles.card}>
+              <Text style={styles.heading}>Set New Password</Text>
+              <Text style={styles.subtitle}>Create a strong password for your account</Text>
 
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleSetPassword}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Set Password</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>New Password</Text>
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    placeholder="Enter new password"
+                    secureTextEntry={!showNewPassword}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    editable={!loading}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowNewPassword((s) => !s)}
+                    disabled={loading}
+                  >
+                    <Ionicons name={showNewPassword ? "eye-off" : "eye"} size={22} color="#666" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Confirm Password</Text>
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    placeholder="Confirm your password"
+                    secureTextEntry={!showConfirmPassword}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    editable={!loading}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowConfirmPassword((s) => !s)}
+                    disabled={loading}
+                  >
+                    <Ionicons name={showConfirmPassword ? "eye-off" : "eye"} size={22} color="#666" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* <View style={styles.requirements}>
+                <Text style={styles.requirementsTitle}>Password requirements</Text>
+                <Text style={styles.requirementItem}>• At least 6 characters</Text>
+                <Text style={styles.requirementItem}>• Avoid using easily guessable words</Text>
+              </View> */}
+
+              <TouchableOpacity
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={handleSetPassword}
+                disabled={loading}
+              >
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Set Password</Text>}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
-
-
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    padding: 20,
+    backgroundColor: "#fff",
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    alignItems: "center",
+    paddingTop: Platform.OS === "ios" ? 40 : 30,
+    paddingBottom: moderateScale(20),
+  },
+  logoImage: {
+    width: scale(200),
+    height: scale(200),
+    resizeMode: "contain",
+    marginBottom: moderateScale(-60),
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    height: "80%",
+    width: "100%",
+    backgroundColor: "#fff",
+    borderRadius: moderateScale(20),
+    padding: moderateScale(28),
+    marginTop: moderateScale(60),
+    marginBottom: moderateScale(20),
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderTopWidth: 3,
+    borderColor: "rgba(255, 202, 40, 1)",
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 5,
+    shadowOffset: { width: 0, height: -4 },
+    alignItems: "center",
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-    textAlign: 'center',
+  heading: {
+    fontSize: normalizeFont(15),
+    fontWeight: "600",
+    marginBottom: moderateScale(8),
   },
   subtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 24,
-    textAlign: 'center',
+    fontSize: normalizeFont(12),
+    color: "#666",
+    textAlign: "center",
+    marginBottom: moderateScale(18),
+    lineHeight: scale(20),
   },
   inputContainer: {
-    marginBottom: 20,
+    width: "100%",
+    marginBottom: moderateScale(14),
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
+    fontSize: normalizeFont(12),
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: moderateScale(8),
+    marginLeft: 2,
   },
   passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    backgroundColor: '#fafafa',
+    borderColor: "#ddd",
+    borderRadius: moderateScale(10),
+    backgroundColor: "#fdfdfd",
   },
   passwordInput: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(12),
+    fontSize: normalizeFont(13),
   },
   eyeIcon: {
-    padding: 12,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(8),
   },
   requirements: {
-    backgroundColor: '#F0F8FF',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
+    backgroundColor: "#F0F8FF",
+    padding: moderateScale(12),
+    borderRadius: moderateScale(8),
+    marginVertical: moderateScale(12),
+    width: "100%",
   },
   requirementsTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#007AFF',
-    marginBottom: 6,
+    fontSize: normalizeFont(13),
+    fontWeight: "600",
+    color: "#007AFF",
+    marginBottom: moderateScale(6),
   },
   requirementItem: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 2,
+    fontSize: normalizeFont(12),
+    color: "#666",
+    marginBottom: moderateScale(2),
   },
   button: {
-    backgroundColor: 'rgba(76, 175, 80, 1)',
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(76, 175, 80, 1)",
+    padding: moderateScale(15),
+    borderRadius: moderateScale(12),
+    width: "70%",
+    alignItems: "center",
+    marginTop: moderateScale(8),
   },
   buttonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: "#ccc",
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: "#fff",
+    fontSize: normalizeFont(13),
+    fontWeight: "600",
   },
 });
 

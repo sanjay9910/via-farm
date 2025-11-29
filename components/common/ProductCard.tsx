@@ -38,9 +38,9 @@ const ProductCard = ({
   isFavorite = false,
   onPress,
   onFavoritePress,
-  onAddToCart,            // should be () => handleAddToCart(productId)
-  onQuantityChange,       // should be (change) => handleQuantityChange(productId, change)
-  cartQuantity = 0,       // controlled prop from parent
+  onAddToCart,           
+  onQuantityChange,     
+  cartQuantity = 0,       
   width = moderateScale(140),
   showRating = true,
   showFavorite = true,
@@ -48,11 +48,10 @@ const ProductCard = ({
   cardStyle = {},
   imageHeight = moderateScale(120),
 }) => {
-  // Use controlled cartQuantity prop (no internal state)
+
   const qty = Number(cartQuantity || 0);
 
   const handleAdd = () => {
-    // Parent expects no args (you pass a bound function), so call it directly
     onAddToCart?.();
   };
 
@@ -61,7 +60,6 @@ const ProductCard = ({
   };
 
   const handleDecrement = () => {
-    // for decrement we send -1; parent will compute newQty and call API / delete if needed
     onQuantityChange?.(-1);
   };
 
@@ -132,7 +130,7 @@ const ProductCard = ({
             ]}
             numberOfLines={1}
           >
-            by {subtitle}
+            By {subtitle}
           </Text>
           <Text style={[styles.productPrice, { fontSize: normalizeFont(11) }]}>{`₹${price}`}</Text>
 

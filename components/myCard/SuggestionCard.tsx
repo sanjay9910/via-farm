@@ -41,7 +41,6 @@ const SuggestionCard = ({ productId: propProductId }) => {
   const navigation = useNavigation();
   const route = useRoute();
 
-  // ✅ yahan se final productId decide hoga
   const productId = propProductId || route?.params?.productId;
 
   const [favorites, setFavorites] = useState(new Set());
@@ -50,12 +49,10 @@ const SuggestionCard = ({ productId: propProductId }) => {
   const [error, setError] = useState(null);
   const [cartItems, setCartItems] = useState({});
 
-  // combine dependencies that should trigger reload
   useEffect(() => {
     let mounted = true;
 
     const loadAll = async () => {
-      // agar productId hi nahi mila to kuch mat call karo
       if (!productId) {
         setLoading(false);
         setProducts([]);
@@ -78,7 +75,6 @@ const SuggestionCard = ({ productId: propProductId }) => {
     };
   }, [productId]);
 
-  // Fetch product detail and recommendedProducts (defensive parsing)
   const fetchProductAndRecommendations = async (pid, mounted = true) => {
     try {
       if (!pid) return;
@@ -88,11 +84,9 @@ const SuggestionCard = ({ productId: propProductId }) => {
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers.Authorization = `Bearer ${token}`;
 
-      // ✅ yahan API dynamic hai: /api/buyer/products/${pid}
       const url = `${API_BASE}/api/buyer/products/${pid}`;
       const resp = await axios.get(url, { headers, timeout: 10000 });
 
-      // defensive extraction of recommended products
       const recommended =
         resp?.data?.data?.recommendedProducts ||
         resp?.data?.recommendedProducts ||
@@ -100,7 +94,6 @@ const SuggestionCard = ({ productId: propProductId }) => {
         resp?.data?.data?.product?.recommendedProducts ||
         [];
 
-      // recommended might be array of items where category may be object or string
       const normalized = Array.isArray(recommended)
         ? recommended.map((p) => normalizeProductObject(p)).filter(Boolean)
         : [];
@@ -109,7 +102,6 @@ const SuggestionCard = ({ productId: propProductId }) => {
         if (normalized && normalized.length > 0) {
           setProducts(normalized);
         } else {
-          // fallback: sometimes API returns single product under data.product
           const single = resp?.data?.data?.product || resp?.data?.product;
           if (single && typeof single === 'object') {
             const fallbackArr = [normalizeProductObject(single)].filter(
@@ -132,7 +124,6 @@ const SuggestionCard = ({ productId: propProductId }) => {
     }
   };
 
-  // Normalize product shape to be used by UI
   const normalizeProductObject = (p) => {
     if (!p) return null;
     const id = String(p._id ?? p.id ?? p.productId ?? '');
@@ -149,7 +140,6 @@ const SuggestionCard = ({ productId: propProductId }) => {
         ? p.category.name ?? p.category
         : p.category ?? 'General';
 
-    // ✅ yahan se vendor ka name nikal rahe hain (recommendedProducts me `vendor.name` aata hai)
     const vendorName =
       p.vendor?.name ||
       p.vendorName ||
@@ -165,12 +155,11 @@ const SuggestionCard = ({ productId: propProductId }) => {
       image,
       rating: p.rating ?? 0,
       category,
-      vendorName, // ✅ yahi use hoga card me
+      vendorName, 
       raw: p,
     };
   };
 
-  // Fetch cart items (map by productId)
   const fetchCart = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -463,7 +452,6 @@ const SuggestionCard = ({ productId: propProductId }) => {
     Alert.alert('Info', 'Please manage quantities in your cart');
   };
 
-  // On product press -> navigate to ViewProduct
   const onProductPress = (product) => {
     try {
       navigation.navigate('ViewProduct', {
@@ -484,7 +472,6 @@ const SuggestionCard = ({ productId: propProductId }) => {
         ? cartItems[String(item.id)].quantity
         : 0;
 
-      // ✅ variety + vendorName dono ek line me (subtitle)
       const subtitleParts = [];
       if (item.variety) subtitleParts.push(item.variety);
       if (item.vendorName) subtitleParts.push(item.vendorName);
@@ -495,7 +482,7 @@ const SuggestionCard = ({ productId: propProductId }) => {
           <ProductCard
             id={String(item.id)}
             title={item.name}
-            subtitle={subtitleText} // yahi pe vendor ka naam dikhega
+            subtitle={subtitleText} 
             price={item.price}
             rating={item.rating}
             image={item.image}
