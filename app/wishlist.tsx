@@ -58,7 +58,7 @@ const ProductCard = ({
           <Image
             source={{ uri: imageUri }}
             style={cardStyles.productImage}
-            resizeMode="cover"
+            resizeMode="stretch"
           />
 
           <TouchableOpacity
@@ -167,9 +167,8 @@ const MyWishlist = () => {
   const [favorites, setFavorites] = useState(new Set());
   const [cartItems, setCartItems] = useState({});
   const [selectedOption, setSelectedOption] = useState('All');
-    const [ options ,setAllCategory] = useState([]);
+  const [ options ,setAllCategory] = useState([]);
 
-  // Fetch wishlist (and convert to product-like items)
   const fetchWishlistData = async () => {
     try {
       setLoading(true);
@@ -188,22 +187,16 @@ const MyWishlist = () => {
       });
 
       if (response.data?.success) {
-        // Wishlist items may be shaped differently (some APIs return product inside)
         const items = response.data.data?.items || [];
-        // Map to a product-like object expected by ProductCard
         const mapped = items.map((w, idx) => {
-          // If the wishlist entry contains a full product object, prefer that
           const product = w.product || w.productDetails || w.productData || null;
           if (product) {
-            // attach wishlist id refs if present
             return {
               ...product,
               id: product._id || product.id || product.productId || `wl-${idx}`,
               productId: product._id || product.id || product.productId || `wl-${idx}`,
             };
           }
-
-          // Otherwise construct minimal product-like object from wishlist fields
           const id = w.productId || w.id || w._id || `wl-${idx}`;
           return {
             id,
@@ -239,13 +232,10 @@ const MyWishlist = () => {
     }
   };
 
-  // Fetch favorites (wishlist product ids) and cart mapping
   const fetchMeta = async () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) return;
-
-      // wishlist -> favorites
       try {
         const res = await axios.get(`${API_BASE}/api/buyer/wishlist`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -289,7 +279,7 @@ const MyWishlist = () => {
     fetchMeta();
   }, []);
 
-  // Add to wishlist
+  // Add to wishlist (no success alert)
   const addToWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -311,22 +301,29 @@ const MyWishlist = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data?.success) {
-        setFavorites(prev => new Set(prev).add(productId));
-        Alert.alert('Success', 'Added to wishlist!');
+        setFavorites(prev => {
+          const next = new Set(prev);
+          next.add(productId);
+          return next;
+        });
+      } else {
+        Alert.alert('Wishlist', res.data?.message || 'Could not add to wishlist');
       }
     } catch (err) {
       console.error('Error adding to wishlist:', err);
       if (err.response?.status === 400) {
         const pid = product._id || product.id || product.productId;
-        setFavorites(prev => new Set(prev).add(pid));
-        Alert.alert('Info', 'Already in wishlist');
+        setFavorites(prev => {
+          const next = new Set(prev);
+          next.add(pid);
+          return next;
+        });
       } else {
         Alert.alert('Error', 'Failed to add to wishlist');
       }
     }
   };
 
-  // Remove from wishlist
   const removeFromWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -341,10 +338,10 @@ const MyWishlist = () => {
           next.delete(productId);
           return next;
         });
-        Alert.alert('Removed', 'Removed from wishlist');
-        // remove from local wishlist list too
         setWishlistData(prev => prev.filter(p => (p._id || p.id || p.productId) !== productId));
         setFilteredData(prev => prev.filter(p => (p._id || p.id || p.productId) !== productId));
+      } else {
+        Alert.alert('Wishlist', res.data?.message || 'Could not remove from wishlist');
       }
     } catch (err) {
       console.error('Error removing from wishlist:', err);
@@ -352,25 +349,24 @@ const MyWishlist = () => {
     }
   };
 
-    useEffect(()=>{
-  const   getAllCategory = async ()=>{
-    try{
-     const token = await AsyncStorage.getItem("userToken");
-     const catRes = await axios.get(`${API_BASE}/api/admin/manage-app/categories`,{
-      headers:{
-       Authorization:`Bearer ${token}`
-      },
-     });
-
-     const onlyNames = catRes.data?.categories?.map((item) => item.name) || [];
-     setAllCategory(onlyNames)
-    }catch(error){
-      console.log("Error",error)
+  useEffect(()=>{
+    const getAllCategory = async ()=>{
+      try{
+       const token = await AsyncStorage.getItem("userToken");
+       const catRes = await axios.get(`${API_BASE}/api/admin/manage-app/categories`,{
+        headers:{
+         Authorization:`Bearer ${token}`
+        },
+       });
+  
+       const onlyNames = catRes.data?.categories?.map((item) => item.name) || [];
+       setAllCategory(onlyNames)
+      }catch(error){
+        console.log("Error",error)
+      }
     }
-  }
-  getAllCategory();
-},[])
-
+    getAllCategory();
+  },[])
 
   const handleToggleFavorite = async (product) => {
     const productId = product._id || product.id || product.productId;
@@ -381,7 +377,7 @@ const MyWishlist = () => {
     }
   };
 
-  // Add to cart
+  // Add to cart (no success alert)
   const handleAddToCart = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -413,20 +409,20 @@ const MyWishlist = () => {
             cartItemId: res.data.data?._id || productId
           }
         }));
-        Alert.alert('Success', 'Added to cart!');
+      } else {
+        const msg = res.data?.message || 'Could not add to cart';
+        Alert.alert('Cart', msg);
       }
     } catch (err) {
       console.error("Error adding to cart:", err);
       if (err.response?.status === 400) {
         await fetchMeta();
-        Alert.alert('Info', 'Product is already in cart');
       } else {
         Alert.alert('Error', 'Failed to add to cart');
       }
     }
   };
 
-  // Update quantity (delta: +1 or -1)
   const handleUpdateQuantity = async (product, delta) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -448,7 +444,9 @@ const MyWishlist = () => {
             delete next[productId];
             return next;
           });
-          Alert.alert('Removed', 'Item removed from cart');
+          // no alert on remove success
+        } else {
+          Alert.alert('Cart', res.data?.message || 'Failed to remove item');
         }
         return;
       }
@@ -467,6 +465,7 @@ const MyWishlist = () => {
         setCartItems(prev => ({ ...prev, [productId]: current }));
         Alert.alert('Error', 'Failed to update quantity');
       }
+      // otherwise no success alert
     } catch (err) {
       console.error("Error updating quantity:", err);
       await fetchMeta();
@@ -481,7 +480,6 @@ const MyWishlist = () => {
         Alert.alert("Error", "Product id missing");
         return;
       }
-      // navigate to ViewProduct with product and productId (same as ViewAllFruits)
       navigation.push ? navigation.push("ViewProduct", { productId, product }) : navigation.navigate("ViewProduct", { productId, product });
     } catch (err) {
       console.error("openProductDetails error:", err);
@@ -489,7 +487,6 @@ const MyWishlist = () => {
     }
   };
 
-  // Filter handling (options dropdown behaviour from original)
   const toggleDropdown = () => {
     Animated.timing(animation, {
       toValue: animation._value === 0 ? 1 : 0,
@@ -507,8 +504,6 @@ const MyWishlist = () => {
     inputRange: [0, 1],
     outputRange: [0, 1],
   });
-
-  // const options = ['All', 'Fruits', 'Vegetable', 'Seeds', 'Plants', 'Handicrafts'];
 
   const handleSelect = (option) => {
     setSelectedOption(option);
@@ -535,13 +530,10 @@ const MyWishlist = () => {
     );
   };
 
-  // render card wrapper passing appropriate props from meta state
   const renderCard = ({ item }) => {
     const productId = item._id || item.id || item.productId;
     const isFavorite = favorites.has(productId);
     const cartQty = cartItems[productId]?.quantity || 0;
-
-    // ensure item has required image fields
     const normalized = {
       ...item,
       image: item.image || (Array.isArray(item.images) && item.images[0]) || null,
@@ -644,6 +636,7 @@ const MyWishlist = () => {
   );
 };
 
+
 // ----------------- Styles -----------------
 const cardStyles = StyleSheet.create({
   container: {
@@ -670,9 +663,7 @@ const cardStyles = StyleSheet.create({
   },
   favoriteButton: {
     position: 'absolute',
-    // top: moderateScale(2),
     right: moderateScale(2),
-    // backgroundColor: 'rgba(0,0,0,0.35)',
     padding: moderateScale(6),
     borderRadius: moderateScale(14)
   },

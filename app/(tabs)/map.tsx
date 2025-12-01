@@ -99,7 +99,6 @@ export default function MapScreen({ route, navigation }) {
     setRegion((prev) => ({ ...prev, latitude: coordinate.latitude, longitude: coordinate.longitude }));
   };
 
-  // Fetch autocomplete suggestions (Places API - Autocomplete)
   const fetchPlaceSuggestions = async (input) => {
     if (!input || input.trim().length === 0) {
       setSuggestions([]);
@@ -219,7 +218,7 @@ export default function MapScreen({ route, navigation }) {
     }
   };
 
-  // if user taps search submit and there are no suggestions -> geocode the raw text
+
   const onSearchSubmit = async () => {
     if (!searchQuery.trim()) return;
     if (suggestions.length === 0) {
@@ -439,7 +438,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#007bff',
     width: scale(48),
     height: scale(48),
-    borderRadius: moderateScale(24),
+    borderRadius: moderateScale(50),
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 4,

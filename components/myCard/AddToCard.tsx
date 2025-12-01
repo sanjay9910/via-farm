@@ -168,7 +168,7 @@ const MyCart = () => {
     } finally {
       setLoading(false);
     }
-  }, [appliedCoupon]); // re-run if appliedCoupon changes so fetch honors applied state
+  }, [appliedCoupon]); 
 
   useEffect(() => {
     const init = async () => {
@@ -223,7 +223,6 @@ const MyCart = () => {
           prev.map(i => (i.id === itemId ? prevItem : i))
         );
       } else {
-        // refresh cart (will preserve appliedCoupon state because appliedCoupon is in state)
         fetchCartItems(authToken);
       }
     } catch (e) {
@@ -298,10 +297,8 @@ const MyCart = () => {
       console.log('Apply coupon response:', res.status, json);
 
       if (res.ok && json.success) {
-        // server price info: prefer priceDetails then summary
         const pd = json.priceDetails ?? json.summary ?? {};
 
-        // Update priceDetails with server-provided totals (server applied)
         setPriceDetails({
           totalMRP: Number(pd.totalMRP ?? pd.totalMRP ?? 0),
           couponDiscount: Number(pd.discount ?? pd.couponDiscount ?? 0),
@@ -309,7 +306,6 @@ const MyCart = () => {
           totalAmount: Number(pd.totalAmount ?? 0),
         });
 
-        // Determine discount to show. Prefer explicit discount, otherwise compute difference.
         const serverTotalMRP = Number(pd.totalMRP ?? 0);
         const serverTotalAmount = Number(pd.totalAmount ?? 0);
         let computedDiscount = 0;
@@ -319,11 +315,10 @@ const MyCart = () => {
         const explicitDiscount = Number(pd.discount ?? pd.couponDiscount ?? 0);
         const finalDiscountToShow = explicitDiscount > 0 ? explicitDiscount : computedDiscount;
 
-        // Mark the coupon as applied locally (so UI and calculation functions will respect it)
         setAppliedCoupon({
           code: json.couponCode ?? codeToApply,
           discount: finalDiscountToShow,
-          type: 'fixed', // server returned absolute discount -> treat as fixed amount
+          type: 'fixed', 
         });
 
         console.log('Applied coupon resolved discount:', finalDiscountToShow, 'server priceDetails:', pd);
@@ -343,7 +338,6 @@ const MyCart = () => {
   };
 
   const removeCoupon = () => {
-    // Clear client-side applied coupon and re-fetch cart to restore server state (without coupon)
     setAppliedCoupon(null);
     setCouponCode('');
     setCouponError('');
@@ -504,7 +498,6 @@ const MyCart = () => {
 
 
   const handlePlaceOrderPickup = async () => {
-    // Validation
     if (!slot.date || !slot.startTime || !slot.endTime) {
       Alert.alert('Error', 'Please select date and time slot');
       return;
@@ -528,7 +521,7 @@ const MyCart = () => {
     if (paymentMethod === 'online') {
       closePickupModal();
       setTimeout(() => {
-        navigation.navigate('Payment', {
+        navigation.navigate('PickupOnlinePayment', {
           amount: finalAmount,
           orderPayload,
         });
@@ -543,7 +536,7 @@ const MyCart = () => {
         return;
       }
 
-      const res = await fetch(`${BASE_URL}/api/buyer/orders/place`, {
+      const res = await fetch(`${BASE_URL}/api/buyer/pickuporder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -572,6 +565,12 @@ const MyCart = () => {
       Alert.alert('Error', 'Network error while placing order.');
     }
   };
+
+
+
+
+
+
 
   const goReviewPage = () => {
     if (!slot.date || !slot.startTime || !slot.endTime) {
@@ -669,10 +668,10 @@ const MyCart = () => {
       {cartItems.length === 0 && !loading ? (
         <EmptyCart />
       ) : (
-        <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ paddingBottom:moderateScale(100) }} showsVerticalScrollIndicator={false}>
           <View style={styles.cartSection}>
             {loading ? (
-              <Text style={styles.emptyCartText}>Loading cart...</Text>
+              <Text style={styles.emptyCartText}></Text>
             ) : (
               cartItems.map((item) => (
                 <CartCard key={item.id} item={item} />
@@ -1688,6 +1687,7 @@ const styles = StyleSheet.create({
   proceedButtonText: {
     color: '#fff',
     fontWeight: '600',
+    paddingVertical:moderateScale(4),
   },
   successModalOverlay: {
     flex: 1,

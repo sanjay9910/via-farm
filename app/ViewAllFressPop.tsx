@@ -28,7 +28,7 @@ const ProductCard = ({
   cartQuantity,
   onAddToCart,
   onUpdateQuantity,
-  onPress, 
+  onPress,
 }) => {
   const qty = cartQuantity || 0;
   const inCart = qty > 0;
@@ -43,8 +43,6 @@ const ProductCard = ({
   const status = item?.status ?? (item?.stock === 0 ? "Out of Stock" : "In Stock");
 
   return (
-    <View>
-      {/* <ViewVendors/> */}
     <View style={[cardStyles.container]}>
       <TouchableOpacity
         style={cardStyles.card}
@@ -55,7 +53,7 @@ const ProductCard = ({
           <Image
             source={{ uri: imageUri }}
             style={cardStyles.productImage}
-             resizeMode="stretch"
+            resizeMode="stretch"
           />
 
           {/* Wishlist Icon */}
@@ -91,22 +89,16 @@ const ProductCard = ({
             by {item?.vendor?.name || "Unknown Vendor"}
           </Text>
 
-
-       {/* Variety */}
           {item?.variety ? (
             <Text style={cardStyles.productSubtitle}>Variety: {item.variety}</Text>
           ) : null}
 
-          {/* Price and Unit in same line */}
           <View style={cardStyles.priceContainer}>
             <Text style={cardStyles.productPrice}>₹{item?.price ?? "0"}</Text>
             <Text style={cardStyles.productUnit}>/{item?.unit ?? "unit"}</Text>
-            <Text style={cardStyles.productUnit}>{item?.weightPerPiece}</Text>
-            {/* <Text style={cardStyles.productUnit}>/{ProductCard.weight}</Text> */}
+            {item?.weightPerPiece ? <Text style={cardStyles.productUnit}>{item.weightPerPiece}</Text> : null}
           </View>
 
-
-          {/* Add to Cart / Quantity Control */}
           <View style={cardStyles.buttonContainer}>
             {!inCart ? (
               <TouchableOpacity
@@ -154,13 +146,12 @@ const ProductCard = ({
         </View>
       </TouchableOpacity>
     </View>
-    </View>
   );
 };
 
 const ViewAllFressPop = () => {
   const navigation = useNavigation();
-  const [items, setItems] = useState([]); 
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [favorites, setFavorites] = useState(new Set());
@@ -265,7 +256,7 @@ const ViewAllFressPop = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Add to / remove from wishlist
+  // Add to / remove from wishlist (optimistic + silent)
   const addToWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -274,6 +265,10 @@ const ViewAllFressPop = () => {
         return;
       }
       const productId = product._id || product.id;
+
+      // optimistic UI
+      setFavorites(prev => new Set(prev).add(productId));
+
       const payload = {
         productId,
         name: product.name,
@@ -284,23 +279,21 @@ const ViewAllFressPop = () => {
         unit: product.unit || '',
         weight: product.weightPerPiece,
       };
-      const res = await axios.post(`${API_BASE}/api/buyer/wishlist/add`, payload, {
+      await axios.post(`${API_BASE}/api/buyer/wishlist/add`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (res.data?.success) {
-        setFavorites(prev => new Set(prev).add(productId));
-        Alert.alert('Success', 'Added to wishlist!');
-      } else {
-        Alert.alert('Error', res.data?.message || 'Could not add to wishlist');
-      }
+      // silent success
     } catch (err) {
       console.error('Error adding to wishlist:', err);
-      if (err.response?.status === 400) {
-        const productId = product._id || product.id;
-        setFavorites(prev => new Set(prev).add(productId));
-        Alert.alert('Info', 'Already in wishlist');
-      } else {
-        Alert.alert('Error', 'Failed to add to wishlist');
+      // rollback
+      const productId = product._id || product.id;
+      setFavorites(prev => {
+        const next = new Set(prev);
+        next.delete(productId);
+        return next;
+      });
+      if (!err.response) {
+        Alert.alert('Network Error', 'Failed to add to wishlist');
       }
     }
   };
@@ -310,22 +303,26 @@ const ViewAllFressPop = () => {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) return;
       const productId = product._id || product.id;
-      const res = await axios.delete(`${API_BASE}/api/buyer/wishlist/${productId}`, {
+
+      // optimistic UI remove
+      setFavorites(prev => {
+        const next = new Set(prev);
+        next.delete(productId);
+        return next;
+      });
+
+      await axios.delete(`${API_BASE}/api/buyer/wishlist/${productId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (res.data?.success) {
-        setFavorites(prev => {
-          const next = new Set(prev);
-          next.delete(productId);
-          return next;
-        });
-        Alert.alert('Removed', 'Removed from wishlist');
-      } else {
-        Alert.alert('Error', res.data?.message || 'Could not remove from wishlist');
-      }
+      // silent success
     } catch (err) {
       console.error('Error removing from wishlist:', err);
-      Alert.alert('Error', 'Failed to remove from wishlist');
+      // rollback
+      const productId = product._id || product.id;
+      setFavorites(prev => new Set(prev).add(productId));
+      if (!err.response) {
+        Alert.alert('Network Error', 'Failed to remove from wishlist');
+      }
     }
   };
 
@@ -338,7 +335,7 @@ const ViewAllFressPop = () => {
     }
   };
 
-  // Add to cart
+  // Add to cart (optimistic + silent)
   const handleAddToCart = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -347,6 +344,16 @@ const ViewAllFressPop = () => {
         return;
       }
       const productId = product._id || product.id;
+
+      // optimistic UI: set quantity = 1
+      setCartItems(prev => ({
+        ...prev,
+        [productId]: {
+          quantity: 1,
+          cartItemId: prev[productId]?.cartItemId || productId
+        }
+      }));
+
       const payload = {
         productId,
         name: product.name,
@@ -360,34 +367,48 @@ const ViewAllFressPop = () => {
       const res = await axios.post(`${API_BASE}/api/buyer/cart/add`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
+
       if (res.data?.success) {
+        const serverId = res.data.data?._id || productId;
+        // ensure server id present
         setCartItems(prev => ({
           ...prev,
-          [productId]: {
-            quantity: 1,
-            cartItemId: res.data.data?._id || productId
-          }
+          [productId]: { quantity: prev[productId]?.quantity || 1, cartItemId: serverId }
         }));
-        Alert.alert('Success', 'Added to cart!');
       } else {
-        Alert.alert('Error', res.data?.message || 'Could not add to cart');
+        // rollback
+        setCartItems(prev => {
+          const next = { ...prev };
+          delete next[productId];
+          return next;
+        });
       }
     } catch (err) {
       console.error('Error adding to cart:', err);
+      // rollback optimistic change
+      const productId = product._id || product.id;
+      setCartItems(prev => {
+        const next = { ...prev };
+        delete next[productId];
+        return next;
+      });
       if (err.response?.status === 400) {
+        // likely already in cart — refresh quietly
         await fetchCart();
-        Alert.alert('Info', 'Product is already in cart');
       } else {
         Alert.alert('Error', 'Failed to add to cart');
       }
     }
   };
 
-  // Update cart quantity
+  // Update cart quantity (optimistic)
   const handleUpdateQuantity = async (product, change) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
-      if (!token) return;
+      if (!token) {
+        Alert.alert('Login Required', 'Please login to update cart');
+        return;
+      }
 
       const productId = product._id || product.id;
       const currentItem = cartItems[productId];
@@ -396,22 +417,23 @@ const ViewAllFressPop = () => {
       const newQuantity = (currentItem.quantity || 0) + change;
 
       if (newQuantity < 1) {
+        // optimistic remove
+        setCartItems(prev => {
+          const next = { ...prev };
+          delete next[productId];
+          return next;
+        });
+
         const res = await axios.delete(`${API_BASE}/api/buyer/cart/${currentItem.cartItemId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        if (res.data?.success) {
-          setCartItems(prev => {
-            const next = { ...prev };
-            delete next[productId];
-            return next;
-          });
-          Alert.alert('Removed', 'Item removed from cart');
-        } else {
+
+        if (!res.data?.success) {
+          // rollback by refetching
           await fetchCart();
-          Alert.alert('Error', 'Failed to remove item');
         }
       } else {
-        // optimistic UI update
+        // optimistic update
         setCartItems(prev => ({
           ...prev,
           [productId]: { ...currentItem, quantity: newQuantity }
@@ -422,8 +444,8 @@ const ViewAllFressPop = () => {
         });
 
         if (!res.data?.success) {
-          setCartItems(prev => ({ ...prev, [productId]: currentItem }));
-          Alert.alert('Error', 'Failed to update quantity');
+          // rollback
+          await fetchCart();
         }
       }
     } catch (err) {
@@ -468,7 +490,7 @@ const ViewAllFressPop = () => {
         <View style={{ width: scale(50) }} />
       </View>
 
-     <FreshVendor/>
+      <FreshVendor />
 
       {/* Loading */}
       {loading && (
@@ -526,7 +548,6 @@ const ViewAllFressPop = () => {
     </SafeAreaView>
   );
 };
-
 export default ViewAllFressPop;
 
 // Card Styles - Updated to match ViewAllFressPop

@@ -21,7 +21,6 @@ import { moderateScale, normalizeFont, scale } from './Responsive';
 const API_BASE = "https://viafarm-1.onrender.com";
 const CARD_WIDTH = Dimensions.get("window").width / 2 - 25;
 
-// ✅ ProductCard - Exact same design
 const ProductCard = ({
   item,
   isFavorite,
@@ -158,7 +157,6 @@ const ProductCard = ({
   );
 };
 
-// ✅ CategoryViewAllProduct - Dynamic category products
 const CategoryViewAllProduct = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -174,7 +172,6 @@ const CategoryViewAllProduct = () => {
   const [cartItems, setCartItems] = useState({});
   const [query, setQuery] = useState("");
 
-  // Fetch all categories and filter by categoryId
   const fetchCategoryProducts = async () => {
     try {
       setLoading(true);
@@ -301,7 +298,7 @@ const CategoryViewAllProduct = () => {
     );
   }, [categoryProducts, query]);
 
-  // Add to Wishlist
+  // Add to Wishlist (optimistic, no success alerts)
   const addToWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -311,6 +308,9 @@ const CategoryViewAllProduct = () => {
       }
 
       const productId = product._id || product.id;
+
+      // optimistic UI
+      setFavorites(prev => new Set(prev).add(productId));
 
       const wishlistData = {
         productId: productId,
@@ -322,7 +322,7 @@ const CategoryViewAllProduct = () => {
         unit: product.unit || 'kg'
       };
 
-      const response = await axios.post(
+      await axios.post(
         `${API_BASE}/api/buyer/wishlist/add`,
         wishlistData,
         {
@@ -332,24 +332,24 @@ const CategoryViewAllProduct = () => {
           },
         }
       );
-
-      if (response.data?.success) {
-        setFavorites(prev => new Set(prev).add(productId));
-        Alert.alert('Success', 'Added to wishlist!');
-      }
+      // silent success — UI already updated
     } catch (error) {
       console.error('Error adding to wishlist:', error);
-      if (error.response?.status === 400) {
-        const productId = product._id || product.id;
-        setFavorites(prev => new Set(prev).add(productId));
-        Alert.alert('Info', 'Already in wishlist');
-      } else {
-        Alert.alert('Error', 'Failed to add to wishlist');
+      // rollback on failure
+      const productId = product._id || product.id;
+      setFavorites(prev => {
+        const next = new Set(prev);
+        next.delete(productId);
+        return next;
+      });
+      // keep error alert only for serious failures
+      if (!error.response) {
+        Alert.alert('Network Error', 'Failed to add to wishlist');
       }
     }
   };
 
-  // Remove from Wishlist
+  // Remove from Wishlist (optimistic, no success alerts)
   const removeFromWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -357,24 +357,28 @@ const CategoryViewAllProduct = () => {
 
       const productId = product._id || product.id;
 
-      const response = await axios.delete(
+      // optimistic UI
+      setFavorites(prev => {
+        const next = new Set(prev);
+        next.delete(productId);
+        return next;
+      });
+
+      await axios.delete(
         `${API_BASE}/api/buyer/wishlist/${productId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-
-      if (response.data?.success) {
-        setFavorites(prev => {
-          const next = new Set(prev);
-          next.delete(productId);
-          return next;
-        });
-        Alert.alert('Removed', 'Removed from wishlist');
-      }
+      // silent success
     } catch (error) {
       console.error('Error removing from wishlist:', error);
-      Alert.alert('Error', 'Failed to remove from wishlist');
+      // rollback if needed
+      const productId = product._id || product.id;
+      setFavorites(prev => new Set(prev).add(productId));
+      if (!error.response) {
+        Alert.alert('Network Error', 'Failed to remove from wishlist');
+      }
     }
   };
 
@@ -387,7 +391,7 @@ const CategoryViewAllProduct = () => {
     }
   };
 
-  // Add to Cart
+  // Add to Cart (optimistic, no success alerts)
   const handleAddToCart = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -397,6 +401,15 @@ const CategoryViewAllProduct = () => {
       }
 
       const productId = product._id || product.id;
+
+      // optimistic UI: mark as quantity = 1
+      setCartItems(prev => ({
+        ...prev,
+        [productId]: {
+          quantity: 1,
+          cartItemId: prev[productId]?.cartItemId || productId
+        }
+      }));
 
       const cartData = {
         productId: productId,
@@ -420,32 +433,50 @@ const CategoryViewAllProduct = () => {
         }
       );
 
+      // ensure server-provided id used
       if (response.data?.success) {
+        const idFromServer = response.data.data?._id || productId;
         setCartItems(prev => ({
           ...prev,
           [productId]: {
-            quantity: 1,
-            cartItemId: response.data.data?._id || productId
+            quantity: prev[productId]?.quantity || 1,
+            cartItemId: idFromServer
           }
         }));
-        Alert.alert('Success', 'Added to cart!');
+      } else {
+        // rollback if server rejected
+        setCartItems(prev => {
+          const next = { ...prev };
+          delete next[productId];
+          return next;
+        });
       }
     } catch (error) {
       console.error('Error adding to cart:', error);
+      // rollback optimistic change
+      const productId = product._id || product.id;
+      setCartItems(prev => {
+        const next = { ...prev };
+        delete next[productId];
+        return next;
+      });
       if (error.response?.status === 400) {
+        // server says already in cart -> refresh cart quietly
         await fetchCart();
-        Alert.alert('Info', 'Product is already in cart');
       } else {
         Alert.alert('Error', 'Failed to add to cart');
       }
     }
   };
 
-  // Update Quantity
+  // Update Quantity (optimistic, minimal alerts)
   const handleUpdateQuantity = async (product, change) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
-      if (!token) return;
+      if (!token) {
+        Alert.alert('Login Required', 'Please login to update cart');
+        return;
+      }
 
       const productId = product._id || product.id;
       const currentItem = cartItems[productId];
@@ -454,6 +485,13 @@ const CategoryViewAllProduct = () => {
       const newQuantity = currentItem.quantity + change;
 
       if (newQuantity < 1) {
+        // optimistic removal
+        setCartItems(prev => {
+          const next = { ...prev };
+          delete next[productId];
+          return next;
+        });
+
         const response = await axios.delete(
           `${API_BASE}/api/buyer/cart/${currentItem.cartItemId}`,
           {
@@ -461,15 +499,13 @@ const CategoryViewAllProduct = () => {
           }
         );
 
-        if (response.data?.success) {
-          setCartItems(prev => {
-            const next = { ...prev };
-            delete next[productId];
-            return next;
-          });
-          Alert.alert('Removed', 'Item removed from cart');
+        if (!response.data?.success) {
+          // rollback fetch cart
+          await fetchCart();
         }
+        return;
       } else {
+        // optimistic update
         setCartItems(prev => ({
           ...prev,
           [productId]: { ...currentItem, quantity: newQuantity }
@@ -487,8 +523,8 @@ const CategoryViewAllProduct = () => {
         );
 
         if (!response.data?.success) {
-          setCartItems(prev => ({ ...prev, [productId]: currentItem }));
-          Alert.alert('Error', 'Failed to update quantity');
+          // rollback
+          await fetchCart();
         }
       }
     } catch (error) {
@@ -639,7 +675,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: normalizeFont(12),
     color: '#222',
-    paddingVertical: 0
+    paddingVertical:moderateScale(5),
   },
   backButtonContainer: {
     padding: 1,

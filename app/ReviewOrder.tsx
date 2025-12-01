@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import axios from 'axios'
 import { useNavigation, useRouter } from 'expo-router'
 import { goBack } from 'expo-router/build/global-state/routing'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -24,8 +24,6 @@ import { moderateScale, normalizeFont, scale } from './Responsive'
 
 const API_BASE = 'https://viafarm-1.onrender.com';
 
-// If true, when the cart loads and server reports an already-applied coupon,
-// we will automatically remove it so that coupons are only active when user explicitly applies.
 const AUTO_CLEAR_SERVER_COUPON = true;
 
 const ReviewOrder = () => {
@@ -40,7 +38,7 @@ const ReviewOrder = () => {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [pincode, setPincode] = useState('110098');
-  const slideAnim = useState(new Animated.Value(300))[0];
+  const slideAnim = useRef(new Animated.Value(300)).current;
 
   // Address states
   const [addresses, setAddresses] = useState([]);
@@ -54,6 +52,8 @@ const ReviewOrder = () => {
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
 
+  const [savingAddress, setSavingAddress] = useState(false);
+
   useEffect(() => {
     fetchBuyerAddresses();
   }, []);
@@ -62,7 +62,6 @@ const ReviewOrder = () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
-        Alert.alert('Error', 'Please login to view addresses');
         return;
       }
 
@@ -70,28 +69,33 @@ const ReviewOrder = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (response.data.success) {
-        const fetchedAddresses = response.data.addresses.map((addr) => ({
+      if (response.data && response.data.success) {
+        const fetchedAddresses = (response.data.addresses || []).map((addr) => ({
           id: addr.id || addr._id,
           name: addr.name || 'Buyer',
           pincode: addr.pinCode || addr.pincode || '000000',
-          address: `${addr.houseNumber || ''}, ${addr.locality || ''}, ${addr.city || ''}, ${addr.state || ''}`,
+          address: `${addr.houseNumber || ''} ${addr.locality || ''} ${addr.city || ''} ${addr.state || ''}`.replace(/\s+/g, ' ').trim(),
           isDefault: addr.isDefault || false,
+          houseNumber: addr.houseNumber || '',
+          locality: addr.locality || '',
+          city: addr.city || '',
+          district: addr.district || '',
         }));
 
         setAddresses(fetchedAddresses);
         const defaultAddr = fetchedAddresses.find((a) => a.isDefault) || fetchedAddresses[0];
-        if (defaultAddr) setSelectedAddress(defaultAddr);
+        if (defaultAddr) {
+          setSelectedAddress(defaultAddr);
+          setPincode(defaultAddr.pincode);
+        }
       } else {
-        Alert.alert('Error', response.data.message || 'Failed to load addresses');
+        console.warn('No addresses or failed to fetch addresses', response?.data);
       }
     } catch (error) {
       console.error('Error fetching buyer addresses:', error);
-      Alert.alert('Error', 'Failed to load addresses');
     }
   };
 
-  // Fetch products from API (and server price details)
   useEffect(() => {
     fetchCartProducts();
   }, []);
@@ -101,27 +105,28 @@ const ReviewOrder = () => {
       setLoading(true);
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
-        Alert.alert('Error', 'Please login to view cart');
+        // not logged in — clear local cart
+        setProducts([]);
+        setServerPriceDetails(null);
         setLoading(false);
         return;
       }
 
-      const response = await axios.get(`${API_BASE}/api/buyer/cart`, {
+      const response = await axios.get(`${API_BASE}/api/buyer/checkout`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (response.data.success) {
+      if (response.data && response.data.success) {
         const cartItems = response.data.data?.items || [];
         const mappedProducts = cartItems.map((item) => ({
           id: item._id || item.id,
           productId: item.productId,
           name: item.name || 'Product',
           description: item.subtitle || item.variety || 'Fresh Product',
-          // ensure numeric price
           price: Number(item.mrp || item.price || 0),
           quantity: item.quantity || 1,
-          image: { uri: item.imageUrl },
-          deliveryDate: item.deliveryText || 'Sep 25',
+          image: { uri: item.imageUrl || item.image || '' },
+          deliveryDate: item.deliveryText || 'Delivered soon',
         }));
 
         setProducts(mappedProducts);
@@ -137,16 +142,10 @@ const ReviewOrder = () => {
           setServerPriceDetails(null);
         }
 
-        // --- IMPORTANT CHANGE ---
-        // If server reports an already applied coupon, we will clear it automatically
-        // so coupons are applied only when the user explicitly applies them.
         const applied = response.data.data?.appliedCoupon ?? response.data.data?.coupon ?? null;
         if (applied) {
-          // Do NOT set appliedCoupon locally from server; instead clear it server-side (if flag enabled)
-          console.log('Server returned applied coupon on cart load:', applied);
           if (AUTO_CLEAR_SERVER_COUPON) {
             try {
-              // attempt to remove server-side coupon silently
               await axios.delete(`${API_BASE}/api/buyer/cart/remove-coupon`, {
                 headers: { Authorization: `Bearer ${token}` },
                 timeout: 10000,
@@ -164,8 +163,8 @@ const ReviewOrder = () => {
                   description: item.subtitle || item.variety || 'Fresh Product',
                   price: Number(item.mrp || item.price || 0),
                   quantity: item.quantity || 1,
-                  image: { uri: item.imageUrl },
-                  deliveryDate: item.deliveryText || 'Sep 25',
+                  image: { uri: item.imageUrl || item.image || '' },
+                  deliveryDate: item.deliveryText || 'Delivered soon',
                 }));
                 setProducts(newMapped);
                 const newPriceDetails = refreshed.data.data?.priceDetails ?? null;
@@ -180,43 +179,30 @@ const ReviewOrder = () => {
                   setServerPriceDetails(null);
                 }
               }
-              // ensure local applied coupon state is cleared
               setAppliedCoupon(null);
               setCouponCode('');
-              console.log('Server-side coupon cleared automatically on load.');
             } catch (clearErr) {
-              // don't disturb user — log and continue
               console.warn('Failed to auto-clear server coupon on load:', clearErr?.response?.data || clearErr.message || clearErr);
-              // still clear local state so UI doesn't show an applied coupon from server
               setAppliedCoupon(null);
               setCouponCode('');
             }
           } else {
-            // If not auto-clearing, simply don't set appliedCoupon locally (so UI won't display it)
             setAppliedCoupon(null);
             setCouponCode('');
           }
         } else {
-          // no server-side coupon -> clear local
           setAppliedCoupon(null);
           setCouponCode('');
         }
       } else {
-        Alert.alert('Error', response.data.message || 'Failed to load cart');
+        console.warn('Failed to load cart: ', response?.data);
       }
     } catch (error) {
       console.error('Error fetching cart products:', error);
-      Alert.alert('Error', 'Failed to load cart items');
     } finally {
       setLoading(false);
     }
   };
-
-
-
-
-
-  
 
   const computeTotals = () => {
     const subtotal = products.reduce((sum, p) => sum + (Number(p.price) || 0) * (p.quantity || 0), 0);
@@ -244,7 +230,7 @@ const ReviewOrder = () => {
     };
   };
 
-
+  // ----- Coupon functions (unchanged) -----
   const applyCoupon = async () => {
     if (!couponCode || couponCode.trim().length === 0) {
       Alert.alert('Invalid', 'Please enter a coupon code');
@@ -273,18 +259,14 @@ const ReviewOrder = () => {
 
       let succeeded = false;
       let lastError = null;
-      let respData = null;
 
       for (let i = 0; i < attempts.length; i++) {
         const a = attempts[i];
         try {
-          console.log('Trying coupon endpoint:', a.url, a.body);
           const res = await axios.post(a.url, a.body, {
             headers: { Authorization: `Bearer ${token}` },
             timeout: 12000,
           });
-
-          console.log('Response for', a.url, res?.status, res?.data);
 
           if (res?.data?.success) {
             const pd = res.data.data?.priceDetails ?? res.data.data ?? res.data;
@@ -302,7 +284,6 @@ const ReviewOrder = () => {
             setAppliedCoupon({ code, discount: res.data.data?.discountAmount ?? 0 });
             Alert.alert('Success', res.data.message || 'Coupon applied');
             succeeded = true;
-            respData = res.data;
             break;
           }
 
@@ -315,7 +296,6 @@ const ReviewOrder = () => {
           }
         } catch (err) {
           lastError = { err };
-          console.log(`coupon attempt error for ${a.url}`, err?.response?.status, err?.response?.data || err.message);
           const serverMsg = err?.response?.data?.message;
           if (serverMsg && /valid coupon code|required|invalid coupon/i.test(serverMsg)) {
             Alert.alert('Coupon Error', serverMsg);
@@ -347,17 +327,13 @@ const ReviewOrder = () => {
       };
 
       try {
-        console.log('Trying orders/place for coupon validation', validatePayload);
         const resOrder = await axios.post(`${API_BASE}/api/buyer/orders/place`, validatePayload, {
           headers: { Authorization: `Bearer ${token}` },
           timeout: 15000,
         });
 
-        console.log('orders/place response', resOrder?.status, resOrder?.data);
-
         if (resOrder?.data?.success) {
           if (Array.isArray(resOrder.data.orderIds) && resOrder.data.orderIds.length > 0) {
-            Alert.alert('Note', 'Server created an order while validating coupon. Redirecting to payment.');
             const payments = resOrder.data.payments ?? resOrder.data.data?.payments ?? [];
             const totalAmountToPay = Number(resOrder.data.totalAmountToPay ?? resOrder.data.data?.totalAmountToPay ?? 0);
             const orderIds = resOrder.data.orderIds ?? resOrder.data.data?.orderIds ?? [];
@@ -389,7 +365,6 @@ const ReviewOrder = () => {
           return;
         }
       } catch (errOrders) {
-        console.log('orders/place validate error', errOrders?.response?.status, errOrders?.response?.data || errOrders.message);
         const serverMsg = errOrders?.response?.data?.message || errOrders?.message || 'Coupon validation failed';
         Alert.alert('Coupon Error', serverMsg);
         setApplyingCoupon(false);
@@ -441,7 +416,7 @@ const ReviewOrder = () => {
     }
   };
 
-  // Update quantity
+  // ----- quantity/update/remove functions -----
   const updateQuantityInAPI = async (cartItemId, newQuantity) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -469,7 +444,8 @@ const ReviewOrder = () => {
 
   const decreaseQuantity = (id) => {
     const product = products.find(p => p.id === id);
-    if (!product || product.quantity <= 1) return;
+    if (!product) return;
+    if (product.quantity <= 1) return;
     const newQuantity = product.quantity - 1;
     setProducts(products.map(p => p.id === id ? { ...p, quantity: newQuantity } : p));
     updateQuantityInAPI(id, newQuantity);
@@ -483,7 +459,6 @@ const ReviewOrder = () => {
       });
       if (response.data.success) {
         setProducts(products.filter(p => p.id !== id));
-        // refresh server price details after removal
         fetchCartProducts();
         Alert.alert('Success', 'Item removed');
       } else {
@@ -495,7 +470,6 @@ const ReviewOrder = () => {
     }
   };
 
-  // Proceed: use server-provided totalAmount when available
   const handleProceedToPayment = () => {
     if (!selectedAddress) {
       Alert.alert('Address Missing', 'Please select a delivery address');
@@ -507,7 +481,6 @@ const ReviewOrder = () => {
     }
     const totals = computeTotals();
     const totalItems = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
-    // IMPORTANT: pass server's totalAmount if usedServer true, else pass client totalAmount
     const amountToPay = totals.totalAmount;
 
     navigation.navigate("Payment", {
@@ -515,7 +488,7 @@ const ReviewOrder = () => {
       deliveryType: "Delivery",
       comments: "Deliver before 8 PM please",
       paymentMethod: "UPI",
-      totalAmount: Number(amountToPay.toFixed(2)), // ensure number
+      totalAmount: Number(amountToPay.toFixed(2)),
       totalItems: totalItems.toString(),
     });
   };
@@ -538,11 +511,44 @@ const ReviewOrder = () => {
       else Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true }).start();
     },
   });
-  const handleAddressSelect = (addr) => {
-    setSelectedAddress(addr);
-    setPincode(addr.pincode);
-    closeModal();
+  const handleAddressSelect = async (addr) => {
+    try {
+      if (!addr || !addr.id) return;
+      setSelectedAddress(addr);
+      setPincode(addr.pincode);
+      closeModal();
+
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        return;
+      }
+
+      setSavingAddress(true);
+
+      const body = { addressId: addr.id };
+      const res = await axios.post(`${API_BASE}/api/buyer/delivery/address`, body, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 15000,
+      });
+
+      if (res && res.data && res.data.success) {
+        await fetchCartProducts();
+      } else {
+        console.warn('delivery/address response not success:', res?.data);
+        await fetchCartProducts();
+        if (res?.data && !res.data.success && res?.data.message) {
+          Alert.alert('Address', res.data.message);
+        }
+      }
+    } catch (err) {
+      console.error('Error saving delivery address:', err?.response?.data || err.message || err);
+      try { await fetchCartProducts(); } catch (e) { /* ignore */ }
+      Alert.alert('Error', 'Failed to save delivery address. Try again.');
+    } finally {
+      setSavingAddress(false);
+    }
   };
+
   const MoveToNewAddress = () => {
     setModalVisible(false);
     navigation.navigate("AddNewAddress");
@@ -604,7 +610,6 @@ const ReviewOrder = () => {
       </View>
     );
 
-  // compute totals for render
   const totalsForRender = computeTotals();
 
   return (
@@ -626,7 +631,7 @@ const ReviewOrder = () => {
             <View style={styles.location}>
               <Image source={require("../assets/via-farm-img/icons/loca.png")} />
               <Text style={styles.addressText}>
-                {selectedAddress ? `${selectedAddress.name}, ${selectedAddress.pincode}` : "Select delivery address"}
+                {selectedAddress ? `${selectedAddress.name}, ${selectedAddress.pincode || selectedAddress.pincode}` : "Select delivery address"}
               </Text>
             </View>
             <TouchableOpacity onPress={openModal}>
@@ -654,19 +659,15 @@ const ReviewOrder = () => {
             backgroundColor: "#fff",
           }}
         >
-          {/* Title + Radio */}
-          <View
-            style={{
+          <View style={{
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
-            }}
-          >
+            }}>
             <Text style={{ fontSize: normalizeFont(13), color: "#333", flex: 1 }}>
               Do you want to donate?
             </Text>
 
-            {/* Radio Button */}
             <TouchableOpacity
               onPress={() => setWantDonation(!wantDonation)}
               style={{
@@ -680,19 +681,16 @@ const ReviewOrder = () => {
               }}
             >
               {wantDonation && (
-                <View
-                  style={{
+                <View style={{
                     width: scale(12),
                     height: scale(12),
                     borderRadius: moderateScale(6),
                     backgroundColor: "#4CAF50",
-                  }}
-                />
+                  }} />
               )}
             </TouchableOpacity>
           </View>
 
-          {/* Donation amount input (only if checked) */}
           {wantDonation && (
             <View style={{ marginTop: moderateScale(12) }}>
               <Text style={{ fontSize: normalizeFont(12), color: "#555", marginBottom: moderateScale(4) }}>
@@ -753,7 +751,7 @@ const ReviewOrder = () => {
           </View>
         )}
 
-        {/* Price details: prefer server values */}
+        {/* Price details */}
         <View style={styles.priceSection}>
           <Text style={styles.priceTitle}>Price Details</Text>
           <View style={styles.priceRow}><Text style={styles.priceLabel}>Total MRP</Text><Text style={styles.priceValue}>₹{totalsForRender.subtotal.toFixed(2)}</Text></View>
@@ -813,14 +811,14 @@ const ReviewOrder = () => {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(10), }}>
                     <TouchableOpacity
                       onPress={() => {
-                        closeModal(); // first close the modal
+                        closeModal();
                         setTimeout(() => {
                           navigation.navigate('aditAddress', {
                             address: {
                               id: address.id,
                               pincode: address.pincode,
-                              houseNumber: addresses.houseNumber || '',
-                              locality: addresses.locality || '',
+                              houseNumber: address.houseNumber || '',
+                              locality: address.locality || '',
                               city: address.city || '',
                               district: address.district || '',
                               isDefault: address.isDefault || false,
@@ -841,8 +839,8 @@ const ReviewOrder = () => {
                             headers: { Authorization: `Bearer ${token}` },
                           });
                           if (res.data.success) {
-                            Alert.alert('Deleted', 'Address deleted successfully');
-                            fetchBuyerAddresses(); // refresh addresses
+                            // no need for modal close alert
+                            fetchBuyerAddresses();
                           }
                         } catch (err) {
                           console.error(err);
@@ -869,7 +867,6 @@ const ReviewOrder = () => {
     </SafeAreaView>
   );
 };
-
 
 
 export default ReviewOrder
@@ -1221,7 +1218,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderTopLeftRadius: moderateScale(20),
     borderTopRightRadius: moderateScale(20),
-    maxHeight: '95%',
+    maxHeight: '100%',
     borderWidth: 2,
     borderColor: 'rgba(255, 202, 40, 1)',
   },

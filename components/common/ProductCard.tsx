@@ -1,7 +1,7 @@
-// components/common/ProductCard.js
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   Image,
   PixelRatio,
@@ -28,6 +28,25 @@ const normalizeFont = (size) => {
   }
 };
 
+/**
+ * ProductCard (optimistic local updates, no alerts)
+ *
+ * Props:
+ *  - id, title, subtitle, price, rating, image
+ *  - isFavorite (bool)
+ *  - onPress(id)
+ *  - onFavoritePress(id)
+ *  - onAddToCart() -> may return Promise
+ *  - onQuantityChange(delta) -> may return Promise
+ *  - cartQuantity (number) authoritative from parent
+ *  - width, showRating, showFavorite, etc.
+ *
+ * Behavior:
+ *  - Updates local UI instantly when add/+/- pressed.
+ *  - Calls provided callbacks and awaits them if they return a Promise.
+ *  - If callback rejects/throws, local UI rolls back quietly.
+ *  - Shows small ActivityIndicator inside relevant control while processing.
+ */
 const ProductCard = ({
   id,
   title,
@@ -38,9 +57,9 @@ const ProductCard = ({
   isFavorite = false,
   onPress,
   onFavoritePress,
-  onAddToCart,           
-  onQuantityChange,     
-  cartQuantity = 0,       
+  onAddToCart,           // () => maybe Promise
+  onQuantityChange,      // (delta) => maybe Promise
+  cartQuantity = 0,      // authoritative number from parent
   width = moderateScale(140),
   showRating = true,
   showFavorite = true,
@@ -48,20 +67,85 @@ const ProductCard = ({
   cardStyle = {},
   imageHeight = moderateScale(120),
 }) => {
+  // local optimistic quantity (keeps UI snappy)
+  const [localQty, setLocalQty] = useState(Number(cartQuantity || 0));
+  // processing flag prevents multi-clicks
+  const [isProcessing, setIsProcessing] = useState(false);
+  // keep previous qty for rollback on failure
+  const prevQtyRef = useRef(localQty);
 
-  const qty = Number(cartQuantity || 0);
+  // sync authoritative parent changes into localQty (but don't overwrite while processing)
+  useEffect(() => {
+    if (!isProcessing) {
+      const parsed = Number(cartQuantity || 0);
+      setLocalQty(parsed);
+      prevQtyRef.current = parsed;
+    }
+  }, [cartQuantity, isProcessing]);
 
-  const handleAdd = () => {
-    onAddToCart?.();
+  // helper to run async callback with optimistic update + rollback
+  const runOptimistic = async ({ apply, rollback, callback }) => {
+    // if already processing, ignore
+    if (isProcessing) return false;
+    setIsProcessing(true);
+    const prev = prevQtyRef.current;
+
+    try {
+      // apply optimistic UI change immediately
+      apply();
+      // call the callback (may return Promise)
+      const res = callback && callback();
+      if (res && typeof res.then === "function") {
+        await res;
+      }
+      // success: commit (parent likely will also update cartQuantity)
+      prevQtyRef.current = localQty; // update previous snapshot
+      setIsProcessing(false);
+      return true;
+    } catch (err) {
+      // rollback silently
+      rollback(prev);
+      prevQtyRef.current = prev;
+      setIsProcessing(false);
+      return false;
+    }
   };
 
-  const handleIncrement = () => {
-    onQuantityChange?.(1);
+  const handleAdd = async () => {
+    if (!showAddToCart) return;
+    const prev = Number(localQty || 0);
+    await runOptimistic({
+      apply: () => {
+        setLocalQty(1);
+      },
+      rollback: (prevVal) => {
+        setLocalQty(prevVal);
+      },
+      callback: () => onAddToCart ? onAddToCart() : Promise.resolve(),
+    });
   };
 
-  const handleDecrement = () => {
-    onQuantityChange?.(-1);
+  const handleIncrement = async () => {
+    const prev = Number(localQty || 0);
+    const newVal = prev + 1;
+    await runOptimistic({
+      apply: () => setLocalQty(newVal),
+      rollback: (prevVal) => setLocalQty(prevVal),
+      callback: () => onQuantityChange ? onQuantityChange(1) : Promise.resolve(),
+    });
   };
+
+  const handleDecrement = async () => {
+    const prev = Number(localQty || 0);
+    const newVal = Math.max(0, prev - 1);
+    await runOptimistic({
+      apply: () => setLocalQty(newVal),
+      rollback: (prevVal) => setLocalQty(prevVal),
+      callback: () => onQuantityChange ? onQuantityChange(-1) : Promise.resolve(),
+    });
+  };
+
+  const qty = Number(localQty || 0);
 
   return (
     <View style={[{ width }, cardStyle]}>
@@ -144,14 +228,22 @@ const ProductCard = ({
                     paddingVertical: verticalScale(6),
                     paddingHorizontal: moderateScale(10),
                     borderRadius: moderateScale(6),
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
                   },
                 ]}
                 onPress={handleAdd}
                 activeOpacity={0.7}
+                disabled={isProcessing}
               >
-                <Text style={[styles.addToCartText, { fontSize: normalizeFont(12) }]}>
-                  Add to Cart
-                </Text>
+                {isProcessing ? (
+                  <ActivityIndicator size="small" />
+                ) : (
+                  <Text style={[styles.addToCartText, { fontSize: normalizeFont(12) }]}>
+                    Add to Cart
+                  </Text>
+                )}
               </TouchableOpacity>
             ) : (
               <View
@@ -159,20 +251,24 @@ const ProductCard = ({
                   styles.quantityBox,
                   {
                     borderRadius: moderateScale(8),
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
                   },
                 ]}
               >
                 <TouchableOpacity
                   onPress={handleDecrement}
                   style={[styles.sideBtn, { borderRightWidth: 1 }]}
+                  disabled={isProcessing}
                 >
-                  <Text style={styles.qtyBtnText}>−</Text>
+                  {isProcessing ? <ActivityIndicator size="small" /> : <Text style={styles.qtyBtnText}>−</Text>}
                 </TouchableOpacity>
 
                 <Text style={styles.qtyText}>{String(qty).padStart(2, "0")}</Text>
 
-                <TouchableOpacity onPress={handleIncrement} style={[styles.sideBtn, { borderLeftWidth: 1 }]}>
-                  <Text style={styles.qtyBtnText}>+</Text>
+                <TouchableOpacity onPress={handleIncrement} style={[styles.sideBtn, { borderLeftWidth: 1 }]} disabled={isProcessing}>
+                  {isProcessing ? <ActivityIndicator size="small" /> : <Text style={styles.qtyBtnText}>+</Text>}
                 </TouchableOpacity>
               </View>
             )}
@@ -182,7 +278,6 @@ const ProductCard = ({
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#fff",

@@ -1,4 +1,3 @@
-// SmartPicks.js (success alerts removed; errors/info kept)
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -48,7 +47,6 @@ const normalizeFont = (size) => {
 };
 // -----------------------------------------
 
-// Make card slightly wider than before but responsive
 const ITEM_CARD_WIDTH = Math.round(moderateScale(150));
 const ITEM_HORIZONTAL_MARGIN = Math.round(moderateScale(8));
 const ITEM_FULL = ITEM_CARD_WIDTH + ITEM_HORIZONTAL_MARGIN * 2;
@@ -67,30 +65,30 @@ const SmartPicks = () => {
   const [favorites, setFavorites] = useState(new Set());
   const [showDropdown, setShowDropdown] = useState(false);
   const [cartItems, setCartItems] = useState({});
-  // map productId -> boolean indicating update in progress
-  const [cartUpdating, setCartUpdating] = useState({});
+  // update map: productId -> boolean (true when an update is in progress)
+  const [updatingMap, setUpdatingMap] = useState({});
 
-  // ref to always read latest cartItems inside callbacks
+  // refs to read latest values inside callbacks
   const cartItemsRef = useRef(cartItems);
   useEffect(() => {
     cartItemsRef.current = cartItems;
   }, [cartItems]);
 
+  const favoritesRef = useRef(favorites);
+  useEffect(() => {
+    favoritesRef.current = favorites;
+  }, [favorites]);
+
   const animation = useRef(new Animated.Value(0)).current;
 
-  // Normalize API item to a stable shape
+  // normalize
   const normalizeApiItem = (item = {}) => {
     const productId = String(item.productId ?? item._id ?? item.id ?? '');
     const id = String(item.id ?? item._id ?? productId);
-
     let vendorName = '';
-    if (item.vendor?.name) {
-      vendorName = item.vendor.name;
-    } else if (item.vendorName) {
-      vendorName = item.vendorName;
-    } else if (item.seller?.name) {
-      vendorName = item.seller.name;
-    }
+    if (item.vendor?.name) vendorName = item.vendor.name;
+    else if (item.vendorName) vendorName = item.vendorName;
+    else if (item.seller?.name) vendorName = item.seller.name;
 
     return {
       raw: item,
@@ -125,6 +123,7 @@ const SmartPicks = () => {
     };
   }, []);
 
+  // fetch products
   const fetchProducts = useCallback(
     async (isRefresh = false) => {
       try {
@@ -159,6 +158,7 @@ const SmartPicks = () => {
     [mapApiItemToProduct]
   );
 
+  // fetch cart (authoritative)
   const fetchCart = useCallback(async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -166,17 +166,14 @@ const SmartPicks = () => {
         setCartItems({});
         return;
       }
-
       const response = await axios.get(`${API_BASE}${CART_GET}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       if (response.data?.success) {
         const items = response.data.data?.items || [];
         const cartMap = {};
         items.forEach((item) => {
           const productIdKey = String(item.productId ?? item._id ?? item.id ?? '');
-          // Try to capture cartItemId robustly
           const cartItemId = item._id ?? item.id ?? item.cartItemId ?? null;
           cartMap[productIdKey] = {
             quantity: item.quantity ?? 1,
@@ -194,15 +191,14 @@ const SmartPicks = () => {
     }
   }, []);
 
+  // fetch wishlist
   const fetchWishlist = useCallback(async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) return;
-
       const response = await axios.get(`${API_BASE}/api/buyer/wishlist`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       if (response.data?.success) {
         const wishlistItems = response.data.data?.items || [];
         const favoriteIds = new Set(
@@ -215,6 +211,7 @@ const SmartPicks = () => {
     }
   }, []);
 
+  // fetch categories (simple)
   const fetchCategories = useCallback(async () => {
     try {
       const res = await axios.get(`${API_BASE}/api/admin/manage-app/categories`, {
@@ -242,8 +239,7 @@ const SmartPicks = () => {
       console.error('Error fetching categories:', err);
       setCategories(['All']);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectedCategory]);
 
   useEffect(() => {
     fetchProducts();
@@ -257,7 +253,7 @@ const SmartPicks = () => {
     return () => sub.remove();
   }, [fetchProducts, fetchWishlist, fetchCart, fetchCategories]);
 
-  // Filter products by category
+  // filtered products by category
   useEffect(() => {
     const filtered =
       selectedCategory === 'All'
@@ -284,45 +280,41 @@ const SmartPicks = () => {
     else openDropdown();
   }, [showDropdown, openDropdown, closeDropdown]);
 
-  // Helper: set updating flag per product
-  const setUpdatingFlag = (productId, flag) => {
-    setCartUpdating((prev) => ({ ...prev, [productId]: flag }));
-  };
+  // updating flags helpers
+  const setUpdating = useCallback((id, v) => {
+    setUpdatingMap((prev) => ({ ...prev, [id]: v }));
+  }, []);
 
-  // Add to Cart (atomic)
+  // optimistic addToCart
   const addToCart = useCallback(
     async (product) => {
+      const productId = String(product.productId ?? product.id ?? '');
+      if (!productId) {
+        Alert.alert('Error', 'Invalid product id');
+        return false;
+      }
+
+      // prevent double updates
+      if (updatingMap[productId]) {
+        log('addToCart: in progress', productId);
+        return false;
+      }
+
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        Alert.alert('Login Required', 'Please login to add items to cart');
+        return false;
+      }
+
+      // optimistic UI change
+      setUpdating(productId, true);
+      setCartItems((prev) => {
+        if (prev[productId]) return prev; // already present
+        return { ...prev, [productId]: { quantity: 1, cartItemId: prev[productId]?.cartItemId || null } };
+      });
+
       try {
-        const token = await AsyncStorage.getItem('userToken');
-        if (!token) {
-          Alert.alert('Login Required', 'Please login to add items to cart');
-          return false;
-        }
-
-        const productId = String(
-          product.productId ?? product.raw?._id ?? product.raw?.id ?? product.id ?? ''
-        );
-        if (!productId) {
-          Alert.alert('Error', 'Invalid product id');
-          return false;
-        }
-
-        // prevent duplicate concurrent adds
-        if (cartUpdating[productId]) {
-          log('addToCart: update already in progress for', productId);
-          return false;
-        }
-
-        if (cartItemsRef.current[productId]) {
-          Alert.alert('Info', 'Product already in cart');
-          return false;
-        }
-
-        // Optimistic UI: mark as updating and set qty=1 locally
-        setUpdatingFlag(productId, true);
-        setCartItems((prev) => ({ ...prev, [productId]: { ...(prev[productId] || {}), quantity: 1 } }));
-
-        const cartData = {
+        const payload = {
           productId,
           name: product.title,
           image: product.image || product.raw?.image || '',
@@ -333,7 +325,7 @@ const SmartPicks = () => {
           unit: product.raw?.unit || 'piece',
         };
 
-        const response = await axios.post(`${API_BASE}${CART_ADD_ENDPOINT}`, cartData, {
+        const response = await axios.post(`${API_BASE}${CART_ADD_ENDPOINT}`, payload, {
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           timeout: 10000,
         });
@@ -341,75 +333,75 @@ const SmartPicks = () => {
         if (response.data?.success) {
           await fetchCart();
           DeviceEventEmitter.emit('cartUpdated');
-          // success alert removed as requested
-          setUpdatingFlag(productId, false);
+          setUpdating(productId, false);
           return true;
         } else {
+          // rollback
+          setCartItems((prev) => {
+            const next = { ...prev };
+            delete next[productId];
+            return next;
+          });
+          setUpdating(productId, false);
           const msg = response.data?.message || 'Failed to add to cart';
           Alert.alert('Info', msg);
-          await fetchCart();
-          setUpdatingFlag(productId, false);
           return false;
         }
-      } catch (error) {
-        console.error('Error adding to cart:', error);
-        const status = error.response?.status;
-        const msg = error.response?.data?.message || error.message || 'Failed to add to cart';
-        if (status === 401) {
-          Alert.alert('Login Required', 'Please login to add items');
-        } else if (status === 400) {
-          Alert.alert('Info', msg);
-        } else {
-          Alert.alert('Error', msg);
-        }
-        // refresh authoritative state and clear flag
+      } catch (err) {
+        console.error('Error adding to cart:', err);
+        // rollback
+        setCartItems((prev) => {
+          const next = { ...prev };
+          delete next[productId];
+          return next;
+        });
+        setUpdating(productId, false);
+        const status = err.response?.status;
+        const msg = err.response?.data?.message || err.message || 'Failed to add to cart';
+        if (status === 401) Alert.alert('Login Required', 'Please login to add items');
+        else if (status === 400) Alert.alert('Info', msg);
+        else Alert.alert('Error', msg);
         await fetchCart();
-        const productId = String(product.productId ?? product.raw?._id ?? product.raw?.id ?? product.id ?? '');
-        setUpdatingFlag(productId, false);
         return false;
       }
     },
-    [fetchCart, cartUpdating]
+    [fetchCart, updatingMap, setUpdating]
   );
 
-  // Update cart quantity (atomic, prevents multi-click)
+  // optimistic update quantity
   const updateCartQuantity = useCallback(
     async (product, newQty) => {
+      const productIdKey = String(product.productId ?? product.id ?? '');
+      if (!productIdKey) return;
+
+      if (updatingMap[productIdKey]) {
+        log('updateCartQuantity: already updating', productIdKey);
+        return;
+      }
+
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        Alert.alert('Login Required', 'Please login to update cart');
+        return;
+      }
+
+      const entry = cartItemsRef.current[productIdKey];
+      // if no cartItemId, refresh cart and abort
+      if (!entry || !entry.cartItemId) {
+        await fetchCart();
+        return;
+      }
+
+      const cartItemId = entry.cartItemId;
+
+      // optimistic update local
+      setUpdating(productIdKey, true);
+      setCartItems((prev) => {
+        const prevEntry = prev[productIdKey] || { quantity: 0, cartItemId };
+        return { ...prev, [productIdKey]: { ...prevEntry, quantity: newQty } };
+      });
+
       try {
-        const token = await AsyncStorage.getItem('userToken');
-        if (!token) {
-          Alert.alert('Login Required', 'Please login to update cart');
-          return;
-        }
-
-        const productIdKey = String(product.productId ?? product.id ?? '');
-        const entry = cartItemsRef.current[productIdKey];
-
-        if (cartUpdating[productIdKey]) {
-          log('updateCartQuantity: already updating', productIdKey);
-          return;
-        }
-
-        if (!entry || !entry.cartItemId) {
-          // Might be a race - refresh cart and abort
-          log('updateCartQuantity: missing entry or cartItemId, refreshing cart');
-          await fetchCart();
-          return;
-        }
-
-        const cartItemId = entry.cartItemId;
-
-        // Set updating flag immediately and optimistic local update
-        setUpdatingFlag(productIdKey, true);
-        setCartItems((prev) => {
-          const prevEntry = prev[productIdKey] || { quantity: 0, cartItemId };
-          return {
-            ...prev,
-            [productIdKey]: { ...prevEntry, quantity: newQty },
-          };
-        });
-
-        // If newQty <= 0 treat as delete
         if (newQty <= 0) {
           const delRes = await axios.delete(`${API_BASE}/api/buyer/cart/${cartItemId}`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -418,119 +410,133 @@ const SmartPicks = () => {
           if (delRes.data?.success) {
             await fetchCart();
             DeviceEventEmitter.emit('cartUpdated');
-            setUpdatingFlag(productIdKey, false);
+            setUpdating(productIdKey, false);
             return;
           } else {
-            Alert.alert('Error', delRes.data?.message || 'Failed to remove item');
-            await fetchCart();
-            setUpdatingFlag(productIdKey, false);
-            return;
+            throw new Error(delRes.data?.message || 'Failed to remove item');
           }
-        }
-
-        // Normal update flow
-        const res = await axios.put(
-          `${API_BASE}/api/buyer/cart/${cartItemId}/quantity`,
-          { quantity: newQty },
-          {
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-            timeout: 10000,
-          }
-        );
-
-        if (res.data?.success) {
-          await fetchCart();
-          DeviceEventEmitter.emit('cartUpdated');
-          setUpdatingFlag(productIdKey, false);
         } else {
-          Alert.alert('Error', res.data?.message || 'Failed to update quantity');
-          await fetchCart();
-          setUpdatingFlag(productIdKey, false);
+          const res = await axios.put(
+            `${API_BASE}/api/buyer/cart/${cartItemId}/quantity`,
+            { quantity: newQty },
+            { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, timeout: 10000 }
+          );
+          if (res.data?.success) {
+            await fetchCart();
+            DeviceEventEmitter.emit('cartUpdated');
+            setUpdating(productIdKey, false);
+            return;
+          } else {
+            throw new Error(res.data?.message || 'Failed to update quantity');
+          }
         }
       } catch (err) {
         console.error('Error updating cart quantity:', err);
-        const msg = err.response?.data?.message || 'Failed to update cart quantity';
-        Alert.alert('Error', msg);
+        // rollback by refreshing authoritative state
         await fetchCart();
-        const productIdKey = String(product.productId ?? product.id ?? '');
-        setUpdatingFlag(productIdKey, false);
+        setUpdating(productIdKey, false);
+        const msg = err.response?.data?.message || err.message || 'Failed to update cart';
+        Alert.alert('Error', msg);
       }
     },
-    [fetchCart, cartUpdating]
+    [fetchCart, updatingMap, setUpdating]
   );
 
-  // Wishlist functions (success alerts removed)
-  const addToWishlist = useCallback(async (product) => {
-    try {
+  // wishlist - optimistic add
+  const addToWishlist = useCallback(
+    async (product) => {
+      const productId = String(product.productId ?? product.id ?? '');
+      if (!productId) return false;
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
         Alert.alert('Login Required', 'Please login to add items to wishlist');
         return false;
       }
 
-      const payload = {
-        productId: product.productId || product.id,
-        name: product.title,
-        image: product.image,
-        price: product.price,
-        category: product.category,
-        variety: product.subtitle || 'Standard',
-        unit: 'piece',
-      };
-
-      const response = await axios.post(`${API_BASE}${WISHLIST_ADD_ENDPOINT}`, payload, {
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      // optimistic
+      setFavorites((prev) => {
+        const next = new Set(prev);
+        next.add(productId);
+        return next;
       });
 
-      if (response.data?.success) {
+      try {
+        const payload = {
+          productId,
+          name: product.title,
+          image: product.image,
+          price: product.price,
+          category: product.category,
+          variety: product.subtitle || 'Standard',
+          unit: 'piece',
+        };
+        const response = await axios.post(`${API_BASE}${WISHLIST_ADD_ENDPOINT}`, payload, {
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          timeout: 10000,
+        });
+        if (response.data?.success) {
+          // success: no alert (as requested)
+          return true;
+        } else {
+          throw new Error(response.data?.message || 'Failed to add to wishlist');
+        }
+      } catch (err) {
+        console.error('Error adding wishlist:', err);
+        // rollback
         setFavorites((prev) => {
           const next = new Set(prev);
-          next.add(String(product.productId || product.id));
+          next.delete(productId);
           return next;
         });
-        // success alert removed as requested
-        return true;
-      } else {
-        throw new Error(response.data?.message || 'Failed to add to wishlist');
+        const msg = err.response?.data?.message || err.message || 'Failed to add to wishlist';
+        Alert.alert('Error', msg);
+        return false;
       }
-    } catch (error) {
-      console.error('Error adding to wishlist:', error);
-      Alert.alert('Error', error.response?.data?.message || error.message || 'Failed to add to wishlist');
-      return false;
-    }
-  }, []);
+    },
+    []
+  );
 
-  const removeFromWishlist = useCallback(async (product) => {
-    try {
+  // wishlist - optimistic remove
+  const removeFromWishlist = useCallback(
+    async (product) => {
+      const productId = String(product.productId ?? product.id ?? '');
+      if (!productId) return false;
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
         Alert.alert('Login Required', 'Please login to manage wishlist');
         return false;
       }
 
-      const productId = product.productId || product.id;
-      const response = await axios.delete(`${API_BASE}${WISHLIST_REMOVE_ENDPOINT}/${productId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      // optimistic
+      setFavorites((prev) => {
+        const next = new Set(prev);
+        next.delete(productId);
+        return next;
       });
 
-      if (response.data?.success) {
-        setFavorites((prev) => {
-          const next = new Set(prev);
-          next.delete(String(product.productId ?? product.id));
-          return next;
+      try {
+        const response = await axios.delete(`${API_BASE}${WISHLIST_REMOVE_ENDPOINT}/${productId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 10000,
         });
-        return true;
-      } else {
-        throw new Error(response.data?.message || 'Failed to remove from wishlist');
+        if (response.data?.success) {
+          return true;
+        } else {
+          throw new Error(response.data?.message || 'Failed to remove from wishlist');
+        }
+      } catch (err) {
+        console.error('Error removing wishlist:', err);
+        // rollback
+        setFavorites((prev) => new Set(prev).add(productId));
+        const msg = err.response?.data?.message || err.message || 'Failed to remove from wishlist';
+        Alert.alert('Error', msg);
+        return false;
       }
-    } catch (error) {
-      console.error('Error removing from wishlist:', error);
-      Alert.alert('Error', error.response?.data?.message || 'Failed to remove from wishlist');
-      return false;
-    }
-  }, []);
+    },
+    []
+  );
 
-  // Navigation / handlers
+  // handlers used by ProductCard
   const handleCardPress = useCallback(
     (productId, item) => {
       try {
@@ -548,20 +554,18 @@ const SmartPicks = () => {
 
   const handleFavoritePress = useCallback(
     async (productId) => {
-      try {
-        const product = filteredProducts.find((p) => p.id === productId);
-        if (!product) return;
-        if (favorites.has(String(product.productId ?? product.id))) {
-          await removeFromWishlist(product);
-        } else {
-          await addToWishlist(product);
-        }
-        await fetchWishlist();
-      } catch (err) {
-        console.error(err);
+      const product = filteredProducts.find((p) => p.id === productId);
+      if (!product) return;
+      const pid = String(product.productId ?? product.id);
+      if (favoritesRef.current.has(pid)) {
+        await removeFromWishlist(product);
+      } else {
+        await addToWishlist(product);
       }
+      // refresh authoritative wishlist in background
+      fetchWishlist().catch((e) => console.warn('fetchWishlist after toggle failed', e));
     },
-    [filteredProducts, favorites, addToWishlist, removeFromWishlist, fetchWishlist]
+    [filteredProducts, addToWishlist, removeFromWishlist, fetchWishlist]
   );
 
   const handleAddToCart = useCallback(
@@ -577,29 +581,21 @@ const SmartPicks = () => {
     async (productId, change) => {
       const product = filteredProducts.find((p) => p.id === productId);
       if (!product) return;
-
       const key = String(product.productId ?? product.id);
       const currentQty = cartItemsRef.current[key]?.quantity ?? 0;
       const newQty = Math.max(0, currentQty + change);
-
-      // If updating in progress, ignore the click
-      if (cartUpdating[key]) {
-        log('handleQuantityChange: click ignored — updating in progress for', key);
-        return;
-      }
-
       await updateCartQuantity(product, newQty);
     },
-    [filteredProducts, updateCartQuantity, cartUpdating]
+    [filteredProducts, updateCartQuantity]
   );
 
-  // Memoized renderItem
+  // render item
   const renderProductCard = useCallback(
     ({ item }) => {
       const productIdKey = item.productId || item.id;
       const inCart = !!cartItems[productIdKey];
       const quantity = cartItems[productIdKey]?.quantity || 0;
-      const isUpdating = !!cartUpdating[productIdKey];
+      const isUpdating = !!updatingMap[productIdKey];
 
       return (
         <View style={[styles.cardWrapper, { width: ITEM_CARD_WIDTH }]}>
@@ -613,7 +609,6 @@ const SmartPicks = () => {
             isFavorite={favorites.has(String(item.productId ?? item.id))}
             onPress={() => handleCardPress(item.productId ?? item.id, item)}
             onFavoritePress={() => handleFavoritePress(item.id)}
-            // important: pass bound handlers expected by ProductCard (no args)
             onAddToCart={() => {
               if (isUpdating) {
                 log('addToCart click ignored for', productIdKey);
@@ -638,7 +633,7 @@ const SmartPicks = () => {
         </View>
       );
     },
-    [favorites, cartItems, handleCardPress, handleFavoritePress, handleAddToCart, handleQuantityChange, cartUpdating]
+    [favorites, cartItems, handleCardPress, handleFavoritePress, handleAddToCart, handleQuantityChange, updatingMap]
   );
 
   if (loading && !refreshing) {
@@ -722,7 +717,7 @@ const SmartPicks = () => {
         }
         initialNumToRender={5}
         removeClippedSubviews={false}
-        extraData={{ favorites: Array.from(favorites), cartItems, selectedCategory, cartUpdating }}
+        extraData={{ favorites: Array.from(favorites), cartItems, selectedCategory, updatingMap }}
         getItemLayout={(data, index) => ({ length: ITEM_FULL, offset: ITEM_FULL * index, index })}
         windowSize={5}
         maxToRenderPerBatch={6}
@@ -737,6 +732,7 @@ const SmartPicks = () => {
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },

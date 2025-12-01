@@ -5,16 +5,15 @@ import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import ProfileCard from '../common/VendorsCard';
-
 
 const API_BASE = "https://viafarm-1.onrender.com";
 
@@ -43,7 +42,7 @@ const FreshVendor = () => {
         timeout: 10000,
       });
 
-      // Prefer explicit res.data.vendors (as per provided response), else fallback to other shapes
+      // Normalize response shapes
       let fetched = [];
       if (res?.data?.vendors && Array.isArray(res.data.vendors)) {
         fetched = res.data.vendors;
@@ -59,17 +58,25 @@ const FreshVendor = () => {
         fetched = res.data?.data || [];
       }
 
-      const normalized = (Array.isArray(fetched) ? fetched : []).map(v => ({
-        _id: v._id || v.id || v.vendorId || null,
-        id: v.id || v._id || v.vendorId || null,
-        name: v.name || v.vendorName || v?.profile?.name || "Unknown Vendor",
-        image: v.profilePicture || v.image || v.profileImage || v.logo || (v.images && v.images[0]) || "https://via.placeholder.com/300",
-        rating: v.rating || v.avgRating || 0,
-        distance: v.distance || v.distanceFromVendor || (typeof v.distanceValue === 'number' ? `${v.distanceValue} km` : "0.0 km"),
-        category: normalizeCategoryArray(v.categories || v.category || v.categoriesList),
-        topProducts: Array.isArray(v.topProducts) ? v.topProducts : [],
-        raw: v,
-      }));
+      const normalized = (Array.isArray(fetched) ? fetched : []).map(v => {
+        const id = v._id || v.id || v.vendorId || (v.raw && (v.raw._id || v.raw.id));
+        const name = v.name || v.vendorName || v?.profile?.name || "Unknown Vendor";
+        const image = v.profilePicture || v.image || v.profileImage || v.logo || (Array.isArray(v.images) && v.images[0]) || "https://via.placeholder.com/300";
+        const rating = v.rating ?? v.avgRating ?? 0;
+        const distance = v.distance || v.distanceFromVendor || (typeof v.distanceValue === 'number' ? `${v.distanceValue} km` : "0.0 km");
+
+        return {
+          _id: id,
+          id,
+          name,
+          image,
+          rating,
+          distance,
+          category: normalizeCategoryArray(v.categories || v.category || v.categoriesList),
+          topProducts: Array.isArray(v.topProducts) ? v.topProducts : [],
+          raw: v,
+        };
+      });
 
       setVendors(normalized);
     } catch (err) {
@@ -85,9 +92,11 @@ const FreshVendor = () => {
   }, []);
 
   const openVendorDetails = (vendor) => {
-    const vendorId = vendor?.id || vendor?._id || vendor?.raw?.id;
+    if (!vendor) return;
+    const vendorId = vendor?.id || vendor?._id || vendor?.raw?._id || vendor?.raw?.id;
     if (!vendorId) return;
-    navigation.navigate('VendorDetails', { vendorId, vendor });
+    // ensure it's a string
+    navigation.navigate('VendorsDetails', { vendorId: String(vendorId), vendor });
   };
 
   if (loading) {
@@ -106,22 +115,23 @@ const FreshVendor = () => {
     );
   }
 
-   const AllVendor = ()=>{
-    navigation.navigate('VendorsSeeAll')
-  }
+  const AllVendor = () => {
+    navigation.navigate('VendorsSeeAll');
+  };
 
   return (
     <View style={styles.container}>
-    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between', paddingHorizontal:moderateScale(13),marginBottom:5}}>
-        <Text style={{fontSize:normalizeFont(12),fontWeight:'bold'}}>Vendor's</Text>
-        <TouchableOpacity style={{flexDirection:'row',alignItems:'center', gap:5}} onPress={AllVendor}>
-            <Text style={{fontSize:normalizeFont(12),color:'rgba(1, 151, 218, 1)'}}>See All</Text>
-            <Image source={require("../../assets/via-farm-img/icons/see.png")} />
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Vendor's</Text>
+        <TouchableOpacity style={styles.seeAllBtn} onPress={AllVendor}>
+          <Text style={styles.seeAllText}>See All</Text>
+          <Image source={require("../../assets/via-farm-img/icons/see.png")} />
         </TouchableOpacity>
-    </View>
+      </View>
+
       <FlatList
         data={vendors}
-        keyExtractor={(v) => v.id || v._id || v.raw?.id || String(v.name)}
+        keyExtractor={(v, idx) => (v.id || v._id || v.raw?.id || v.name || String(idx))}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
@@ -151,7 +161,27 @@ export default FreshVendor;
 
 const styles = StyleSheet.create({
   container: {
-    // paddingVertical: moderateScale(8),
+    // optional container styles
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: moderateScale(13),
+    marginBottom: 5,
+  },
+  title: {
+    fontSize: normalizeFont(12),
+    fontWeight: 'bold',
+  },
+  seeAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  seeAllText: {
+    fontSize: normalizeFont(12),
+    color: 'rgba(1, 151, 218, 1)',
   },
   listContent: {
     paddingLeft: moderateScale(12),
@@ -163,10 +193,12 @@ const styles = StyleSheet.create({
   loadingWrap: {
     paddingVertical: moderateScale(12),
     alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyWrap: {
     paddingVertical: moderateScale(12),
     alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyText: {
     color: '#666',

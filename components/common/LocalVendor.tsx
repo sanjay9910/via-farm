@@ -5,13 +5,13 @@ import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import ProfileCard from '../common/VendorsCard';
 
@@ -86,7 +86,7 @@ const FreshVendor = () => {
   const openVendorDetails = (vendor) => {
     const vendorId = vendor?.id || vendor?._id || vendor?.raw?.id;
     if (!vendorId) return;
-    navigation.navigate('VendorDetails', { vendorId, vendor });
+    navigation.navigate('VendorsDetails', { vendorId, vendor });
   };
 
   if (loading) {

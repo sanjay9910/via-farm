@@ -100,7 +100,6 @@ const ProfileScreen = () => {
     }
   };
 
-  // Load saved location from API
   const loadSavedLocation = async () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
@@ -691,9 +690,9 @@ const ProfileScreen = () => {
                     activeOpacity={0.7}
                   >
                     {updating ? (
-                      <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+                      <ActivityIndicator size="small" color="#fff" style={{ marginRight: moderateScale(8) }} />
                     ) : (
-                      <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+                      <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight:moderateScale(8) }} />
                     )}
                     <Text style={styles.updateButtonText}>
                       {updating ? 'Updating...' : 'Update Details'}
@@ -735,7 +734,7 @@ const ProfileScreen = () => {
                   <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
                 </TouchableOpacity>
                 <Text style={styles.modalTitle}>
-                  {savedLocation ? "Edit Location" : "Add Location"}
+                  {savedLocation ? "Edit Address" : "Add Address"}
                 </Text>
                 <View style={styles.placeholder} />
               </View>

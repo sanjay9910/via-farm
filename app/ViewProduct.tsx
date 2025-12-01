@@ -422,23 +422,23 @@ const styles = StyleSheet.create({
   heroImage: { width: SCREEN_W, height: SCREEN_W * 0.7, backgroundColor: '#f3f3f3' },
   favButton: { position: 'absolute', right: moderateScale(18), top:6, backgroundColor: 'transparent' },
 
-  infoCard: { backgroundColor: '#fff', marginTop: -14,  padding:moderateScale(14), minHeight: 220 },
+  infoCard: { backgroundColor: '#fff', marginTop: -14,  padding:moderateScale(14), minHeight:scale(220) },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize:normalizeFont(12),fontWeight:600,  },
   smallText: { color: '#666', fontSize:normalizeFont(12)},
-  mrp: { fontSize:normalizeFont(12), marginTop:5 },
+  mrp: { fontSize:normalizeFont(12), marginTop:moderateScale(5) },
   ratingPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal:moderateScale(10),paddingVertical:moderateScale(3) ,borderRadius:7, marginTop:moderateScale(8),borderWidth:1, borderColor:'rgba(0, 0, 0, 0.4)' },
 
   sectionTitle: { fontSize:normalizeFont(12), fontWeight: '600' },
-  description: { color: '#444', marginTop: 6, fontSize:normalizeFont(11) },
+  description: { color: '#444', marginTop:moderateScale(6), fontSize:normalizeFont(11) },
 
   nutriRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: moderateScale(12) },
   nutriCol: { alignItems: 'center', flex: 1 },
   nutriLabel: { color: '#777', fontSize: normalizeFont(12) },
-  nutriVal: { fontWeight: '600', marginTop: 6 },
+  nutriVal: { fontWeight: '600', marginTop:moderateScale(6) },
 
   vendorHeader: { marginTop: moderateScale(12), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  vendorExpanded: { flexDirection: 'row', marginTop:10, alignItems: 'center' },
+  vendorExpanded: { flexDirection: 'row', marginTop:moderateScale(10), alignItems: 'center' },
   vendorImage: { width: scale(70), height: scale(70), borderRadius: moderateScale(10), backgroundColor: '#f3f3f3' },
 
   pickupRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: moderateScale(12), padding: moderateScale(8), backgroundColor: '#fafafa', borderRadius: 8 },
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     color: '#22c55e',
   },
   qtyDisplay: {
-    minWidth:35,
+    minWidth:scale(35),
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderColor: '#22c55e',

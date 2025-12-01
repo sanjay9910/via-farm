@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -19,10 +19,21 @@ import LocalVendor from "../components/common/LocalVendor";
 import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const API_BASE = "https://viafarm-1.onrender.com";
-const CARD_WIDTH = Dimensions.get("window").width / 2- 25;
+const CARD_WIDTH = Dimensions.get("window").width / 2 - 25;
+
+/**
+ * Key changes:
+ * - memoize LocalVendor with React.memo
+ * - wrap handlers with useCallback so props to ProductCard remain stable
+ * - memoize header (which contains LocalVendor) using useMemo
+ * - use functional updates for cart/favorites to avoid recreating objects unnecessarily
+ */
+
+// Memoize LocalVendor (safe even if already memoized)
+const MemoLocalVendor = React.memo(LocalVendor);
 
 // ==================== ProductCard ====================
-const ProductCard = ({
+const ProductCard = React.memo(({
   item,
   isFavorite,
   onToggleFavorite,
@@ -35,7 +46,7 @@ const ProductCard = ({
 
   const imageUri = item?.image
     || (Array.isArray(item?.images) && item.images.length > 0 && item.images[0])
-    || "file:///mnt/data/Screenshot 2025-11-25 at 5.11.33 PM.png";
+    || "https://via.placeholder.com/300x300.png?text=No+Image";
 
   const distance =
     item?.distanceFromVendor ??
@@ -158,7 +169,7 @@ const ProductCard = ({
       </TouchableOpacity>
     </View>
   );
-};
+});
 
 // ==================== ViewAllLocalBest ====================
 const ViewAllLocalBest = () => {
@@ -170,7 +181,7 @@ const ViewAllLocalBest = () => {
   const [cartItems, setCartItems] = useState({});
 
   // Fetch Local Best Products
-  const fetchLocalBest = async () => {
+  const fetchLocalBest = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -213,10 +224,10 @@ const ViewAllLocalBest = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Fetch Wishlist
-  const fetchWishlist = async () => {
+  const fetchWishlist = useCallback(async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) return;
@@ -235,10 +246,10 @@ const ViewAllLocalBest = () => {
     } catch (error) {
       console.error('Error fetching wishlist:', error);
     }
-  };
+  }, []);
 
   // Fetch Cart
-  const fetchCart = async () => {
+  const fetchCart = useCallback(async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) return;
@@ -253,8 +264,8 @@ const ViewAllLocalBest = () => {
         items.forEach(item => {
           const productId = item.productId || item._id || item.id;
           cartMap[productId] = {
-            quantity: item.quantity || 1,
-            cartItemId: item._id || item.id
+            quantity: item.quantity || item.qty || 1,
+            cartItemId: item._id || item.id || item.cartItemId
           };
         });
         setCartItems(cartMap);
@@ -262,27 +273,34 @@ const ViewAllLocalBest = () => {
     } catch (error) {
       console.error('Error fetching cart:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchLocalBest();
     fetchWishlist();
     fetchCart();
-  }, []);
+    // note: fetch functions are stable thanks to useCallback
+  }, [fetchLocalBest, fetchWishlist, fetchCart]);
 
-  // Add to Wishlist
-  const addToWishlist = async (product) => {
+  // Add to Wishlist (optimistic & silent)
+  const addToWishlist = useCallback(async (product) => {
+    const productId = product._id || product.id;
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      Alert.alert('Login Required', 'Please login to add items to wishlist');
+      return;
+    }
+
+    setFavorites(prev => {
+      if (prev.has(productId)) return prev;
+      const next = new Set(prev);
+      next.add(productId);
+      return next;
+    });
+
     try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        Alert.alert('Login Required', 'Please login to add items to wishlist');
-        return;
-      }
-
-      const productId = product._id || product.id;
-
       const wishlistData = {
-        productId: productId,
+        productId,
         name: product.name,
         image: product.images?.[0] || product.image || '',
         price: product.price,
@@ -290,86 +308,84 @@ const ViewAllLocalBest = () => {
         variety: product.variety || 'Standard',
         unit: product.unit || 'kg'
       };
-
-      const response = await axios.post(
-        `${API_BASE}/api/buyer/wishlist/add`,
-        wishlistData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.data?.success) {
-        setFavorites(prev => new Set(prev).add(productId));
-        Alert.alert('Success', 'Added to wishlist!');
-      }
+      await axios.post(`${API_BASE}/api/buyer/wishlist/add`, wishlistData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
     } catch (error) {
       console.error('Error adding to wishlist:', error);
-      if (error.response?.status === 400) {
-        const productId = product._id || product.id;
-        setFavorites(prev => new Set(prev).add(productId));
-        Alert.alert('Info', 'Already in wishlist');
-      } else {
-        Alert.alert('Error', 'Failed to add to wishlist');
-      }
+      // rollback if failed
+      setFavorites(prev => {
+        const next = new Set(prev);
+        next.delete(productId);
+        return next;
+      });
+      if (!error.response) Alert.alert('Network Error', 'Failed to add to wishlist');
     }
-  };
+  }, []);
 
-  // Remove from Wishlist
-  const removeFromWishlist = async (product) => {
+  // Remove from Wishlist (optimistic & silent)
+  const removeFromWishlist = useCallback(async (product) => {
+    const productId = product._id || product.id;
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      // nothing to do if not logged in
+      return;
+    }
+
+    // optimistic remove
+    setFavorites(prev => {
+      if (!prev.has(productId)) return prev;
+      const next = new Set(prev);
+      next.delete(productId);
+      return next;
+    });
+
     try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) return;
-
-      const productId = product._id || product.id;
-
-      const response = await axios.delete(
-        `${API_BASE}/api/buyer/wishlist/${productId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.data?.success) {
-        setFavorites(prev => {
-          const next = new Set(prev);
-          next.delete(productId);
-          return next;
-        });
-        Alert.alert('Removed', 'Removed from wishlist');
-      }
+      await axios.delete(`${API_BASE}/api/buyer/wishlist/${productId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
     } catch (error) {
       console.error('Error removing from wishlist:', error);
-      Alert.alert('Error', 'Failed to remove from wishlist');
+      // rollback
+      setFavorites(prev => new Set(prev).add(productId));
+      if (!error.response) Alert.alert('Network Error', 'Failed to remove from wishlist');
     }
-  };
+  }, []);
 
   // Toggle Favorite
-  const handleToggleFavorite = async (product) => {
+  const handleToggleFavorite = useCallback((product) => {
     const productId = product._id || product.id;
     if (favorites.has(productId)) {
-      await removeFromWishlist(product);
+      removeFromWishlist(product);
     } else {
-      await addToWishlist(product);
+      addToWishlist(product);
     }
-  };
+  }, [favorites, addToWishlist, removeFromWishlist]);
 
-  // Add to Cart
-  const handleAddToCart = async (product) => {
+  // Add to Cart (optimistic & silent)
+  const handleAddToCart = useCallback(async (product) => {
+    const productId = product._id || product.id;
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      Alert.alert('Login Required', 'Please login to add items to cart');
+      return;
+    }
+
+    // optimistic UI - set quantity 1
+    setCartItems(prev => {
+      if (prev[productId]) return prev;
+      return {
+        ...prev,
+        [productId]: {
+          quantity: 1,
+          cartItemId: prev[productId]?.cartItemId || productId
+        }
+      };
+    });
+
     try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        Alert.alert('Login Required', 'Please login to add items to cart');
-        return;
-      }
-
-      const productId = product._id || product.id;
-
       const cartData = {
-        productId: productId,
+        productId,
         name: product.name,
         image: product.images?.[0] || product.image || '',
         price: product.price,
@@ -379,97 +395,98 @@ const ViewAllLocalBest = () => {
         unit: product.unit || 'kg'
       };
 
-      const response = await axios.post(
-        `${API_BASE}/api/buyer/cart/add`,
-        cartData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await axios.post(`${API_BASE}/api/buyer/cart/add`, cartData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (response.data?.success) {
+        const serverId = response.data.data?._id || productId;
         setCartItems(prev => ({
           ...prev,
-          [productId]: {
-            quantity: 1,
-            cartItemId: response.data.data?._id || productId
-          }
+          [productId]: { quantity: prev[productId]?.quantity || 1, cartItemId: serverId }
         }));
-        Alert.alert('Success', 'Added to cart!');
+      } else {
+        // rollback
+        setCartItems(prev => {
+          const next = { ...prev };
+          delete next[productId];
+          return next;
+        });
       }
     } catch (error) {
       console.error('Error adding to cart:', error);
+      setCartItems(prev => {
+        const next = { ...prev };
+        delete next[productId];
+        return next;
+      });
       if (error.response?.status === 400) {
         await fetchCart();
-        Alert.alert('Info', 'Product is already in cart');
-      } else {
-        Alert.alert('Error', 'Failed to add to cart');
+      } else if (!error.response) {
+        Alert.alert('Network Error', 'Failed to add to cart');
       }
     }
-  };
+  }, [fetchCart]);
 
-  // Update Quantity
-  const handleUpdateQuantity = async (product, change) => {
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) return;
-
-      const productId = product._id || product.id;
-      const currentItem = cartItems[productId];
-      if (!currentItem) return;
-
-      const newQuantity = currentItem.quantity + change;
-
-      if (newQuantity < 1) {
-        const response = await axios.delete(
-          `${API_BASE}/api/buyer/cart/${currentItem.cartItemId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        if (response.data?.success) {
-          setCartItems(prev => {
-            const next = { ...prev };
-            delete next[productId];
-            return next;
-          });
-          Alert.alert('Removed', 'Item removed from cart');
-        }
-      } else {
-        setCartItems(prev => ({
-          ...prev,
-          [productId]: { ...currentItem, quantity: newQuantity }
-        }));
-
-        const response = await axios.put(
-          `${API_BASE}/api/buyer/cart/${currentItem.cartItemId}/quantity`,
-          { quantity: newQuantity },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (!response.data?.success) {
-          setCartItems(prev => ({ ...prev, [productId]: currentItem }));
-          Alert.alert('Error', 'Failed to update quantity');
-        }
-      }
-    } catch (error) {
-      console.error('Error updating quantity:', error);
-      await fetchCart();
-      Alert.alert('Error', 'Failed to update quantity');
+  // Update Quantity (optimistic)
+  const handleUpdateQuantity = useCallback(async (product, change) => {
+    const productId = product._id || product.id;
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      Alert.alert('Login Required', 'Please login to update cart');
+      return;
     }
-  };
+
+    const currentItem = cartItems[productId];
+    if (!currentItem) return;
+
+    const newQuantity = (currentItem.quantity || 0) + change;
+
+    if (newQuantity < 1) {
+      // optimistic remove
+      setCartItems(prev => {
+        const next = { ...prev };
+        delete next[productId];
+        return next;
+      });
+
+      try {
+        const res = await axios.delete(`${API_BASE}/api/buyer/cart/${currentItem.cartItemId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.data?.success) {
+          await fetchCart();
+        }
+      } catch (err) {
+        console.error('Error removing from cart:', err);
+        await fetchCart();
+        if (!err.response) Alert.alert('Network Error', 'Failed to update cart');
+      }
+    } else {
+      // optimistic update
+      setCartItems(prev => ({
+        ...prev,
+        [productId]: { ...currentItem, quantity: newQuantity }
+      }));
+
+      try {
+        const res = await axios.put(`${API_BASE}/api/buyer/cart/${currentItem.cartItemId}/quantity`, { quantity: newQuantity }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.data?.success) {
+          await fetchCart();
+        }
+      } catch (err) {
+        console.error('Error updating quantity:', err);
+        await fetchCart();
+        if (!err.response) Alert.alert('Network Error', 'Failed to update cart');
+      }
+    }
+  }, [cartItems, fetchCart]);
 
   // Open Product Details
-  const openProductDetails = (product) => {
+  const openProductDetails = useCallback((product) => {
     try {
       const productId = product?._id || product?.id;
       if (!productId) {
@@ -481,35 +498,38 @@ const ViewAllLocalBest = () => {
       console.error("openProductDetails error:", err);
       Alert.alert("Navigation Error", "Could not open product details. See console.");
     }
-  };
+  }, [navigation]);
 
-  // List Header with Vendors
-  const ListHeader = () => (
-    <View>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonContainer}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Local Best</Text>
-        <View style={{ width: 50 }} />
-      </View>
-
+  // Memoized header (won't be recreated on every render)
+  const ListHeader = useMemo(() => {
+    return (
       <View>
-        <LocalVendor/>
-      </View>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonContainer}>
+            <Ionicons name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Local Best</Text>
+          <View style={{ width: 50 }} />
+        </View>
 
-      <View style={{ paddingHorizontal:moderateScale(10) }}>
-        <Text style={{ fontSize:normalizeFont(13), fontWeight: "700" }}>Products</Text>
-      </View>
-    </View>
-  );
+        <View>
+          <MemoLocalVendor />
+        </View>
 
-  const handleRetry = () => {
+        <View style={{ paddingHorizontal: moderateScale(10) }}>
+          <Text style={{ fontSize: normalizeFont(13), fontWeight: "700" }}>Products</Text>
+        </View>
+      </View>
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // no deps so created once
+
+  const handleRetry = useCallback(() => {
     setError(null);
     fetchLocalBest();
     fetchWishlist();
     fetchCart();
-  };
+  }, [fetchLocalBest, fetchWishlist, fetchCart]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -528,10 +548,10 @@ const ViewAllLocalBest = () => {
       ) : (
         <FlatList
           data={localBestProducts}
-          keyExtractor={(item, index) => item._id || item.id || String(item?.name) || String(index)}
+          keyExtractor={(item, index) => (item._id || item.id || String(item?.name) || String(index))}
           numColumns={2}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal:11, paddingBottom: 20 }}
+          contentContainerStyle={{ paddingHorizontal: 11, paddingBottom: 20 }}
           renderItem={({ item }) => {
             const productId = item._id || item.id;
             const isFavorite = favorites.has(productId);
@@ -551,6 +571,8 @@ const ViewAllLocalBest = () => {
           }}
           columnWrapperStyle={{ justifyContent: "space-between" }}
           ListHeaderComponent={ListHeader}
+          removeClippedSubviews={true}
+          initialNumToRender={8}
         />
       )}
     </SafeAreaView>
