@@ -90,10 +90,10 @@ const ProductCard = ({
           </Text>
 
           <Text style={cardStyles.productVeriety} numberOfLines={1}>
-           Variety: {item?.variety ?? "N/A"}
+            Variety: {item?.variety ?? "N/A"}
           </Text>
 
-          <View style={{flexDirection:'row',alignItems:'center',gap:scale(6), marginTop: moderateScale(6)}}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(6), marginTop: moderateScale(6) }}>
             <Image source={require("../assets/via-farm-img/icons/loca.png")} />
             <Text style={cardStyles.distanceText}>
               {distance ?? "0.0 km"}
@@ -167,7 +167,7 @@ const MyWishlist = () => {
   const [favorites, setFavorites] = useState(new Set());
   const [cartItems, setCartItems] = useState({});
   const [selectedOption, setSelectedOption] = useState('All');
-  const [ options ,setAllCategory] = useState([]);
+  const [options, setAllCategory] = useState([]);
 
   const fetchWishlistData = async () => {
     try {
@@ -349,24 +349,24 @@ const MyWishlist = () => {
     }
   };
 
-  useEffect(()=>{
-    const getAllCategory = async ()=>{
-      try{
-       const token = await AsyncStorage.getItem("userToken");
-       const catRes = await axios.get(`${API_BASE}/api/admin/manage-app/categories`,{
-        headers:{
-         Authorization:`Bearer ${token}`
-        },
-       });
-  
-       const onlyNames = catRes.data?.categories?.map((item) => item.name) || [];
-       setAllCategory(onlyNames)
-      }catch(error){
-        console.log("Error",error)
+  useEffect(() => {
+    const getAllCategory = async () => {
+      try {
+        const token = await AsyncStorage.getItem("userToken");
+        const catRes = await axios.get(`${API_BASE}/api/admin/manage-app/categories`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+        });
+
+        const onlyNames = catRes.data?.categories?.map((item) => item.name) || [];
+        setAllCategory(onlyNames)
+      } catch (error) {
+        console.log("Error", error)
       }
     }
     getAllCategory();
-  },[])
+  }, [])
 
   const handleToggleFavorite = async (product) => {
     const productId = product._id || product.id || product.productId;
@@ -583,9 +583,9 @@ const MyWishlist = () => {
           <TouchableOpacity onPress={goBack}>
             <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
           </TouchableOpacity>
-          <Text style={styles.text}>My Wishlist</Text>
-        </View>
 
+        </View>
+        <Text style={styles.text}>My Wishlist</Text>
         <View style={styles.filterWrapper}>
           <TouchableOpacity style={styles.filterBtn} onPress={toggleDropdown}>
             <View style={styles.filterExpand}>
@@ -596,11 +596,11 @@ const MyWishlist = () => {
 
           <Animated.View style={[styles.dropdown, { height: dropdownHeight, borderWidth: borderWidth }]}>
             <ScrollView>
-            {options.map(opt => (
-              <TouchableOpacity key={opt} style={styles.dropdownItem} onPress={() => handleSelect(opt)}>
-                <Text style={styles.dropdownText}>{opt}</Text>
-              </TouchableOpacity>
-            ))}
+              {options.map(opt => (
+                <TouchableOpacity key={opt} style={styles.dropdownItem} onPress={() => handleSelect(opt)}>
+                  <Text style={styles.dropdownText}>{opt}</Text>
+                </TouchableOpacity>
+              ))}
             </ScrollView>
           </Animated.View>
         </View>
@@ -720,10 +720,10 @@ const cardStyles = StyleSheet.create({
     paddingVertical: moderateScale(12),
     paddingHorizontal: moderateScale(12),
     borderRadius: moderateScale(6),
-    width:'100%',
-    flexDirection:'row',
-    alignItems:'center',
-    justifyContent:'center',
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addToCartText: {
     color: '#fff',
@@ -737,28 +737,28 @@ const cardStyles = StyleSheet.create({
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent:'space-around',
-    borderWidth:1,
-    borderColor:'rgba(76, 175, 80, 1)',
+    justifyContent: 'space-around',
+    borderWidth: 1,
+    borderColor: 'rgba(76, 175, 80, 1)',
     paddingHorizontal: moderateScale(6),
     paddingVertical: moderateScale(8),
     borderRadius: moderateScale(6),
-    width:'100%',
+    width: '100%',
   },
   quantityButton: {
     paddingHorizontal: moderateScale(8),
     paddingVertical: moderateScale(4),
-    color:'rgba(76, 175, 80, 1)',
+    color: 'rgba(76, 175, 80, 1)',
   },
   quantityText: {
     color: 'rgba(76, 175, 80, 1)',
     minWidth: moderateScale(42),
-    top:0,
+    top: 0,
     textAlign: 'center',
     fontWeight: '700',
-    borderLeftWidth:1,
-    borderRightWidth:1,
-    borderColor:'rgba(76, 175, 80, 1)',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(76, 175, 80, 1)',
   }
 });
 

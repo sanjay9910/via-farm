@@ -219,7 +219,7 @@ const ProductCard = ({
           <Text style={[styles.productPrice, { fontSize: normalizeFont(11) }]}>{`₹${price}`}</Text>
 
           {/* Add to Cart / Quantity (controlled) */}
-          <View style={[styles.buttonContainer, { minHeight: verticalScale(36) }]}>
+          <View style={[styles.buttonContainer, { minHeight: verticalScale(47) }]}>
             {qty <= 0 ? (
               <TouchableOpacity
                 style={[
@@ -330,6 +330,7 @@ const styles = StyleSheet.create({
   },
   productSubtitle: {
     color: "#888",
+    // paddingVertical:moderateScale(5),
     marginBottom: moderateScale(6),
   },
   productPrice: {

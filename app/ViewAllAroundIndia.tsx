@@ -6,7 +6,6 @@ import { goBack } from "expo-router/build/global-state/routing";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   FlatList,
   Image,
@@ -262,15 +261,23 @@ const ViewAllAroundIndia = () => {
     return items.filter((p) => (p?.name ?? "").toString().toLowerCase().includes(q));
   }, [items, query]);
 
-  // wishlist handlers
+  // wishlist handlers (OPTIMISTIC updates)
   const addToWishlist = async (product) => {
+    const productId = product._id || product.id;
+    // optimistic local update
+    setFavorites((prev) => new Set(prev).add(productId));
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) {
-        Alert.alert("Login Required", "Please login to add items to wishlist");
+        // rollback
+        setFavorites((prev) => {
+          const next = new Set(prev);
+          next.delete(productId);
+          return next;
+        });
+        console.log("addToWishlist: no token - user not logged in");
         return;
       }
-      const productId = product._id || product.id;
       const payload = {
         productId,
         name: product.name,
@@ -283,62 +290,91 @@ const ViewAllAroundIndia = () => {
       const r = await axios.post(`${API_BASE}/api/buyer/wishlist/add`, payload, {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       });
-      if (r.data?.success) {
-        setFavorites((prev) => new Set(prev).add(productId));
-        Alert.alert("Success", "Added to wishlist!");
-      }
-    } catch (err: any) {
-      console.error("Error adding to wishlist:", err);
-      if (err.response?.status === 400) {
-        const productId = product._id || product.id;
-        setFavorites((prev) => new Set(prev).add(productId));
-        Alert.alert("Info", "Already in wishlist");
-      } else {
-        Alert.alert("Error", "Failed to add to wishlist");
-      }
-    }
-  };
-
-  const removeFromWishlist = async (product) => {
-    try {
-      const token = await AsyncStorage.getItem("userToken");
-      if (!token) return;
-      const productId = product._id || product.id;
-      const r = await axios.delete(`${API_BASE}/api/buyer/wishlist/${productId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (r.data?.success) {
+      if (!(r.data?.success)) {
+        // rollback
         setFavorites((prev) => {
           const next = new Set(prev);
           next.delete(productId);
           return next;
         });
-        Alert.alert("Removed", "Removed from wishlist");
+        console.error("Failed to add to wishlist (server responded false):", r.data);
+      }
+    } catch (err: any) {
+      console.error("Error adding to wishlist:", err);
+      // rollback on error
+      setFavorites((prev) => {
+        const next = new Set(prev);
+        next.delete(productId);
+        return next;
+      });
+    }
+  };
+
+  const removeFromWishlist = async (product) => {
+    const productId = product._id || product.id;
+    // optimistic local removal
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      next.delete(productId);
+      return next;
+    });
+
+    try {
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) {
+        // rollback
+        setFavorites((prev) => new Set(prev).add(productId));
+        console.log("removeFromWishlist: no token - user not logged in");
+        return;
+      }
+      const r = await axios.delete(`${API_BASE}/api/buyer/wishlist/${productId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!(r.data?.success)) {
+        // rollback
+        setFavorites((prev) => new Set(prev).add(productId));
+        console.error("Failed to remove from wishlist (server responded false):", r.data);
       }
     } catch (err) {
       console.error("Error removing wishlist:", err);
-      Alert.alert("Error", "Failed to remove from wishlist");
+      // rollback
+      setFavorites((prev) => new Set(prev).add(productId));
     }
   };
 
   const handleToggleFavorite = async (product) => {
     const productId = product._id || product.id;
     if (favorites.has(productId)) {
+      // currently favorite -> remove
       await removeFromWishlist(product);
     } else {
+      // not favorite -> add
       await addToWishlist(product);
     }
   };
 
-  // cart handlers
+  // cart handlers (OPTIMISTIC)
   const handleAddToCart = async (product) => {
+    const productId = product._id || product.id;
+    // optimistic local add
+    const fakeCartItemId = productId; // fallback id until server returns actual id
+    setCartItems((prev) => ({
+      ...prev,
+      [productId]: { quantity: 1, cartItemId: fakeCartItemId },
+    }));
+
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) {
-        Alert.alert("Login Required", "Please login to add items to cart");
+        // rollback
+        setCartItems((prev) => {
+          const next = { ...prev };
+          delete next[productId];
+          return next;
+        });
+        console.log("handleAddToCart: no token - user not logged in");
         return;
       }
-      const productId = product._id || product.id;
       const payload = {
         productId,
         name: product.name,
@@ -353,61 +389,86 @@ const ViewAllAroundIndia = () => {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       });
       if (r.data?.success) {
+        const realId = r.data.data?._id || fakeCartItemId;
         setCartItems((prev) => ({
           ...prev,
-          [productId]: { quantity: 1, cartItemId: r.data.data?._id || productId },
+          [productId]: { quantity: 1, cartItemId: realId },
         }));
-        Alert.alert("Success", "Added to cart!");
+      } else {
+        // rollback
+        setCartItems((prev) => {
+          const next = { ...prev };
+          delete next[productId];
+          return next;
+        });
+        console.error("Failed to add to cart (server responded false):", r.data);
       }
     } catch (err: any) {
       console.error("Error adding to cart:", err);
-      if (err.response?.status === 400) {
-        await fetchCart();
-        Alert.alert("Info", "Product is already in cart");
-      } else {
-        Alert.alert("Error", "Failed to add to cart");
-      }
+      // rollback or re-fetch cart
+      await fetchCart();
     }
   };
 
   const handleUpdateQuantity = async (product, change) => {
     try {
       const token = await AsyncStorage.getItem("userToken");
-      if (!token) return;
+      if (!token) {
+        console.log("handleUpdateQuantity: no token - user not logged in");
+        return;
+      }
       const productId = product._id || product.id;
       const current = cartItems[productId];
       if (!current) return;
       const newQty = current.quantity + change;
 
       if (newQty < 1) {
-        const r = await axios.delete(`${API_BASE}/api/buyer/cart/${current.cartItemId}`, {
-          headers: { Authorization: `Bearer ${token}` },
+        // optimistic remove
+        const previous = { ...cartItems };
+        setCartItems((prev) => {
+          const next = { ...prev };
+          delete next[productId];
+          return next;
         });
-        if (r.data?.success) {
-          setCartItems((prev) => {
-            const next = { ...prev };
-            delete next[productId];
-            return next;
+
+        try {
+          const r = await axios.delete(`${API_BASE}/api/buyer/cart/${current.cartItemId}`, {
+            headers: { Authorization: `Bearer ${token}` },
           });
-          Alert.alert("Removed", "Item removed from cart");
+          if (!(r.data?.success)) {
+            // rollback
+            setCartItems(previous);
+            console.error("Failed to remove from cart (server responded false):", r.data);
+          }
+        } catch (err) {
+          console.error("Error deleting cart item:", err);
+          setCartItems(previous);
         }
       } else {
-        // optimistic UI
-        setCartItems((prev) => ({ ...prev, [productId]: { ...current, quantity: newQty } }));
-        const r = await axios.put(
-          `${API_BASE}/api/buyer/cart/${current.cartItemId}/quantity`,
-          { quantity: newQty },
-          { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
-        );
-        if (!r.data?.success) {
-          setCartItems((prev) => ({ ...prev, [productId]: current }));
-          Alert.alert("Error", "Failed to update quantity");
+        // optimistic update
+        const prev = { ...cartItems };
+        setCartItems((prevState) => ({ ...prevState, [productId]: { ...current, quantity: newQty } }));
+
+        try {
+          const r = await axios.put(
+            `${API_BASE}/api/buyer/cart/${current.cartItemId}/quantity`,
+            { quantity: newQty },
+            { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
+          );
+          if (!r.data?.success) {
+            // rollback
+            setCartItems(prev);
+            console.error("Failed to update quantity (server responded false):", r.data);
+          }
+        } catch (err) {
+          console.error("Error updating cart quantity:", err);
+          setCartItems(prev);
+          await fetchCart();
         }
       }
     } catch (err) {
-      console.error("Error updating cart quantity:", err);
+      console.error("Error updating cart quantity (outer):", err);
       await fetchCart();
-      Alert.alert("Error", "Failed to update quantity");
     }
   };
 
@@ -416,13 +477,12 @@ const ViewAllAroundIndia = () => {
     try {
       const productId = product?._id || product?.id;
       if (!productId) {
-        Alert.alert("Error", "Product id missing");
+        console.error("openProductDetails: Product id missing");
         return;
       }
       navigation.navigate("ViewProduct", { productId, product });
     } catch (err) {
       console.error("openProductDetails error:", err);
-      Alert.alert("Navigation Error", "Could not open product details. See console.");
     }
   };
 
@@ -518,6 +578,7 @@ const ViewAllAroundIndia = () => {
     </SafeAreaView>
   );
 };
+
 
 export default ViewAllAroundIndia;
 

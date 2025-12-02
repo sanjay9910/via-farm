@@ -1320,7 +1320,7 @@ const styles = StyleSheet.create({
   },
 
   quantityText: {
-    paddingTop:moderateScale(5),
+    paddingTop:moderateScale(2),
     width: scale(28),
     height: scale(27),
     textAlign: 'center',

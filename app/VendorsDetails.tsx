@@ -5,7 +5,6 @@ import axios from 'axios';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Dimensions,
   FlatList,
@@ -71,17 +70,7 @@ const ReviewCard = ({ item, onImagePress }) => (
   </TouchableOpacity>
 );
 
-/* ---------------------------
-   Inline ProductCard (copied from ProductVarieties)
-   Props:
-     - item
-     - isFavorite
-     - onToggleFavorite
-     - cartQuantity
-     - onAddToCart
-     - onUpdateQuantity
-     - onPress
-   --------------------------- */
+
 const ProductCardLocal = ({
   item,
   isFavorite,
@@ -390,184 +379,246 @@ const VendorsDetails = () => {
     setSelectedImage(null);
   };
 
-  // ----- wishlist handlers -----
+  // ----- wishlist handlers (optimistic, no alerts) -----
   const addToWishlist = async (product) => {
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        Alert.alert('Login Required', 'Please login to add items to wishlist');
-        return;
+    if (!product) return;
+    const productId = product._id || product.id;
+    // optimistic update
+    setFavorites((prev) => {
+      const n = new Set(prev);
+      n.add(productId);
+      return n;
+    });
+
+    (async () => {
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        if (!token) {
+          // rollback silently
+          setFavorites((prev) => {
+            const n = new Set(prev);
+            n.delete(productId);
+            return n;
+          });
+          return;
+        }
+        const body = {
+          productId,
+          name: product.name,
+          image: product.images?.[0] || product.image || '',
+          price: product.price,
+          category: product.categoryName || 'Uncategorized',
+          variety: product.variety || 'Standard',
+          unit: product.unit || 'kg'
+        };
+        const res = await axios.post(`${API}/api/buyer/wishlist/add`, body, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        });
+        if (!res.data?.success) {
+          // rollback on server rejection
+          setFavorites((prev) => {
+            const n = new Set(prev);
+            n.delete(productId);
+            return n;
+          });
+        }
+      } catch (err) {
+        console.error('addToWishlist error', err);
+        // rollback on error
+        setFavorites((prev) => {
+          const n = new Set(prev);
+          n.delete(productId);
+          return n;
+        });
       }
-      const productId = product._id || product.id;
-      const body = {
-        productId,
-        name: product.name,
-        image: product.images?.[0] || product.image || '',
-        price: product.price,
-        category: product.categoryName || 'Uncategorized',
-        variety: product.variety || 'Standard',
-        unit: product.unit || 'kg'
-      };
-      const res = await axios.post(`${API}/api/buyer/wishlist/add`, body, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-      });
-      if (res.data?.success) {
-        setFavorites(prev => new Set(prev).add(productId));
-        Alert.alert('Success', 'Added to wishlist!');
-      }
-    } catch (err) {
-      console.error('addToWishlist error', err);
-      if (err.response?.status === 400) {
-        const productId = product._id || product.id;
-        setFavorites(prev => new Set(prev).add(productId));
-        Alert.alert('Info', 'Already in wishlist');
-      } else {
-        Alert.alert('Error', 'Failed to add to wishlist');
-      }
-    }
+    })();
   };
 
   const removeFromWishlist = async (product) => {
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) return;
-      const productId = product._id || product.id;
-      const res = await axios.delete(`${API}/api/buyer/wishlist/${productId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data?.success) {
-        setFavorites(prev => {
-          const next = new Set(prev);
-          next.delete(productId);
-          return next;
-        });
-        Alert.alert('Removed', 'Removed from wishlist');
-      }
-    } catch (err) {
-      console.error('removeFromWishlist error', err);
-      Alert.alert('Error', 'Failed to remove from wishlist');
-    }
-  };
-
-  const handleToggleFavorite = async (product) => {
+    if (!product) return;
     const productId = product._id || product.id;
-    if (favorites.has(productId)) {
-      await removeFromWishlist(product);
-    } else {
-      await addToWishlist(product);
-    }
-  };
+    // optimistic remove
+    const prev = new Set(favorites);
+    setFavorites((p) => {
+      const n = new Set(p);
+      n.delete(productId);
+      return n;
+    });
 
-  // ----- cart handlers -----
-  const handleAddToCart = async (product) => {
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        Alert.alert('Login Required', 'Please login to add items to cart');
-        return;
-      }
-      const productId = product._id || product.id;
-      const body = {
-        productId,
-        name: product.name,
-        image: product.images?.[0] || product.image || '',
-        price: product.price,
-        quantity: 1,
-        category: product.category || 'Uncategorized',
-        variety: product.variety || 'Standard',
-        unit: product.unit || 'kg'
-      };
-      const res = await axios.post(`${API}/api/buyer/cart/add`, body, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-      });
-
-      if (res.data?.success) {
-        const returned = res.data.data ?? {};
-        const cartItemId = returned._id || returned.id || returned.cartItemId || productId;
-        const qty = returned.quantity || returned.qty || 1;
-        setCartItems(prev => ({ ...prev, [productId]: { quantity: qty, cartItemId } }));
-        await fetchCart();
-        Alert.alert('Success', 'Added to cart!');
-      } else {
-        await fetchCart();
-        Alert.alert('Info', res.data?.message ?? 'Added to cart');
-      }
-    } catch (err) {
-      console.error('handleAddToCart error', err);
-      if (err.response?.status === 400) {
-        await fetchCart();
-        Alert.alert('Info', 'Product is already in cart');
-      } else {
-        Alert.alert('Error', 'Failed to add to cart');
-      }
-    }
-  };
-
-  const handleUpdateQuantity = async (product, change) => {
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        Alert.alert('Login Required', 'Please login to update cart');
-        return;
-      }
-      const productId = product._id || product.id;
-      const current = cartItems[productId];
-      if (!current) {
-        if (change > 0) {
-          await handleAddToCart(product);
+    (async () => {
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        if (!token) {
+          // rollback silently
+          setFavorites(prev);
+          return;
         }
-        return;
-      }
-      const newQty = (current.quantity || 1) + change;
-
-      if (newQty < 1) {
-        const res = await axios.delete(`${API}/api/buyer/cart/${current.cartItemId}`, {
+        const res = await axios.delete(`${API}/api/buyer/wishlist/${productId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        if (res.data?.success) {
-          setCartItems(prev => {
-            const next = { ...prev };
-            delete next[productId];
-            return next;
-          });
-          Alert.alert('Removed', 'Item removed from cart');
-        } else {
-          await fetchCart();
-          Alert.alert('Error', 'Failed to remove item');
+        if (!res.data?.success) {
+          setFavorites(prev);
         }
-      } else {
-        const previous = current;
-        setCartItems(prev => ({ ...prev, [productId]: { ...current, quantity: newQty } }));
+      } catch (err) {
+        console.error('removeFromWishlist error', err);
+        setFavorites(prev);
+      }
+    })();
+  };
 
+  const handleToggleFavorite = (product) => {
+    const productId = product._id || product.id;
+    if (favorites.has(productId)) {
+      removeFromWishlist(product);
+    } else {
+      addToWishlist(product);
+    }
+  };
+
+  // ----- cart handlers (optimistic, no alerts) -----
+  const handleAddToCart = (product) => {
+    if (!product) return;
+    const productId = product._id || product.id;
+    if (cartItems[productId]) return; // already in cart locally
+
+    const prevCart = { ...cartItems };
+    // optimistic add
+    setCartItems((prev) => ({ ...prev, [productId]: { quantity: 1, cartItemId: productId } }));
+
+    (async () => {
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        if (!token) {
+          // rollback
+          setCartItems(prevCart);
+          return;
+        }
+        const body = {
+          productId,
+          name: product.name,
+          image: product.images?.[0] || product.image || '',
+          price: product.price,
+          quantity: 1,
+          category: product.category || 'Uncategorized',
+          variety: product.variety || 'Standard',
+          unit: product.unit || 'kg'
+        };
+        const res = await axios.post(`${API}/api/buyer/cart/add`, body, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        });
+
+        if (res.data?.success) {
+          const returned = res.data.data ?? {};
+          const cartItemId = returned._id || returned.id || returned.cartItemId || productId;
+          const qty = returned.quantity || returned.qty || 1;
+          setCartItems((prev) => ({ ...prev, [productId]: { quantity: qty, cartItemId } }));
+          // optional: ensure final sync
+          await fetchCart();
+        } else {
+          // server rejected -> rollback & resync
+          setCartItems(prevCart);
+          await fetchCart();
+        }
+      } catch (err) {
+        console.error('handleAddToCart error', err);
+        // rollback & resync
+        setCartItems(prevCart);
+        await fetchCart();
+      }
+    })();
+  };
+
+  const handleUpdateQuantity = (product, change) => {
+    if (!product) return;
+    const productId = product._id || product.id;
+    const current = cartItems[productId];
+
+    if (!current) {
+      if (change > 0) {
+        handleAddToCart(product);
+      }
+      return;
+    }
+
+    const newQty = (current.quantity || 1) + change;
+
+    if (newQty < 1) {
+      const prevCart = { ...cartItems };
+      // optimistic remove
+      setCartItems((prev) => {
+        const next = { ...prev };
+        delete next[productId];
+        return next;
+      });
+
+      (async () => {
         try {
-          const res = await axios.put(`${API}/api/buyer/cart/${current.cartItemId}/quantity`, { quantity: newQty }, {
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+          const token = await AsyncStorage.getItem('userToken');
+          if (!token) {
+            setCartItems(prevCart);
+            return;
+          }
+          const res = await axios.delete(`${API}/api/buyer/cart/${current.cartItemId}`, {
+            headers: { Authorization: `Bearer ${token}` }
           });
           if (!res.data?.success) {
+            setCartItems(prevCart);
+            await fetchCart();
+          }
+        } catch (err) {
+          console.error('handleUpdateQuantity remove error', err);
+          setCartItems(prevCart);
+          await fetchCart();
+        }
+      })();
+
+      return;
+    }
+
+    const previous = current;
+    // optimistic update locally
+    setCartItems((prev) => ({ ...prev, [productId]: { ...current, quantity: newQty } }));
+
+    (async () => {
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        if (!token) {
+          setCartItems((prev) => ({ ...prev, [productId]: previous }));
+          return;
+        }
+        const res = await axios.put(`${API}/api/buyer/cart/${current.cartItemId}/quantity`, { quantity: newQty }, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        });
+
+        if (!res.data?.success) {
+          // try fallback update endpoint if present
+          try {
             await axios.put(`${API}/api/buyer/cart/update`, { cartItemId: current.cartItemId, quantity: newQty }, {
               headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
             });
+          } catch (inner) {
+            console.error('fallback update failed', inner);
+            // rollback & resync
+            setCartItems((prev) => ({ ...prev, [productId]: previous }));
+            await fetchCart();
           }
-          await fetchCart();
-        } catch (err) {
-          console.error('handleUpdateQuantity inner error', err);
-          setCartItems(prev => ({ ...prev, [productId]: previous }));
-          await fetchCart();
-          Alert.alert('Error', 'Failed to update quantity');
         }
+        // final sync
+        await fetchCart();
+      } catch (err) {
+        console.error('handleUpdateQuantity update error', err);
+        // rollback & resync
+        setCartItems((prev) => ({ ...prev, [productId]: previous }));
+        await fetchCart();
       }
-    } catch (err) {
-      console.error('handleUpdateQuantity error', err);
-      await fetchCart();
-      Alert.alert('Error', 'Failed to update quantity');
-    }
+    })();
   };
 
   // ----- navigation to product details -----
   const openProductDetails = (product) => {
     const productId = product?._id || product?.id;
     if (!productId) {
-      Alert.alert('Error', 'Product id missing');
+      console.error('Product id missing');
       return;
     }
     navigation.navigate('ViewProduct', { productId, product });
@@ -863,6 +914,7 @@ const VendorsDetails = () => {
     </>
   );
 };
+
 
 const styles = StyleSheet.create({
   containerRoot: {

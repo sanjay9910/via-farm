@@ -142,7 +142,7 @@ const BannerCard = () => {
 export default BannerCard;
 
 const styles = StyleSheet.create({
-  mainContainer: { position: 'relative', marginVertical:moderateScale(15), marginTop:moderateScale(41)},
+  mainContainer: { position: 'relative', marginVertical:moderateScale(15)},
   loaderContainer: { height: scale(180), justifyContent: 'center', alignItems: 'center' },
   container: {
     width: VISIBLE_ITEM_WIDTH, 

@@ -106,7 +106,7 @@ const ProfileScreen = () => {
       if (!token) return;
 
       const response = await axios.put(`${API_BASE}/api/buyer/location`, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
         }
       });
@@ -114,7 +114,7 @@ const ProfileScreen = () => {
       if (response.data.success && response.data.data) {
         const locationData = response.data.data;
         setSavedLocation(locationData);
-        
+
         setPinCode(locationData.pinCode || "");
         setHouseNumber(locationData.houseNumber || "");
         setLocality(locationData.locality || "");
@@ -132,7 +132,7 @@ const ProfileScreen = () => {
   const pickImage = async () => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
+
       if (!permissionResult.granted) {
         Alert.alert('Permission Required', 'Permission to access gallery is required!');
         return;
@@ -207,7 +207,7 @@ const ProfileScreen = () => {
         const filename = editImage.split('/').pop();
         const match = /\.(\w+)$/.exec(filename);
         const type = match ? `image/${match[1]}` : `image`;
-        
+
         formData.append('profilePicture', {
           uri: Platform.OS === 'android' ? editImage : editImage.replace('file://', ''),
           name: filename,
@@ -252,7 +252,7 @@ const ProfileScreen = () => {
   const getCurrentLocation = async () => {
     try {
       setGettingLocation(true);
-      
+
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission Denied', 'Permission to access location was denied');
@@ -280,7 +280,7 @@ const ProfileScreen = () => {
         setState(address.region || "");
         setPinCode(address.postalCode || "");
         setLocality(address.street || address.name || "");
-        
+
         Alert.alert("Success", "Location fetched successfully!");
       }
 
@@ -305,7 +305,7 @@ const ProfileScreen = () => {
       setLatitude(null);
       setLongitude(null);
     }
-    
+
     setLocationModalVisible(true);
 
     Animated.timing(locationSlideAnim, {
@@ -350,14 +350,14 @@ const ProfileScreen = () => {
         city: city.trim(),
         district: district.trim(),
         state: state.trim(),
-        latitude: latitude || 0, 
-        longitude: longitude || 0 
+        latitude: latitude || 0,
+        longitude: longitude || 0
       };
 
       console.log("Sending location data:", locationData);
 
       const response = await axios.put(`${API_BASE}/api/buyer/location`, locationData, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
@@ -367,7 +367,7 @@ const ProfileScreen = () => {
       if (response.data.success) {
         // Update saved location state
         setSavedLocation(locationData);
-        
+
         handleCloseLocationModal();
         Alert.alert("Success", "Location updated successfully!");
       } else {
@@ -375,7 +375,7 @@ const ProfileScreen = () => {
       }
     } catch (error) {
       console.error("Location update error:", error);
-      
+
       if (error.code === 'ECONNABORTED' || error.response?.status === 408) {
         Alert.alert("Timeout", "Request took too long. Please check your internet connection and try again.");
       } else if (error.response?.status === 401) {
@@ -384,7 +384,7 @@ const ProfileScreen = () => {
         router.replace("/login");
       } else {
         Alert.alert(
-          "Error", 
+          "Error",
           error.response?.data?.message || "Failed to update location. Please try again."
         );
       }
@@ -482,13 +482,13 @@ const ProfileScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-                <View style={styles.profile}>
-          <TouchableOpacity onPress={goBack}>
-            <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
-          </TouchableOpacity>
-          <Text style={{fontWeight:700,fontSize:normalizeFont(14)}}>My Profile</Text>
-          <Text></Text>
-        </View>
+      <View style={styles.profile}>
+        <TouchableOpacity onPress={goBack}>
+          <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
+        </TouchableOpacity>
+        <Text style={{ fontWeight: 700, fontSize: normalizeFont(14) }}>My Profile</Text>
+        <Text></Text>
+      </View>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -594,9 +594,9 @@ const ProfileScreen = () => {
         animationType="none"
         onRequestClose={handleCloseModal}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
           onPress={handleCloseModal}
         >
           <View style={styles.modalBackground}>
@@ -624,7 +624,7 @@ const ProfileScreen = () => {
                 style={styles.modalContent}
                 showsVerticalScrollIndicator={false}
               >
-                <Text style={{fontSize:normalizeFont(12)}}>* marks important fields</Text>
+                <Text style={{ fontSize: normalizeFont(12) }}>* marks important fields</Text>
 
                 <View style={styles.fieldContainer}>
                   <Text style={styles.fieldLabel}>Profile Picture</Text>
@@ -692,7 +692,7 @@ const ProfileScreen = () => {
                     {updating ? (
                       <ActivityIndicator size="small" color="#fff" style={{ marginRight: moderateScale(8) }} />
                     ) : (
-                      <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight:moderateScale(8) }} />
+                      <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight: moderateScale(8) }} />
                     )}
                     <Text style={styles.updateButtonText}>
                       {updating ? 'Updating...' : 'Update Details'}
@@ -712,9 +712,9 @@ const ProfileScreen = () => {
         animationType="none"
         onRequestClose={handleCloseLocationModal}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
           onPress={handleCloseLocationModal}
         >
           <View style={styles.modalBackground}>
@@ -1047,9 +1047,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopLeftRadius: moderateScale(20),
     borderTopRightRadius: moderateScale(20),
-    borderRightWidth:2,
-    borderLeftWidth:2,
-    borderTopWidth:2,
+    borderRightWidth: 2,
+    borderLeftWidth: 2,
+    borderTopWidth: 2,
     borderColor: 'rgba(255, 202, 40, 1)',
     maxHeight: SCREEN_HEIGHT * 0.9,
   },
@@ -1118,7 +1118,7 @@ const styles = StyleSheet.create({
   textInput: {
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius:8,
+    borderRadius: 8,
     paddingHorizontal: moderateScale(12),
     paddingVertical: moderateScale(12),
     color: "#333",
@@ -1155,13 +1155,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#e6f0ff',
-    paddingVertical:moderateScale(15),
+    paddingVertical: moderateScale(15),
     padding: moderateScale(10),
     borderRadius: moderateScale(12),
     flex: 0.48,
     justifyContent: 'center',
-    borderWidth:1,
-    borderColor:'blue',
+    borderWidth: 1,
+    borderColor: 'blue',
   },
   addressActionDisabled: {
     opacity: 0.6,
@@ -1180,7 +1180,7 @@ const styles = StyleSheet.create({
     borderLeftColor: '#007AFF',
   },
   coordinatesText: {
-    fontSize:normalizeFont(12),
+    fontSize: normalizeFont(12),
     color: '#007AFF',
     fontWeight: '500',
   },
@@ -1190,12 +1190,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: moderateScale(20),
   },
-  profile:{
-   flexDirection:'row',
-   alignItems:'center',
-   justifyContent:'space-between',
-   paddingHorizontal:moderateScale(22),
-   paddingTop:moderateScale(10)
+  profile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: moderateScale(22),
+    paddingVertical:moderateScale(5),
   },
   fieldRowContainer: {
     flexDirection: "row",
