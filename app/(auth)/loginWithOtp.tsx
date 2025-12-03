@@ -227,41 +227,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   heading: {
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(12),
     fontWeight: "600",
     marginBottom: moderateScale(8),
   },
   subtitle: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     textAlign: "center",
-    marginBottom: moderateScale(18),
+    marginBottom: moderateScale(8),
     color: "#666",
-    lineHeight: scale(22),
   },
   inputContainer: {
     width: "100%",
     marginBottom: moderateScale(15),
   },
   label: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     fontWeight: "600",
     color: "#333",
-    marginBottom: moderateScale(8),
+    marginBottom: moderateScale(3),
     marginLeft: 2,
   },
   input: {
     width: "100%",
-    height: scale(50),
+    paddingVertical:moderateScale(10),
     borderWidth: 1,
     borderColor: "#ddd",
-    borderRadius: moderateScale(10),
-    paddingHorizontal: moderateScale(12),
+    borderRadius: moderateScale(8),
+    paddingHorizontal: moderateScale(10),
     backgroundColor: "#fdfdfd",
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(10),
   },
   button: {
     width: "70%",
-    padding: moderateScale(14),
+    padding: moderateScale(10),
     borderRadius: moderateScale(10),
     backgroundColor: "rgba(76, 175, 80, 1)",
     alignItems: "center",
@@ -272,7 +271,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#fff",
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(11),
     fontWeight: "600",
   },
   backButton: {
@@ -281,7 +280,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     color: "#007AFF",
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(10),
   },
 });
 

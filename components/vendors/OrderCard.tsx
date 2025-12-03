@@ -13,7 +13,6 @@ import {
 } from "react-native";
 
 const { width, height } = Dimensions.get("window");
-// Status lists: one for pickup, one for delivery
 const PICKUP_STATUS_OPTIONS = [
   "In-process",
   "Confirmed",
@@ -35,7 +34,6 @@ const COLON_WIDTH = 10;
 const CARD_PADDING = 10;
 
 const OrderCard = ({ order = {}, onStatusChange }) => {
-  // choose initial status: prefer order.status, fallback to first appropriate option or "Pending"
   const deliveryType = (order.deliveryType || order.orderType || "").toString().toLowerCase();
   const statusList =
     deliveryType === "pickup" || deliveryType === "pick-up" || deliveryType === "pick up"
@@ -51,7 +49,6 @@ const OrderCard = ({ order = {}, onStatusChange }) => {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [statusBtnLayout, setStatusBtnLayout] = useState(null);
 
-  // When parent changes order.status externally, keep local value in sync
   React.useEffect(() => {
     if (order && order.status && order.status !== status) {
       setStatus(order.status);
@@ -59,7 +56,7 @@ const OrderCard = ({ order = {}, onStatusChange }) => {
   }, [order.status]);
 
   const openDropdown = () => {
-    if (order.__updating) return; // don't open while updating
+    if (order.__updating) return;
     setDropdownVisible(true);
   };
   const closeDropdown = () => setDropdownVisible(false);
@@ -70,7 +67,6 @@ const OrderCard = ({ order = {}, onStatusChange }) => {
 
     if (typeof onStatusChange === "function") {
       try {
-        // prefer DB id (order.id) – parent will resolve endpoint with this id
         onStatusChange(order.id || order.orderId || order._id, newStatus);
       } catch (e) {
         console.warn("onStatusChange error:", e);

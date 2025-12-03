@@ -661,7 +661,7 @@ const MyCart = () => {
           <Image source={require("../../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Cart {loading && cartItems.length > 0 && '(Updating...)'}</Text>
-        <View style={{ width: scale(24) }} />
+        <View  />
       </View>
 
       {/* Scrollable Content */}
@@ -897,7 +897,7 @@ const MyCart = () => {
                 </View>
 
                 <View style={{ paddingBottom: moderateScale(16), backgroundColor: '#fff', borderRadius: moderateScale(10) }}>
-                  <Text style={{ fontSize: normalizeFont(15), fontWeight: '600', marginBottom: moderateScale(15) }}>Payment Options</Text>
+                  <Text style={{ fontSize: normalizeFont(10), fontWeight: '600', marginBottom: moderateScale(15) }}>Payment Options</Text>
 
                   {/* Pay by Cash */}
                   <TouchableOpacity
@@ -916,7 +916,7 @@ const MyCart = () => {
                       backgroundColor: paymentMethod === 'cash' ? '#FFF8E1' : '#fff'
                     }}
                   >
-                    <Text style={{ fontSize: normalizeFont(12), color: '#333' }}>Pay by Cash</Text>
+                    <Text style={{ fontSize: normalizeFont(9), color: '#333' }}>Pay by Cash</Text>
                     <View
                       style={{
                         width: scale(22),
@@ -957,7 +957,7 @@ const MyCart = () => {
                       backgroundColor: paymentMethod === 'online' ? '#FFF8E1' : '#fff'
                     }}
                   >
-                    <Text style={{ fontSize: normalizeFont(12), color: '#333' }}>Pay Online</Text>
+                    <Text style={{ fontSize: normalizeFont(9), color: '#333' }}>Pay Online</Text>
                     <View
                       style={{
                         width: scale(22),
@@ -1025,7 +1025,7 @@ const MyCart = () => {
         <View style={styles.successModalOverlay}>
           <View style={styles.successModalBox}>
             <Image source={require('../../assets/via-farm-img/icons/confirm.png')} style={{ width: scale(80), height: scale(70), marginBottom: moderateScale(12) }} />
-            <Text style={{ fontSize: normalizeFont(12), fontWeight: '600', marginBottom: moderateScale(6) }}>Order Placed</Text>
+            <Text style={{ fontSize: normalizeFont(9), fontWeight: '600', marginBottom: moderateScale(6) }}>Order Placed</Text>
             <Text style={{ color: '#555' }}>Your order was placed successfully!</Text>
           </View>
         </View>
@@ -1106,14 +1106,14 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   emptyCartTitle: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 12,
     textAlign: 'center',
   },
   emptyCartSubtitle: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(10),
     color: '#666',
     textAlign: 'center',
     marginBottom: 32,
@@ -1127,12 +1127,12 @@ const styles = StyleSheet.create({
   },
   shopNowText: {
     color: '#fff',
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     fontWeight: '600',
   },
   emptyCartText: {
     textAlign: 'center',
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     color: '#666',
     marginTop: moderateScale(50),
     padding: moderateScale(20),
@@ -1147,12 +1147,12 @@ const styles = StyleSheet.create({
     borderColor: '#f0f0f0',
   },
   couponTitle: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     fontWeight: '600',
     color: 'rgba(1, 151, 218, 1)',
   },
   couponSubtitle: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(10),
     color: 'rgba(1, 151, 218, 1)',
     marginBottom: moderateScale(12),
   },
@@ -1164,7 +1164,7 @@ const styles = StyleSheet.create({
   couponInput: {
     flex: 1,
     borderWidth: 1,
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(10),
     borderColor: '#ddd',
     borderRadius: 8,
     paddingHorizontal: moderateScale(12),
@@ -1180,7 +1180,7 @@ const styles = StyleSheet.create({
   applyCouponText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(10),
   },
   removeCouponButton: {
     backgroundColor: '#ff4444',
@@ -1195,12 +1195,12 @@ const styles = StyleSheet.create({
   },
   couponError: {
     color: '#ff4444',
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     marginTop: moderateScale(8),
   },
   couponSuccess: {
     color: '#28a745',
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     marginTop: moderateScale(8),
   },
 
@@ -1220,7 +1220,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   headerTitle: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     color: '#333',
   },
@@ -1241,7 +1241,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   productImage: {
-    width: moderateScale(180),
+    width: moderateScale(160),
     height: moderateScale(148),
     borderRadius:moderateScale(8),
     backgroundColor: '#f8f8f8',
@@ -1256,13 +1256,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   productTitle: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     fontWeight: '500',
     color: 'rgba(66, 66, 66, 1)',
     marginBottom: moderateScale(10),
   },
   productSubtitle: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     color: '#666',
     marginBottom: moderateScale(8),
   },
@@ -1271,19 +1271,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   mrpText: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(10),
     color: '#999',
     textDecorationLine: 'line-through',
     marginRight: moderateScale(8),
     fontWeight: 300,
   },
   priceText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     fontWeight: '700',
     color: '#333',
   },
   deliveryText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     color: 'rgba(66, 66, 66, 1)',
     marginTop: moderateScale(13),
   },
@@ -1304,11 +1304,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: moderateScale(7),
+    borderRadius: moderateScale(5),
     borderWidth: moderateScale(1),
     borderColor: 'rgba(76, 175, 80, 1)',
     backgroundColor: '#fff',
-    marginRight: scale(65),
+    marginRight: scale(71),
   },
 
   quantityButton: {
@@ -1327,13 +1327,13 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderColor: 'rgba(76, 175, 80, 1)',
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(13),
     fontWeight: '600',
     color: 'rgba(76, 175, 80, 1)',
   },
   quantityButtonText: {
-    fontSize: normalizeFont(16),
-    fontWeight: '600',
+    fontSize: normalizeFont(13),
+    fontWeight: '800',
     color: 'rgba(76, 175, 80, 1)',
   },
 
@@ -1347,7 +1347,7 @@ const styles = StyleSheet.create({
     padding: moderateScale(16),
   },
   priceSectionTitle: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(10),
     fontWeight: '500',
     color: '#333',
     marginBottom: moderateScale(16),
@@ -1362,12 +1362,12 @@ const styles = StyleSheet.create({
     color: 'rgba(66, 66, 66, 1)',
   },
   priceValue: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     color: 'rgba(66, 66, 66, 1)',
     fontWeight: '500',
   },
   discountValue: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     color: 'rgba(66, 66, 66, 1)',
     fontWeight: '500',
   },
@@ -1378,12 +1378,12 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   totalLabel: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(10),
     fontWeight: '600',
     color: '#333',
   },
   totalValue: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(10),
     fontWeight: '700',
     color: '#333',
   },
@@ -1407,7 +1407,7 @@ const styles = StyleSheet.create({
     gap: scale(10),
   },
   checkoutText: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(10),
     fontWeight: '600',
     color: '#fff',
   },
@@ -1425,8 +1425,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderTopLeftRadius:moderateScale(20),
     borderTopRightRadius:moderateScale(20),
-    maxHeight: '70%',
-    borderWidth: 2,
+    maxHeight: '80%',
+    borderWidth:1,
+    borderBottomWidth:0,
     borderColor: 'rgba(255, 202, 40, 1)',
   },
   dragHandle: {
@@ -1566,7 +1567,7 @@ const styles = StyleSheet.create({
   },
   slotTitle: {
     color: '#000',
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     marginBottom: moderateScale(15),
   },
@@ -1577,25 +1578,25 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(15),
   },
   dateLabel: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     color: '#666',
   },
   datePicker: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
-    paddingHorizontal: moderateScale(12),
+    paddingHorizontal: moderateScale(10),
     paddingVertical: moderateScale(8),
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#ddd',
   },
   dateText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     marginRight: moderateScale(8),
   },
   dateIcon: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
   },
   timeRow: {
     flexDirection: 'row',
@@ -1603,7 +1604,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   timeLabel: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     color: '#666',
   },
   timeContainer: {
@@ -1632,7 +1633,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   vendorTitle: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     fontWeight: '600',
     color: '#333',
     marginBottom: moderateScale(15),
@@ -1656,18 +1657,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   vendorName: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(11),
     fontWeight: '600',
     color: '#333',
     marginBottom:moderateScale(2),
   },
   vendorLocation: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     color: '#666',
     marginBottom: 1,
   },
   vendorPhone: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     color: '#666',
   },
   bottomProceed: {
@@ -1678,7 +1679,7 @@ const styles = StyleSheet.create({
     marginTop: moderateScale(20),
   },
   proceedButtonStyle: {
-    padding: moderateScale(10),
+    padding: moderateScale(8),
     backgroundColor: 'rgba(76, 175, 80, 1)',
     borderRadius:moderateScale(10),
     alignItems: 'center',

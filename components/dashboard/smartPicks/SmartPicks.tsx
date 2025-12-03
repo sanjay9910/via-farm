@@ -65,10 +65,7 @@ const SmartPicks = () => {
   const [favorites, setFavorites] = useState(new Set());
   const [showDropdown, setShowDropdown] = useState(false);
   const [cartItems, setCartItems] = useState({});
-  // update map: productId -> boolean (true when an update is in progress)
   const [updatingMap, setUpdatingMap] = useState({});
-
-  // refs to read latest values inside callbacks
   const cartItemsRef = useRef(cartItems);
   useEffect(() => {
     cartItemsRef.current = cartItems;
@@ -737,24 +734,24 @@ const SmartPicks = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   loadingContainer: { paddingVertical: verticalScale(30), justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8f9fa' },
-  loadingText: { marginTop: verticalScale(10), fontSize: normalizeFont(13), color: '#666' },
+  loadingText: { marginTop: verticalScale(10), fontSize: normalizeFont(10), color: '#666' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: verticalScale(6), paddingTop: verticalScale(10), paddingHorizontal: moderateScale(13) },
-  title: { fontSize: normalizeFont(13), fontWeight: '600', color: '#333' },
+  title: { fontSize: normalizeFont(12), fontWeight: '600', color: '#333' },
   filterWrapper: { position: 'relative', minWidth: moderateScale(120) },
-  filterBtn: { paddingHorizontal: moderateScale(12), paddingVertical: verticalScale(8), borderRadius: moderateScale(6), borderWidth: 1, borderColor: 'rgba(66, 66, 66, 0.7)' },
-  filterExpand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  filterText: { color: 'rgba(66, 66, 66, 0.9)', textAlign: 'center', fontSize: normalizeFont(11), marginRight: moderateScale(6), maxWidth: moderateScale(90) },
+  filterBtn: { paddingVertical: verticalScale(8), borderRadius: moderateScale(6), borderWidth: 1, borderColor: 'rgba(66, 66, 66, 0.7)' },
+  filterExpand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap:moderateScale(5)},
+  filterText: { color: 'rgba(66, 66, 66, 0.9)', fontSize: normalizeFont(8),  },
   dropdown: { overflow: 'hidden', backgroundColor: '#fff', borderColor: 'rgba(66, 66, 66, 0.7)', borderRadius: moderateScale(6), position: 'absolute', top: moderateScale(35), left: 0, right: 0, zIndex: 1000, elevation: 10 },
   dropdownScrollContent: { paddingVertical: 6 },
   dropdownItem: { padding: moderateScale(12), borderBottomWidth: 1, borderBottomColor: 'rgba(66, 66, 66, 0.06)' },
   selectedDropdownItem: { backgroundColor: 'rgba(76, 175, 80, 0.08)' },
-  dropdownText: { color: 'rgba(66, 66, 66, 0.9)', fontSize: normalizeFont(11) },
+  dropdownText: { color: 'rgba(66, 66, 66, 0.9)', fontSize: normalizeFont(10) },
   selectedDropdownText: { color: '#4CAF50', fontWeight: '600' },
   listContainer: { alignItems: 'flex-start', paddingHorizontal: moderateScale(5), paddingVertical: verticalScale(8) },
   flatListStyle: { paddingBottom: moderateScale(10) },
   cardWrapper: { marginHorizontal: ITEM_HORIZONTAL_MARGIN },
   emptyContainer: { padding: moderateScale(20), alignItems: 'center' },
-  emptyText: { color: '#666', fontSize: normalizeFont(14), textAlign: 'center', marginBottom: verticalScale(10) },
+  emptyText: { color: '#666', fontSize: normalizeFont(10), textAlign: 'center', marginBottom: verticalScale(10) },
 });
 
 export default SmartPicks;

@@ -1,4 +1,4 @@
-// components/.../RelatedProduct.js
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
@@ -82,7 +82,6 @@ const RelatedProduct = ({ productId: propProductId, cardWidth }) => {
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId, ctxToken]);
 
   const getToken = async () => {
@@ -96,7 +95,6 @@ const RelatedProduct = ({ productId: propProductId, cardWidth }) => {
             break;
           }
         } catch (e) {
-          // ignore
         }
       }
     }
@@ -109,7 +107,6 @@ const RelatedProduct = ({ productId: propProductId, cardWidth }) => {
           parsed?.data?.token ||
           token;
       } catch (e) {
-        // ignore
       }
     }
     return token;
@@ -120,10 +117,7 @@ const RelatedProduct = ({ productId: propProductId, cardWidth }) => {
 
     const id = String(p._id ?? p.id ?? p.productId ?? "");
     if (!id) return null;
-
-    // images could be in different props
     const images = p.images ?? p.imageUrls ?? p.photos ?? [];
-    // prefer explicit single image fields first
     const image =
       p.imageUrl ??
       p.image ??
@@ -133,11 +127,6 @@ const RelatedProduct = ({ productId: propProductId, cardWidth }) => {
       typeof p.category === "object"
         ? p.category.name ?? p.category
         : p.category ?? "General";
-
-    // vendor may be:
-    // - an object { id, name, ... }
-    // - a string "Vendor Name" (as in similarProducts)
-    // - or vendorName / sellerName fields
     let vendorName = "";
     if (p.vendor) {
       if (typeof p.vendor === "string") {
@@ -178,14 +167,13 @@ const RelatedProduct = ({ productId: propProductId, cardWidth }) => {
       rating,
       category,
       vendorName,
-      vendor: { name: vendorName }, // ensures item.vendor?.name works consistently
+      vendor: { name: vendorName }, 
       raw: p,
     };
   };
 
   const fetchSimilar = async (mounted = true) => {
     try {
-      // when productId is not provided, fallback behavior kept (original code used CART_ENDPOINT)
       if (!productId) {
         const token = await getToken();
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -661,8 +649,6 @@ const RelatedProduct = ({ productId: propProductId, cardWidth }) => {
           const qty = cartItems[String(item.id)]
             ? cartItems[String(item.id)].quantity
             : 0;
-
-          // subtitle: prefer vendor.name, fallback to vendorName string, else empty
           const subtitle = (item.vendor && item.vendor.name) || item.vendorName || "";
 
           return (
@@ -699,7 +685,7 @@ const styles = StyleSheet.create({
     paddingVertical: moderateScale(6),
   },
   title: {
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(10),
     fontWeight: "700",
     color: "#222",
     marginLeft: moderateScale(12),

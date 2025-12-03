@@ -111,7 +111,7 @@ const MyOrdersScreen = () => {
             setError(null);
 
             const token = await AsyncStorage.getItem('userToken');
-            
+
             if (!token) {
                 throw new Error('No authentication token found. Please login again.');
             }
@@ -136,7 +136,7 @@ const MyOrdersScreen = () => {
 
         } catch (error) {
             console.error('Error fetching orders:', error);
-            
+
             if (error.response?.status === 401) {
                 setError('Session expired. Please login again.');
                 Alert.alert('Session Expired', 'Please login again to continue.', [
@@ -389,7 +389,7 @@ const MyOrdersScreen = () => {
     // Navigate to order details with full order data
     const handleOrderCardPress = (order) => {
         try {
-            navigation.navigate('ViewOrderDetails', { 
+            navigation.navigate('ViewOrderDetails', {
                 order: order.fullOrder || order,
                 orderId: order.id
             });
@@ -402,9 +402,9 @@ const MyOrdersScreen = () => {
     // Navigate to product details
     const handleProductPress = (orderId, productId) => {
         try {
-            navigation.navigate('ViewOrderProduct', { 
-                orderId: orderId, 
-                productId: productId 
+            navigation.navigate('ViewOrderProduct', {
+                orderId: orderId,
+                productId: productId
             });
         } catch (error) {
             console.error('Navigation error:', error);
@@ -419,12 +419,12 @@ const MyOrdersScreen = () => {
         }
 
         const searchLower = searchQuery.toLowerCase().trim();
-        
+
         return orders.filter(order => {
             return (
                 (order.orderId || '').toLowerCase().includes(searchLower) ||
                 (order.status || '').toLowerCase().includes(searchLower) ||
-                order.items.some(item => 
+                order.items.some(item =>
                     (item.productName || '').toLowerCase().includes(searchLower) ||
                     (item.vendorName || '').toLowerCase().includes(searchLower)
                 )
@@ -472,10 +472,10 @@ const MyOrdersScreen = () => {
                                 style={styles.starButton}
                                 activeOpacity={0.7}
                             >
-                                <Ionicons 
-                                    name={starIndex < ratingVal ? "star" : "star-outline"} 
-                                    size={22} 
-                                    color={starIndex < ratingVal ? "#FFD700" : "#E0E0E0"} 
+                                <Ionicons
+                                    name={starIndex < ratingVal ? "star" : "star-outline"}
+                                    size={22}
+                                    color={starIndex < ratingVal ? "#FFD700" : "#E0E0E0"}
                                 />
                             </TouchableOpacity>
                         ))}
@@ -533,7 +533,7 @@ const MyOrdersScreen = () => {
                                             <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>
                                                 {order.status}
                                             </Text>
-                                            <Text style={{fontSize:normalizeFont(12)}}>{order.orderId}</Text>
+                                            <Text style={{ fontSize: normalizeFont(12) }}>{order.orderId}</Text>
                                         </View>
                                         <Text style={styles.dateText}>{order.date}</Text>
                                     </View>
@@ -551,7 +551,7 @@ const MyOrdersScreen = () => {
                                         </Text>
                                         <Text style={styles.productDescription}>Price: ₹{product.price ?? '0'}</Text>
                                         <Text style={styles.productDescription}>Qty: {product.quantity ?? product.qty ?? 1}</Text>
-                                        {product.vendorName ? <Text style={{fontSize:normalizeFont(12)}}>By: {product.vendorName}</Text> : null}
+                                        {product.vendorName ? <Text style={{ fontSize: normalizeFont(12),color:'grey' }}>By: {product.vendorName}</Text> : null}
                                     </View>
                                     <Ionicons name="chevron-forward" size={20} color="#666" />
                                 </TouchableOpacity>
@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
 
     // Order Header
     orderHeader: {
-        marginBottom:moderateScale(16),
+        marginBottom: moderateScale(16),
     },
     statusText: {
         fontSize: normalizeFont(12),
@@ -914,16 +914,16 @@ const styles = StyleSheet.create({
     productContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        width:'100%',
-        height:scale(85),
+        width: '100%',
+        height: scale(85),
         marginBottom: moderateScale(16),
         backgroundColor: 'rgba(249, 249, 249, 1)',
         padding: moderateScale(15),
         borderRadius: moderateScale(10),
     },
     productImage: {
-        width:scale(75),
-        height:scale(75),
+        width: scale(75),
+        height: scale(75),
         borderRadius: 3,
         marginRight: moderateScale(12),
     },
@@ -938,7 +938,7 @@ const styles = StyleSheet.create({
     },
     productDescription: {
         fontSize: normalizeFont(12),
-        paddingVertical:1,
+        paddingVertical: 1,
         color: '#333',
     },
 
@@ -1193,34 +1193,34 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     priceContainer: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  paddingVertical: moderateScale(10),
-  paddingHorizontal: moderateScale(8),
-  marginTop: moderateScale(12),
-  backgroundColor: '#fafafa',   
-  borderRadius: moderateScale(8),
-  borderWidth: 1,
-  borderColor: '#f0f0f0',
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.03,
-  shadowRadius: 4,
-  elevation: 1,
-},
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: moderateScale(10),
+        paddingHorizontal: moderateScale(8),
+        marginTop: moderateScale(12),
+        backgroundColor: '#fafafa',
+        borderRadius: moderateScale(8),
+        borderWidth: 1,
+        borderColor: '#f0f0f0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.03,
+        shadowRadius: 4,
+        elevation: 1,
+    },
 
-priceLabel: {
-  fontSize: normalizeFont(12),
-  color: '#666',
-  fontWeight: '500',
-},
+    priceLabel: {
+        fontSize: normalizeFont(12),
+        color: '#666',
+        fontWeight: '500',
+    },
 
-priceValue: {
-  fontSize: normalizeFont(12),
-  color: '#222',
-  fontWeight: '700',
-},
+    priceValue: {
+        fontSize: normalizeFont(12),
+        color: '#222',
+        fontWeight: '700',
+    },
 });
 
 export default MyOrdersScreen;

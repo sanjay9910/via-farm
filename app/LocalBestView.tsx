@@ -19,17 +19,7 @@ import LocalVendor from "../components/common/LocalVendor";
 import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const API_BASE = "https://viafarm-1.onrender.com";
-const CARD_WIDTH = Dimensions.get("window").width / 2 - 25;
-
-/**
- * Key changes:
- * - memoize LocalVendor with React.memo
- * - wrap handlers with useCallback so props to ProductCard remain stable
- * - memoize header (which contains LocalVendor) using useMemo
- * - use functional updates for cart/favorites to avoid recreating objects unnecessarily
- */
-
-// Memoize LocalVendor (safe even if already memoized)
+const CARD_WIDTH = Dimensions.get("window").width / 2 - 17;
 const MemoLocalVendor = React.memo(LocalVendor);
 
 // ==================== ProductCard ====================
@@ -101,7 +91,7 @@ const ProductCard = React.memo(({
           </Text>
 
           <View style={{ marginVertical: moderateScale(3) }}>
-            <Text numberOfLines={1} style={{ color: '#444', fontSize: normalizeFont(12) }}>
+            <Text numberOfLines={1} style={{ color: '#444', fontSize: normalizeFont(10) }}>
               By {item?.vendor?.name ?? item?.vendorName ?? "Local Vendor"}
             </Text>
           </View>
@@ -110,7 +100,7 @@ const ProductCard = React.memo(({
             <Image
               source={require("../assets/via-farm-img/icons/loca.png")}
             />
-            <Text style={{ fontSize: normalizeFont(12), color: '#444', paddingVertical: 3 }}>
+            <Text style={{ fontSize: normalizeFont(10), color: '#444', paddingVertical: 3 }}>
               {distance ?? "0.0 km"}
             </Text>
           </View>
@@ -509,7 +499,7 @@ const ViewAllLocalBest = () => {
             <Ionicons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Local Best</Text>
-          <View style={{ width: 50 }} />
+          <View  />
         </View>
 
         <View>
@@ -517,7 +507,7 @@ const ViewAllLocalBest = () => {
         </View>
 
         <View style={{ paddingHorizontal: moderateScale(10) }}>
-          <Text style={{ fontSize: normalizeFont(13), fontWeight: "700" }}>Products</Text>
+          <Text style={{ fontSize: normalizeFont(11), fontWeight: "700" }}>Products</Text>
         </View>
       </View>
     );
@@ -551,7 +541,7 @@ const ViewAllLocalBest = () => {
           keyExtractor={(item, index) => (item._id || item.id || String(item?.name) || String(index))}
           numColumns={2}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 11, paddingBottom: 20 }}
+          contentContainerStyle={{ paddingHorizontal:10, paddingBottom: 20 }}
           renderItem={({ item }) => {
             const productId = item._id || item.id;
             const isFavorite = favorites.has(productId);
@@ -620,13 +610,13 @@ const styles = StyleSheet.create({
     height: scale(24),
   },
   headerTitle: {
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(11),
     fontWeight: "600",
     color: "#333",
   },
   loadingContainer: {
     alignItems: "center",
-    padding: moderateScale(15),
+    // padding: moderateScale(10),
     flex: 1,
     justifyContent: 'center',
     alignContent: 'center',
@@ -634,10 +624,11 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: moderateScale(10),
     color: "#777",
+    fontSize:normalizeFont(7),
   },
   errorContainer: {
     alignItems: "center",
-    padding: moderateScale(20),
+    // padding: moderateScale(20),
     backgroundColor: "#ffebee",
     borderRadius: 8,
     marginHorizontal: moderateScale(20),
@@ -647,7 +638,7 @@ const styles = StyleSheet.create({
     color: "#d32f2f",
     textAlign: "center",
     marginBottom: moderateScale(15),
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
   },
   retryButton: {
     backgroundColor: "#1976d2",
@@ -664,7 +655,6 @@ const styles = StyleSheet.create({
 const cardStyles = StyleSheet.create({
   container: {
     width: CARD_WIDTH,
-    marginLeft: moderateScale(6),
     marginTop: moderateScale(7),
     marginBottom: moderateScale(8),
   },
@@ -672,11 +662,11 @@ const cardStyles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius:10,
     overflow: 'hidden',
-    shadowColor: 'rgba(0, 0, 0, 0.2)',
+    shadowColor: 'grey',
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    borderWidth: 2,
-    borderColor: 'rgba(0, 0, 0, 0.2)',
+    borderWidth:1,
+    borderColor: 'grey',
     elevation: 7,
     shadowOffset: { width: 0, height: 3 },
   },
@@ -732,7 +722,7 @@ const cardStyles = StyleSheet.create({
     paddingVertical: moderateScale(10),
   },
   productTitle: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(11),
     fontWeight: '600',
     color: '#2b2b2b',
 
@@ -740,11 +730,11 @@ const cardStyles = StyleSheet.create({
 
   productVeriety: {
     color: 'rgba(66, 66, 66, 0.7)',
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
   },
 
   productSubtitle: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(9),
     color: '#666',
     marginBottom: moderateScale(8),
     height: scale(20),
@@ -756,14 +746,14 @@ const cardStyles = StyleSheet.create({
     marginBottom: moderateScale(5),
   },
   productPrice: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(10),
     fontWeight: '800',
     color: '#666',
   },
   productUnit: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     color: '#666',
-    marginLeft: moderateScale(6),
+    // marginLeft: moderateScale(6),
     marginBottom: moderateScale(2),
   },
   weightText: {

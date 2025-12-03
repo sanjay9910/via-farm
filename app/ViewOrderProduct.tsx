@@ -266,7 +266,7 @@ export default function ProductDetailScreen() {
                 <Text style={styles.title}>{product.name}</Text>
                 <View style={styles.ratingPill}>
                   <Image source={require("../assets/via-farm-img/icons/satar.png")} />
-                  <Text style={{ marginLeft: 6, fontWeight: '700' }}>{product.rating ?? 0}</Text>
+                  <Text style={{ marginLeft:moderateScale(6), fontWeight: '700' }}>{product.rating ?? 0}</Text>
                 </View>
               </View>
 
@@ -291,8 +291,8 @@ export default function ProductDetailScreen() {
             <TouchableOpacity onPress={openVendorDetails} activeOpacity={0.8} style={styles.vendorExpanded}>
               <Image source={{ uri: vendor?.profilePicture ?? product.vendor?.profilePicture }} style={styles.vendorImage} />
               <View style={{ flex: 1, marginLeft: moderateScale(12) }}>
-                <Text style={{ fontWeight: '600',fontSize:11, }}>{vendor?.name ?? product.vendor?.name}</Text>
-                <Text style={{ color: '#666', marginTop:moderateScale(6) ,fontSize:11}}>{vendorAddr.houseNumber ? `${vendorAddr.houseNumber}, ` : ''}{vendorAddr.locality ?? vendorAddr.street ?? ''}{vendorAddr.city ? `, ${vendorAddr.city}` : ''}</Text>
+                <Text style={{ fontWeight: '600',fontSize:normalizeFont(11), }}>{vendor?.name ?? product.vendor?.name}</Text>
+                <Text style={{ color: '#666', marginTop:moderateScale(6) ,fontSize:normalizeFont(11)}}>{vendorAddr.houseNumber ? `${vendorAddr.houseNumber}, ` : ''}{vendorAddr.locality ?? vendorAddr.street ?? ''}{vendorAddr.city ? `, ${vendorAddr.city}` : ''}</Text>
                 {/* <Text style={{ color: '#777', marginTop: 8 }}>{vendor?.about ?? ''}</Text> */}
               </View>
             </TouchableOpacity>
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize:normalizeFont(12),fontWeight:600,  },
   smallText: { color: '#666', fontSize:normalizeFont(12)},
-  mrp: { fontSize:normalizeFont(12), marginTop:5 },
+  mrp: { fontSize:normalizeFont(12), marginTop:moderateScale(5) },
   ratingPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal:moderateScale(10), borderRadius:7, marginTop:8,borderWidth:1, borderColor:'rgba(0, 0, 0, 0.4)' },
 
   sectionTitle: { fontSize:normalizeFont(12), fontWeight: '600' },
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
   nutriRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: moderateScale(12) },
   nutriCol: { alignItems: 'center', flex: 1 },
   nutriLabel: { color: '#777', fontSize: normalizeFont(12) },
-  nutriVal: { fontWeight: '600', marginTop: 6 },
+  nutriVal: { fontWeight: '600', marginTop:moderateScale(6) },
 
   vendorHeader: { marginTop: moderateScale(12), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   vendorExpanded: { flexDirection: 'row', marginTop:10, alignItems: 'center' },
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     color: '#22c55e',
   },
   qtyDisplay: {
-    minWidth:35,
+    minWidth:scale(35),
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderColor: '#22c55e',

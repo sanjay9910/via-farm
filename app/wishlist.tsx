@@ -90,7 +90,7 @@ const ProductCard = ({
           </Text>
 
           <Text style={cardStyles.productVeriety} numberOfLines={1}>
-            Variety: {item?.variety ?? "N/A"}
+            By {item?.vendor?.name ?? "N/A"}
           </Text>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(6), marginTop: moderateScale(6) }}>
@@ -648,8 +648,8 @@ const cardStyles = StyleSheet.create({
     borderRadius: moderateScale(10),
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.2)',
-    elevation: 3
+    borderColor: 'grey',
+    elevation:4
   },
   imageContainer: {
     width: '100%',
@@ -681,23 +681,23 @@ const cardStyles = StyleSheet.create({
   ratingText: {
     color: '#fff',
     marginLeft: moderateScale(4),
-    fontSize: normalizeFont(10)
+    fontSize: normalizeFont(8)
   },
   cardContent: {
     padding: scale(10)
   },
   productTitle: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(10),
     fontWeight: '600',
     color: '#222'
   },
   productVeriety: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(9),
     color: '#666',
     marginTop: moderateScale(4)
   },
   distanceText: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(8),
     color: '#444'
   },
   priceContainer: {
@@ -707,7 +707,7 @@ const cardStyles = StyleSheet.create({
     marginTop: moderateScale(8)
   },
   productUnit: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(10),
     fontWeight: '700',
     color: '#333'
   },
@@ -727,7 +727,7 @@ const cardStyles = StyleSheet.create({
   },
   addToCartText: {
     color: '#fff',
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     fontWeight: '600',
 
   },
@@ -741,13 +741,12 @@ const cardStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(76, 175, 80, 1)',
     paddingHorizontal: moderateScale(6),
-    paddingVertical: moderateScale(8),
+    paddingVertical: moderateScale(4),
     borderRadius: moderateScale(6),
     width: '100%',
   },
   quantityButton: {
     paddingHorizontal: moderateScale(8),
-    paddingVertical: moderateScale(4),
     color: 'rgba(76, 175, 80, 1)',
   },
   quantityText: {
@@ -755,7 +754,7 @@ const cardStyles = StyleSheet.create({
     minWidth: moderateScale(42),
     top: 0,
     textAlign: 'center',
-    fontWeight: '700',
+    fontWeight: '600',
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderColor: 'rgba(76, 175, 80, 1)',
@@ -787,7 +786,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff'
   },
   text: {
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(10),
     fontWeight: '600',
     color: '#000'
   },
@@ -796,7 +795,6 @@ const styles = StyleSheet.create({
     minWidth: scale(120)
   },
   filterBtn: {
-    paddingHorizontal: scale(10),
     paddingVertical: scale(6),
     borderRadius: moderateScale(6),
     borderWidth: 1,
@@ -805,7 +803,7 @@ const styles = StyleSheet.create({
   filterText: {
     color: 'rgba(66, 66, 66, 0.7)',
     textAlign: 'center',
-    fontSize: normalizeFont(12)
+    fontSize: normalizeFont(10)
   },
   dropdown: {
     overflow: 'hidden',
@@ -825,7 +823,7 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     color: 'rgba(66, 66, 66, 0.7)',
-    fontSize: normalizeFont(12)
+    fontSize: normalizeFont(9)
   },
   flatListContent: {
     paddingHorizontal: scale(10),
@@ -839,11 +837,11 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: scale(12),
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(10),
     color: '#666'
   },
   errorText: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(10),
     color: 'red',
     textAlign: 'center',
     marginBottom: scale(12)
@@ -856,17 +854,17 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: 'white',
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(10),
     fontWeight: '600'
   },
   emptyText: {
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(10),
     fontWeight: '600',
     color: '#333',
     marginTop: scale(12)
   },
   emptySubText: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(10),
     color: '#666',
     marginTop: scale(8)
   },

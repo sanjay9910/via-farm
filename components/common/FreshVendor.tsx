@@ -122,7 +122,7 @@ const FreshVendor = () => {
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Vendor's</Text>
+        <Text style={styles.title}>Vendors</Text>
         <TouchableOpacity style={styles.seeAllBtn} onPress={AllVendor}>
           <Text style={styles.seeAllText}>See All</Text>
           <Image source={require("../../assets/via-farm-img/icons/see.png")} />
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   title: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     fontWeight: 'bold',
   },
   seeAllBtn: {
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   seeAllText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     color: 'rgba(1, 151, 218, 1)',
   },
   listContent: {

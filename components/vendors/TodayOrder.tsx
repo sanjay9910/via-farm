@@ -189,7 +189,7 @@ export default function OrdersScreen() {
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
       {/* Header */}
       <View style={styles.headerRow}>
-        <Text style={styles.headerTitle}>Today’s Orders</Text>
+        <Text style={styles.headerTitle}>Todays Orders</Text>
       </View>
 
       {loading ? (
@@ -207,7 +207,7 @@ export default function OrdersScreen() {
               />
             ))
           ) : (
-            <Text style={{ textAlign: "center", marginTop:moderateScale(20)  , color: "#666" }}>
+            <Text style={{ textAlign: "center", marginTop:moderateScale(10)  , color: "#666" }}>
               No orders today
             </Text>
           )}
@@ -224,10 +224,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: scale(16),
     paddingTop: moderateScale(14),
-    marginBottom: moderateScale(10),
+    // marginBottom: moderateScale(10),
   },
   headerTitle: {
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(13),
     fontWeight: "700",
     color: "#333",
     flexShrink: 1,

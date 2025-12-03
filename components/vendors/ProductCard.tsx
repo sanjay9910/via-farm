@@ -3,6 +3,7 @@ import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useRouter } from "expo-router";
+
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -227,7 +228,6 @@ const ProductCard = ({ item, onDelete, onStockUpdate, onEdit }) => {
   };
 
 const viewPage = () => {
-  // push using query param — this is reliable with expo-router
   router.push(`/VendorViewProduct?productId=${item._id || item.id}`);
 };
 
@@ -239,8 +239,8 @@ const viewPage = () => {
         resizeMode="stretch"
       />
       <View style={{position:'absolute',bottom:moderateScale(5),left:moderateScale(5),flexDirection:'row',alignItems:'center',gap:5, backgroundColor:'rgba(141, 141, 141, 0.6)',borderRadius:moderateScale(10),paddingVertical:3,paddingHorizontal:3}}>
-       <Text><Image source={require("../../assets/via-farm-img/icons/satar.png")} /></Text> 
-        <Text style={{color:'#fff',fontSize:normalizeFont(12)}}>5.0</Text> 
+       <Image source={require("../../assets/via-farm-img/icons/satar.png")} /> 
+        <Text style={{color:'#fff',fontSize:normalizeFont(10)}}>5.0</Text> 
       </View>
       <View style={cardStyles.details}>
         <View style={cardStyles.header}>
@@ -538,10 +538,9 @@ const ProductFilter = ({
           onPress={() => setIsFilterOpen(true)}
           activeOpacity={0.7}
         >
-          <Image
-            source={require("../../assets/via-farm-img/icons/filter.png")}
-            style={{ width: scale(20), height: scale(20) }}
-          />
+          {/* <Ionicons name="filter" size={28} color="black" /> */}
+          {/* <MaterialIcons name="filter-list" size={28} color="black" /> */}
+          <Image source={require("../../assets/via-farm-img/icons/fltr.png")}  style={{width:20,height:20}}/>
         </TouchableOpacity>
       </View>
 
@@ -955,7 +954,7 @@ const ProductList = ({ refreshbut }) => {
           style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
         >
           <ActivityIndicator size="large" color="rgba(255,202,40,1)" />
-          <Text style={{ marginTop: 12, color: "#666" }}>Loading products...</Text>
+          <Text style={{ marginTop:moderateScale(12), color: "#666" }}>Loading products...</Text>
         </View>
       ) : (
         <FlatList
@@ -1001,13 +1000,14 @@ export const cardStyles = StyleSheet.create({
   card: {
     flexDirection: "row",
     backgroundColor: "#fff",
-    borderRadius: moderateScale(16),
+    borderRadius: moderateScale(20),
     borderWidth: moderateScale(1),
     borderColor: "rgba(255, 202, 40, 1)",
     overflow: "hidden",
+    height:scale(157),
   },
 
-  image: { width: moderateScale(155), height: "100%", minHeight: moderateScale(180) },
+  image: { width: moderateScale(155), height: "100%", minHeight: moderateScale(120) },
 
   details: { flex: 1, padding: moderateScale(8), justifyContent: "space-between" },
 
@@ -1019,25 +1019,25 @@ export const cardStyles = StyleSheet.create({
   },
 
   productName: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(11),
     fontWeight: "600",
     color: "#1f2937",
     flex: 1,
     marginRight: moderateScale(8),
   },
 
-  menuButton: { padding: moderateScale(4) },
+  // menuButton: { padding: moderateScale(1) },
 
-  row: { flexDirection: "row", alignItems: "center", marginBottom: moderateScale(6) },
+  row: { flexDirection: "row", alignItems: "center", marginBottom: moderateScale(1) },
 
-  label: { fontSize: normalizeFont(12), color: "#6b7280", width: moderateScale(60) },
+  label: { fontSize: normalizeFont(10), color: "#6b7280", width: moderateScale(60) },
 
-  colon: { fontSize: normalizeFont(12), color: "#6b7280", marginHorizontal: moderateScale(8) },
+  colon: { fontSize: normalizeFont(10), color: "#6b7280", marginHorizontal: moderateScale(8) },
 
-  value: { fontSize: normalizeFont(12), color: "#6b7280", fontWeight: "500", flex: 1 },
+  value: { fontSize: normalizeFont(10), color: "#6b7280", fontWeight: "500", flex: 1 },
 
   uploadDate: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(9),
     color: "#9ca3af",
     marginTop: moderateScale(4),
     marginBottom: moderateScale(12),
@@ -1066,7 +1066,7 @@ export const cardStyles = StyleSheet.create({
   inStockDot: { backgroundColor: "#22c55e" },
   outOfStockDot: { backgroundColor: "#ef4444" },
 
-  stockText: { fontSize: normalizeFont(12), fontWeight: "500" },
+  stockText: { fontSize: normalizeFont(10), fontWeight: "500" },
   inStockText: { color: "#22c55e" },
   outOfStockText: { color: "#ef4444" },
   updatingText: { color: "#6b7280" },
@@ -1097,7 +1097,7 @@ export const cardStyles = StyleSheet.create({
     gap: moderateScale(12),
   },
 
-  menuItemText: { fontSize: normalizeFont(13), color: "#374151", fontWeight: "500" },
+  menuItemText: { fontSize: normalizeFont(11), color: "#374151", fontWeight: "500" },
   deleteText: { color: "#ef4444" },
 
   menuDivider: { height: moderateScale(1), backgroundColor: "#f3f4f6", marginHorizontal: moderateScale(8) },
@@ -1130,7 +1130,7 @@ export const cardStyles = StyleSheet.create({
   },
 
   stockOptionText: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(10),
     fontWeight: "500",
   },
 
@@ -1147,7 +1147,7 @@ export const filterStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: moderateScale(16),
-    paddingVertical: moderateScale(12),
+    paddingVertical: moderateScale(10),
     backgroundColor: "#fff",
     zIndex: 10,
   },
@@ -1175,7 +1175,7 @@ export const filterStyles = StyleSheet.create({
     padding: moderateScale(5),
     backgroundColor: "#fff",
     borderWidth: moderateScale(1),
-    borderColor: "rgba(0,0,0,0.3)",
+    borderColor: "grey",
     borderRadius: moderateScale(8),
     alignItems: "center",
     justifyContent: "center",
@@ -1221,7 +1221,7 @@ export const filterStyles = StyleSheet.create({
     position: "absolute",
     right: 0,
     top: moderateScale(280),
-    bottom: moderateScale(80),
+    bottom: moderateScale(0),
     width: moderateScale(250),
     backgroundColor: "#fff",
     borderTopLeftRadius: moderateScale(20),
@@ -1240,9 +1240,9 @@ export const filterStyles = StyleSheet.create({
     borderBottomColor: "#f0f0f0",
   },
 
-  modalTitle: { fontSize: normalizeFont(14), fontWeight: "600", color: "#333" },
+  modalTitle: { fontSize: normalizeFont(12), fontWeight: "600", color: "#333" },
 
-  closeButton: { fontSize: moderateScale(22), color: "#333" },
+  closeButton: { fontSize:normalizeFont(13), color: "#333" },
 
   modalBody: { flex: 1, backgroundColor: "#fff" },
 
@@ -1252,16 +1252,17 @@ export const filterStyles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: moderateScale(13),
+    paddingVertical: moderateScale(10),
+    paddingHorizontal:moderateScale(16)
   },
 
-  filterTitle: { fontSize: normalizeFont(13), fontWeight: "500", color: "#333" },
+  filterTitle: { fontSize: normalizeFont(10), fontWeight: "500", color: "#333" },
 
   chevron: { fontSize: moderateScale(14), color: "#666", transform: [{ rotate: "90deg" }] },
 
   chevronRotated: { transform: [{ rotate: "270deg" }] },
 
-  filterOptions: { paddingBottom: moderateScale(16) },
+  filterOptions: { paddingBottom: moderateScale(16),paddingHorizontal:16 },
 
   radioOption: {
     flexDirection: "row",
@@ -1270,8 +1271,8 @@ export const filterStyles = StyleSheet.create({
   },
 
   radioCircle: {
-    width: moderateScale(18),
-    height: moderateScale(18),
+    width: moderateScale(15),
+    height: moderateScale(15),
     borderRadius: moderateScale(10),
     borderWidth: moderateScale(2),
     borderColor: "#d1d5db",
@@ -1281,7 +1282,6 @@ export const filterStyles = StyleSheet.create({
   },
 
   radioCircleSelected: { borderColor: "#22c55e" },
-
   radioSelected: {
     width: moderateScale(10),
     height: moderateScale(10),
@@ -1289,7 +1289,7 @@ export const filterStyles = StyleSheet.create({
     backgroundColor: "#22c55e",
   },
 
-  optionText: { fontSize: normalizeFont(12), color: "#6b7280" },
+  optionText: { fontSize: normalizeFont(10), color: "#6b7280" },
   optionTextSelected: { color: "#1f2937", fontWeight: "600" },
 
   modalFooter: { padding: moderateScale(17), borderTopWidth: moderateScale(1), borderTopColor: "#f0f0f0" },
@@ -1300,6 +1300,6 @@ export const filterStyles = StyleSheet.create({
     borderRadius: moderateScale(8),
     alignItems: "center",
   },
-
-  applyButtonText: { color: "#fff", fontSize: normalizeFont(13), fontWeight: "600" },
+  
+  applyButtonText: { color: "#fff", fontSize: normalizeFont(10), fontWeight: "600" },
 });

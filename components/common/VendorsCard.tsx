@@ -83,20 +83,19 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#ffffff",
-    borderRadius: moderateScale(10),
+    borderRadius: moderateScale(12),
     flexDirection: "row",
     alignItems: "center",
     borderWidth: moderateScale(1),
     borderColor: "rgba(255, 202, 40, 1)",
     marginBottom: verticalScale(12),
     overflow: "hidden",
-    maxWidth: "100%",
     padding: moderateScale(0),
   },
 
   profileImage: {
     width: scale(130),
-    height: verticalScale(160),
+    height: verticalScale(145),
     borderTopLeftRadius: moderateScale(10),
     borderBottomLeftRadius: moderateScale(10),
   },
@@ -110,7 +109,7 @@ const styles = StyleSheet.create({
   },
 
   name: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(11),
     fontWeight: "600",
     color: "#333",
     marginBottom: verticalScale(6),
@@ -123,7 +122,7 @@ const styles = StyleSheet.create({
   },
 
   distance: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     color: "rgba(66, 66, 66, 0.9)",
     marginLeft: moderateScale(6),
   },
@@ -135,7 +134,7 @@ const styles = StyleSheet.create({
   },
 
   category: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     color: "rgba(66, 66, 66, 0.7)",
     marginLeft: moderateScale(6),
     flexShrink: 1,
@@ -173,13 +172,13 @@ const styles = StyleSheet.create({
 
   deliveryButtonText: {
     color: "#2E7D32",
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(9),
     fontWeight: "600",
   },
 
   pickupButtonText: {
     color: "#9E7B00",
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(9),
     fontWeight: "500",
   },
 });

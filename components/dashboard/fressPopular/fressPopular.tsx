@@ -47,17 +47,17 @@ const cardStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: moderateScale(20), marginBottom: verticalScale(12) },
   heading: { fontSize: normalizeFont(13), fontWeight: '600', color: '#333' },
-  seeButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 6 ,gap:5},
+  seeButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 ,gap:5},
   seeIcon: { width: moderateScale(16), height: moderateScale(16), marginRight: 4 },
-  link: { fontSize: normalizeFont(12), color: 'rgba(1, 151, 218, 1)', fontWeight: '600' },
+  link: { fontSize: normalizeFont(10), color: 'rgba(1, 151, 218, 1)', fontWeight: '600' },
   errorContainer: { marginVertical: verticalScale(20), paddingHorizontal: moderateScale(20), alignItems: 'center' },
-  errorText: { fontSize: normalizeFont(14), color: '#e74c3c', textAlign: 'center', marginBottom: verticalScale(12) },
+  errorText: { fontSize: normalizeFont(10), color: '#e74c3c', textAlign: 'center', marginBottom: verticalScale(12) },
   buttonContainer: { flexDirection: 'row', gap: 10 },
   retryButton: { backgroundColor: '#ff6b35', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 6 },
   loginButton: { backgroundColor: '#3498db', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 6 },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: normalizeFont(12) },
+  buttonText: { color: '#fff', fontWeight: '600', fontSize: normalizeFont(10) },
   noDataContainer: { marginVertical: verticalScale(20), alignItems: 'center' },
-  noDataText: { fontSize: normalizeFont(14), color: '#999' }
+  noDataText: { fontSize: normalizeFont(10), color: '#999' }
 });
 
 // ---------- Custom Card Component ----------
@@ -147,8 +147,6 @@ const FressPopular = () => {
       console.warn("openProductDetails: missing variety/product name", product);
       return;
     }
-    
-    // Navigate to ProductVeriety with variety name
     navigation.navigate('ProductVeriety', { 
       product, 
       variety: varietyName 

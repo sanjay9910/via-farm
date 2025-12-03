@@ -257,28 +257,28 @@ import { useNavigation } from "expo-router";
 import { useContext, useState } from "react";
 import {
   Alert,
+  Dimensions,
   Image,
   Keyboard,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "../context/AuthContext";
-import { moderateScale, normalizeFont, scale } from "../Responsive";
+import { isIOS, moderateScale, normalizeFont, scale, verticalScale } from "../Responsive";
 import { saveToken } from "../utility/Storage";
 
 export default function LoginScreen() {
   const navigation = useNavigation();
-  const [mobile, setMobile] = useState("");
-  const [password, setPassword] = useState("");
-  const { login, user } = useContext(AuthContext);
+  const [mobile, setMobile] = useState("7777777777");
+  const [password, setPassword] = useState("12345678");
+  const { login } = useContext(AuthContext);
 
   const handleLogin = async () => {
     if (!mobile.trim()) {
@@ -299,7 +299,6 @@ export default function LoginScreen() {
 
       if (response.status === "success") {
         saveToken(response?.data.token);
-        // Get user role from response
         const userRole = response.data?.user?.role;
 
         if (userRole === "Vendor") {
@@ -327,24 +326,16 @@ export default function LoginScreen() {
     }
   };
 
-  const handleOtpLogin = () => {
-    navigation.navigate("loginWithOtp");
-  };
-
-  const ForgetPassword = () => {
-    navigation.navigate("forget-password");
-  };
-
-  const registerNew = () => {
-    navigation.navigate("register");
-  };
+  const handleOtpLogin = () => navigation.navigate("loginWithOtp");
+  const ForgetPassword = () => navigation.navigate("forget-password");
+  const registerNew = () => navigation.navigate("register");
 
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={isIOS ? "padding" : "height"}
         style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        keyboardVerticalOffset={isIOS ? verticalScale(10) : verticalScale(20)}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView
@@ -362,7 +353,7 @@ export default function LoginScreen() {
             {/* Card */}
             <View style={styles.card}>
               {/* Heading */}
-              <Text style={styles.heading}>Welcome Back !</Text>
+              <Text style={styles.heading}>Welcome to Viafarm!</Text>
 
               {/* Mobile Number Field */}
               <View style={styles.inputContainer}>
@@ -373,6 +364,8 @@ export default function LoginScreen() {
                   onChangeText={setMobile}
                   style={styles.input}
                   maxLength={10}
+                  returnKeyType="next"
+                  placeholder="Enter 10-digit mobile"
                 />
               </View>
 
@@ -384,6 +377,7 @@ export default function LoginScreen() {
                   value={password}
                   onChangeText={setPassword}
                   style={styles.input}
+                  returnKeyType="done"
                 />
               </View>
 
@@ -393,14 +387,17 @@ export default function LoginScreen() {
               </TouchableOpacity>
 
               {/* Login Button */}
-              <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
-                <Ionicons name="log-in-outline" size={20} color="#fff" />
+              <TouchableOpacity
+                style={styles.loginBtn}
+                onPress={handleLogin}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="log-in-outline" size={moderateScale(18)} color="#fff" />
                 <Text style={styles.loginText}>Login</Text>
               </TouchableOpacity>
 
               {/* Login with OTP */}
               <TouchableOpacity style={styles.otpBtn} onPress={handleOtpLogin}>
-                {/* <Ionicons name="key-outline" size={20} color="green" /> */}
                 <Text style={styles.otpText}>Login with OTP</Text>
               </TouchableOpacity>
 
@@ -419,6 +416,10 @@ export default function LoginScreen() {
   );
 }
 
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const HORIZONTAL_PADDING = moderateScale(18);
+const CARD_WIDTH = Math.min(SCREEN_WIDTH - HORIZONTAL_PADDING * 0, scale(420));
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -430,59 +431,55 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     alignItems: "center",
-    paddingTop: Platform.OS === "ios" ? 40 : 30,
+    paddingTop: isIOS ? verticalScale(36) : verticalScale(24),
     paddingBottom: moderateScale(20),
   },
   logoImage: {
-    width: scale(200),
-    height: scale(200),
+    width: scale(160),
+    height: verticalScale(160),
     resizeMode: "contain",
-    marginBottom: moderateScale(-60),
+    marginBottom: verticalScale(-30),
   },
   card: {
-    height: '80%',
-    width: "100%",
+    width: CARD_WIDTH,
+    minHeight: verticalScale(420),
     backgroundColor: "#fff",
-    borderRadius: moderateScale(20),
-    padding: moderateScale(28),
-    marginTop: moderateScale(60),
-    marginBottom: moderateScale(20),
+    borderRadius: moderateScale(18),
+    paddingHorizontal: moderateScale(20),
+    paddingVertical: moderateScale(26),
+    marginTop: verticalScale(40),
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderTopWidth: 3,
     borderColor: "rgba(255, 202, 40, 1)",
-    elevation: 6,
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: -4 },
     alignItems: "center",
   },
   heading: {
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(12),
     fontWeight: "600",
-    marginBottom: moderateScale(25),
+    marginBottom: moderateScale(18),
   },
   inputContainer: {
     width: "100%",
-    marginBottom: moderateScale(15),
+    marginBottom: moderateScale(14),
   },
   label: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(10),
     fontWeight: "600",
     color: "#333",
-    marginBottom: moderateScale(8),
+    marginBottom: moderateScale(6),
     marginLeft: 2,
   },
   input: {
     width: "100%",
-    height: scale(50),
+    // height: verticalScale(48),
+    paddingVertical:moderateScale(10),
     borderWidth: 1,
     borderColor: "#ddd",
     borderRadius: moderateScale(10),
     paddingHorizontal: moderateScale(12),
     backgroundColor: "#fdfdfd",
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(10),
   },
   forgotWrapper: {
     width: "100%",
@@ -491,21 +488,23 @@ const styles = StyleSheet.create({
   },
   forgotText: {
     color: "#007AFF",
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(9),
   },
   loginBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     width: "70%",
-    height: scale(50),
-    borderRadius: 10,
+    // height: verticalScale(48),
+    paddingVertical:moderateScale(12),
+    borderRadius: moderateScale(10),
     backgroundColor: "rgba(76, 175, 80, 1)",
-    marginBottom: moderateScale(15),
+    marginBottom: moderateScale(20),
+    paddingHorizontal: moderateScale(8),
   },
   loginText: {
     color: "#fff",
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(10),
     fontWeight: "600",
     marginLeft: moderateScale(8),
   },
@@ -514,28 +513,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     width: "70%",
-    height: scale(50),
-    borderRadius: 10,
-    borderWidth:2,
+    // height: verticalScale(48),
+    paddingVertical:moderateScale(10),
+    borderRadius: moderateScale(10),
+    borderWidth: 2,
     borderColor: "rgba(76, 175, 80, 1)",
-    marginBottom: moderateScale(20),
+    marginBottom: moderateScale(16),
   },
   otpText: {
     color: "green",
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(11),
     fontWeight: "600",
     marginLeft: moderateScale(8),
   },
   signupWrapper: {
     flexDirection: "row",
-    marginTop: moderateScale(10),
+    marginTop: moderateScale(6),
   },
   signupText: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(10),
     color: "#555",
   },
   signupLink: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(10),
     color: "#007AFF",
     fontWeight: "600",
   },

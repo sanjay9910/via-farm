@@ -35,7 +35,6 @@ const MyRecentListing = () => {
   const stockButtonRefs = useRef({});
   const router = useRouter();
 
-  // Fetch products (ensure stable id + dedupe)
   const fetchProducts = async () => {
     setLoading(true);
     try {
@@ -52,7 +51,6 @@ const MyRecentListing = () => {
 
       if (res?.data?.success && Array.isArray(res.data.products)) {
         const formatted = res.data.products.map((product, idx) => {
-          // prefer backend _id; fallback deterministic to avoid undefined keys
           const rawId = product.id ?? `${product.name ?? "product"}-${idx}`;
           return {
             id: String(rawId),
@@ -242,9 +240,9 @@ const MyRecentListing = () => {
                 style={styles.itemImage}
                 resizeMode="stretch"
               />
-              <View style={{ position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: "rgba(141, 141, 141, 0.6)", bottom: 5, left: 5, borderRadius: 10, paddingHorizontal: 5 }}>
+              <View style={{ position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: "rgba(141, 141, 141, 0.6)", bottom:moderateScale(5), left:moderateScale(5), borderRadius:moderateScale(10), paddingHorizontal:moderateScale(5) }}>
                 <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
-                <Text style={{ color: "#fff", fontSize: normalizeFont(12) }}>5.0</Text>
+                <Text style={{ color: "#fff", fontSize: normalizeFont(11) }}>5.0</Text>
               </View>
             </View>
 
@@ -430,12 +428,12 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(12),
   },
   headerTitle: {
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(13),
     fontWeight: "700",
     color: "#333",
   },
   seeAll: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(9),
     color: "rgba(1, 151, 218, 1)",
   },
   flatListContent: {
@@ -478,7 +476,7 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(8),
   },
   itemName: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(11),
     fontWeight: "600",
     color: "#424242",
     flex: 1,
@@ -488,7 +486,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   priceText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(11),
     fontWeight: "700",
     color: "#2E7D32",
   },
@@ -501,14 +499,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: moderateScale(4),
     marginBottom: moderateScale(4),
-    flexWrap: "wrap",
   },
   uploadLabel: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(9),
     color: "#666",
   },
   uploadValue: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(11),
     color: "#000",
     fontWeight: "500",
   },
@@ -516,6 +513,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: moderateScale(5),
+    fontSize:normalizeFont(10),
     marginVertical: moderateScale(4),
   },
   txetAll: {

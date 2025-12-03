@@ -276,8 +276,8 @@ export default function ProductDetailScreen() {
           </View>
 
           <Text style={[styles.sectionTitle, { marginTop:moderateScale(12) }]}>About the product</Text>
-          <Text style={{fontSize:normalizeFont(12),marginVertical:moderateScale(5)}}>Category: {product.category}</Text>
-          <Text style={{fontSize:normalizeFont(12)}}>Variety: {product.variety}</Text>
+          <Text style={{fontSize:normalizeFont(10),marginVertical:moderateScale(5)}}>Category: {product.category}</Text>
+          <Text style={{fontSize:normalizeFont(10)}}>Variety: {product.variety}</Text>
     
           <Text style={styles.description}>Description: {product.description}</Text>
 
@@ -291,8 +291,8 @@ export default function ProductDetailScreen() {
             <TouchableOpacity onPress={openVendorDetails} activeOpacity={0.8} style={styles.vendorExpanded}>
               <Image source={{ uri: vendor?.profilePicture ?? product.vendor?.profilePicture }} style={styles.vendorImage} />
               <View style={{ flex: 1, marginLeft: moderateScale(12) }}>
-                <Text style={{ fontWeight: '600',fontSize:11, }}>{vendor?.name ?? product.vendor?.name}</Text>
-                <Text style={{ color: '#666', marginTop:moderateScale(6) ,fontSize:11}}>{vendorAddr.houseNumber ? `${vendorAddr.houseNumber}, ` : ''}{vendorAddr.locality ?? vendorAddr.street ?? ''}{vendorAddr.city ? `, ${vendorAddr.city}` : ''}</Text>
+                <Text style={{ fontWeight: '600',fontSize: normalizeFont(10), }}>{vendor?.name ?? product.vendor?.name}</Text>
+                <Text style={{ color: '#666', marginTop:moderateScale(6) ,fontSize:normalizeFont(10)}}>{vendorAddr.houseNumber ? `${vendorAddr.houseNumber}, ` : ''}{vendorAddr.locality ?? vendorAddr.street ?? ''}{vendorAddr.city ? `, ${vendorAddr.city}` : ''}</Text>
                 {/* <Text style={{ color: '#777', marginTop: 8 }}>{vendor?.about ?? ''}</Text> */}
               </View>
             </TouchableOpacity>
@@ -303,8 +303,8 @@ export default function ProductDetailScreen() {
               {/* <Ionicons name="location-sharp" size={18} color="#444" /> */}
               <Image source={require("../assets/via-farm-img/icons/loca.png")} />
               <View style={{ marginLeft: moderateScale(10) }}>
-                <Text style={{ fontWeight: '500', fontSize:normalizeFont(12)}}>Pickup Location</Text>
-                <Text style={{ color: '#666',fontSize:normalizeFont(12), maxWidth: SCREEN_W - scale(120) }} numberOfLines={1}>{pickupAddress}</Text>
+                <Text style={{ fontWeight: '500', fontSize:normalizeFont(10)}}>Pickup Location</Text>
+                <Text style={{ color: '#666',fontSize:normalizeFont(10), maxWidth: SCREEN_W - scale(120) }} numberOfLines={1}>{pickupAddress}</Text>
               </View>
             </View>
             <TouchableOpacity onPress={openVendorMap} style={{ padding: scale(8) }}>
@@ -314,7 +314,7 @@ export default function ProductDetailScreen() {
 
           <View style={{ marginTop: 6 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal:moderateScale(4) }}>
-              <Text style={{ fontWeight: '600',fontSize:normalizeFont(12) }}>Ratings & Reviews</Text>
+              <Text style={{ fontWeight: '600',fontSize:normalizeFont(10) }}>Ratings & Reviews</Text>
               <TouchableOpacity onPress={() => navigation.navigate?.('SeeAllReview', {
                   vendor,
                   reviews,
@@ -349,10 +349,10 @@ export default function ProductDetailScreen() {
             renderItem={({ item }) => (
               <View style={styles.reviewCard}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: moderateScale(8) }}>
-                  <Image source={{ uri: item.user?.profilePicture ?? 'https://cdn-icons-png.flaticon.com/512/149/149071.png' }} style={{ width: scale(40), height: scale(40), borderRadius: moderateScale(20), marginRight: 10 }} />
+                  <Image source={{ uri: item.user?.profilePicture ?? 'https://cdn-icons-png.flaticon.com/512/149/149071.png' }} style={{ width: scale(40), height: scale(40), borderRadius: moderateScale(20), marginRight:moderateScale(10) }} />
                   <View>
                     <Text style={{ fontWeight: '700' }}>{item.user?.name ?? 'Anonymous'}</Text>
-                    <Text style={{ color: '#777', fontSize: normalizeFont(12) }}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+                    <Text style={{ color: '#777', fontSize: normalizeFont(10) }}>{new Date(item.createdAt).toLocaleDateString()}</Text>
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: moderateScale(8) }}>
@@ -363,13 +363,13 @@ export default function ProductDetailScreen() {
               </View>
             )}
             ListEmptyComponent={() => (
-              <View style={{ padding: moderateScale(20) }}>
-                <Text style={{ color: '#777' }}>No reviews yet</Text>
+              <View>
+                <Text style={{ color: '#777',fontSize:normalizeFont(10) }}>No reviews yet</Text>
               </View>
             )}
           />
 
-          <View style={{ marginTop: moderateScale(8) }}>
+          <View>
             <SuggestionCard />
           </View>
 
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: moderateScale(12), paddingVertical: moderateScale(10), borderBottomWidth: 0.4, borderBottomColor: '#eee' },
   iconBtn: { padding: moderateScale(6) },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize:normalizeFont(16) },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize:normalizeFont(13) },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
 
   container: { flex: 1 },
@@ -424,17 +424,17 @@ const styles = StyleSheet.create({
 
   infoCard: { backgroundColor: '#fff', marginTop: -14,  padding:moderateScale(14), minHeight:scale(220) },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize:normalizeFont(12),fontWeight:600,  },
-  smallText: { color: '#666', fontSize:normalizeFont(12)},
-  mrp: { fontSize:normalizeFont(12), marginTop:moderateScale(5) },
-  ratingPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal:moderateScale(10),paddingVertical:moderateScale(3) ,borderRadius:7, marginTop:moderateScale(8),borderWidth:1, borderColor:'rgba(0, 0, 0, 0.4)' },
+  title: { fontSize:normalizeFont(13),fontWeight:600,  },
+  smallText: { color: '#666', fontSize:normalizeFont(10)},
+  mrp: { fontSize:normalizeFont(10), marginTop:moderateScale(5) },
+  ratingPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal:moderateScale(10),paddingVertical:moderateScale(1) ,borderRadius:8, marginTop:moderateScale(8),borderWidth:1, borderColor:'rgba(0, 0, 0, 0.4)' },
 
-  sectionTitle: { fontSize:normalizeFont(12), fontWeight: '600' },
-  description: { color: '#444', marginTop:moderateScale(6), fontSize:normalizeFont(11) },
+  sectionTitle: { fontSize:normalizeFont(10), fontWeight: '600' },
+  description: { color: '#444', marginTop:moderateScale(6), fontSize:normalizeFont(10) },
 
   nutriRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: moderateScale(12) },
   nutriCol: { alignItems: 'center', flex: 1 },
-  nutriLabel: { color: '#777', fontSize: normalizeFont(12) },
+  nutriLabel: { color: '#777', fontSize: normalizeFont(10) },
   nutriVal: { fontWeight: '600', marginTop:moderateScale(6) },
 
   vendorHeader: { marginTop: moderateScale(12), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 0,
   },
   qtyBtnText: {
-    fontSize: normalizeFont(18),
+    fontSize: normalizeFont(15),
     fontWeight: '700',
     color: '#22c55e',
   },
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
   },
   qtyText: {
     fontWeight: '700',
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(11),
     color: '#22c55e',
   },
 });

@@ -19,7 +19,7 @@ import FreshVendor from "../components/common/FreshVendor";
 import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const API_BASE = "https://viafarm-1.onrender.com";
-const CARD_WIDTH = Dimensions.get("window").width / 2 - 25;
+const CARD_WIDTH = Dimensions.get("window").width / 2 - 15;
 
 const ProductCard = ({
   item,
@@ -86,7 +86,7 @@ const ProductCard = ({
             {item?.name || "Unnamed product"}
           </Text>
           <Text style={cardStyles.productSubtitle} numberOfLines={1}>
-            by {item?.vendor?.name || "Unknown Vendor"}
+            By {item?.vendor?.name || "Unknown Vendor"}
           </Text>
 
           {item?.variety ? (
@@ -253,10 +253,8 @@ const ViewAllFressPop = () => {
     fetchFreshAndPopular();
     fetchWishlist();
     fetchCart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Add to / remove from wishlist (optimistic + silent)
   const addToWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -334,8 +332,6 @@ const ViewAllFressPop = () => {
       await addToWishlist(product);
     }
   };
-
-  // Add to cart (optimistic + silent)
   const handleAddToCart = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -344,8 +340,6 @@ const ViewAllFressPop = () => {
         return;
       }
       const productId = product._id || product.id;
-
-      // optimistic UI: set quantity = 1
       setCartItems(prev => ({
         ...prev,
         [productId]: {
@@ -487,7 +481,7 @@ const ViewAllFressPop = () => {
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Fresh & Popular</Text>
-        <View style={{ width: scale(50) }} />
+        <View  />
       </View>
 
       <FreshVendor />
@@ -517,7 +511,7 @@ const ViewAllFressPop = () => {
           keyExtractor={(item) => item._id || item.id || String(item?.name)}
           numColumns={2}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: moderateScale(10), paddingBottom: moderateScale(20) }}
+          contentContainerStyle={{ paddingHorizontal: moderateScale(10), paddingBottom: moderateScale(20)}}
           renderItem={({ item }) => {
             const productId = item._id || item.id;
             const isFavorite = favorites.has(productId);
@@ -561,7 +555,7 @@ const styles = StyleSheet.create({
   },
   searchWrapper: {
     flex: 1,
-    marginHorizontal: moderateScale(8),
+    // marginHorizontal: moderateScale(8),
     flexDirection: 'row',
     backgroundColor: 'rgba(252, 252, 252, 1)',
     paddingVertical: moderateScale(10),
@@ -573,7 +567,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(10),
     color: '#222',
     paddingVertical: 0
   },
@@ -585,24 +579,25 @@ const styles = StyleSheet.create({
     gap: scale(5),
   },
   backIcon: {
-    width: scale(24),
-    height: scale(24),
+    width: scale(20),
+    height: scale(20),
   },
   headerTitle: {
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(11),
     fontWeight: "600",
     color: "#333",
   },
   loadingContainer: {
     alignItems: "center",
-    padding: moderateScale(20),
     flex: 1,
     justifyContent: 'center',
     alignContent: 'center',
+    fontSize:normalizeFont(1)
   },
   loadingText: {
     marginTop: moderateScale(10),
     color: "#777",
+    fontSize:normalizeFont(10)
   },
   errorContainer: {
     alignItems: "center",
@@ -616,7 +611,7 @@ const styles = StyleSheet.create({
     color: "#d32f2f",
     textAlign: "center",
     marginBottom: moderateScale(15),
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
   },
   retryButton: {
     backgroundColor: "#1976d2",
@@ -633,19 +628,18 @@ const styles = StyleSheet.create({
 const cardStyles = StyleSheet.create({
   container: {
     width: CARD_WIDTH,
-    marginLeft: moderateScale(6),
     marginTop: moderateScale(12),
     marginBottom: moderateScale(8),
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius:12,
+    borderRadius:10,
     overflow: 'hidden',
-    shadowColor: 'rgba(0, 0, 0, 0.2)',
+    shadowColor: 'grey',
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    borderWidth: 2,
-    borderColor: 'rgba(0, 0, 0, 0.2)',
+    borderWidth:1,
+    borderColor: 'grey',
     elevation: 7,
     shadowOffset: { width: 0, height: 3 },
   },
@@ -691,7 +685,7 @@ const cardStyles = StyleSheet.create({
   },
   ratingText: {
     color: '#fff',
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(10),
     marginLeft: moderateScale(6),
     fontWeight: '600',
   },
@@ -701,7 +695,7 @@ const cardStyles = StyleSheet.create({
     paddingVertical: moderateScale(10),
   },
   productTitle: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(10),
     fontWeight: '600',
     color: '#2b2b2b',
 
@@ -709,11 +703,11 @@ const cardStyles = StyleSheet.create({
 
   productVeriety: {
     color: 'rgba(66, 66, 66, 0.7)',
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
   },
 
   productSubtitle: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     color: '#666',
     marginBottom: moderateScale(3),
   },
@@ -724,18 +718,18 @@ const cardStyles = StyleSheet.create({
     marginBottom: moderateScale(5),
   },
   productPrice: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     fontWeight: '800',
     color: '#666',
   },
   productUnit: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     color: '#666',
     marginLeft: moderateScale(6),
     marginBottom: moderateScale(2),
   },
   weightText: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(10),
     color: '#777',
     marginLeft: moderateScale(6),
   },
@@ -762,7 +756,7 @@ const cardStyles = StyleSheet.create({
   },
   addToCartText: {
     color: '#fff',
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(10),
     fontWeight: '700',
   },
 
@@ -775,13 +769,13 @@ const cardStyles = StyleSheet.create({
     borderColor: 'rgba(76, 175, 80, 1)',
     borderRadius: 8,
     paddingHorizontal: moderateScale(4),
-    height: scale(36),
+    // height: scale(36),
     minWidth: scale(120),
     backgroundColor: '#fff',
   },
   quantityButton: {
     width: scale(36),
-    height: scale(36),
+    height: scale(38),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -797,7 +791,7 @@ const cardStyles = StyleSheet.create({
     flexDirection: 'row',
   },
   quantityText: {
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(12),
     color: 'rgba(76, 175, 80, 1)',
     fontWeight: '700',
     textAlign: 'center',

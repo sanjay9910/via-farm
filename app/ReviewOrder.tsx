@@ -894,7 +894,7 @@ const styles = StyleSheet.create({
     alignContent: 'center',
   },
   productImage: {
-    width: scale(167),
+    width: scale(155),
     height: scale(128),
     borderRadius: 8,
   },
@@ -922,7 +922,7 @@ const styles = StyleSheet.create({
     gap: moderateScale(10),
   },
   headerText: {
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(13),
     fontWeight: '600',
   },
   scrollView: {
@@ -976,17 +976,17 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(15),
   },
   productName: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(11),
     fontWeight: '600',
     color: '#000',
   },
   productDescription: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(11),
     color: '#666',
     marginTop: moderateScale(2),
   },
   productPrice: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(10),
     fontWeight: '600',
     color: '#000',
     marginTop: moderateScale(4),
@@ -998,7 +998,7 @@ const styles = StyleSheet.create({
     marginTop: moderateScale(10),
   },
   deliveryText: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(10),
     color: '#666',
   },
   quantityContainer: {
@@ -1013,15 +1013,15 @@ const styles = StyleSheet.create({
   },
   quantityButton: {
     paddingHorizontal: 8,
-    paddingVertical: moderateScale(3),
+    // paddingVertical: moderateScale(3),
   },
   quantityText: {
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(13),
     fontWeight: '600',
     color: '#000',
   },
   quantityNumber: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     color: '#000',
     paddingHorizontal: moderateScale(8),
