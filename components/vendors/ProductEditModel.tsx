@@ -64,13 +64,12 @@ const normalizeUnitForDropdown = (unit) => {
   if (u === "kg" || u === "kilogram" || u === "kilograms") return "kg";
   if (u === "ltr" || u === "liter" || u === "litre") return "ltr";
   if (u === "dozen") return "dozen";
-  return u; // fallback — if it's one of the options it will match, else it will show as text
+  return u; 
 };
 
 const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
-  // form fields
   const [name, setName] = useState("");
-  const [category, setCategory] = useState(""); // we store category as name (like AddProduct)
+  const [category, setCategory] = useState(""); 
   const [unit, setUnit] = useState("");
   const [variety, setVariety] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -80,8 +79,8 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
   const [weightPerPiece, setWeightPerPiece] = useState("");
 
   // images
-  const [existingImages, setExistingImages] = useState([]); // remote urls
-  const [newImages, setNewImages] = useState([]); // local assets/uris
+  const [existingImages, setExistingImages] = useState([]); 
+  const [newImages, setNewImages] = useState([]); 
 
   const [loading, setLoading] = useState(false);
 
@@ -105,20 +104,16 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
     fetchCategoriesAndVarieties();
   }, []);
 
-  // populate form when product changes (basic initial fill)
   useEffect(() => {
     if (product) {
       setName(product.name ?? "");
       setPrice(product.price != null ? String(product.price) : "");
       setQuantity(product.quantity != null ? String(product.quantity) : "");
-      // category: could be object, id or name. We'll try to set name; if id present we'll store id to map later.
       if (product.category) {
         if (typeof product.category === "object") {
           setCategory(product.category.name ?? "");
           setInitialCategoryId(product.category._id ?? product.category.id ?? null);
         } else {
-          // string — could be name or id
-          // we tentatively set the string, but also save as id to map after fetch
           setCategory(String(product.category));
           setInitialCategoryId(String(product.category));
         }
@@ -166,7 +161,6 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
     }
   }, [product]);
 
-  // Once categories/varieties are fetched, try to map initialCategoryId/initialVarietyId to names (if needed)
   useEffect(() => {
     if (categories.length > 0 && initialCategoryId) {
       // find by _id or name match
@@ -190,7 +184,6 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
   useEffect(() => {
     if (!category) {
       setVarietyOptions(allVarieties.map((v) => v.name));
-      // keep current variety if it exists in list, else reset
       if (!allVarieties.some((v) => v.name === variety)) setVariety("");
     } else {
       filterVarietiesForCategory(category);
@@ -238,9 +231,7 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
     try {
       const filtered = allVarieties.filter((v) => {
         if (!v || !v.category) return false;
-        // v.category can be string id or object with name/_id
         if (typeof v.category === "string") {
-          // match with selectedCategory either by name or id
           return v.category === selectedCategory || v.category === selectedCategory._id;
         } else if (typeof v.category === "object") {
           const catName = (v.category.name || "").toLowerCase();
@@ -252,7 +243,6 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
 
       const names = filtered.length > 0 ? filtered.map((f) => f.name) : [];
       setVarietyOptions(names);
-      // if the existing variety value is not in the new list, reset it (but keep if it exists)
       if (variety && !names.includes(variety)) {
         setVariety("");
       }
@@ -311,7 +301,7 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
     const normalizedUnit = unit.trim().toLowerCase();
     if (normalizedUnit === "pc" && !weightPerPiece.trim()) return Alert.alert("Error", "Please enter weight per piece for pc unit");
 
-    if (existingImages.length + newImages.length === 0) return Alert.alert("Error", "Please add at least one image");
+    // if (existingImages.length + newImages.length === 0) return Alert.alert("Error", "Please add at least one image");
 
     return true;
   };
@@ -338,13 +328,7 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
       if ((unit || "").toLowerCase() === "pc" && weightPerPiece.trim()) {
         formData.append("weightPerPiece", weightPerPiece.trim());
       }
-
-      // existingImages as JSON array (backend expected)
       formData.append("existingImages", JSON.stringify(existingImages));
-      // If backend expects repeated fields instead:
-      // existingImages.forEach(url => formData.append('existingImages', url));
-
-      // append new images as files
       newImages.forEach((uri, idx) => {
         const fileUri = Platform.OS === "ios" ? uri.replace("file://", "") : uri;
         const filename = fileUri.split("/").pop() || `image_${idx}.jpg`;

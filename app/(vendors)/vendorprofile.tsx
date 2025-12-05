@@ -919,13 +919,17 @@ const VendorProfile = () => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.profile}>
         <TouchableOpacity onPress={goBack}>
-         <Image  source={require("../../assets/via-farm-img/icons/groupArrow.png")} />
+          <Image source={require("../../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
-        <Text style={{fontWeight:700}}>My Profile</Text>
+        <Text style={{ fontWeight: 700,fontSize:normalizeFont(13) }}>My Profile</Text>
         <Text></Text>
       </View>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <TouchableOpacity style={styles.profileSection} onPress={() => navigation.navigate("VendorProfileView", { user: fullUser })}>
+            <TouchableOpacity style={{position:'absolute',right:moderateScale(11), top:moderateScale(10),  borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.2)", paddingHorizontal: moderateScale(6), borderRadius:5, flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: moderateScale(1) }} onPress={() => navigation.navigate("VendorProfileView", { user: fullUser })}>
+                <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
+                <Text style={{ fontSize: normalizeFont(10) }} >{userInfo?.rating}</Text>
+              </TouchableOpacity>
           <View style={styles.profileInfo}>
             <TouchableOpacity style={styles.avatarContainer}>
               {userInfo?.image ? (
@@ -941,18 +945,14 @@ const VendorProfile = () => {
               <Text style={styles.userRole}>{userInfo?.status}</Text>
             </View>
             <View>
-              <TouchableOpacity style={{ borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.2)", paddingHorizontal: moderateScale(6), borderRadius: 7, flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: moderateScale(1) }} onPress={() => navigation.navigate("VendorProfileView", { user: fullUser })}>
-                <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
-                <Text style={{ fontSize: normalizeFont(10) }} >{userInfo?.rating}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.editButtonContainer}
-                onPress={() => setEditProfileModalVisible(true)}
-              >
-                <Image source={require("../../assets/via-farm-img/icons/editicon.png")} />
-              </TouchableOpacity>
             </View>
           </View>
+          <TouchableOpacity
+            style={styles.editButtonContainer}
+            onPress={() => setEditProfileModalVisible(true)}
+          >
+            <Image source={require("../../assets/via-farm-img/icons/editicon.png")} />
+          </TouchableOpacity>
         </TouchableOpacity>
 
         <View style={styles.menuSection}>
@@ -1043,13 +1043,13 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff' },
   container: { flex: 1, backgroundColor: '#fff' },
 
-    profile:{
-   flexDirection:'row',
-   alignItems:'center',
-   justifyContent:'space-between',
-   paddingHorizontal:moderateScale(22),
-   paddingVertical:moderateScale(10),
-   marginTop:moderateScale(5)
+  profile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: moderateScale(22),
+    paddingVertical: moderateScale(10),
+    marginTop: moderateScale(5)
   },
 
   profileSection: {
@@ -1082,11 +1082,11 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: normalizeFont(24), fontWeight: '600', color: '#fff' },
 
   userInfo: { flex: 1, marginLeft: moderateScale(15) },
-  userName: { fontSize: normalizeFont(scale(13)), fontWeight: '600', color: '#333', paddingVertical: moderateScale(2) },
-  userPhone: { fontSize: normalizeFont(12), color: '#666', paddingVertical: moderateScale(1) },
-  userRole: { fontSize: normalizeFont(11), color: '#4CAF50', fontWeight: '500', marginTop: moderateScale(2), paddingVertical: moderateScale(1) },
+  userName: { fontSize: normalizeFont(scale(11)), fontWeight: '600', color: '#333', paddingVertical: moderateScale(2) },
+  userPhone: { fontSize: normalizeFont(10), color: '#666', paddingVertical: moderateScale(1) },
+  userRole: { fontSize: normalizeFont(10), color: '#4CAF50', fontWeight: '500', marginTop: moderateScale(2), paddingVertical: moderateScale(1) },
 
-  editButtonContainer: { padding: moderateScale(8), marginTop: moderateScale(15) },
+  editButtonContainer: { position: "absolute", bottom: moderateScale(10), right: moderateScale(10), },
 
   menuSection: {
     backgroundColor: '#fff',

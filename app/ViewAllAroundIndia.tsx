@@ -1,3 +1,4 @@
+// ViewAllAroundIndia.jsx
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
@@ -9,20 +10,21 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Modal,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { moderateScale, normalizeFont, scale } from "./Responsive";
 
 const API_BASE = "https://viafarm-1.onrender.com";
 const API_PATH = "/api/buyer/all-around-india";
-const CARD_WIDTH = Dimensions.get("window").width / 2 - 25;
 
-// ----------------- ProductCard (same design + functionality) -----------------
+// ----------------- ProductCard (same design + quantity-edit modal) -----------------
 const ProductCard = ({
   item,
   isFavorite,
@@ -31,6 +33,7 @@ const ProductCard = ({
   onAddToCart,
   onUpdateQuantity,
   onPress,
+  cardWidth,
 }) => {
   const inCart = (cartQuantity || 0) > 0;
 
@@ -46,7 +49,7 @@ const ProductCard = ({
 
   const rating = typeof item?.rating === "number" ? item.rating : item?.rating ? Number(item.rating) : 0;
 
-  // NEW: robust vendor name fallback
+  // robust vendor name fallback
   const vendorName =
     (item && typeof item === "object" && (
       item.vendor?.name ||
@@ -56,8 +59,52 @@ const ProductCard = ({
       item.vendor?.vendor?.vendorName
     )) || "";
 
+  // Quantity edit modal state
+  const [qtyModalVisible, setQtyModalVisible] = useState(false);
+  const [editQuantity, setEditQuantity] = useState(String(cartQuantity || 0));
+
+  React.useEffect(() => {
+    setEditQuantity(String(cartQuantity || 0));
+  }, [cartQuantity]);
+
+  const openQtyModal = (e) => {
+    e?.stopPropagation?.();
+    setEditQuantity(String(cartQuantity || 0));
+    setQtyModalVisible(true);
+  };
+  const closeQtyModal = () => setQtyModalVisible(false);
+
+  const applyQuantityChange = () => {
+    const parsed = parseInt(String(editQuantity).replace(/\D/g, ''), 10);
+    const newQty = Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
+    const currentQty = cartQuantity || 0;
+    const delta = newQty - currentQty;
+
+    if (delta === 0) {
+      closeQtyModal();
+      return;
+    }
+
+    try {
+      onUpdateQuantity && onUpdateQuantity(item, delta);
+    } catch (err) {
+      console.error("applyQuantityChange error:", err);
+    } finally {
+      closeQtyModal();
+    }
+  };
+
+  const incrementEdit = () => {
+    const v = parseInt(editQuantity || "0", 10) || 0;
+    setEditQuantity(String(v + 1));
+  };
+  const decrementEdit = () => {
+    const v = parseInt(editQuantity || "0", 10) || 0;
+    setEditQuantity(String(Math.max(0, v - 1)));
+  };
+
   return (
-    <View style={[cardStyles.container]}>
+    <View style={[cardStyles.container, cardWidth ? { width: cardWidth } : {}]}>
       <TouchableOpacity
         style={cardStyles.card}
         activeOpacity={0.85}
@@ -75,12 +122,12 @@ const ProductCard = ({
               onToggleFavorite && onToggleFavorite(item);
             }}
           >
-            <Ionicons name={isFavorite ? "heart" : "heart-outline"} size={22} color={isFavorite ? "#ff4444" : "#fff"} />
+            <Ionicons name={isFavorite ? "heart" : "heart-outline"} size={scale(22)} color={isFavorite ? "#ff4444" : "#fff"} />
           </TouchableOpacity>
 
           {/* rating */}
           <View style={cardStyles.ratingContainer}>
-            <Ionicons name="star" size={12} color="#FFD700" />
+            <Ionicons name="star" size={scale(12)} color="#FFD700" />
             <Text style={cardStyles.ratingText}>{rating ? Number(rating).toFixed(1) : "0.0"}</Text>
           </View>
 
@@ -91,15 +138,15 @@ const ProductCard = ({
             {item?.name ?? "Unnamed product"}
           </Text>
 
-          <View style={{ marginVertical: 5 }}>
-            <Text numberOfLines={1} style={{ color: "#444", fontSize:normalizeFont(11) }}>
+          <View style={{ marginVertical: moderateScale(5) }}>
+            <Text numberOfLines={1} style={{ color: "#444", fontSize: normalizeFont(11) }}>
               By {vendorName}
             </Text>
           </View>
 
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: moderateScale(6) }}>
             <Image source={require("../assets/via-farm-img/icons/loca.png")} />
-            <Text style={{ fontSize:normalizeFont(11), color: "#444" }}>{distance ?? "0.0 km"}</Text>
+            <Text style={{ fontSize: normalizeFont(11), color: "#444" }}>{distance ?? "0.0 km"}</Text>
           </View>
 
           <View style={cardStyles.priceContainer}>
@@ -122,31 +169,86 @@ const ProductCard = ({
                 <Text style={cardStyles.addToCartText}>{status === "In Stock" ? "Add to Cart" : status}</Text>
               </TouchableOpacity>
             ) : (
-              <View style={cardStyles.quantityContainer}>
+              <>
                 <TouchableOpacity
-                  style={cardStyles.quantityButton}
-                  onPress={(e) => {
-                    e.stopPropagation?.();
-                    onUpdateQuantity && onUpdateQuantity(item, -1);
-                  }}
+                  activeOpacity={0.85}
+                  onPress={openQtyModal}
+                  onLongPress={(e) => { e.stopPropagation?.(); openQtyModal(e); }}
                 >
-                  <Ionicons name="remove" size={20} color="rgba(76, 175, 80, 1)" />
+                  <View style={cardStyles.quantityContainer}>
+                    <TouchableOpacity
+                      style={cardStyles.quantityButton}
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        onUpdateQuantity && onUpdateQuantity(item, -1);
+                      }}
+                    >
+                      <Ionicons name="remove" size={scale(20)} color="rgba(76, 175, 80, 1)" />
+                    </TouchableOpacity>
+
+                    <View style={cardStyles.quantityValueContainer}>
+                      <Text style={cardStyles.quantityText}>{cartQuantity}</Text>
+                    </View>
+
+                    <TouchableOpacity
+                      style={cardStyles.quantityButton}
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        onUpdateQuantity && onUpdateQuantity(item, 1);
+                      }}
+                    >
+                      <Ionicons name="add" size={scale(20)} color="rgba(76, 175, 80, 1)" />
+                    </TouchableOpacity>
+                  </View>
                 </TouchableOpacity>
 
-                <View style={cardStyles.quantityValueContainer}>
-                  <Text style={cardStyles.quantityText}>{cartQuantity}</Text>
-                </View>
-
-                <TouchableOpacity
-                  style={cardStyles.quantityButton}
-                  onPress={(e) => {
-                    e.stopPropagation?.();
-                    onUpdateQuantity && onUpdateQuantity(item, 1);
-                  }}
+                {/* Quantity edit modal */}
+                <Modal
+                  visible={qtyModalVisible}
+                  animationType="fade"
+                  transparent
+                  onRequestClose={closeQtyModal}
                 >
-                  <Ionicons name="add" size={20} color="rgba(76, 175, 80, 1)" />
-                </TouchableOpacity>
-              </View>
+                  <TouchableOpacity
+                    style={modalStyles.backdrop}
+                    activeOpacity={1}
+                    onPress={closeQtyModal}
+                  >
+                    <View style={[modalStyles.modalWrap, { maxWidth: Math.min(420, Dimensions.get('window').width - moderateScale(40)) }]}>
+                      <Text style={modalStyles.modalTitle}>Set Quantity</Text>
+
+                      <View style={modalStyles.editRow}>
+                        <TouchableOpacity style={modalStyles.pickerBtn} onPress={decrementEdit}>
+                          <Ionicons name="remove" size={scale(18)} color="#111" />
+                        </TouchableOpacity>
+
+                        <TextInput
+                          style={modalStyles.qtyInput}
+                          keyboardType="number-pad"
+                          value={String(editQuantity)}
+                          onChangeText={(t) => setEditQuantity(t.replace(/[^0-9]/g, ""))}
+                          maxLength={5}
+                          placeholder="0"
+                          placeholderTextColor="#999"
+                        />
+
+                        <TouchableOpacity style={modalStyles.pickerBtn} onPress={incrementEdit}>
+                          <Ionicons name="add" size={scale(18)} color="#111" />
+                        </TouchableOpacity>
+                      </View>
+
+                      <View style={modalStyles.modalActions}>
+                        <TouchableOpacity style={modalStyles.cancelBtn} onPress={closeQtyModal}>
+                          <Text style={modalStyles.cancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={modalStyles.okBtn} onPress={applyQuantityChange}>
+                          <Text style={modalStyles.okText}>OK</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </Modal>
+              </>
             )}
           </View>
         </View>
@@ -160,12 +262,18 @@ const ViewAllAroundIndia = () => {
   const navigation = useNavigation();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<any>(null);
+  const [error, setError] = useState(null);
   const [favorites, setFavorites] = useState(new Set());
   const [cartItems, setCartItems] = useState({});
   const [query, setQuery] = useState("");
 
-  // Fetch all-around-india
+  const window = useWindowDimensions();
+  // compute responsive card width for 2-column grid
+  const horizontalPadding = moderateScale(10) * 2; // FlatList padding left+right
+  const gap = moderateScale(12); // space between columns
+  const computedCardWidth = Math.max(120, Math.floor((window.width - horizontalPadding - gap) / 2));
+
+  // ---------------- fetch functions ----------------
   const fetchAllAround = async () => {
     try {
       setLoading(true);
@@ -190,13 +298,13 @@ const ViewAllAroundIndia = () => {
         setItems([]);
         setError(resp.data?.message || "No products found");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error fetching all-around-india:", err);
-      if (err.response?.status === 401) {
+      if (err?.response?.status === 401) {
         setError("Please login to view products");
-      } else if (err.code === "ECONNABORTED") {
+      } else if (err?.code === "ECONNABORTED") {
         setError("Request timeout. Please try again.");
-      } else if (!err.response) {
+      } else if (!err?.response) {
         setError("Network error. Please check your connection.");
       } else {
         setError("Failed to load products. Please try again.");
@@ -207,7 +315,6 @@ const ViewAllAroundIndia = () => {
     }
   };
 
-  // wishlist
   const fetchWishlist = async () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
@@ -225,7 +332,6 @@ const ViewAllAroundIndia = () => {
     }
   };
 
-  // cart
   const fetchCart = async () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
@@ -235,7 +341,7 @@ const ViewAllAroundIndia = () => {
       });
       if (resp.data?.success) {
         const list = resp.data.data?.items || [];
-        const map: Record<string, any> = {};
+        const map = {};
         list.forEach((it) => {
           const pid = it.productId || it._id || it.id;
           map[pid] = { quantity: it.quantity || 1, cartItemId: it._id || it.id };
@@ -264,12 +370,10 @@ const ViewAllAroundIndia = () => {
   // wishlist handlers (OPTIMISTIC updates)
   const addToWishlist = async (product) => {
     const productId = product._id || product.id;
-    // optimistic local update
     setFavorites((prev) => new Set(prev).add(productId));
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) {
-        // rollback
         setFavorites((prev) => {
           const next = new Set(prev);
           next.delete(productId);
@@ -291,7 +395,6 @@ const ViewAllAroundIndia = () => {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       });
       if (!(r.data?.success)) {
-        // rollback
         setFavorites((prev) => {
           const next = new Set(prev);
           next.delete(productId);
@@ -299,9 +402,8 @@ const ViewAllAroundIndia = () => {
         });
         console.error("Failed to add to wishlist (server responded false):", r.data);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error adding to wishlist:", err);
-      // rollback on error
       setFavorites((prev) => {
         const next = new Set(prev);
         next.delete(productId);
@@ -312,7 +414,6 @@ const ViewAllAroundIndia = () => {
 
   const removeFromWishlist = async (product) => {
     const productId = product._id || product.id;
-    // optimistic local removal
     setFavorites((prev) => {
       const next = new Set(prev);
       next.delete(productId);
@@ -322,7 +423,6 @@ const ViewAllAroundIndia = () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) {
-        // rollback
         setFavorites((prev) => new Set(prev).add(productId));
         console.log("removeFromWishlist: no token - user not logged in");
         return;
@@ -331,13 +431,11 @@ const ViewAllAroundIndia = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!(r.data?.success)) {
-        // rollback
         setFavorites((prev) => new Set(prev).add(productId));
         console.error("Failed to remove from wishlist (server responded false):", r.data);
       }
     } catch (err) {
       console.error("Error removing wishlist:", err);
-      // rollback
       setFavorites((prev) => new Set(prev).add(productId));
     }
   };
@@ -345,10 +443,8 @@ const ViewAllAroundIndia = () => {
   const handleToggleFavorite = async (product) => {
     const productId = product._id || product.id;
     if (favorites.has(productId)) {
-      // currently favorite -> remove
       await removeFromWishlist(product);
     } else {
-      // not favorite -> add
       await addToWishlist(product);
     }
   };
@@ -356,8 +452,7 @@ const ViewAllAroundIndia = () => {
   // cart handlers (OPTIMISTIC)
   const handleAddToCart = async (product) => {
     const productId = product._id || product.id;
-    // optimistic local add
-    const fakeCartItemId = productId; // fallback id until server returns actual id
+    const fakeCartItemId = productId;
     setCartItems((prev) => ({
       ...prev,
       [productId]: { quantity: 1, cartItemId: fakeCartItemId },
@@ -366,7 +461,6 @@ const ViewAllAroundIndia = () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) {
-        // rollback
         setCartItems((prev) => {
           const next = { ...prev };
           delete next[productId];
@@ -395,7 +489,6 @@ const ViewAllAroundIndia = () => {
           [productId]: { quantity: 1, cartItemId: realId },
         }));
       } else {
-        // rollback
         setCartItems((prev) => {
           const next = { ...prev };
           delete next[productId];
@@ -403,9 +496,8 @@ const ViewAllAroundIndia = () => {
         });
         console.error("Failed to add to cart (server responded false):", r.data);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error adding to cart:", err);
-      // rollback or re-fetch cart
       await fetchCart();
     }
   };
@@ -423,7 +515,6 @@ const ViewAllAroundIndia = () => {
       const newQty = current.quantity + change;
 
       if (newQty < 1) {
-        // optimistic remove
         const previous = { ...cartItems };
         setCartItems((prev) => {
           const next = { ...prev };
@@ -436,7 +527,6 @@ const ViewAllAroundIndia = () => {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (!(r.data?.success)) {
-            // rollback
             setCartItems(previous);
             console.error("Failed to remove from cart (server responded false):", r.data);
           }
@@ -445,7 +535,6 @@ const ViewAllAroundIndia = () => {
           setCartItems(previous);
         }
       } else {
-        // optimistic update
         const prev = { ...cartItems };
         setCartItems((prevState) => ({ ...prevState, [productId]: { ...current, quantity: newQty } }));
 
@@ -456,7 +545,6 @@ const ViewAllAroundIndia = () => {
             { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
           );
           if (!r.data?.success) {
-            // rollback
             setCartItems(prev);
             console.error("Failed to update quantity (server responded false):", r.data);
           }
@@ -502,7 +590,7 @@ const ViewAllAroundIndia = () => {
         </TouchableOpacity>
 
         <View style={styles.searchWrapper}>
-          <Ionicons name="search" size={20} color="#888" style={{ marginRight:moderateScale(6) }} />
+          <Ionicons name="search" size={20} color="#888" style={{ marginRight: moderateScale(6) }} />
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -519,7 +607,7 @@ const ViewAllAroundIndia = () => {
           )}
         </View>
 
-        <View  />
+        <View />
       </View>
 
       {/* Loading */}
@@ -544,7 +632,7 @@ const ViewAllAroundIndia = () => {
       {!loading && !error && (
         <>
           {filtered.length === 0 ? (
-            <View style={{ padding: 20, alignItems: "center" }}>
+            <View style={{ padding: moderateScale(20), alignItems: "center" }}>
               <Text style={{ color: "#444" }}>No products match “{query}”</Text>
             </View>
           ) : (
@@ -553,7 +641,7 @@ const ViewAllAroundIndia = () => {
               keyExtractor={(item) => item._id || item.id || String(item?.name)}
               numColumns={2}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal:moderateScale(10), paddingBottom:moderateScale(20) }}
+              contentContainerStyle={{ paddingHorizontal: moderateScale(10), paddingBottom: moderateScale(20) }}
               renderItem={({ item }) => {
                 const productId = item._id || item.id;
                 const isFavorite = favorites.has(productId);
@@ -567,6 +655,7 @@ const ViewAllAroundIndia = () => {
                     onAddToCart={handleAddToCart}
                     onUpdateQuantity={handleUpdateQuantity}
                     onPress={openProductDetails}
+                    cardWidth={computedCardWidth}
                   />
                 );
               }}
@@ -578,7 +667,6 @@ const ViewAllAroundIndia = () => {
     </SafeAreaView>
   );
 };
-
 
 export default ViewAllAroundIndia;
 
@@ -601,7 +689,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0, 0, 0, 0.1)',
     paddingHorizontal: moderateScale(7),
     alignItems: 'center',
-    borderRadius:5,
+    borderRadius: 5,
   },
   searchInput: {
     flex: 1,
@@ -664,17 +752,21 @@ const styles = StyleSheet.create({
 
 const cardStyles = StyleSheet.create({
   container: {
-    width: CARD_WIDTH,
+    width: Dimensions.get("window").width / 2 - 25,
     marginLeft: moderateScale(6),
     marginTop: moderateScale(12),
-    // marginBottom: moderateScale(6),
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius:10,
+       backgroundColor: '#fff',
+    borderRadius: moderateScale(12),
     overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'rgba(0, 0, 0, 0.2)',
+    shadowColor: 'grey',
+    shadowOpacity: 0.12,
+    shadowRadius: moderateScale(4),
+    borderWidth: moderateScale(1),
+    borderColor: 'grey',
+    elevation: 6,
+    shadowOffset: { width: 0, height: moderateScale(3) },
   },
 
   // image area
@@ -687,10 +779,9 @@ const cardStyles = StyleSheet.create({
   productImage: {
     width: '100%',
     height: '100%',
-    borderTopLeftRadius:5,
-    borderTopRightRadius:5,
+    borderTopLeftRadius: 5,
+    borderTopRightRadius: 5,
   },
-
 
   favoriteButton: {
     position: 'absolute',
@@ -703,7 +794,6 @@ const cardStyles = StyleSheet.create({
     alignItems: 'center',
     shadowRadius: 4,
   },
-
 
   ratingContainer: {
     position: 'absolute',
@@ -731,25 +821,16 @@ const cardStyles = StyleSheet.create({
     fontSize: normalizeFont(12),
     fontWeight: '600',
     color: '#2b2b2b',
-
   },
 
   productVeriety: {
     color: 'rgba(66, 66, 66, 0.7)',
     fontSize: normalizeFont(10),
-    paddingVertical:moderateScale(5),
-  },
-
-  productSubtitle: {
-    fontSize: normalizeFont(11),
-    color: '#666',
-    marginBottom: moderateScale(8),
-    height: scale(20),
+    paddingVertical: moderateScale(5),
   },
 
   priceContainer: {
     flexDirection: 'row',
-    // alignItems: 'flex-end',
     marginBottom: moderateScale(3),
     marginTop: moderateScale(3),
   },
@@ -770,7 +851,6 @@ const cardStyles = StyleSheet.create({
     marginLeft: moderateScale(6),
   },
 
-
   buttonContainer: {
     marginTop: moderateScale(6),
     alignItems: 'stretch',
@@ -783,8 +863,8 @@ const cardStyles = StyleSheet.create({
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: moderateScale(6),
+    shadowOffset: { width: 0, height: moderateScale(3) },
     elevation: 2,
   },
   disabledButton: {
@@ -795,7 +875,6 @@ const cardStyles = StyleSheet.create({
     fontSize: normalizeFont(13),
     fontWeight: '700',
   },
-
 
   quantityContainer: {
     flexDirection: 'row',
@@ -831,5 +910,97 @@ const cardStyles = StyleSheet.create({
     color: 'rgba(76, 175, 80, 1)',
     fontWeight: '700',
     textAlign: 'center',
+  },
+});
+
+/* Modal styles for quantity edit */
+const modalStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: moderateScale(20),
+  },
+  modalWrap: {
+    maxWidth: moderateScale(360),
+    backgroundColor: "#fff",
+    borderRadius: moderateScale(10),
+    padding: moderateScale(16),
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: moderateScale(8),
+    shadowOffset: { width: 0, height: moderateScale(4) },
+  },
+  modalTitle: {
+    fontSize: normalizeFont(14),
+    fontWeight: "700",
+    color: "#222",
+    marginBottom: moderateScale(12),
+    textAlign: "center",
+  },
+  editRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: moderateScale(12),
+    marginBottom: moderateScale(14),
+  },
+  pickerBtn: {
+    paddingVertical: moderateScale(8),
+    paddingHorizontal: moderateScale(10),
+    borderRadius: moderateScale(8),
+    borderWidth: 1,
+    borderColor: "#ddd",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fafafa",
+  },
+  qtyInput: {
+    flex: 1,
+    minHeight: moderateScale(44),
+    borderWidth: 1,
+    borderColor: "#eee",
+    borderRadius: moderateScale(8),
+    textAlign: "center",
+    fontSize: normalizeFont(16),
+    paddingVertical: moderateScale(8),
+  },
+  modalActions: {
+    flexDirection: "row",
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: moderateScale(8),
+  },
+  cancelBtn: {
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: moderateScale(8),
+    width: '40%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: moderateScale(1),
+    borderColor: "rgba(76, 175, 80, 1)"
+  },
+  cancelText: {
+    color: "#666",
+    fontSize: normalizeFont(13),
+  },
+  okBtn: {
+    backgroundColor: "rgba(76, 175, 80, 1)",
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: moderateScale(8),
+    width: '40%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  okText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: normalizeFont(13),
   },
 });

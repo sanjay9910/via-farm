@@ -1,3 +1,4 @@
+// ViewAllFressPop.tsx
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
@@ -9,18 +10,25 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Modal,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
-  View
+  View,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FreshVendor from "../components/common/FreshVendor";
 import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const API_BASE = "https://viafarm-1.onrender.com";
-const CARD_WIDTH = Dimensions.get("window").width / 2 - 15;
 
+/* ---------------------------
+   ProductCard (with qty-edit modal)
+   - accepts cardWidth prop to keep width responsive
+   - Do not change external APIs: uses onUpdateQuantity(item, delta)
+   --------------------------- */
 const ProductCard = ({
   item,
   isFavorite,
@@ -29,6 +37,7 @@ const ProductCard = ({
   onAddToCart,
   onUpdateQuantity,
   onPress,
+  cardWidth,
 }) => {
   const qty = cartQuantity || 0;
   const inCart = qty > 0;
@@ -37,16 +46,63 @@ const ProductCard = ({
     item?.images && Array.isArray(item.images) && item.images.length > 0
       ? item.images[0]
       : item?.image ||
-        "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image";
+      "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image";
 
   const rating = (item?.rating && Number(item.rating)) ? Number(item.rating) : 0;
   const status = item?.status ?? (item?.stock === 0 ? "Out of Stock" : "In Stock");
 
+  // Local modal state for editing exact quantity
+  const [qtyModalVisible, setQtyModalVisible] = useState(false);
+  const [editQuantity, setEditQuantity] = useState(String(qty));
+
+  useEffect(() => {
+    setEditQuantity(String(qty));
+  }, [qty]);
+
+  const openQtyModal = (e) => {
+    e?.stopPropagation?.();
+    setEditQuantity(String(qty));
+    setQtyModalVisible(true);
+  };
+
+  const closeQtyModal = () => {
+    setQtyModalVisible(false);
+  };
+
+  const applyQuantityChange = () => {
+    const parsed = parseInt(String(editQuantity).replace(/\D/g, ''), 10);
+    const newQty = Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
+    const currentQty = qty;
+    const delta = newQty - currentQty;
+
+    if (delta === 0) {
+      closeQtyModal();
+      return;
+    }
+
+    try {
+      onUpdateQuantity && onUpdateQuantity(item, delta);
+    } catch (err) {
+      console.error("applyQuantityChange error:", err);
+    } finally {
+      closeQtyModal();
+    }
+  };
+
+  const incrementEdit = () => {
+    const v = parseInt(editQuantity || "0", 10) || 0;
+    setEditQuantity(String(v + 1));
+  };
+  const decrementEdit = () => {
+    const v = parseInt(editQuantity || "0", 10) || 0;
+    setEditQuantity(String(Math.max(0, v - 1)));
+  };
+
   return (
-    <View style={[cardStyles.container]}>
+    <View style={[cardStyles.container, { width: cardWidth }]}>
       <TouchableOpacity
         style={cardStyles.card}
-        activeOpacity={0.8}
+        activeOpacity={0.85}
         onPress={() => onPress && onPress(item)}
       >
         <View style={[cardStyles.imageContainer, { height: cardStyles.imageHeight }]}>
@@ -67,14 +123,14 @@ const ProductCard = ({
           >
             <Ionicons
               name={isFavorite ? 'heart' : 'heart-outline'}
-              size={25}
+              size={scale(22)}
               color={isFavorite ? '#ff4444' : '#fff'}
             />
           </TouchableOpacity>
 
           {/* Rating */}
           <View style={cardStyles.ratingContainer}>
-            <Ionicons name="star" size={12} color="#FFD700" />
+            <Ionicons name="star" size={scale(12)} color="#FFD700" />
             <Text style={cardStyles.ratingText}>
               {rating ? rating.toFixed(1) : "0.0"}
             </Text>
@@ -118,29 +174,84 @@ const ProductCard = ({
                 </Text>
               </TouchableOpacity>
             ) : (
-              <View style={cardStyles.quantityContainer}>
+              <>
                 <TouchableOpacity
-                  style={cardStyles.quantityButton}
-                  onPress={(e) => {
-                    e.stopPropagation?.();
-                    onUpdateQuantity && onUpdateQuantity(item, -1);
-                  }}
+                  activeOpacity={0.85}
+                  onPress={openQtyModal}
+                  onLongPress={(e) => { e.stopPropagation?.(); openQtyModal(e); }}
                 >
-                  <Ionicons name="remove" size={16} color="rgba(76, 175, 80, 1)" />
+                  <View style={cardStyles.quantityContainer}>
+                    <TouchableOpacity
+                      style={cardStyles.quantityButton}
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        onUpdateQuantity && onUpdateQuantity(item, -1);
+                      }}
+                    >
+                      <Ionicons name="remove" size={scale(16)} color="rgba(76, 175, 80, 1)" />
+                    </TouchableOpacity>
+                    <View style={cardStyles.quantityValueContainer}>
+                      <Text style={cardStyles.quantityText}>{qty}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={cardStyles.quantityButton}
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        onUpdateQuantity && onUpdateQuantity(item, 1);
+                      }}
+                    >
+                      <Ionicons name="add" size={scale(16)} color="rgba(76, 175, 80, 1)" />
+                    </TouchableOpacity>
+                  </View>
                 </TouchableOpacity>
-                <View style={cardStyles.quantityValueContainer}>
-                  <Text style={cardStyles.quantityText}>{qty}</Text>
-                </View>
-                <TouchableOpacity
-                  style={cardStyles.quantityButton}
-                  onPress={(e) => {
-                    e.stopPropagation?.();
-                    onUpdateQuantity && onUpdateQuantity(item, 1);
-                  }}
+
+                {/* Quantity edit modal */}
+                <Modal
+                  visible={qtyModalVisible}
+                  animationType="fade"
+                  transparent
+                  onRequestClose={closeQtyModal}
                 >
-                  <Ionicons name="add" size={16} color="rgba(76, 175, 80, 1)" />
-                </TouchableOpacity>
-              </View>
+                  <TouchableOpacity
+                    style={[modalStyles.backdrop]}
+                    activeOpacity={1}
+                    onPress={closeQtyModal}
+                  >
+                    <View style={[modalStyles.modalWrap, { maxWidth: Math.min(420, Dimensions.get('window').width - moderateScale(40)) }]}>
+                      <Text style={modalStyles.modalTitle}>Add Quantity</Text>
+
+                      <View style={modalStyles.editRow}>
+                        <TouchableOpacity style={modalStyles.pickerBtn} onPress={decrementEdit}>
+                          <Ionicons name="remove" size={scale(18)} color="#111" />
+                        </TouchableOpacity>
+
+                        <TextInput
+                          style={modalStyles.qtyInput}
+                          keyboardType="number-pad"
+                          value={String(editQuantity)}
+                          onChangeText={(t) => setEditQuantity(t.replace(/[^0-9]/g, ""))}
+                          maxLength={5}
+                          placeholder="0"
+                          placeholderTextColor="#999"
+                        />
+
+                        <TouchableOpacity style={modalStyles.pickerBtn} onPress={incrementEdit}>
+                          <Ionicons name="add" size={scale(18)} color="#111" />
+                        </TouchableOpacity>
+                      </View>
+
+                      <View style={modalStyles.modalActions}>
+                        <TouchableOpacity style={modalStyles.cancelBtn} onPress={closeQtyModal}>
+                          <Text style={modalStyles.cancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={modalStyles.okBtn} onPress={applyQuantityChange}>
+                          <Text style={modalStyles.okText}>OK</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </Modal>
+              </>
             )}
           </View>
         </View>
@@ -149,6 +260,10 @@ const ProductCard = ({
   );
 };
 
+/* ---------------------------
+   Main screen: ViewAllFressPop
+   (kept your original logic, only uses updated ProductCard above)
+   --------------------------- */
 const ViewAllFressPop = () => {
   const navigation = useNavigation();
   const [items, setItems] = useState([]);
@@ -156,6 +271,13 @@ const ViewAllFressPop = () => {
   const [error, setError] = useState(null);
   const [favorites, setFavorites] = useState(new Set());
   const [cartItems, setCartItems] = useState({});
+
+  const window = useWindowDimensions();
+
+  // compute responsive card width for 2 columns with padding/gap considered
+  const horizontalPadding = moderateScale(10) * 2; // left + right padding on FlatList content
+  const columnGap = moderateScale(10); // space between columns
+  const computedCardWidth = Math.max(120, Math.floor((window.width - horizontalPadding - columnGap) / 2));
 
   // Fetch Fresh & Popular
   const fetchFreshAndPopular = async () => {
@@ -332,6 +454,7 @@ const ViewAllFressPop = () => {
       await addToWishlist(product);
     }
   };
+
   const handleAddToCart = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -364,13 +487,11 @@ const ViewAllFressPop = () => {
 
       if (res.data?.success) {
         const serverId = res.data.data?._id || productId;
-        // ensure server id present
         setCartItems(prev => ({
           ...prev,
           [productId]: { quantity: prev[productId]?.quantity || 1, cartItemId: serverId }
         }));
       } else {
-        // rollback
         setCartItems(prev => {
           const next = { ...prev };
           delete next[productId];
@@ -379,7 +500,6 @@ const ViewAllFressPop = () => {
       }
     } catch (err) {
       console.error('Error adding to cart:', err);
-      // rollback optimistic change
       const productId = product._id || product.id;
       setCartItems(prev => {
         const next = { ...prev };
@@ -387,7 +507,6 @@ const ViewAllFressPop = () => {
         return next;
       });
       if (err.response?.status === 400) {
-        // likely already in cart — refresh quietly
         await fetchCart();
       } else {
         Alert.alert('Error', 'Failed to add to cart');
@@ -395,8 +514,8 @@ const ViewAllFressPop = () => {
     }
   };
 
-  // Update cart quantity (optimistic)
-  const handleUpdateQuantity = async (product, change) => {
+  // Update cart quantity (expects delta)
+  const handleUpdateQuantity = async (product, delta) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
@@ -405,10 +524,8 @@ const ViewAllFressPop = () => {
       }
 
       const productId = product._id || product.id;
-      const currentItem = cartItems[productId];
-      if (!currentItem) return;
-
-      const newQuantity = (currentItem.quantity || 0) + change;
+      const currentItem = cartItems[productId] || { quantity: 0, cartItemId: productId };
+      const newQuantity = (currentItem.quantity || 0) + delta;
 
       if (newQuantity < 1) {
         // optimistic remove
@@ -423,7 +540,6 @@ const ViewAllFressPop = () => {
         });
 
         if (!res.data?.success) {
-          // rollback by refetching
           await fetchCart();
         }
       } else {
@@ -438,7 +554,6 @@ const ViewAllFressPop = () => {
         });
 
         if (!res.data?.success) {
-          // rollback
           await fetchCart();
         }
       }
@@ -478,10 +593,11 @@ const ViewAllFressPop = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonContainer}>
           <Image
             source={require("../assets/via-farm-img/icons/groupArrow.png")}
+            style={{ width: scale(20), height: scale(20) }}
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Fresh & Popular</Text>
-        <View  />
+        <View />
       </View>
 
       <FreshVendor />
@@ -511,7 +627,7 @@ const ViewAllFressPop = () => {
           keyExtractor={(item) => item._id || item.id || String(item?.name)}
           numColumns={2}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: moderateScale(10), paddingBottom: moderateScale(20)}}
+          contentContainerStyle={{ paddingHorizontal: moderateScale(10), paddingBottom: moderateScale(20) }}
           renderItem={({ item }) => {
             const productId = item._id || item.id;
             const isFavorite = favorites.has(productId);
@@ -526,10 +642,11 @@ const ViewAllFressPop = () => {
                 onAddToCart={handleAddToCart}
                 onUpdateQuantity={handleUpdateQuantity}
                 onPress={openProductDetails}
+                cardWidth={computedCardWidth}
               />
             );
           }}
-          columnWrapperStyle={{ justifyContent: "space-between" }}
+          columnWrapperStyle={{ justifyContent: "space-between", gap: moderateScale(10) }}
           ListEmptyComponent={() =>
             !loading && (
               <View style={{ padding: moderateScale(20), alignItems: 'center' }}>
@@ -544,7 +661,11 @@ const ViewAllFressPop = () => {
 };
 export default ViewAllFressPop;
 
-// Card Styles - Updated to match ViewAllFressPop
+/* ---------------------------
+   Styles (card + modal + screen)
+   Kept sizes responsive using moderateScale / normalizeFont / scale
+   --------------------------- */
+
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: moderateScale(12),
@@ -555,7 +676,6 @@ const styles = StyleSheet.create({
   },
   searchWrapper: {
     flex: 1,
-    // marginHorizontal: moderateScale(8),
     flexDirection: 'row',
     backgroundColor: 'rgba(252, 252, 252, 1)',
     paddingVertical: moderateScale(10),
@@ -563,7 +683,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0, 0, 0, 0.1)',
     paddingHorizontal: moderateScale(10),
     alignItems: 'center',
-    borderRadius: 5,
+    borderRadius: moderateScale(5),
   },
   searchInput: {
     flex: 1,
@@ -572,7 +692,7 @@ const styles = StyleSheet.create({
     paddingVertical: 0
   },
   backButtonContainer: {
-    padding: 1,
+    padding: moderateScale(2),
   },
   riceContainer: {
     flex: 1,
@@ -583,7 +703,7 @@ const styles = StyleSheet.create({
     height: scale(20),
   },
   headerTitle: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(13),
     fontWeight: "600",
     color: "#333",
   },
@@ -592,18 +712,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignContent: 'center',
-    fontSize:normalizeFont(1)
   },
   loadingText: {
     marginTop: moderateScale(10),
     color: "#777",
-    fontSize:normalizeFont(10)
+    fontSize: normalizeFont(11)
   },
   errorContainer: {
     alignItems: "center",
     padding: moderateScale(20),
     backgroundColor: "#ffebee",
-    borderRadius: 8,
+    borderRadius: moderateScale(8),
     marginHorizontal: moderateScale(20),
     marginTop: moderateScale(20),
   },
@@ -611,37 +730,38 @@ const styles = StyleSheet.create({
     color: "#d32f2f",
     textAlign: "center",
     marginBottom: moderateScale(15),
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(11),
   },
   retryButton: {
     backgroundColor: "#1976d2",
     paddingVertical: moderateScale(10),
     paddingHorizontal: moderateScale(20),
-    borderRadius: 5,
+    borderRadius: moderateScale(5),
   },
   buttonText: {
     color: "white",
     fontWeight: "600",
+    fontSize: normalizeFont(11),
   },
 });
 
 const cardStyles = StyleSheet.create({
   container: {
-    width: CARD_WIDTH,
+    // width is overridden dynamically via prop
     marginTop: moderateScale(12),
     marginBottom: moderateScale(8),
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius:10,
+    borderRadius: moderateScale(10),
     overflow: 'hidden',
     shadowColor: 'grey',
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    borderWidth:1,
+    shadowRadius: moderateScale(4),
+    borderWidth: moderateScale(1),
     borderColor: 'grey',
     elevation: 7,
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: moderateScale(3) },
   },
 
   // image area
@@ -654,23 +774,21 @@ const cardStyles = StyleSheet.create({
   productImage: {
     width: '100%',
     height: '100%',
-    borderTopLeftRadius:10,
-    borderTopRightRadius:10,
+    borderTopLeftRadius: moderateScale(10),
+    borderTopRightRadius: moderateScale(10),
   },
-
 
   favoriteButton: {
     position: 'absolute',
-    top: moderateScale(2),
-    right: moderateScale(2),
-    borderRadius: 16,
+    top: moderateScale(6),
+    right: moderateScale(6),
+    borderRadius: moderateScale(16),
     width: scale(30),
     height: scale(30),
     justifyContent: 'center',
     alignItems: 'center',
-    shadowRadius: 4,
+    shadowRadius: moderateScale(4),
   },
-
 
   ratingContainer: {
     position: 'absolute',
@@ -695,19 +813,18 @@ const cardStyles = StyleSheet.create({
     paddingVertical: moderateScale(10),
   },
   productTitle: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     color: '#2b2b2b',
-
   },
 
   productVeriety: {
     color: 'rgba(66, 66, 66, 0.7)',
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(11),
   },
 
   productSubtitle: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(11),
     color: '#666',
     marginBottom: moderateScale(3),
   },
@@ -718,22 +835,16 @@ const cardStyles = StyleSheet.create({
     marginBottom: moderateScale(5),
   },
   productPrice: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     fontWeight: '800',
     color: '#666',
   },
   productUnit: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(11),
     color: '#666',
     marginLeft: moderateScale(6),
     marginBottom: moderateScale(2),
   },
-  weightText: {
-    fontSize: normalizeFont(10),
-    color: '#777',
-    marginLeft: moderateScale(6),
-  },
-
 
   buttonContainer: {
     marginTop: moderateScale(6),
@@ -741,14 +852,14 @@ const cardStyles = StyleSheet.create({
   },
   addToCartButton: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
-    borderRadius: 8,
+    borderRadius: moderateScale(8),
     paddingVertical: moderateScale(10),
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: moderateScale(6),
+    shadowOffset: { width: 0, height: moderateScale(3) },
     elevation: 2,
   },
   disabledButton: {
@@ -756,20 +867,18 @@ const cardStyles = StyleSheet.create({
   },
   addToCartText: {
     color: '#fff',
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     fontWeight: '700',
   },
-
 
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
+    borderWidth: moderateScale(1),
     borderColor: 'rgba(76, 175, 80, 1)',
-    borderRadius: 8,
+    borderRadius: moderateScale(8),
     paddingHorizontal: moderateScale(4),
-    // height: scale(36),
     minWidth: scale(120),
     backgroundColor: '#fff',
   },
@@ -785,8 +894,8 @@ const cardStyles = StyleSheet.create({
     height: scale(36),
     alignItems: 'center',
     justifyContent: 'center',
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
+    borderLeftWidth: moderateScale(1),
+    borderRightWidth: moderateScale(1),
     borderColor: 'rgba(76, 175, 80, 1)',
     flexDirection: 'row',
   },
@@ -795,5 +904,98 @@ const cardStyles = StyleSheet.create({
     color: 'rgba(76, 175, 80, 1)',
     fontWeight: '700',
     textAlign: 'center',
+  },
+});
+
+/* Modal styles for quantity edit */
+const modalStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: moderateScale(20),
+  },
+  modalWrap: {
+    // width: "100%",
+    maxWidth: moderateScale(360),
+    backgroundColor: "#fff",
+    borderRadius: moderateScale(10),
+    padding: moderateScale(16),
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: moderateScale(8),
+    shadowOffset: { width: 0, height: moderateScale(4) },
+  },
+  modalTitle: {
+    fontSize: normalizeFont(14),
+    fontWeight: "700",
+    color: "#222",
+    marginBottom: moderateScale(12),
+    textAlign: "center",
+  },
+  editRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: moderateScale(12),
+    marginBottom: moderateScale(14),
+  },
+  pickerBtn: {
+    paddingVertical: moderateScale(8),
+    paddingHorizontal: moderateScale(10),
+    borderRadius: moderateScale(8),
+    borderWidth: 1,
+    borderColor: "#ddd",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fafafa",
+  },
+  qtyInput: {
+    flex: 1,
+    minHeight: moderateScale(44),
+    borderWidth: 1,
+    borderColor: "#eee",
+    borderRadius: moderateScale(8),
+    textAlign: "center",
+    fontSize: normalizeFont(16),
+    paddingVertical: moderateScale(8),
+  },
+  modalActions: {
+    flexDirection: "row",
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: moderateScale(8),
+  },
+  cancelBtn: {
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: moderateScale(8),
+    width: '40%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: moderateScale(1),
+    borderColor: "rgba(76, 175, 80, 1)"
+  },
+  cancelText: {
+    color: "#666",
+    fontSize: normalizeFont(13),
+  },
+  okBtn: {
+    backgroundColor: "rgba(76, 175, 80, 1)",
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: moderateScale(8),
+    width: '40%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  okText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: normalizeFont(13),
   },
 });

@@ -1,3 +1,4 @@
+import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -8,22 +9,14 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
+  Modal, Platform, Pressable,
+  ScrollView, StyleSheet, Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
-import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 
-/**
- * CONFIG
- */
 const API_HOST = "https://viafarm-1.onrender.com";
 const CATEGORY_API = "/api/admin/manage-app/categories";
 const VARIETY_API = "/api/admin/variety";
@@ -51,9 +44,6 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-/**
- * Component
- */
 const AddProduct = ({ refreshprops }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [name, setName] = useState("");
@@ -314,13 +304,13 @@ const AddProduct = ({ refreshprops }) => {
             activeOpacity={1}
             onPress={(e) => e.stopPropagation()}
           >
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom:moderateScale(40) }}>
               <View style={styles.header}>
                 <Pressable onPress={() => !loading && setModalVisible(false)}>
                   <Ionicons name="arrow-back" size={24} color="#000" />
                 </Pressable>
                 <Text style={styles.headerText}>Add Product Details</Text>
-                <View style={{ width: 24 }} />
+                <View  />
               </View>
 
               <Text style={styles.smallNote}>* marks important fields</Text>
@@ -480,8 +470,8 @@ const AddProduct = ({ refreshprops }) => {
               <TextInput style={[styles.input, { height: moderateScale(80), textAlignVertical: "top" }]} value={description} onChangeText={setDescription} placeholder="Write product details here (optional)" multiline editable={!loading} />
 
               <View style={styles.checkboxRow}>
-                <Checkbox value={allIndiaDelivery} onValueChange={setAllIndiaDelivery} disabled={loading} />
-                <Text style={{ marginLeft: moderateScale(8), fontSize: normalizeFont(12) }}>All India Delivery</Text>
+                <Checkbox value={allIndiaDelivery} onValueChange={setAllIndiaDelivery} disabled={loading}/>
+                <Text style={{ marginLeft: moderateScale(8), fontSize: normalizeFont(11) }}>All India Delivery</Text>
               </View>
 
               <View style={styles.submitContainer}>
@@ -508,16 +498,18 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: "#fff",
-    borderWidth: moderateScale(3),
+    borderWidth: moderateScale(2),
     borderColor: "#22c55e",
-    borderRadius: moderateScale(16),
-    padding: moderateScale(12),
+    borderRadius: moderateScale(14),
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(12),
     margin: moderateScale(12),
     shadowColor: "#22c55e",
     shadowOffset: { width: 0, height: moderateScale(2) },
-    shadowOpacity: Platform.OS === "ios" ? 0.1 : 0.3,
+    shadowOpacity: Platform.OS === "ios" ? 0.08 : 0.18,
     shadowRadius: moderateScale(4),
     elevation: 3,
+    minHeight: moderateScale(56),
   },
 
   content: { flex: 1, paddingRight: moderateScale(10) },
@@ -526,7 +518,7 @@ export const styles = StyleSheet.create({
     fontSize: normalizeFont(15),
     fontWeight: "600",
     color: "#1f2937",
-    marginBottom: moderateScale(6),
+    marginBottom: moderateScale(4),
   },
 
   subtitle: {
@@ -535,33 +527,41 @@ export const styles = StyleSheet.create({
   },
 
   iconContainer: {
-    width: scale(55),
-    height: scale(54),
-    borderRadius: moderateScale(28),
+    width: scale(52),
+    height: scale(52),
+    borderRadius: moderateScale(26),
     backgroundColor: "#22c55e",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#22c55e",
-    shadowOffset: { width: 0, height: moderateScale(4) },
-    shadowOpacity: Platform.OS === "ios" ? 0.3 : 0.4,
-    shadowRadius: moderateScale(8),
-    elevation: 5,
+    shadowOffset: { width: 0, height: moderateScale(3) },
+    shadowOpacity: Platform.OS === "ios" ? 0.18 : 0.28,
+    shadowRadius: moderateScale(6),
+    elevation: 6,
+    marginLeft: moderateScale(8),
   },
 
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "flex-end",
+        backgroundColor: "rgba(0,0,0,0.28)",
+  },
+  overlayBackground: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.28)",
+    width: "100%",
   },
 
   modalContainer: {
-    maxHeight: "90%",
+    maxHeight: "88%",
+    width: "100%",
     backgroundColor: "#fff",
     borderTopLeftRadius: moderateScale(16),
     borderTopRightRadius: moderateScale(16),
-    padding: moderateScale(13),
-    borderWidth: 2,
-    borderColor: "rgba(255, 202, 40, 1)",
+    paddingVertical: moderateScale(12),
+    paddingHorizontal: moderateScale(14),
+    borderWidth: 1,
+    borderColor: "rgba(255, 202, 40, 0.9)",
   },
 
   header: {
@@ -572,7 +572,7 @@ export const styles = StyleSheet.create({
   },
 
   headerText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(13),
     fontWeight: "600",
     color: "#000",
   },
@@ -580,14 +580,14 @@ export const styles = StyleSheet.create({
   smallNote: {
     fontSize: normalizeFont(11),
     color: "#777",
-    marginBottom: moderateScale(10),
+    marginBottom: moderateScale(8),
   },
 
   label: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(11),
     fontWeight: "500",
     marginTop: moderateScale(10),
-    marginBottom: moderateScale(4),
+    marginBottom: moderateScale(6),
     color: "#333",
   },
 
@@ -595,22 +595,27 @@ export const styles = StyleSheet.create({
     borderWidth: moderateScale(1),
     borderColor: "#f0c96a",
     borderRadius: moderateScale(10),
-    flexDirection:'row',
-    alignItems:'center',
-    justifyContent:'space-around',
-    padding: moderateScale(12),
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(12),
     backgroundColor: "#fff",
     marginBottom: moderateScale(8),
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
   },
 
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: moderateScale(4),
+    marginBottom: moderateScale(6),
+    gap: moderateScale(8),
   },
 
-  flex1: { flex: 1, marginRight: moderateScale(8) },
+  flex1: { flex: 1 },
+
+  pickerInput: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap:moderateScale(5)
+  },
 
   dropdownBelowInput: {
     borderWidth: moderateScale(1),
@@ -618,28 +623,29 @@ export const styles = StyleSheet.create({
     borderRadius: moderateScale(10),
     backgroundColor: "#fff",
     position: "absolute",
-    top: moderateScale(66),
+    top: moderateScale(70), 
     left: 0,
     right: 0,
-    zIndex: 1000,
+    zIndex: 9999,
     overflow: "hidden",
-    maxHeight: moderateScale(200),
+    maxHeight: moderateScale(250),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: moderateScale(2) },
-    shadowOpacity: Platform.OS === "ios" ? 0.1 : 0.15,
+    shadowOpacity: Platform.OS === "ios" ? 0.08 : 0.12,
     shadowRadius: moderateScale(4),
-    elevation: 10,
+    elevation: 12,
+    paddingVertical: 0,
   },
 
   dropdownOption: {
     paddingVertical: moderateScale(12),
     paddingHorizontal: moderateScale(12),
     borderBottomWidth: moderateScale(0.5),
-    borderBottomColor: "#e8f5e9",
+    borderBottomColor: "#eef6ee",
   },
 
   dropdownOptionSelected: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#f8faf8",
   },
 
   checkboxRow: {
@@ -656,59 +662,65 @@ export const styles = StyleSheet.create({
 
   submitBtn: {
     backgroundColor: "#22c55e",
-    width: "70%",
+    width: "72%",
     borderRadius: moderateScale(10),
     paddingVertical: moderateScale(14),
     flexDirection: "row",
     justifyContent: "center",
-    gap: scale(5),
+    gap: scale(6),
     alignContent: "center",
     marginTop: moderateScale(20),
     marginBottom: moderateScale(10),
     alignItems: "center",
+    minHeight: moderateScale(48),
   },
 
   submitBtnDisabled: {
-    opacity: 0.6,
+    opacity: 0.65,
   },
 
   submitText: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(13),
   },
 
   imageUpload: {
     borderWidth: moderateScale(1),
     borderColor: "#f0c96a",
     borderRadius: moderateScale(10),
-    padding: moderateScale(16),
+    paddingVertical: moderateScale(12),
+    paddingHorizontal: moderateScale(14),
     alignItems: "center",
     justifyContent: "center",
     marginTop: moderateScale(4),
     backgroundColor: "#fff",
+    minHeight: moderateScale(50),
   },
 
   imageUploadDisabled: {
     backgroundColor: "#f3f4f6",
-    opacity: 0.7,
+    opacity: 0.8,
   },
 
   imageUploadText: {
-    marginTop: moderateScale(8),
-    color: "#777",
-    fontSize: normalizeFont(10),
+    marginTop: moderateScale(6),
+    color: "#555",
+    fontSize: normalizeFont(12),
   },
 
   imagePreviewContainer: {
     position: "relative",
-    marginRight: moderateScale(8),
+    marginRight: moderateScale(10),
+    width: moderateScale(72),
+    height: moderateScale(72),
   },
 
   previewImage: {
-    width: moderateScale(65),
-    height: moderateScale(65),
+    width: "100%",
+    height: "100%",
     borderRadius: moderateScale(8),
+    backgroundColor: "#eee",
   },
 
   removeImageBtn: {
@@ -721,8 +733,16 @@ export const styles = StyleSheet.create({
   },
 
   helperText: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(11),
     color: "#777",
-    marginBottom: moderateScale(4),
+    marginBottom: moderateScale(6),
+  },
+
+  /* accessibility / touch targets */
+  touchAreaLarge: {
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(10),
+    minHeight: moderateScale(44),
+    justifyContent: "center",
   },
 });

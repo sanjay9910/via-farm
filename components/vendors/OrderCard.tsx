@@ -127,14 +127,14 @@ const OrderCard = ({ order = {}, onStatusChange }) => {
           </View>
 
           {/* Status row */}
-          <View style={[styles.row, { alignItems: "center", marginTop: 8 }]}>
+          <View style={[styles.row, { alignItems: "center", marginTop:moderateScale(8) }]}>
             <Text style={styles.label}>Status</Text>
             <Text style={styles.colon}>:</Text>
 
             {/* while updating, show spinner + text */}
             {order.__updating ? (
               <View style={[styles.dropdown, { flexDirection: "row", alignItems: "center" }]}>
-                <ActivityIndicator size="small" color="#16a34a" style={{ marginRight: 8 }} />
+                <ActivityIndicator size="small" color="#16a34a" style={{ marginRight:moderateScale(8) }} />
                 <Text style={[styles.dropdownText, { opacity: 0.9 }]}>Updating...</Text>
               </View>
             ) : (
@@ -203,7 +203,8 @@ const styles = StyleSheet.create({
     marginTop: moderateScale(15),
     borderRadius: moderateScale(20),
     paddingVertical: moderateScale(2),
-    borderWidth: 1,
+    borderWidth:1,
+    zIndex:1000,
     borderColor: "rgba(255, 202, 40, 1)",
   },
 
@@ -218,8 +219,8 @@ const styles = StyleSheet.create({
 
   badge: {
     position: "absolute",
-    right: moderateScale(0),
-    top: moderateScale(10),
+    right:0,
+    top: moderateScale(15),
     backgroundColor: "#1F9A3F",
     paddingHorizontal: moderateScale(12),
     paddingVertical: moderateScale(4),

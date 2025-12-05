@@ -37,7 +37,7 @@ const AllRecently = () => {
   const [actionMenuPosition, setActionMenuPosition] = useState({ x: 0, y: 0 });
   const [currentProductId, setCurrentProductId] = useState(null);
   const [updatingStock, setUpdatingStock] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("All Categories");
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const [categories, setAllCategory] = useState([]);
 
   const stockButtonRefs = useRef({});
@@ -119,7 +119,7 @@ const AllRecently = () => {
 
   // Filter products by category
   useEffect(() => {
-    if (selectedCategory === "All Categories") {
+    if (selectedCategory === "All") {
       setFilteredData(listingsData);
     } else {
       const filtered = listingsData.filter((item) => item.category === selectedCategory);
@@ -337,10 +337,8 @@ const AllRecently = () => {
     }
   };
 
-  // NAVIGATION: open VendorViewProduct screen on card press
   const handleCardPress = (item) => {
     try {
-      // try push first (expo-router exposes push)
       if (navigation?.push) {
         navigation.push("VendorViewProduct", { productId: item.id, product: item._raw ?? item });
       } else if (navigation?.navigate) {
@@ -490,7 +488,7 @@ const AllRecently = () => {
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No products found</Text>
             <Text style={styles.emptySubText}>
-              {selectedCategory !== "All Categories"
+              {selectedCategory !== "All"
                 ? `No products in ${selectedCategory} category`
                 : "Start adding products to see them here"}
             </Text>
@@ -550,11 +548,11 @@ const AllRecently = () => {
             <TouchableWithoutFeedback>
               <View style={[styles.actionMenu, { position: "absolute", top: actionMenuPosition.y, left: actionMenuPosition.x }]}>
                 <TouchableOpacity style={styles.actionOption} onPress={handleEdit}>
-                  <Text style={styles.actionOptionText}>✏️ Edit</Text>
+                  <Text style={styles.actionOptionText}>Edit</Text>
                 </TouchableOpacity>
                 <View style={styles.actionDivider} />
                 <TouchableOpacity style={styles.actionOption} onPress={handleDelete}>
-                  <Text style={[styles.actionOptionText, styles.deleteText]}>🗑️ Delete</Text>
+                  <Text style={[styles.actionOptionText, styles.deleteText]}>Delete</Text>
                 </TouchableOpacity>
               </View>
             </TouchableWithoutFeedback>
@@ -583,7 +581,7 @@ export const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: moderateScale(12),
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(12),
     color: "#666",
   },
   emptyContainer: {
@@ -601,7 +599,7 @@ export const styles = StyleSheet.create({
     textAlign: "center",
   },
   emptySubText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     color: "#666",
     textAlign: "center",
   },
@@ -626,7 +624,7 @@ export const styles = StyleSheet.create({
     marginRight: moderateScale(12),
   },
   headerTitle: {
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(13),
     fontWeight: "700",
     color: "#333",
   },
@@ -663,8 +661,9 @@ export const styles = StyleSheet.create({
     borderRadius: moderateScale(12),
     marginBottom: moderateScale(14),
     borderWidth: 1.5,
-    borderColor: "rgba(255,202,40,1)", // #FFCA28
+    borderColor: "rgba(255,202,40,1)", 
     width: width * 0.95,
+       height:scale(150),
     alignSelf: "center",
     overflow: "hidden",
   },
@@ -675,8 +674,8 @@ export const styles = StyleSheet.create({
 
   // Left image block
   leftImageWrap: {
-    width: moderateScale(145),
-    height: moderateScale(170),
+    height:'100%',
+    width:scale(145),
     borderTopLeftRadius: moderateScale(8),
     borderBottomLeftRadius: moderateScale(8),
     overflow: "hidden",
@@ -684,7 +683,7 @@ export const styles = StyleSheet.create({
   },
   itemImage: {
     width: "100%",
-    height: "100%",
+    height:scale(155),
   },
   noImage: {
     flex: 1,
@@ -695,7 +694,7 @@ export const styles = StyleSheet.create({
   ratingBadge: {
     position: "absolute",
     left: moderateScale(6),
-    bottom: moderateScale(6),
+    bottom: moderateScale(16),
     backgroundColor: "rgba(141,141,141,0.6)",
     paddingHorizontal: moderateScale(6),
     paddingVertical: moderateScale(4),
@@ -710,7 +709,7 @@ export const styles = StyleSheet.create({
   ratingText: {
     color: "#fff",
     marginLeft: moderateScale(6),
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     fontWeight: "600",
   },
 
@@ -726,7 +725,7 @@ export const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   itemName: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(11),
     fontWeight: "700",
     color: "#222",
     flex: 1,
@@ -742,22 +741,21 @@ export const styles = StyleSheet.create({
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: moderateScale(6),
   },
   infoLabel: {
-    width: moderateScale(65),
-    fontSize: normalizeFont(11),
+    width: moderateScale(60),
+    fontSize: normalizeFont(10),
     color: "#666",
     fontWeight: "500",
   },
   infoSeparator: {
     width: moderateScale(8),
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     color: "#666",
   },
   infoValue: {
     flex: 1,
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(10),
     color: "#666",
     fontWeight: "600",
   },
@@ -765,21 +763,21 @@ export const styles = StyleSheet.create({
   uploadRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: moderateScale(8),
+    // marginTop: moderateScale(8),
   },
   uploadLabel: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(10),
     color: "#666",
     marginRight: moderateScale(8),
   },
   uploadValue: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(10),
     color: "#666",
     fontWeight: "500",
   },
 
   stockRow: {
-    marginTop: moderateScale(10),
+    marginTop: moderateScale(4),
   },
   stockPill: {
     flexDirection: "row",
@@ -791,7 +789,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(0, 0, 0, 0.3)",
     backgroundColor: "#fff",
-    marginBottom:moderateScale(10)
+    marginBottom:moderateScale(20)
   },
   stockDot: {
     width: moderateScale(8),
@@ -800,7 +798,7 @@ export const styles = StyleSheet.create({
     marginRight: moderateScale(8),
   },
   stockText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     fontWeight: "600",
     marginRight: moderateScale(8),
     color: "#444",
@@ -832,7 +830,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(12),
   },
   stockOptionText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     fontWeight: "500",
     color: "#374151",
     marginLeft: moderateScale(8),
@@ -857,7 +855,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(16),
   },
   actionOptionText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(10),
     fontWeight: "500",
     color: "#374151",
   },

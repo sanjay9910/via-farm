@@ -1,16 +1,17 @@
-
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Dimensions,
   FlatList,
   Image,
   Modal,
+  PanResponder,
   ScrollView,
   StyleSheet,
   Text,
@@ -27,11 +28,13 @@ const guidelineBaseWidth = 375;
 const scale = (size: number) => (SCREEN_WIDTH / guidelineBaseWidth) * size;
 const moderateScale = (size: number, factor = 0.5) =>
   size + (scale(size) - size) * factor;
-const normalizeFont = (size: number) =>
-  Math.round(moderateScale(size) * (SCREEN_WIDTH / guidelineBaseWidth));
+const normalizeFont = (size: number) => {
+  const scaledSize = moderateScale(size);
+  return Math.round(scaledSize);
+};
 
 /* -------------------------
-   Image Modal Viewer Component
+   Zoomable Image Modal Viewer Component
    ------------------------- */
 const ImageModalViewer = ({
   visible,
@@ -45,36 +48,173 @@ const ImageModalViewer = ({
   onClose: () => void;
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const scaleValue = useRef(new Animated.Value(1)).current;
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+  const lastScale = useRef(1);
+  const lastTranslateX = useRef(0);
+  const lastTranslateY = useRef(0);
 
   useEffect(() => {
     setCurrentIndex(initialIndex);
+    resetZoom();
   }, [initialIndex, visible]);
+
+  const resetZoom = () => {
+    scaleValue.setValue(1);
+    translateX.setValue(0);
+    translateY.setValue(0);
+    lastScale.current = 1;
+    lastTranslateX.current = 0;
+    lastTranslateY.current = 0;
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        scaleValue.setOffset(lastScale.current - 1);
+        translateX.setOffset(lastTranslateX.current);
+        translateY.setOffset(lastTranslateY.current);
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        if (evt.nativeEvent.touches.length === 2) {
+          // Pinch to zoom
+          const touch1 = evt.nativeEvent.touches[0];
+          const touch2 = evt.nativeEvent.touches[1];
+          const distance = Math.sqrt(
+            Math.pow(touch2.pageX - touch1.pageX, 2) +
+            Math.pow(touch2.pageY - touch1.pageY, 2)
+          );
+          
+          if (!panResponder.current.initialDistance) {
+            panResponder.current.initialDistance = distance;
+          } else {
+            const scale = distance / panResponder.current.initialDistance;
+            scaleValue.setValue(Math.max(1, Math.min(scale, 4)));
+          }
+        } else if (lastScale.current > 1) {
+          // Pan when zoomed
+          translateX.setValue(gestureState.dx);
+          translateY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        scaleValue.flattenOffset();
+        translateX.flattenOffset();
+        translateY.flattenOffset();
+        
+        scaleValue.addListener(({ value }) => {
+          lastScale.current = value;
+        });
+        translateX.addListener(({ value }) => {
+          lastTranslateX.current = value;
+        });
+        translateY.addListener(({ value }) => {
+          lastTranslateY.current = value;
+        });
+
+        panResponder.current.initialDistance = null;
+
+        // Double tap to zoom
+        if (evt.nativeEvent.touches.length === 0 && 
+            gestureState.dx === 0 && 
+            gestureState.dy === 0) {
+          const now = Date.now();
+          const DOUBLE_TAP_DELAY = 300;
+          
+          if (panResponder.current.lastTap && 
+              (now - panResponder.current.lastTap) < DOUBLE_TAP_DELAY) {
+            if (lastScale.current > 1) {
+              Animated.parallel([
+                Animated.timing(scaleValue, {
+                  toValue: 1,
+                  duration: 200,
+                  useNativeDriver: true,
+                }),
+                Animated.timing(translateX, {
+                  toValue: 0,
+                  duration: 200,
+                  useNativeDriver: true,
+                }),
+                Animated.timing(translateY, {
+                  toValue: 0,
+                  duration: 200,
+                  useNativeDriver: true,
+                })
+              ]).start(() => {
+                lastScale.current = 1;
+                lastTranslateX.current = 0;
+                lastTranslateY.current = 0;
+              });
+            } else {
+              Animated.timing(scaleValue, {
+                toValue: 2,
+                duration: 200,
+                useNativeDriver: true,
+              }).start(() => {
+                lastScale.current = 2;
+              });
+            }
+            panResponder.current.lastTap = null;
+          } else {
+            panResponder.current.lastTap = now;
+          }
+        }
+      },
+    })
+  ).current;
 
   const handleNext = () => {
     if (currentIndex < images.length - 1) {
       setCurrentIndex(currentIndex + 1);
+      resetZoom();
     }
   };
 
   const handlePrev = () => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
+      resetZoom();
+    }
+  };
+
+  const handleBackgroundPress = () => {
+    if (lastScale.current <= 1) {
+      onClose();
     }
   };
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
+      <TouchableOpacity 
+        style={styles.modalOverlay} 
+        activeOpacity={1}
+        onPress={handleBackgroundPress}
+      >
         <TouchableOpacity style={styles.modalCloseBtn} onPress={onClose}>
           <Ionicons name="close" size={moderateScale(28)} color="#fff" />
         </TouchableOpacity>
 
-        <View style={styles.modalImageContainer}>
-          <Image
-            source={{ uri: images[currentIndex] }}
-            style={styles.modalImage}
-            resizeMode="stretch"
-          />
+        <View style={styles.modalImageContainer} {...panResponder.panHandlers}>
+          <TouchableOpacity activeOpacity={1}>
+            <Animated.View
+              style={{
+                transform: [
+                  { scale: scaleValue },
+                  { translateX: translateX },
+                  { translateY: translateY }
+                ]
+              }}
+            >
+              <Image
+                source={{ uri: images[currentIndex] }}
+                style={styles.modalImage}
+                resizeMode="contain"
+              />
+            </Animated.View>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.modalCounter}>
@@ -83,24 +223,26 @@ const ImageModalViewer = ({
           </Text>
         </View>
 
-        <View style={styles.modalArrowContainer}>
-          <TouchableOpacity
-            style={[styles.modalArrow, { opacity: currentIndex === 0 ? 0.3 : 1 }]}
-            onPress={handlePrev}
-            disabled={currentIndex === 0}
-          >
-            <Ionicons name="chevron-back" size={moderateScale(32)} color="#fff" />
-          </TouchableOpacity>
+        {images.length > 1 && (
+          <View style={styles.modalArrowContainer}>
+            <TouchableOpacity
+              style={[styles.modalArrow, { opacity: currentIndex === 0 ? 0.3 : 1 }]}
+              onPress={handlePrev}
+              disabled={currentIndex === 0}
+            >
+              <Ionicons name="chevron-back" size={moderateScale(32)} color="#fff" />
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.modalArrow, { opacity: currentIndex === images.length - 1 ? 0.3 : 1 }]}
-            onPress={handleNext}
-            disabled={currentIndex === images.length - 1}
-          >
-            <Ionicons name="chevron-forward" size={moderateScale(32)} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      </View>
+            <TouchableOpacity
+              style={[styles.modalArrow, { opacity: currentIndex === images.length - 1 ? 0.3 : 1 }]}
+              onPress={handleNext}
+              disabled={currentIndex === images.length - 1}
+            >
+              <Ionicons name="chevron-forward" size={moderateScale(32)} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
+      </TouchableOpacity>
     </Modal>
   );
 };
@@ -296,7 +438,7 @@ export default function VendorViewProduct() {
             activeOpacity={0.8}
             onPress={() => handleGalleryImagePress(0)}
           >
-            <Image source={{ uri: gallery[0] }} style={styles.heroImage} />
+            <Image source={{ uri: gallery[0] }} style={styles.heroImage} resizeMode="stretch" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={moderateScale(20)} color="#fff" />
@@ -446,16 +588,15 @@ const styles = StyleSheet.create({
   },
 
   infoCard: {
-    width: "94%",
+    width: "100%",
     alignSelf: "center",
-    marginTop: -moderateScale(40),
     backgroundColor: "#fff",
     borderRadius: moderateScale(12),
     padding: moderateScale(14),
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: moderateScale(8),
-    elevation: 4,
+    // shadowColor: "#000",
+    // shadowOpacity: 0.08,
+    // shadowRadius: moderateScale(8),
+    // elevation: 4,
   },
 
   titleRow: {
@@ -484,7 +625,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginLeft: moderateScale(6),
     color: "#111",
-    fontSize:normalizeFont(12)
+    fontSize: normalizeFont(12)
   },
 
   metaRow: {
@@ -512,7 +653,7 @@ const styles = StyleSheet.create({
   aboutText: {
     color: "#444",
     lineHeight: moderateScale(18),
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(10),
     marginBottom: moderateScale(10),
   },
 
@@ -523,9 +664,9 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(12),
   },
   nutritionLeft: { flex: 1 },
-  nutritionHeading: { fontWeight: "700", marginBottom: moderateScale(6) },
+  nutritionHeading: { fontWeight: "700", marginBottom: moderateScale(6),fontSize:normalizeFont(11) },
   nutritionSub: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(11),
     color: "#666",
     marginBottom: moderateScale(8),
   },
@@ -537,9 +678,9 @@ const styles = StyleSheet.create({
   nutritionItem: {
     color: "#333",
     marginBottom: moderateScale(6),
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(11),
   },
-  nutritionRight: { width: moderateScale(96) },
+  nutritionRight: { width: scale(96) },
 
   sectionHeaderRow: {
     flexDirection: "row",
@@ -606,18 +747,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalImageContainer: {
-    width: "100%",
+    width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT * 0.7,
     justifyContent: "center",
     alignItems: "center",
   },
   modalImage: {
-    width: "100%",
-    height: "100%",
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.7,
   },
   modalCloseBtn: {
     position: "absolute",
-    top: moderateScale(16),
+    top: moderateScale(40),
     right: moderateScale(16),
     zIndex: 10,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
