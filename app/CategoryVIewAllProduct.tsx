@@ -666,7 +666,6 @@ const CategoryViewAllProduct = () => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Image
             source={require("../assets/via-farm-img/icons/groupArrow.png")}
-            style={{ width: scale(20), height: scale(20) }}
           />
         </TouchableOpacity>
 

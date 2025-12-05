@@ -290,7 +290,7 @@ const VendorsDetails = () => {
   const window = useWindowDimensions();
 
   // responsive card width for 2 columns
-  const horizontalPadding = moderateScale(10) * 2; // FlatList paddingHorizontal
+  const horizontalPadding = moderateScale(10) * 2; 
   const columnGap = moderateScale(10);
   const cardWidth = Math.max(120, Math.floor((window.width - horizontalPadding - columnGap) / CARD_COLUMNS));
 
@@ -411,10 +411,8 @@ const VendorsDetails = () => {
       fetchWishlist();
       fetchCart();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vendorId]);
 
-  // dropdown animations
   const openDropdown = () => {
     setShowDropdown(true);
     Animated.timing(animation, { toValue: 1, duration: 200, useNativeDriver: false }).start();
@@ -665,7 +663,7 @@ const VendorsDetails = () => {
   const ListHeader = () => (
     <View style={{ width: '100%', paddingBottom: moderateScale(10), backgroundColor: '#fff', overflow: 'visible', zIndex: 9999 }}>
       <View style={styles.imageBox}>
-        <Image source={{ uri: image }} style={styles.image} />
+        <Image source={{ uri: image }} style={styles.image} resizeMode='stretch' />
         <TouchableOpacity style={[styles.backBtn, { top: insets.top + 10 }]} onPress={() => (navigation as any).goBack()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
@@ -881,7 +879,7 @@ const styles = StyleSheet.create({
   },
   imageBox: {
     width: '100%',
-    height: scale(200),
+    height: scale(350),
     backgroundColor: '#f6f6f6',
   },
   image: { width: '100%', height: '100%' },

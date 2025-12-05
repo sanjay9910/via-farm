@@ -80,38 +80,45 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
   );
 };
 
+
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#ffffff",
-    borderRadius: moderateScale(12),
+    borderRadius: moderateScale(14),
     flexDirection: "row",
     alignItems: "center",
     borderWidth: moderateScale(1),
     borderColor: "rgba(255, 202, 40, 1)",
-    marginBottom: verticalScale(12),
+    marginBottom: verticalScale(14),
     overflow: "hidden",
-    padding: moderateScale(0),
+    padding: 0,
+    elevation: 3, 
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
 
   profileImage: {
-    width: scale(130),
-    height: verticalScale(145),
-    borderTopLeftRadius: moderateScale(10),
-    borderBottomLeftRadius: moderateScale(10),
+    width: scale(135),
+    height: verticalScale(150),
+    borderTopLeftRadius: moderateScale(14),
+    borderBottomLeftRadius: moderateScale(14),
+    backgroundColor: "#f5f5f5",
   },
 
   contentSection: {
     flex: 1,
-    paddingVertical: verticalScale(12),
-    paddingRight: moderateScale(12),
-    paddingLeft: moderateScale(10),
+    paddingVertical: verticalScale(14),
+    paddingRight: moderateScale(14),
+    paddingLeft: moderateScale(12),
     justifyContent: "center",
   },
 
   name: {
-    fontSize: normalizeFont(11),
-    fontWeight: "600",
-    color: "#333",
+    fontSize: normalizeFont(13), 
+    fontWeight: "700",
+    color: "#222",
     marginBottom: verticalScale(6),
   },
 
@@ -122,9 +129,10 @@ const styles = StyleSheet.create({
   },
 
   distance: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(11),
     color: "rgba(66, 66, 66, 0.9)",
     marginLeft: moderateScale(6),
+    fontWeight: "500",
   },
 
   categoryContainer: {
@@ -134,53 +142,52 @@ const styles = StyleSheet.create({
   },
 
   category: {
-    fontSize: normalizeFont(10),
-    color: "rgba(66, 66, 66, 0.7)",
+    fontSize: normalizeFont(11),
+    color: "rgba(66, 66, 66, 0.75)",
     marginLeft: moderateScale(6),
     flexShrink: 1,
+    fontWeight: "500",
   },
 
   buttonContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: moderateScale(10),
-    marginTop: verticalScale(6),
+    gap: moderateScale(12),
+    marginTop: verticalScale(8),
   },
 
   deliveryButton: {
     backgroundColor: "#E3FCE4",
     borderWidth: moderateScale(1),
     borderColor: "#81C784",
-    borderRadius: moderateScale(8),
-    paddingVertical: verticalScale(4),
-    paddingHorizontal: moderateScale(10),
+    borderRadius: moderateScale(10),
+    paddingVertical: verticalScale(5),
+    paddingHorizontal: moderateScale(12),
     alignItems: "center",
     justifyContent: "center",
-    marginRight: moderateScale(8),
   },
 
   pickupButton: {
     backgroundColor: "#FFF8E1",
     borderWidth: moderateScale(1),
     borderColor: "#FFD54F",
-    borderRadius: moderateScale(8),
-    paddingVertical: verticalScale(4),
-    paddingHorizontal: moderateScale(10),
+    borderRadius: moderateScale(10),
+    paddingVertical: verticalScale(5),
+    paddingHorizontal: moderateScale(12),
     alignItems: "center",
     justifyContent: "center",
   },
 
   deliveryButtonText: {
     color: "#2E7D32",
-    fontSize: normalizeFont(9),
-    fontWeight: "600",
+    fontSize: normalizeFont(10),
+    fontWeight: "700",
   },
 
   pickupButtonText: {
     color: "#9E7B00",
-    fontSize: normalizeFont(9),
-    fontWeight: "500",
+    fontSize: normalizeFont(10),
+    fontWeight: "600",
   },
 });
-
 export default ProfileCard;

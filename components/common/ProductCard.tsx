@@ -44,8 +44,8 @@ const ProductCard = ({
   onPress,
   onFavoritePress,
   onAddToCart,
-  onQuantityChange, // expects a change (delta) like +1 or -1 or any integer
-  cartQuantity = 0, // authoritative quantity from parent
+  onQuantityChange, 
+  cartQuantity = 0, 
   width = Math.round(moderateScale(140)),
   showRating = true,
   showFavorite = true,
@@ -67,6 +67,7 @@ const ProductCard = ({
       prevQtyRef.current = parsed;
     }
   }, [cartQuantity, isProcessing]);
+
   useEffect(() => {
     setModalQtyText(String(cartQuantity || 0));
   }, [modalVisible, cartQuantity]);
@@ -125,7 +126,7 @@ const ProductCard = ({
     // sanitize input
     let desired = parseInt((modalQtyText || "0").replace(/\D/g, ""), 10);
     if (Number.isNaN(desired) || desired < 0) desired = 0;
-    const current = Number(cartQuantity || 0); 
+    const current = Number(cartQuantity || 0);
     const delta = desired - current;
     setModalVisible(false);
 
@@ -141,9 +142,11 @@ const ProductCard = ({
   };
 
   const qty = Number(localQty || 0);
-  const CONTROL_WIDTH = Math.round(Math.min(Math.max(width * 0.88, moderateScale(80)), moderateScale(220)));
+
+  const SIDE_BTN_WIDTH = Math.round(moderateScale(47)); 
+  const QUANTITY_NUM_MIN_WIDTH = Math.round(moderateScale(36)); 
+  const CONTROL_WIDTH = SIDE_BTN_WIDTH * 2 + QUANTITY_NUM_MIN_WIDTH; 
   const CONTROL_HEIGHT = Math.round(Math.min(Math.max(verticalScale(36), moderateScale(34)), verticalScale(52)));
-  const SIDE_BTN_H_PADDING = moderateScale(10);
 
   const safeImage = image ? image : DEFAULT_IMAGE;
 
@@ -212,7 +215,7 @@ const ProductCard = ({
           <Text
             style={[
               styles.productSubtitle,
-              { fontSize: normalizeFont(10) },
+              { fontSize: normalizeFont(12) },
             ]}
             numberOfLines={1}
           >
@@ -220,7 +223,6 @@ const ProductCard = ({
           </Text>
           <Text style={[styles.productPrice, { fontSize: normalizeFont(12) }]}>{`₹${price}`}</Text>
 
-          {/* Add to Cart / Quantity (controlled) */}
           <View style={styles.buttonContainer}>
             {qty <= 0 ? (
               <TouchableOpacity
@@ -272,7 +274,7 @@ const ProductCard = ({
                     style={[
                       styles.sideBtn,
                       {
-                        paddingHorizontal: SIDE_BTN_H_PADDING,
+                        width: SIDE_BTN_WIDTH,
                         height: CONTROL_HEIGHT,
                         justifyContent: "center",
                         alignItems: "center",
@@ -281,15 +283,19 @@ const ProductCard = ({
                     ]}
                     disabled={isProcessing}
                   >
-                    <Text style={[styles.qtyBtnText, { fontSize: normalizeFont(16) }]}>−</Text>
+                    <Text style={[styles.qtyBtnText, { fontSize: normalizeFont(18) }]}>−</Text>
                   </TouchableOpacity>
-                  <Text style={[styles.qtyText, { fontSize: normalizeFont(14) }]}>{String(qty).padStart(2, "0")}</Text>
+
+                  <View style={{ minWidth: QUANTITY_NUM_MIN_WIDTH, alignItems: "center", justifyContent: "center" }}>
+                    <Text style={[styles.qtyText, { fontSize: normalizeFont(14) }]}>{String(qty).padStart(2, "0")}</Text>
+                  </View>
+
                   <TouchableOpacity
                     onPress={handleIncrement}
                     style={[
                       styles.sideBtn,
                       {
-                        paddingHorizontal: SIDE_BTN_H_PADDING,
+                        width: SIDE_BTN_WIDTH,
                         height: CONTROL_HEIGHT,
                         justifyContent: "center",
                         alignItems: "center",
@@ -298,7 +304,7 @@ const ProductCard = ({
                     ]}
                     disabled={isProcessing}
                   >
-                    <Text style={[styles.qtyBtnText, { fontSize: normalizeFont(16) }]}>+</Text>
+                    <Text style={[styles.qtyBtnText, { fontSize: normalizeFont(18) }]}>+</Text>
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>
@@ -479,13 +485,11 @@ const styles = StyleSheet.create({
   qtyBtnText: {
     color: "rgba(76, 175, 80, 1)",
     fontWeight: "700",
-    fontSize: moderateScale(18),
   },
   qtyText: {
     color: "rgba(76, 175, 80, 1)",
     fontWeight: "700",
     textAlign: "center",
-    // paddingHorizontal: moderateScale(6),
   },
 
   processingOverlay: {
@@ -517,7 +521,7 @@ const styles = StyleSheet.create({
     shadowColor: "rgba(0,0,0,0.25)",
   },
   modalTitle: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(15),
     fontWeight: "700",
     marginBottom: moderateScale(12),
   },
@@ -564,7 +568,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   modalActionText: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(14),
     fontWeight: "700",
   },
 });

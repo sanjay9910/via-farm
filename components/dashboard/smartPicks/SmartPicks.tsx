@@ -306,7 +306,7 @@ const SmartPicks = () => {
       // optimistic UI change
       setUpdating(productId, true);
       setCartItems((prev) => {
-        if (prev[productId]) return prev; // already present
+        if (prev[productId]) return prev; 
         return { ...prev, [productId]: { quantity: 1, cartItemId: prev[productId]?.cartItemId || null } };
       });
 
@@ -472,7 +472,6 @@ const SmartPicks = () => {
           timeout: 10000,
         });
         if (response.data?.success) {
-          // success: no alert (as requested)
           return true;
         } else {
           throw new Error(response.data?.message || 'Failed to add to wishlist');
@@ -493,7 +492,6 @@ const SmartPicks = () => {
     []
   );
 
-  // wishlist - optimistic remove
   const removeFromWishlist = useCallback(
     async (product) => {
       const productId = String(product.productId ?? product.id ?? '');
@@ -559,7 +557,6 @@ const SmartPicks = () => {
       } else {
         await addToWishlist(product);
       }
-      // refresh authoritative wishlist in background
       fetchWishlist().catch((e) => console.warn('fetchWishlist after toggle failed', e));
     },
     [filteredProducts, addToWishlist, removeFromWishlist, fetchWishlist]
@@ -734,13 +731,13 @@ const SmartPicks = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   loadingContainer: { paddingVertical: verticalScale(30), justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8f9fa' },
-  loadingText: { marginTop: verticalScale(10), fontSize: normalizeFont(10), color: '#666' },
+  loadingText: { marginTop: verticalScale(10), fontSize: normalizeFont(12), color: '#666' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: verticalScale(6), paddingTop: verticalScale(10), paddingHorizontal: moderateScale(13) },
-  title: { fontSize: normalizeFont(12), fontWeight: '600', color: '#333' },
+  title: { fontSize: normalizeFont(14), fontWeight: '600', color: '#333' },
   filterWrapper: { position: 'relative', minWidth: moderateScale(120) },
   filterBtn: { paddingVertical: verticalScale(8), borderRadius: moderateScale(6), borderWidth: 1, borderColor: 'rgba(66, 66, 66, 0.7)' },
-  filterExpand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap:moderateScale(5)},
-  filterText: { color: 'rgba(66, 66, 66, 0.9)', fontSize: normalizeFont(8),  },
+  filterExpand: { flexDirection: 'row', alignItems: 'center',paddingLeft:moderateScale(10), gap:moderateScale(8)},
+  filterText: { color: 'rgba(66, 66, 66, 0.9)', fontSize: normalizeFont(10),  },
   dropdown: { overflow: 'hidden', backgroundColor: '#fff', borderColor: 'rgba(66, 66, 66, 0.7)', borderRadius: moderateScale(6), position: 'absolute', top: moderateScale(35), left: 0, right: 0, zIndex: 1000, elevation: 10 },
   dropdownScrollContent: { paddingVertical: 6 },
   dropdownItem: { padding: moderateScale(12), borderBottomWidth: 1, borderBottomColor: 'rgba(66, 66, 66, 0.06)' },
