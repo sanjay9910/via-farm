@@ -171,8 +171,8 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   title: {
-    fontSize: normalizeFont(10),
-    fontWeight: 'bold',
+    fontSize: normalizeFont(13),
+    // fontWeight: 'bold',
   },
   seeAllBtn: {
     flexDirection: 'row',
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   seeAllText: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     color: 'rgba(1, 151, 218, 1)',
   },
   listContent: {

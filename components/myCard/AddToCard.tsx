@@ -66,12 +66,10 @@ const MyCart = () => {
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // Coupon state: appliedCoupon = null unless user applied explicitly
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState('');
 
-  // Available coupons (local fallback)
   const availableCoupons = [
     { code: 'SAVE10', discount: 10, type: 'percentage' },
     { code: 'SAVE20', discount: 70, type: 'percentage' },
@@ -168,7 +166,7 @@ const MyCart = () => {
     } finally {
       setLoading(false);
     }
-  }, [appliedCoupon]); 
+  }, [appliedCoupon]);
 
   useEffect(() => {
     const init = async () => {
@@ -318,7 +316,7 @@ const MyCart = () => {
         setAppliedCoupon({
           code: json.couponCode ?? codeToApply,
           discount: finalDiscountToShow,
-          type: 'fixed', 
+          type: 'fixed',
         });
 
         console.log('Applied coupon resolved discount:', finalDiscountToShow, 'server priceDetails:', pd);
@@ -525,7 +523,7 @@ const MyCart = () => {
           amount: finalAmount,
           orderPayload,
         });
-      }, 300); 
+      }, 300);
       return;
     }
 
@@ -555,7 +553,7 @@ const MyCart = () => {
             setShowSuccessModal(false);
             navigation.navigate('index');
           }, 3000);
-        }, 350); 
+        }, 350);
       } else {
         console.warn('Place order failed:', json);
         Alert.alert('Order Failed', json.message || 'Could not place order.');
@@ -589,15 +587,13 @@ const MyCart = () => {
   // Cart Card Component
   const CartCard = ({ item }) => (
     <View style={styles.cartCard}>
-     <TouchableOpacity onPress={() => navigation.navigate('ViewProduct', { productId: item._id || item.id, product: item })}>
+      <TouchableOpacity onPress={() => navigation.navigate('ViewProduct', { productId: item._id || item.id, product: item })}>
 
-      <Image source={{ uri: item.image || 'https://via.placeholder.com/300' }} style={styles.productImage}  resizeMode='stretch' />
+        <Image source={{ uri: item.image || 'https://via.placeholder.com/300' }} style={styles.productImage} resizeMode='stretch' />
       </TouchableOpacity>
       <View style={styles.productDetails}>
         <View style={styles.productInfo}>
           <Text style={styles.productTitle}>{item.title}</Text>
-          {/* <Text style={styles.productSubtitle}>{item.subtitle}</Text> */}
-
           <View style={styles.priceContainer}>
             <Text style={styles.priceText}><Text style={{ color: 'rgba(66, 66, 66, 1)', fontWeight: 500 }}>MRP </Text>₹{Number(item.price).toFixed(2)}</Text>
           </View>
@@ -611,27 +607,27 @@ const MyCart = () => {
         >
           <Image source={require("../../assets/via-farm-img/icons/deleteBtn.png")} />
         </TouchableOpacity>
-      </View>
+        <View style={styles.quantityContainer}>
+          <TouchableOpacity
+            style={styles.quantityButton}
+            onPress={() => updateQuantity(item.id, (item.quantity || 1) - 1)}
+          >
+            <Text style={styles.quantityButtonText}>-</Text>
+          </TouchableOpacity>
 
-      <View style={styles.quantityContainer}>
-        <TouchableOpacity
-          style={styles.quantityButton}
-          onPress={() => updateQuantity(item.id, (item.quantity || 1) - 1)}
-        >
-          <Text style={styles.quantityButtonText}>-</Text>
-        </TouchableOpacity>
+          <View style={styles.quantityButton}>
+            <Text style={styles.quantityText}>{item.quantity}</Text>
+          </View>
 
-        <View style={styles.quantityButton}>
-          <Text style={styles.quantityText}>{item.quantity}</Text>
+          <TouchableOpacity
+            style={styles.quantityButton}
+            onPress={() => updateQuantity(item.id, (item.quantity || 1) + 1)}
+          >
+            <Text style={styles.quantityButtonText}>+</Text>
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          style={styles.quantityButton}
-          onPress={() => updateQuantity(item.id, (item.quantity || 1) + 1)}
-        >
-          <Text style={styles.quantityButtonText}>+</Text>
-        </TouchableOpacity>
       </View>
+
     </View>
   );
 
@@ -661,14 +657,14 @@ const MyCart = () => {
           <Image source={require("../../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Cart {loading && cartItems.length > 0 && '(Updating...)'}</Text>
-        <View  />
+        <View />
       </View>
 
       {/* Scrollable Content */}
       {cartItems.length === 0 && !loading ? (
         <EmptyCart />
       ) : (
-        <ScrollView contentContainerStyle={{ paddingBottom:moderateScale(100) }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ paddingBottom: moderateScale(100) }} showsVerticalScrollIndicator={false}>
           <View style={styles.cartSection}>
             {loading ? (
               <Text style={styles.emptyCartText}></Text>
@@ -747,7 +743,7 @@ const MyCart = () => {
             </View>
           )}
 
-         {Array.isArray(cartItems) && cartItems.length > 0 && <SuggestionCard />}
+          {Array.isArray(cartItems) && cartItems.length > 0 && <SuggestionCard />}
         </ScrollView>
       )}
 
@@ -1094,10 +1090,9 @@ const MyCart = () => {
 
 const styles = StyleSheet.create({
   emptyCartContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal:moderateScale(40),
+   flexDirection:'row',
+   alignItems:'center',
+   justifyContent:'center',
   },
   emptyCartImage: {
     width: scale(150),
@@ -1243,7 +1238,7 @@ const styles = StyleSheet.create({
   productImage: {
     width: moderateScale(160),
     height: moderateScale(148),
-    borderRadius:moderateScale(8),
+    borderRadius: moderateScale(8),
     backgroundColor: '#f8f8f8',
   },
   productDetails: {
@@ -1256,13 +1251,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   productTitle: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(13),
     fontWeight: '500',
     color: 'rgba(66, 66, 66, 1)',
     marginBottom: moderateScale(10),
   },
   productSubtitle: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     color: '#666',
     marginBottom: moderateScale(8),
   },
@@ -1271,34 +1266,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   mrpText: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     color: '#999',
     textDecorationLine: 'line-through',
     marginRight: moderateScale(8),
     fontWeight: 300,
   },
   priceText: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     fontWeight: '700',
     color: '#333',
   },
   deliveryText: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     color: 'rgba(66, 66, 66, 1)',
-    marginTop: moderateScale(13),
+    // marginTop: moderateScale(13),
   },
   removeButton: {
     position: 'absolute',
     right: '5%',
-    top: '5%',
+    bottom: 0,
     padding: moderateScale(4),
     backgroundColor: '#fff',
     borderRadius: moderateScale(20),
   },
   quantityContainer: {
     position: 'absolute',
-    right: moderateScale(10),
-    bottom: moderateScale(25),
+    left:"14%",
+    bottom: 0,
     width: scale(94),
     height: verticalScale(28),
     flexDirection: 'row',
@@ -1320,7 +1315,7 @@ const styles = StyleSheet.create({
   },
 
   quantityText: {
-    paddingTop:moderateScale(2),
+    paddingTop: moderateScale(2),
     width: scale(28),
     height: scale(27),
     textAlign: 'center',
@@ -1347,7 +1342,7 @@ const styles = StyleSheet.create({
     padding: moderateScale(16),
   },
   priceSectionTitle: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     fontWeight: '500',
     color: '#333',
     marginBottom: moderateScale(16),
@@ -1362,12 +1357,12 @@ const styles = StyleSheet.create({
     color: 'rgba(66, 66, 66, 1)',
   },
   priceValue: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     color: 'rgba(66, 66, 66, 1)',
     fontWeight: '500',
   },
   discountValue: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     color: 'rgba(66, 66, 66, 1)',
     fontWeight: '500',
   },
@@ -1378,12 +1373,12 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   totalLabel: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     color: '#333',
   },
   totalValue: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     fontWeight: '700',
     color: '#333',
   },
@@ -1407,7 +1402,7 @@ const styles = StyleSheet.create({
     gap: scale(10),
   },
   checkoutText: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     color: '#fff',
   },
@@ -1423,11 +1418,11 @@ const styles = StyleSheet.create({
   },
   deliveryModalContainer: {
     backgroundColor: 'white',
-    borderTopLeftRadius:moderateScale(20),
-    borderTopRightRadius:moderateScale(20),
+    borderTopLeftRadius: moderateScale(20),
+    borderTopRightRadius: moderateScale(20),
     maxHeight: '80%',
-    borderWidth:1,
-    borderBottomWidth:0,
+    borderWidth: 1,
+    borderBottomWidth: 0,
     borderColor: 'rgba(255, 202, 40, 1)',
   },
   dragHandle: {
@@ -1436,7 +1431,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ddd',
     borderRadius: 2,
     alignSelf: 'center',
-    marginVertical:moderateScale(8),
+    marginVertical: moderateScale(8),
     borderWidth: 2,
   },
   deliveryModalHeader: {
@@ -1660,7 +1655,7 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(11),
     fontWeight: '600',
     color: '#333',
-    marginBottom:moderateScale(2),
+    marginBottom: moderateScale(2),
   },
   vendorLocation: {
     fontSize: normalizeFont(10),
@@ -1681,14 +1676,14 @@ const styles = StyleSheet.create({
   proceedButtonStyle: {
     padding: moderateScale(8),
     backgroundColor: 'rgba(76, 175, 80, 1)',
-    borderRadius:moderateScale(10),
+    borderRadius: moderateScale(10),
     alignItems: 'center',
     width: '60%',
   },
   proceedButtonText: {
     color: '#fff',
     fontWeight: '600',
-    paddingVertical:moderateScale(4),
+    paddingVertical: moderateScale(4),
   },
   successModalOverlay: {
     flex: 1,
@@ -1699,7 +1694,7 @@ const styles = StyleSheet.create({
   successModalBox: {
     backgroundColor: '#fff',
     width: '75%',
-    borderRadius:moderateScale(16),
+    borderRadius: moderateScale(16),
     paddingVertical: moderateScale(30),
     paddingHorizontal: moderateScale(20),
     alignItems: 'center',

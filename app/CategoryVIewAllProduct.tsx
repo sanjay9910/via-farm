@@ -3,14 +3,18 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import axios from "axios";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Dimensions,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -19,14 +23,14 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import LocalVendor from '../components/common/LocalVendor';
 import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const API_BASE = "https://viafarm-1.onrender.com";
+const { width } = Dimensions.get('window');
 
 /* ---------------------------
-   ProductCard (with qty-edit modal)
-   - Doesn't change external APIs: uses onUpdateQuantity(item, delta)
-   - Accepts cardWidth prop for responsive sizing
+   ProductCard (unchanged)
    --------------------------- */
 const ProductCard = ({
   item,
@@ -55,7 +59,6 @@ const ProductCard = ({
 
   const rating = (typeof item?.rating === "number") ? item.rating : (item?.rating ? Number(item.rating) : 0);
 
-  // quantity modal state
   const [qtyModalVisible, setQtyModalVisible] = useState(false);
   const [editQuantity, setEditQuantity] = useState(String(qty));
 
@@ -148,7 +151,6 @@ const ProductCard = ({
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: moderateScale(6), paddingVertical: moderateScale(4) }}>
             <Image
               source={require("../assets/via-farm-img/icons/loca.png")}
-        
             />
             <Text style={cardStyles.productVeriety}>
               {distance ?? "0.0 km"}
@@ -211,7 +213,6 @@ const ProductCard = ({
                   </View>
                 </TouchableOpacity>
 
-                {/* Qty edit modal */}
                 <Modal
                   visible={qtyModalVisible}
                   animationType="fade"
@@ -268,7 +269,7 @@ const ProductCard = ({
 
 /* ---------------------------
    Main screen: CategoryViewAllProduct
-   Keeps your API logic the same; only responsiveness & modal added
+   - Adds filter modal (Apply only when Apply Filters clicked)
    --------------------------- */
 const CategoryViewAllProduct = () => {
   const navigation = useNavigation();
@@ -285,10 +286,20 @@ const CategoryViewAllProduct = () => {
   const [cartItems, setCartItems] = useState({});
   const [query, setQuery] = useState("");
 
-  const window = useWindowDimensions();
+  // Filters
+  const [filters, setFilters] = useState({
+    sortBy: 'relevance',
+    priceMin: 0,
+    priceMax: Number.MAX_SAFE_INTEGER,
+    ratingMin: 0,
+  });
+  const [tempFilters, setTempFilters] = useState({ ...filters });
+  const [showFilterPopup, setShowFilterPopup] = useState(false);
+  const slideAnim = useRef(new Animated.Value(width)).current;
+  const [expanded, setExpanded] = useState({ sort: false, price: true, rating: true });
 
-  // responsive card width: 2 columns, consider horizontal paddings and gaps
-  const horizontalPadding = moderateScale(13) * 2; // FlatList content padding left+right
+  const window = useWindowDimensions();
+  const horizontalPadding = moderateScale(13) * 2;
   const columnGap = moderateScale(10);
   const computedCardWidth = Math.max(120, Math.floor((window.width - horizontalPadding - columnGap) / 2));
 
@@ -299,6 +310,7 @@ const CategoryViewAllProduct = () => {
 
       const token = await AsyncStorage.getItem("userToken");
       if (!token) {
+        // allow viewing without token? original required token, but we keep same behavior
         setError("Please login first");
         setLoading(false);
         return;
@@ -318,7 +330,6 @@ const CategoryViewAllProduct = () => {
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         setAllCategories(response.data.data);
 
-        // Find the specific category
         const selectedCategory = response.data.data.find(
           cat => cat._id === categoryId || cat.name === categoryName
         );
@@ -350,7 +361,6 @@ const CategoryViewAllProduct = () => {
     }
   };
 
-  // Wishlist
   const fetchWishlist = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -372,7 +382,6 @@ const CategoryViewAllProduct = () => {
     }
   };
 
-  // Cart
   const fetchCart = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -405,19 +414,83 @@ const CategoryViewAllProduct = () => {
     fetchCart();
   }, [categoryId, categoryName]);
 
-  // Client-side filter by name
-  const filteredProducts = useMemo(() => {
-    const q = (query || "").trim().toLowerCase();
-    if (!q) return categoryProducts;
-    return categoryProducts.filter(p =>
-      (p?.name ?? "")
-        .toString()
-        .toLowerCase()
-        .includes(q)
-    );
-  }, [categoryProducts, query]);
+  // parsing helper
+  const parsePrice = (p) => {
+    if (p == null) return 0;
+    const asString = String(p);
+    const cleaned = asString.replace(/[^0-9.]/g, '');
+    const v = parseFloat(cleaned);
+    return Number.isNaN(v) ? 0 : v;
+  };
 
-  // Wishlist add/remove (optimistic)
+  // Combined filter: query + applied filters
+  const filteredProducts = useMemo(() => {
+    let products = Array.isArray(categoryProducts) ? [...categoryProducts] : [];
+
+    const q = (query || "").trim().toLowerCase();
+    if (q) {
+      products = products.filter(p => (p?.name ?? "").toString().toLowerCase().includes(q));
+    }
+
+    products = products.filter(p => {
+      const price = parsePrice(p?.price);
+      return price >= (filters.priceMin || 0) && price <= (filters.priceMax || Number.MAX_SAFE_INTEGER);
+    });
+
+    products = products.filter(p => {
+      const rating = (typeof p?.rating === "number") ? p.rating : (p?.rating ? Number(p.rating) : 0);
+      return rating >= (filters.ratingMin || 0);
+    });
+
+    // sort
+    if (filters.sortBy === 'Price - high to low') {
+      products.sort((a, b) => parsePrice(b?.price) - parsePrice(a?.price));
+    } else if (filters.sortBy === 'Price - low to high') {
+      products.sort((a, b) => parsePrice(a?.price) - parsePrice(b?.price));
+    } else if (filters.sortBy === 'Newest Arrivals') {
+      products.sort((a, b) => {
+        const at = Date.parse(a?.createdAt || a?.postedAt || '') || 0;
+        const bt = Date.parse(b?.createdAt || b?.postedAt || '') || 0;
+        return bt - at;
+      });
+    }
+
+    return products;
+  }, [categoryProducts, query, filters]);
+
+  // Filter popup control
+  const openFilterPopup = () => {
+    setTempFilters({ ...filters });
+    setShowFilterPopup(true);
+    slideAnim.setValue(width);
+    Animated.timing(slideAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start();
+  };
+  const closeFilterPopup = () => {
+    Animated.timing(slideAnim, { toValue: width, duration: 200, useNativeDriver: true }).start(() => setShowFilterPopup(false));
+  };
+
+  const applyFilters = () => {
+    // sanitize numeric fields
+    const pf = {
+      ...tempFilters,
+      priceMin: Number.isFinite(Number(tempFilters.priceMin)) ? Number(tempFilters.priceMin) : 0,
+      priceMax: Number.isFinite(Number(tempFilters.priceMax)) ? Number(tempFilters.priceMax) : Number.MAX_SAFE_INTEGER,
+      ratingMin: Number.isFinite(Number(tempFilters.ratingMin)) ? Number(tempFilters.ratingMin) : 0,
+    };
+    setFilters(pf);
+    closeFilterPopup();
+  };
+
+  const clearTempFilters = () => {
+    setTempFilters({
+      sortBy: 'relevance',
+      priceMin: 0,
+      priceMax: Number.MAX_SAFE_INTEGER,
+      ratingMin: 0,
+    });
+  };
+
+  /* Wishlist / Cart functions (kept same as your code) */
   const addToWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -502,7 +575,6 @@ const CategoryViewAllProduct = () => {
     }
   };
 
-  // Add to cart (optimistic)
   const handleAddToCart = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -575,7 +647,6 @@ const CategoryViewAllProduct = () => {
     }
   };
 
-  // Update quantity (expects delta)
   const handleUpdateQuantity = async (product, change) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -591,7 +662,6 @@ const CategoryViewAllProduct = () => {
       const newQuantity = currentItem.quantity + change;
 
       if (newQuantity < 1) {
-        // optimistic remove
         setCartItems(prev => {
           const next = { ...prev };
           delete next[productId];
@@ -610,7 +680,6 @@ const CategoryViewAllProduct = () => {
         }
         return;
       } else {
-        // optimistic update
         setCartItems(prev => ({
           ...prev,
           [productId]: { ...currentItem, quantity: newQuantity }
@@ -661,7 +730,7 @@ const CategoryViewAllProduct = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-      {/* Header with Search */}
+      {/* Header with Search + Filter icon */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Image
@@ -685,9 +754,16 @@ const CategoryViewAllProduct = () => {
               <Ionicons name="close-circle" size={scale(18)} color="#888" />
             </TouchableOpacity>
           )}
+          <TouchableOpacity onPress={openFilterPopup} style={{ paddingHorizontal: moderateScale(8) }}>
+            <Image style={{width:30, height:30}}  source={require("../assets/via-farm-img/icons/fltr.png")} />
+          </TouchableOpacity>
         </View>
       </View>
 
+     <View>
+      <LocalVendor/>
+     </View>
+      
       {/* Category Title */}
       <View style={{ paddingLeft: moderateScale(20), paddingBottom: moderateScale(10) }}>
         <Text style={{ fontSize: normalizeFont(15), fontWeight: '600' }}>{categoryName}</Text>
@@ -750,6 +826,106 @@ const CategoryViewAllProduct = () => {
           )}
         </>
       )}
+
+      {/* Filter Modal (slides from right) */}
+      <Modal
+        visible={showFilterPopup}
+        transparent
+        animationType="none"
+        onRequestClose={closeFilterPopup}
+      >
+        <View style={filterStyles.modalOverlay}>
+          <TouchableOpacity style={filterStyles.overlayTouchable} activeOpacity={1} onPress={closeFilterPopup} />
+          <Animated.View style={[filterStyles.filterPopup, { transform: [{ translateX: slideAnim }] }]}>
+            <View style={filterStyles.filterHeader}>
+              <View style={filterStyles.filterTitleContainer}>
+                <Ionicons name="options" size={normalizeFont(18)} color="#333" />
+                <Text style={filterStyles.filterTitle}>Filters</Text>
+              </View>
+              <TouchableOpacity onPress={closeFilterPopup}>
+                <Ionicons name="close" size={normalizeFont(20)} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+              <ScrollView contentContainerStyle={{ paddingBottom: moderateScale(20) }}>
+                {/* Sort */}
+                <TouchableOpacity style={filterStyles.filterOption} onPress={() => setExpanded(s => ({ ...s, sort: !s.sort }))}>
+                  <Text style={filterStyles.filterOptionText}>Sort by</Text>
+                  <Ionicons name={expanded.sort ? "chevron-up" : "chevron-down"} size={normalizeFont(14)} color="#666" />
+                </TouchableOpacity>
+                {expanded.sort && (
+                  <View style={filterStyles.filterDetails}>
+                    {['relevance', 'Price - low to high', 'Price - high to low', 'Newest Arrivals'].map(opt => (
+                      <TouchableOpacity key={opt} style={filterStyles.filterOption2} onPress={() => setTempFilters(tf => ({ ...tf, sortBy: opt }))}>
+                        <Text style={[
+                          filterStyles.filterOptionText2,
+                          tempFilters.sortBy === opt && filterStyles.filterOptionText2Active
+                        ]}>{opt}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                {/* Price */}
+                <TouchableOpacity style={filterStyles.filterOption} onPress={() => setExpanded(s => ({ ...s, price: !s.price }))}>
+                  <Text style={filterStyles.filterOptionText}>Price Range</Text>
+                  <Ionicons name={expanded.price ? "chevron-up" : "chevron-down"} size={normalizeFont(14)} color="#666" />
+                </TouchableOpacity>
+                {expanded.price && (
+                  <View style={filterStyles.filterDetails}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: moderateScale(8) }}>
+                      <TextInput
+                        style={[filterStyles.simpleInput, { flex: 1 }]}
+                        placeholder="Min"
+                        keyboardType="numeric"
+                        value={tempFilters.priceMin !== Number.MAX_SAFE_INTEGER ? String(tempFilters.priceMin) : '0'}
+                        onChangeText={(t) => setTempFilters(tf => ({ ...tf, priceMin: t.replace(/[^0-9]/g, '') ? Number(t.replace(/[^0-9]/g, '')) : 0 })) }
+                      />
+                      <TextInput
+                        style={[filterStyles.simpleInput, { flex: 1 }]}
+                        placeholder="Max"
+                        keyboardType="numeric"
+                        value={tempFilters.priceMax === Number.MAX_SAFE_INTEGER ? '' : String(tempFilters.priceMax)}
+                        onChangeText={(t) => setTempFilters(tf => ({ ...tf, priceMax: t.replace(/[^0-9]/g, '') ? Number(t.replace(/[^0-9]/g, '')) : Number.MAX_SAFE_INTEGER })) }
+                      />
+                    </View>
+                    <Text style={{ marginTop: moderateScale(8), color: '#666' }}>Leave Max empty for any</Text>
+                  </View>
+                )}
+
+                {/* Rating */}
+                <TouchableOpacity style={filterStyles.filterOption} onPress={() => setExpanded(s => ({ ...s, rating: !s.rating }))}>
+                  <Text style={filterStyles.filterOptionText}>Rating</Text>
+                  <Ionicons name={expanded.rating ? "chevron-up" : "chevron-down"} size={normalizeFont(14)} color="#666" />
+                </TouchableOpacity>
+                {expanded.rating && (
+                  <View style={filterStyles.filterDetails}>
+                    {[0, 2, 3, 4].map(r => (
+                      <TouchableOpacity key={r} style={filterStyles.checkboxRow} onPress={() => setTempFilters(tf => ({ ...tf, ratingMin: tf.ratingMin === r ? 0 : r }))}>
+                        <View style={[filterStyles.checkbox, tempFilters.ratingMin === r && filterStyles.checkboxChecked]}>
+                          {tempFilters.ratingMin === r && <Ionicons name="checkmark" size={12} color="#fff" />}
+                        </View>
+                        <Text style={filterStyles.checkboxLabel}>{r === 0 ? 'Any' : `${r} and above`}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </ScrollView>
+
+              <View style={filterStyles.filterFooter}>
+                <TouchableOpacity style={[filterStyles.applyButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ccc', marginBottom: moderateScale(8) }]} onPress={() => { clearTempFilters(); }}>
+                  <Text style={[filterStyles.applyButtonText, { color: '#333' }]}>Clear</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={filterStyles.applyButton} onPress={applyFilters}>
+                  <Text style={filterStyles.applyButtonText}>Apply Filters</Text>
+                </TouchableOpacity>
+              </View>
+            </KeyboardAvoidingView>
+          </Animated.View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -757,7 +933,7 @@ const CategoryViewAllProduct = () => {
 export default CategoryViewAllProduct;
 
 /* ---------------------------
-   Styles (responsive)
+   Styles (kept similar to yours)
    --------------------------- */
 
 const styles = StyleSheet.create({
@@ -785,22 +961,6 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(12),
     color: '#222',
     paddingVertical: moderateScale(5),
-  },
-  backButtonContainer: {
-    padding: moderateScale(2),
-  },
-  riceContainer: {
-    flex: 1,
-    gap: scale(5),
-  },
-  backIcon: {
-    width: scale(24),
-    height: scale(24),
-  },
-  headerTitle: {
-    fontSize: normalizeFont(20),
-    fontWeight: "600",
-    color: "#333",
   },
   loadingContainer: {
     alignItems: "center",
@@ -872,8 +1032,8 @@ const cardStyles = StyleSheet.create({
 
   favoriteButton: {
     position: 'absolute',
-    top: moderateScale(6),
-    right: moderateScale(6),
+    top: moderateScale(4),
+    right: moderateScale(4),
     borderRadius: moderateScale(16),
     width: scale(30),
     height: scale(30),
@@ -994,7 +1154,7 @@ const cardStyles = StyleSheet.create({
   },
 });
 
-/* Modal styles */
+/* Modal styles (qty) */
 const modalStyles = StyleSheet.create({
   backdrop: {
     flex: 1,
@@ -1083,5 +1243,146 @@ const modalStyles = StyleSheet.create({
     color: "#fff",
     fontWeight: "700",
     fontSize: normalizeFont(13),
+  },
+});
+
+/* Filter styles */
+const filterStyles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  overlayTouchable: {
+    flex: 1,
+  },
+  filterPopup: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    height:"92%",
+    width: moderateScale(250),
+    backgroundColor: '#fff',
+    borderTopLeftRadius: moderateScale(20),
+    borderBottomLeftRadius: moderateScale(20),
+    borderWidth: moderateScale(2),
+    borderColor: 'rgba(255, 202, 40, 1)',
+    elevation: 10,
+    paddingBottom: moderateScale(8),
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: moderateScale(16),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  filterTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterTitle: {
+    fontSize: normalizeFont(13),
+    fontWeight: '600',
+    color: '#333',
+    marginLeft: moderateScale(8),
+  },
+  filterOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(14),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+  },
+  filterOption2: {
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(10),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+  },
+  filterOptionText: {
+    fontSize: normalizeFont(12),
+    fontWeight: '500',
+    color: '#333',
+  },
+  filterOptionText2: {
+    fontSize: normalizeFont(13),
+    color: '#666',
+  },
+  filterOptionText2Active: {
+    fontWeight: '600',
+    color: '#333',
+  },
+  filterDetails: {
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(12),
+    backgroundColor: '#fafafa',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+  },
+  simpleInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: moderateScale(8),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(8),
+    fontSize: normalizeFont(13),
+    backgroundColor: '#fff',
+  },
+  sliderContainer: {
+    paddingVertical: moderateScale(8),
+  },
+  sliderLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: moderateScale(10),
+  },
+  sliderLabel: {
+    fontSize: normalizeFont(12),
+    fontWeight: '600',
+    color: '#333',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: moderateScale(10),
+  },
+  checkbox: {
+    width: moderateScale(18),
+    height: moderateScale(18),
+    borderRadius: moderateScale(2),
+    borderWidth: 1,
+    borderColor: '#ccc',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: moderateScale(10),
+  },
+  checkboxChecked: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  checkboxLabel: {
+    fontSize: normalizeFont(13),
+    color: '#333',
+  },
+  filterFooter: {
+    padding: moderateScale(16),
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    backgroundColor: '#fff',
+  },
+  applyButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: moderateScale(12),
+    borderRadius: moderateScale(8),
+    alignItems: 'center',
+  },
+  applyButtonText: {
+    color: '#fff',
+    fontSize: normalizeFont(12),
+    fontWeight: '600',
   },
 });

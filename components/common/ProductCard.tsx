@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(20),
   },
   modalCard: {
-    width: Math.min(420, SCREEN_WIDTH - 40),
+    width: Math.min(320, SCREEN_WIDTH - 40),
     backgroundColor: "#fff",
     borderRadius: moderateScale(12),
     padding: moderateScale(16),

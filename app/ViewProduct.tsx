@@ -145,7 +145,7 @@ export default function ProductDetailScreen() {
       const res = await axios.get(`${API_BASE }/api/buyer/wishlist`,{
         headers:{Authorization:`Bearer ${token}`}
       })
-      setWishlist(res.data?.data?.items.length)
+      setWishlist(res.data?.data?.items.length ?? "0" )
       }catch(error){
         console.log("Error",error)
       }
@@ -164,7 +164,7 @@ export default function ProductDetailScreen() {
       const res = await axios.get(`${API_BASE }/api/buyer/cart`,{
         headers:{Authorization:`Bearer ${token}`}
       })
-      setCardGet(res.data?.data?.items.length)
+      setCardGet(res.data?.data?.items.length ?? "0")
       }catch(error){
         console.log("Error",error)
       }
@@ -297,13 +297,13 @@ export default function ProductDetailScreen() {
           <TouchableOpacity onPress={headerWishlistPress} style={{ marginRight:moderateScale(12) }}>
             <Ionicons name={"heart-outline"} size={25} />
             <View style={styles.countWishlistA}>
-              <Text style={styles.countA}>{wishlist}</Text>
+              <Text style={styles.countA}>{wishlist || "0"}</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity onPress={headerWishlistPress} style={{ marginRight:moderateScale(12) }}>
            <Image width={160}  source={require("../assets/via-farm-img/icons/bx_cart.png")} />
             <View style={styles.countWishlistA}>
-              <Text style={styles.countA}>{cardGet}</Text>
+              <Text style={styles.countA}>{cardGet || "0"}</Text>
             </View>
           </TouchableOpacity>
         </View>

@@ -112,10 +112,10 @@ const FreshVendor = () => {
   return (
     <View style={styles.container}>
 
-    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between', paddingHorizontal:moderateScale(13),marginBottom:5}}>
-        <Text style={{fontSize:normalizeFont(10),fontWeight:'bold'}}>Vendors</Text>
+    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between', paddingHorizontal:moderateScale(13),marginBottom:5,paddingVertical:moderateScale(4)}}>
+        <Text style={{fontSize:normalizeFont(14)}}>Vendors</Text>
         <TouchableOpacity style={{flexDirection:'row',alignItems:'center', gap:5}} onPress={AllVendor}>
-            <Text style={{fontSize:normalizeFont(10),color:'rgba(1, 151, 218, 1)'}}>See All</Text>
+            <Text style={{color:'rgba(1, 151, 218, 1)',fontSize:normalizeFont(14)}}>See All</Text>
             <Image source={require("../../assets/via-farm-img/icons/see.png")} />
         </TouchableOpacity>
     </View>

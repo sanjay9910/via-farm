@@ -576,8 +576,6 @@ const ReviewOrder = () => {
           <TouchableOpacity style={styles.deleteBtn} onPress={() => removeProduct(product.id)}>
             <Image source={require('../assets/via-farm-img/icons/deleteBtn.png')} />
           </TouchableOpacity>
-          <View style={styles.deliveryRow}>
-            <Text style={styles.deliveryText}>{product.deliveryDate}</Text>
             <View style={styles.quantityContainer}>
               <TouchableOpacity style={styles.quantityButton} onPress={() => decreaseQuantity(product.id)}>
                 <Text style={styles.quantityText}>-</Text>
@@ -587,6 +585,8 @@ const ReviewOrder = () => {
                 <Text style={styles.quantityText}>+</Text>
               </TouchableOpacity>
             </View>
+          <View style={styles.deliveryRow}>
+            <Text style={styles.deliveryText}>{product.deliveryDate}</Text>
           </View>
         </View>
       </View>
@@ -904,7 +904,7 @@ const styles = StyleSheet.create({
   deleteBtn: {
     position: 'absolute',
     right: 0,
-    top: 0,
+    bottom:0,
     padding: moderateScale(5),
   },
   indiaCurrency: {
@@ -976,26 +976,27 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(15),
   },
   productName: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(13),
     fontWeight: '600',
     color: '#000',
   },
   productDescription: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(12),
     color: '#666',
     marginTop: moderateScale(2),
   },
   productPrice: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     color: '#000',
     marginTop: moderateScale(4),
   },
   deliveryRow: {
     flexDirection: 'row',
+       fontSize: normalizeFont(10),
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: moderateScale(10),
+    marginTop: moderateScale(2),
   },
   deliveryText: {
     fontSize: normalizeFont(10),
@@ -1006,6 +1007,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 5,
+    bottom:0,
     position: 'absolute',
     marginTop: moderateScale(60),
     borderWidth: 1,

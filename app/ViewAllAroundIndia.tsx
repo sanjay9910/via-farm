@@ -4,13 +4,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import { goBack } from "expo-router/build/global-state/routing";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -19,10 +23,12 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import LocalVendor from '../components/common/LocalVendor';
 import { moderateScale, normalizeFont, scale } from "./Responsive";
 
 const API_BASE = "https://viafarm-1.onrender.com";
 const API_PATH = "/api/buyer/all-around-india";
+const { width } = Dimensions.get('window');
 
 // ----------------- ProductCard (same design + quantity-edit modal) -----------------
 const ProductCard = ({
@@ -63,7 +69,7 @@ const ProductCard = ({
   const [qtyModalVisible, setQtyModalVisible] = useState(false);
   const [editQuantity, setEditQuantity] = useState(String(cartQuantity || 0));
 
-  React.useEffect(() => {
+  useEffect(() => {
     setEditQuantity(String(cartQuantity || 0));
   }, [cartQuantity]);
 
@@ -140,7 +146,7 @@ const ProductCard = ({
 
           <View style={{ marginVertical: moderateScale(5) }}>
             <Text numberOfLines={1} style={{ color: "#444", fontSize: normalizeFont(11) }}>
-              By {vendorName}
+              By {vendorName || "Unnamed vendor"}
             </Text>
           </View>
 
@@ -267,6 +273,18 @@ const ViewAllAroundIndia = () => {
   const [cartItems, setCartItems] = useState({});
   const [query, setQuery] = useState("");
 
+  // Filters (copied behavior)
+  const [filters, setFilters] = useState({
+    sortBy: 'relevance',
+    priceMin: 0,
+    priceMax: Number.MAX_SAFE_INTEGER,
+    ratingMin: 0,
+  });
+  const [tempFilters, setTempFilters] = useState({ ...filters });
+  const [showFilterPopup, setShowFilterPopup] = useState(false);
+  const slideAnim = useRef(new Animated.Value(width)).current;
+  const [expanded, setExpanded] = useState({ sort: false, price: true, rating: true });
+
   const window = useWindowDimensions();
   // compute responsive card width for 2-column grid
   const horizontalPadding = moderateScale(10) * 2; // FlatList padding left+right
@@ -360,12 +378,49 @@ const ViewAllAroundIndia = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // client-side filter
+  // parsing helper
+  const parsePrice = (p) => {
+    if (p == null) return 0;
+    const asString = String(p);
+    const cleaned = asString.replace(/[^0-9.]/g, '');
+    const v = parseFloat(cleaned);
+    return Number.isNaN(v) ? 0 : v;
+  };
+
+  // client-side filter (now supports filters like category view)
   const filtered = useMemo(() => {
+    let products = Array.isArray(items) ? [...items] : [];
+
     const q = (query || "").trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((p) => (p?.name ?? "").toString().toLowerCase().includes(q));
-  }, [items, query]);
+    if (q) {
+      products = products.filter(p => (p?.name ?? "").toString().toLowerCase().includes(q));
+    }
+
+    products = products.filter(p => {
+      const price = parsePrice(p?.price);
+      return price >= (filters.priceMin || 0) && price <= (filters.priceMax || Number.MAX_SAFE_INTEGER);
+    });
+
+    products = products.filter(p => {
+      const rating = (typeof p?.rating === "number") ? p.rating : (p?.rating ? Number(p.rating) : 0);
+      return rating >= (filters.ratingMin || 0);
+    });
+
+    // sort
+    if (filters.sortBy === 'Price - high to low') {
+      products.sort((a, b) => parsePrice(b?.price) - parsePrice(a?.price));
+    } else if (filters.sortBy === 'Price - low to high') {
+      products.sort((a, b) => parsePrice(a?.price) - parsePrice(b?.price));
+    } else if (filters.sortBy === 'Newest Arrivals') {
+      products.sort((a, b) => {
+        const at = Date.parse(a?.createdAt || a?.postedAt || '') || 0;
+        const bt = Date.parse(b?.createdAt || b?.postedAt || '') || 0;
+        return bt - at;
+      });
+    }
+
+    return products;
+  }, [items, query, filters]);
 
   // wishlist handlers (OPTIMISTIC updates)
   const addToWishlist = async (product) => {
@@ -581,9 +636,41 @@ const ViewAllAroundIndia = () => {
     fetchCart();
   };
 
+  // Filter popup control
+  const openFilterPopup = () => {
+    setTempFilters({ ...filters });
+    setShowFilterPopup(true);
+    slideAnim.setValue(width);
+    Animated.timing(slideAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start();
+  };
+  const closeFilterPopup = () => {
+    Animated.timing(slideAnim, { toValue: width, duration: 200, useNativeDriver: true }).start(() => setShowFilterPopup(false));
+  };
+
+  const applyFilters = () => {
+    // sanitize numeric fields
+    const pf = {
+      ...tempFilters,
+      priceMin: Number.isFinite(Number(tempFilters.priceMin)) ? Number(tempFilters.priceMin) : 0,
+      priceMax: Number.isFinite(Number(tempFilters.priceMax)) ? Number(tempFilters.priceMax) : Number.MAX_SAFE_INTEGER,
+      ratingMin: Number.isFinite(Number(tempFilters.ratingMin)) ? Number(tempFilters.ratingMin) : 0,
+    };
+    setFilters(pf);
+    closeFilterPopup();
+  };
+
+  const clearTempFilters = () => {
+    setTempFilters({
+      sortBy: 'relevance',
+      priceMin: 0,
+      priceMax: Number.MAX_SAFE_INTEGER,
+      ratingMin: 0,
+    });
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-      {/* Header with Search */}
+      {/* Header with Search + Filter icon */}
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack}>
           <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
@@ -604,16 +691,27 @@ const ViewAllAroundIndia = () => {
             <TouchableOpacity onPress={() => setQuery("")} style={styles.clearButton}>
               <Ionicons name="close-circle" size={18} color="#888" />
             </TouchableOpacity>
-          )}
-        </View>
 
-        <View />
+          )}
+          <TouchableOpacity onPress={openFilterPopup} style={{ paddingHorizontal: moderateScale(8) }}>
+            <Image style={{ width: 30, height: 30 }} source={require("../assets/via-farm-img/icons/fltr.png")} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Local Vendor card (same as other screen) */}
+      <View>
+        <LocalVendor />
+      </View>
+
+      <View>
+        <Text style={{ paddingLeft: moderateScale(10), paddingBottom: moderateScale(5) }}>Products</Text>
       </View>
 
       {/* Loading */}
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FFA500" />
+          <ActivityIndicator  />
           <Text style={styles.loadingText}>Fetching products all around India...</Text>
         </View>
       )}
@@ -664,13 +762,113 @@ const ViewAllAroundIndia = () => {
           )}
         </>
       )}
+
+      {/* Filter Modal (slides from right) */}
+      <Modal
+        visible={showFilterPopup}
+        transparent
+        animationType="none"
+        onRequestClose={closeFilterPopup}
+      >
+        <View style={filterStyles.modalOverlay}>
+          <TouchableOpacity style={filterStyles.overlayTouchable} activeOpacity={1} onPress={closeFilterPopup} />
+          <Animated.View style={[filterStyles.filterPopup, { transform: [{ translateX: slideAnim }] }]}>
+            <View style={filterStyles.filterHeader}>
+              <View style={filterStyles.filterTitleContainer}>
+                <Ionicons name="options" size={normalizeFont(18)} color="#333" />
+                <Text style={filterStyles.filterTitle}>Filters</Text>
+              </View>
+              <TouchableOpacity onPress={closeFilterPopup}>
+                <Ionicons name="close" size={normalizeFont(20)} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+              <ScrollView contentContainerStyle={{ paddingBottom: moderateScale(20) }}>
+                {/* Sort */}
+                <TouchableOpacity style={filterStyles.filterOption} onPress={() => setExpanded(s => ({ ...s, sort: !s.sort }))}>
+                  <Text style={filterStyles.filterOptionText}>Sort by</Text>
+                  <Ionicons name={expanded.sort ? "chevron-up" : "chevron-down"} size={normalizeFont(14)} color="#666" />
+                </TouchableOpacity>
+                {expanded.sort && (
+                  <View style={filterStyles.filterDetails}>
+                    {['relevance', 'Price - low to high', 'Price - high to low', 'Newest Arrivals'].map(opt => (
+                      <TouchableOpacity key={opt} style={filterStyles.filterOption2} onPress={() => setTempFilters(tf => ({ ...tf, sortBy: opt }))}>
+                        <Text style={[
+                          filterStyles.filterOptionText2,
+                          tempFilters.sortBy === opt && filterStyles.filterOptionText2Active
+                        ]}>{opt}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                {/* Price */}
+                <TouchableOpacity style={filterStyles.filterOption} onPress={() => setExpanded(s => ({ ...s, price: !s.price }))}>
+                  <Text style={filterStyles.filterOptionText}>Price Range</Text>
+                  <Ionicons name={expanded.price ? "chevron-up" : "chevron-down"} size={normalizeFont(14)} color="#666" />
+                </TouchableOpacity>
+                {expanded.price && (
+                  <View style={filterStyles.filterDetails}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: moderateScale(8) }}>
+                      <TextInput
+                        style={[filterStyles.simpleInput, { flex: 1 }]}
+                        placeholder="Min"
+                        keyboardType="numeric"
+                        value={tempFilters.priceMin !== Number.MAX_SAFE_INTEGER ? String(tempFilters.priceMin) : '0'}
+                        onChangeText={(t) => setTempFilters(tf => ({ ...tf, priceMin: t.replace(/[^0-9]/g, '') ? Number(t.replace(/[^0-9]/g, '')) : 0 }))}
+                      />
+                      <TextInput
+                        style={[filterStyles.simpleInput, { flex: 1 }]}
+                        placeholder="Max"
+                        keyboardType="numeric"
+                        value={tempFilters.priceMax === Number.MAX_SAFE_INTEGER ? '' : String(tempFilters.priceMax)}
+                        onChangeText={(t) => setTempFilters(tf => ({ ...tf, priceMax: t.replace(/[^0-9]/g, '') ? Number(t.replace(/[^0-9]/g, '')) : Number.MAX_SAFE_INTEGER }))}
+                      />
+                    </View>
+                    <Text style={{ marginTop: moderateScale(8), color: '#666' }}>Leave Max empty for any</Text>
+                  </View>
+                )}
+
+                {/* Rating */}
+                <TouchableOpacity style={filterStyles.filterOption} onPress={() => setExpanded(s => ({ ...s, rating: !s.rating }))}>
+                  <Text style={filterStyles.filterOptionText}>Rating</Text>
+                  <Ionicons name={expanded.rating ? "chevron-up" : "chevron-down"} size={normalizeFont(14)} color="#666" />
+                </TouchableOpacity>
+                {expanded.rating && (
+                  <View style={filterStyles.filterDetails}>
+                    {[0, 2, 3, 4].map(r => (
+                      <TouchableOpacity key={r} style={filterStyles.checkboxRow} onPress={() => setTempFilters(tf => ({ ...tf, ratingMin: tf.ratingMin === r ? 0 : r }))}>
+                        <View style={[filterStyles.checkbox, tempFilters.ratingMin === r && filterStyles.checkboxChecked]}>
+                          {tempFilters.ratingMin === r && <Ionicons name="checkmark" size={12} color="#fff" />}
+                        </View>
+                        <Text style={filterStyles.checkboxLabel}>{r === 0 ? 'Any' : `${r} and above`}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </ScrollView>
+
+              <View style={filterStyles.filterFooter}>
+                <TouchableOpacity style={[filterStyles.applyButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ccc', marginBottom: moderateScale(8) }]} onPress={() => { clearTempFilters(); }}>
+                  <Text style={[filterStyles.applyButtonText, { color: '#333' }]}>Clear</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={filterStyles.applyButton} onPress={applyFilters}>
+                  <Text style={filterStyles.applyButtonText}>Apply Filters</Text>
+                </TouchableOpacity>
+              </View>
+            </KeyboardAvoidingView>
+          </Animated.View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
 
 export default ViewAllAroundIndia;
 
-// ----------------- styles -----------------
+/* ----------------- styles ----------------- (kept consistent with Category screen) */
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: moderateScale(12),
@@ -684,7 +882,7 @@ const styles = StyleSheet.create({
     marginHorizontal: moderateScale(8),
     flexDirection: 'row',
     backgroundColor: 'rgba(252, 252, 252, 1)',
-    paddingVertical: moderateScale(12),
+    paddingVertical: moderateScale(5),
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.1)',
     paddingHorizontal: moderateScale(7),
@@ -722,14 +920,15 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: moderateScale(10),
+    fontSize:moderateScale(13),
     color: "#777",
   },
   errorContainer: {
     alignItems: "center",
-    padding: moderateScale(20),
+    // padding: moderateScale(20),
     backgroundColor: "#ffebee",
     borderRadius: 8,
-    marginHorizontal: moderateScale(20),
+    // marginHorizontal: moderateScale(20),
     marginTop: moderateScale(20),
   },
   errorText: {
@@ -752,12 +951,11 @@ const styles = StyleSheet.create({
 
 const cardStyles = StyleSheet.create({
   container: {
-    width: Dimensions.get("window").width / 2 - 25,
-    marginLeft: moderateScale(6),
     marginTop: moderateScale(12),
+    marginBottom: moderateScale(8),
   },
   card: {
-       backgroundColor: '#fff',
+    backgroundColor: '#fff',
     borderRadius: moderateScale(12),
     overflow: 'hidden',
     shadowColor: 'grey',
@@ -779,8 +977,8 @@ const cardStyles = StyleSheet.create({
   productImage: {
     width: '100%',
     height: '100%',
-    borderTopLeftRadius: 5,
-    borderTopRightRadius: 5,
+    borderTopLeftRadius: moderateScale(10),
+    borderTopRightRadius: moderateScale(10),
   },
 
   favoriteButton: {
@@ -857,7 +1055,7 @@ const cardStyles = StyleSheet.create({
   },
   addToCartButton: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
-    borderRadius: 8,
+    borderRadius: moderateScale(8),
     paddingVertical: moderateScale(10),
     alignItems: 'center',
     justifyContent: 'center',
@@ -880,9 +1078,9 @@ const cardStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
+    borderWidth: moderateScale(1),
     borderColor: 'rgba(76, 175, 80, 1)',
-    borderRadius: 8,
+    borderRadius: moderateScale(8),
     paddingHorizontal: moderateScale(4),
     height: scale(36),
     minWidth: scale(120),
@@ -1002,5 +1200,146 @@ const modalStyles = StyleSheet.create({
     color: "#fff",
     fontWeight: "700",
     fontSize: normalizeFont(13),
+  },
+});
+
+/* Filter styles (same as Category) */
+const filterStyles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  overlayTouchable: {
+    flex: 1,
+  },
+  filterPopup: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    height: "92%",
+    width: moderateScale(250),
+    backgroundColor: '#fff',
+    borderTopLeftRadius: moderateScale(20),
+    borderBottomLeftRadius: moderateScale(20),
+    borderWidth: moderateScale(2),
+    borderColor: 'rgba(255, 202, 40, 1)',
+    elevation: 10,
+    paddingBottom: moderateScale(8),
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: moderateScale(16),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  filterTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterTitle: {
+    fontSize: normalizeFont(13),
+    fontWeight: '600',
+    color: '#333',
+    marginLeft: moderateScale(8),
+  },
+  filterOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(14),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+  },
+  filterOption2: {
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(10),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+  },
+  filterOptionText: {
+    fontSize: normalizeFont(12),
+    fontWeight: '500',
+    color: '#333',
+  },
+  filterOptionText2: {
+    fontSize: normalizeFont(13),
+    color: '#666',
+  },
+  filterOptionText2Active: {
+    fontWeight: '600',
+    color: '#333',
+  },
+  filterDetails: {
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(12),
+    backgroundColor: '#fafafa',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+  },
+  simpleInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: moderateScale(8),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(8),
+    fontSize: normalizeFont(13),
+    backgroundColor: '#fff',
+  },
+  sliderContainer: {
+    paddingVertical: moderateScale(8),
+  },
+  sliderLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: moderateScale(10),
+  },
+  sliderLabel: {
+    fontSize: normalizeFont(12),
+    fontWeight: '600',
+    color: '#333',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: moderateScale(10),
+  },
+  checkbox: {
+    width: moderateScale(18),
+    height: moderateScale(18),
+    borderRadius: moderateScale(2),
+    borderWidth: 1,
+    borderColor: '#ccc',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: moderateScale(10),
+  },
+  checkboxChecked: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  checkboxLabel: {
+    fontSize: normalizeFont(13),
+    color: '#333',
+  },
+  filterFooter: {
+    padding: moderateScale(16),
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    backgroundColor: '#fff',
+  },
+  applyButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: moderateScale(12),
+    borderRadius: moderateScale(8),
+    alignItems: 'center',
+  },
+  applyButtonText: {
+    color: '#fff',
+    fontSize: normalizeFont(12),
+    fontWeight: '600',
   },
 });

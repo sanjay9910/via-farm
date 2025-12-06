@@ -1,28 +1,36 @@
-// ProductVarieties.jsx (FIXED - Same as ViewAllFruits Design)
+// ProductVarieties.jsx
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import axios from 'axios';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Dimensions,
   FlatList,
   Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LocalVendor from '../components/common/LocalVendor';
 import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const API_BASE = 'https://viafarm-1.onrender.com';
-const CARD_WIDTH = Dimensions.get("window").width / 2 - 25;
+const API_PATH = '/api/buyer/products/variety';
+const { width } = Dimensions.get('window');
 
-// Same ProductCard as ViewAllFruits
+// ----------------- ProductCard (same design + quantity-edit modal) -----------------
 const ProductCard = ({
   item,
   isFavorite,
@@ -30,13 +38,15 @@ const ProductCard = ({
   cartQuantity,
   onAddToCart,
   onUpdateQuantity,
-  onPress
+  onPress,
+  cardWidth,
 }) => {
   const inCart = (cartQuantity || 0) > 0;
 
-  const imageUri = item?.image
-    || (Array.isArray(item?.images) && item.images.length > 0 && item.images[0])
-    || "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image";
+  const imageUri =
+    item?.image ||
+    (Array.isArray(item?.images) && item.images.length > 0 && item.images[0]) ||
+    "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image";
 
   const distance =
     item?.distanceFromVendor ??
@@ -48,8 +58,61 @@ const ProductCard = ({
 
   const rating = (typeof item?.rating === "number") ? item.rating : (item?.rating ? Number(item.rating) : 0);
 
+  // robust vendor name fallback
+  const vendorName =
+    (item && typeof item === "object" && (
+      item.vendor?.name ||
+      item.vendorName ||
+      item.vendor?.vendorName ||
+      item.vendor?.vendor?.name
+    )) || "Unnamed vendor";
+
+  // Quantity edit modal state
+  const [qtyModalVisible, setQtyModalVisible] = useState(false);
+  const [editQuantity, setEditQuantity] = useState(String(cartQuantity || 0));
+
+  useEffect(() => {
+    setEditQuantity(String(cartQuantity || 0));
+  }, [cartQuantity]);
+
+  const openQtyModal = (e) => {
+    e?.stopPropagation?.();
+    setEditQuantity(String(cartQuantity || 0));
+    setQtyModalVisible(true);
+  };
+  const closeQtyModal = () => setQtyModalVisible(false);
+
+  const applyQuantityChange = () => {
+    const parsed = parseInt(String(editQuantity).replace(/\D/g, ''), 10);
+    const newQty = Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
+    const currentQty = cartQuantity || 0;
+    const delta = newQty - currentQty;
+
+    if (delta === 0) {
+      closeQtyModal();
+      return;
+    }
+
+    try {
+      onUpdateQuantity && onUpdateQuantity(item, delta);
+    } catch (err) {
+      console.error("applyQuantityChange error:", err);
+    } finally {
+      closeQtyModal();
+    }
+  };
+
+  const incrementEdit = () => {
+    const v = parseInt(editQuantity || "0", 10) || 0;
+    setEditQuantity(String(v + 1));
+  };
+  const decrementEdit = () => {
+    const v = parseInt(editQuantity || "0", 10) || 0;
+    setEditQuantity(String(Math.max(0, v - 1)));
+  };
+
   return (
-    <View style={[cardStyles.container]}>
+    <View style={[cardStyles.container, cardWidth ? { width: cardWidth } : {}]}>
       <TouchableOpacity
         style={cardStyles.card}
         activeOpacity={0.85}
@@ -72,13 +135,13 @@ const ProductCard = ({
           >
             <Ionicons
               name={isFavorite ? 'heart' : 'heart-outline'}
-              size={23}
+              size={scale(22)}
               color={isFavorite ? '#ff4444' : '#fff'}
             />
           </TouchableOpacity>
 
           <View style={cardStyles.ratingContainer}>
-            <Ionicons name="star" size={12} color="#FFD700" />
+            <Ionicons name="star" size={scale(12)} color="#FFD700" />
             <Text style={cardStyles.ratingText}>
               {rating ? Number(rating).toFixed(1) : "0.0"}
             </Text>
@@ -91,14 +154,14 @@ const ProductCard = ({
           </Text>
 
           <Text style={cardStyles.productVeriety} numberOfLines={1}>
-            By: {item?.vendor?.name ?? "Unnamed product"}
+            By: {vendorName}
           </Text>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap:scale(5) }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(5), marginTop: moderateScale(4) }}>
             <Image
               source={require("../assets/via-farm-img/icons/cardMap.png")}
             />
-            <Text style={{ fontSize: normalizeFont(11) }}>
+            <Text style={{ fontSize: normalizeFont(11), color: '#444' }}>
               {distance ?? "0.0 km"}
             </Text>
           </View>
@@ -136,7 +199,7 @@ const ProductCard = ({
                     onUpdateQuantity && onUpdateQuantity(item, -1);
                   }}
                 >
-                  <Ionicons name="remove" size={16} color="rgba(76, 175, 80, 1)" />
+                  <Ionicons name="remove" size={scale(16)} color="rgba(76, 175, 80, 1)" />
                 </TouchableOpacity>
                 <View style={cardStyles.quantityValueContainer}>
                   <Text style={cardStyles.quantityText}>{cartQuantity}</Text>
@@ -148,18 +211,61 @@ const ProductCard = ({
                     onUpdateQuantity && onUpdateQuantity(item, 1);
                   }}
                 >
-                  <Ionicons name="add" size={16} color="rgba(76, 175, 80, 1)" />
+                  <Ionicons name="add" size={scale(16)} color="rgba(76, 175, 80, 1)" />
                 </TouchableOpacity>
               </View>
             )}
           </View>
         </View>
       </TouchableOpacity>
+
+      {/* Qty Modal (reused) */}
+      <Modal
+        visible={qtyModalVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={closeQtyModal}
+      >
+        <TouchableOpacity style={modalStyles.backdrop} activeOpacity={1} onPress={closeQtyModal}>
+          <View style={[modalStyles.modalWrap, { maxWidth: Math.min(420, Dimensions.get('window').width - moderateScale(40)) }]}>
+            <Text style={modalStyles.modalTitle}>Set Quantity</Text>
+
+            <View style={modalStyles.editRow}>
+              <TouchableOpacity style={modalStyles.pickerBtn} onPress={decrementEdit}>
+                <Ionicons name="remove" size={scale(18)} color="#111" />
+              </TouchableOpacity>
+
+              <TextInput
+                style={modalStyles.qtyInput}
+                keyboardType="number-pad"
+                value={String(editQuantity)}
+                onChangeText={(t) => setEditQuantity(t.replace(/[^0-9]/g, ""))}
+                maxLength={5}
+                placeholder="0"
+                placeholderTextColor="#999"
+              />
+
+              <TouchableOpacity style={modalStyles.pickerBtn} onPress={incrementEdit}>
+                <Ionicons name="add" size={scale(18)} color="#111" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={modalStyles.modalActions}>
+              <TouchableOpacity style={modalStyles.cancelBtn} onPress={closeQtyModal}>
+                <Text style={modalStyles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={modalStyles.okBtn} onPress={applyQuantityChange}>
+                <Text style={modalStyles.okText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
 
-// Main ProductVarieties Component
+// ----------------- ProductVarieties (parent) -----------------
 const ProductVarieties = () => {
   const route = useRoute();
   const navigation = useNavigation();
@@ -172,28 +278,43 @@ const ProductVarieties = () => {
   const [cartItems, setCartItems] = useState({});
   const [query, setQuery] = useState("");
 
-  // Fetch Varieties by variety name
+  // Filters
+  const [filters, setFilters] = useState({
+    sortBy: 'relevance',
+    priceMin: 0,
+    priceMax: Number.MAX_SAFE_INTEGER,
+    ratingMin: 0,
+  });
+  const [tempFilters, setTempFilters] = useState({ ...filters });
+  const [showFilterPopup, setShowFilterPopup] = useState(false);
+  const slideAnim = useRef(new Animated.Value(width)).current;
+  const [expanded, setExpanded] = useState({ sort: false, price: true, rating: true });
+
+  const window = useWindowDimensions();
+  const horizontalPadding = moderateScale(13) * 2;
+  const columnGap = moderateScale(10);
+  const computedCardWidth = Math.max(120, Math.floor((window.width - horizontalPadding - columnGap) / 2));
+
   const fetchVarieties = async () => {
     try {
       setLoading(true);
       setError(null);
 
       const varietyName = variety || product?.variety || product?.name;
-
       if (!varietyName) {
         throw new Error('Variety name not found');
       }
 
       const token = await AsyncStorage.getItem('userToken');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const headers = token ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
 
       const response = await axios.get(
-        `${API_BASE}/api/buyer/products/variety?variety=${encodeURIComponent(varietyName)}`,
+        `${API_BASE}${API_PATH}?variety=${encodeURIComponent(varietyName)}`,
         { headers, timeout: 10000 }
       );
 
+      // tolerate multiple shapes
       const arr = response?.data?.data ?? response?.data?.varieties ?? response?.data ?? [];
-
       setVarieties(Array.isArray(arr) ? arr : []);
     } catch (err) {
       console.error('Fetch varieties error:', err);
@@ -203,7 +324,6 @@ const ProductVarieties = () => {
     }
   };
 
-  // Fetch Wishlist
   const fetchWishlist = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -225,7 +345,6 @@ const ProductVarieties = () => {
     }
   };
 
-  // Fetch Cart
   const fetchCart = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -256,21 +375,54 @@ const ProductVarieties = () => {
     fetchVarieties();
     fetchWishlist();
     fetchCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product, productId, variety]);
 
-  // Client-side filter by name
-  const filteredVarieties = useMemo(() => {
-    const q = (query || "").trim().toLowerCase();
-    if (!q) return varieties;
-    return varieties.filter(v =>
-      (v?.name ?? "")
-        .toString()
-        .toLowerCase()
-        .includes(q)
-    );
-  }, [varieties, query]);
+  // parsing helper
+  const parsePrice = (p) => {
+    if (p == null) return 0;
+    const asString = String(p);
+    const cleaned = asString.replace(/[^0-9.]/g, '');
+    const v = parseFloat(cleaned);
+    return Number.isNaN(v) ? 0 : v;
+  };
 
-  // Add to Wishlist
+  // Combined filter: query + applied filters
+  const filteredVarieties = useMemo(() => {
+    let products = Array.isArray(varieties) ? [...varieties] : [];
+
+    const q = (query || "").trim().toLowerCase();
+    if (q) {
+      products = products.filter(p => (p?.name ?? "").toString().toLowerCase().includes(q));
+    }
+
+    products = products.filter(p => {
+      const price = parsePrice(p?.price);
+      return price >= (filters.priceMin || 0) && price <= (filters.priceMax || Number.MAX_SAFE_INTEGER);
+    });
+
+    products = products.filter(p => {
+      const rating = (typeof p?.rating === "number") ? p.rating : (p?.rating ? Number(p.rating) : 0);
+      return rating >= (filters.ratingMin || 0);
+    });
+
+    // sort
+    if (filters.sortBy === 'Price - high to low') {
+      products.sort((a, b) => parsePrice(b?.price) - parsePrice(a?.price));
+    } else if (filters.sortBy === 'Price - low to high') {
+      products.sort((a, b) => parsePrice(a?.price) - parsePrice(b?.price));
+    } else if (filters.sortBy === 'Newest Arrivals') {
+      products.sort((a, b) => {
+        const at = Date.parse(a?.createdAt || a?.postedAt || '') || 0;
+        const bt = Date.parse(b?.createdAt || b?.postedAt || '') || 0;
+        return bt - at;
+      });
+    }
+
+    return products;
+  }, [varieties, query, filters]);
+
+  // wishlist/cart handlers (optimistic & safe)
   const addToWishlist = async (prod) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -304,21 +456,19 @@ const ProductVarieties = () => {
 
       if (response.data?.success) {
         setFavorites(prev => new Set(prev).add(prodId));
-        Alert.alert('Success', 'Added to wishlist!');
+        // subtle feedback without blocking UI
       }
     } catch (error) {
       console.error('Error adding to wishlist:', error);
       if (error.response?.status === 400) {
         const prodId = prod._id || prod.id;
         setFavorites(prev => new Set(prev).add(prodId));
-        Alert.alert('Info', 'Already in wishlist');
       } else {
         Alert.alert('Error', 'Failed to add to wishlist');
       }
     }
   };
 
-  // Remove from Wishlist
   const removeFromWishlist = async (prod) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -339,7 +489,6 @@ const ProductVarieties = () => {
           next.delete(prodId);
           return next;
         });
-        Alert.alert('Removed', 'Removed from wishlist');
       }
     } catch (error) {
       console.error('Error removing from wishlist:', error);
@@ -356,7 +505,6 @@ const ProductVarieties = () => {
     }
   };
 
-  // Add to Cart
   const handleAddToCart = async (prod) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -366,6 +514,12 @@ const ProductVarieties = () => {
       }
 
       const prodId = prod._id || prod.id;
+
+      // optimistic update
+      setCartItems(prev => ({
+        ...prev,
+        [prodId]: { quantity: 1, cartItemId: prev[prodId]?.cartItemId || prodId }
+      }));
 
       const cartData = {
         productId: prodId,
@@ -397,25 +551,31 @@ const ProductVarieties = () => {
             cartItemId: response.data.data?._id || prodId
           }
         }));
-        Alert.alert('Success', 'Added to cart!');
+      } else {
+        setCartItems(prev => {
+          const next = { ...prev };
+          delete next[prodId];
+          return next;
+        });
       }
     } catch (error) {
       console.error('Error adding to cart:', error);
       if (error.response?.status === 400) {
         fetchCart();
-        Alert.alert('Info', 'Product is already in cart');
       } else {
         Alert.alert('Error', 'Failed to add to cart');
+        await fetchCart();
       }
     }
   };
 
-  // Update Quantity
   const handleUpdateQuantity = async (prod, change) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
-      if (!token) return;
-
+      if (!token) {
+        console.log("handleUpdateQuantity: no token");
+        return;
+      }
       const prodId = prod._id || prod.id;
       const currentItem = cartItems[prodId];
       if (!currentItem) return;
@@ -423,47 +583,35 @@ const ProductVarieties = () => {
       const newQuantity = currentItem.quantity + change;
 
       if (newQuantity < 1) {
-        const response = await axios.delete(
-          `${API_BASE}/api/buyer/cart/${currentItem.cartItemId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const prev = { ...cartItems };
+        setCartItems(prevState => {
+          const next = { ...prevState };
+          delete next[prodId];
+          return next;
+        });
 
-        if (response.data?.success) {
-          setCartItems(prev => {
-            const next = { ...prev };
-            delete next[prodId];
-            return next;
-          });
-          Alert.alert('Removed', 'Item removed from cart');
-        }
-      } else {
-        setCartItems(prev => ({
-          ...prev,
-          [prodId]: { ...currentItem, quantity: newQuantity }
-        }));
-
-        const response = await axios.put(
-          `${API_BASE}/api/buyer/cart/${currentItem.cartItemId}/quantity`,
-          { quantity: newQuantity },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await axios.delete(`${API_BASE}/api/buyer/cart/${currentItem.cartItemId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         if (!response.data?.success) {
-          setCartItems(prev => ({ ...prev, [prodId]: currentItem }));
-          Alert.alert('Error', 'Failed to update quantity');
+          setCartItems(prev);
+        }
+      } else {
+        const prev = { ...cartItems };
+        setCartItems(prevState => ({ ...prevState, [prodId]: { ...currentItem, quantity: newQuantity } }));
+
+        const response = await axios.put(`${API_BASE}/api/buyer/cart/${currentItem.cartItemId}/quantity`, { quantity: newQuantity }, {
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.data?.success) {
+          setCartItems(prev);
         }
       }
     } catch (error) {
       console.error('Error updating quantity:', error);
-      fetchCart();
-      Alert.alert('Error', 'Failed to update quantity');
+      await fetchCart();
     }
   };
 
@@ -488,9 +636,40 @@ const ProductVarieties = () => {
     fetchCart();
   };
 
+  // Filter popup control
+  const openFilterPopup = () => {
+    setTempFilters({ ...filters });
+    setShowFilterPopup(true);
+    slideAnim.setValue(width);
+    Animated.timing(slideAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start();
+  };
+  const closeFilterPopup = () => {
+    Animated.timing(slideAnim, { toValue: width, duration: 200, useNativeDriver: true }).start(() => setShowFilterPopup(false));
+  };
+
+  const applyFilters = () => {
+    const pf = {
+      ...tempFilters,
+      priceMin: Number.isFinite(Number(tempFilters.priceMin)) ? Number(tempFilters.priceMin) : 0,
+      priceMax: Number.isFinite(Number(tempFilters.priceMax)) ? Number(tempFilters.priceMax) : Number.MAX_SAFE_INTEGER,
+      ratingMin: Number.isFinite(Number(tempFilters.ratingMin)) ? Number(tempFilters.ratingMin) : 0,
+    };
+    setFilters(pf);
+    closeFilterPopup();
+  };
+
+  const clearTempFilters = () => {
+    setTempFilters({
+      sortBy: 'relevance',
+      priceMin: 0,
+      priceMax: Number.MAX_SAFE_INTEGER,
+      ratingMin: 0,
+    });
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-      {/* Header with Search */}
+      {/* Header with Search + Filter icon */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Image
@@ -499,7 +678,7 @@ const ProductVarieties = () => {
         </TouchableOpacity>
 
         <View style={styles.searchWrapper}>
-          <Ionicons name="search" size={18} color="#888" style={{ marginRight: 8 }} />
+          <Ionicons name="search" size={18} color="#888" style={{ marginRight:moderateScale(8) }} />
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -510,11 +689,24 @@ const ProductVarieties = () => {
             autoCorrect={false}
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery("")} style={styles.clearButton}>
+            <TouchableOpacity onPress={() => setQuery("")}>
               <Ionicons name="close-circle" size={18} color="#888" />
             </TouchableOpacity>
           )}
+          <TouchableOpacity onPress={openFilterPopup} style={{ paddingHorizontal: moderateScale(8) }}>
+            <Image style={{ width:scale(30), height: scale(30) }} source={require("../assets/via-farm-img/icons/fltr.png")} />
+          </TouchableOpacity>
         </View>
+
+      </View>
+
+      {/* Local Vendor */}
+      <View>
+        <LocalVendor />
+      </View>
+
+      <View>
+        <Text style={{paddingLeft:moderateScale(10), paddingBottom:moderateScale(5),fontSize:normalizeFont(14)}}>Products</Text>
       </View>
 
       {/* Loading */}
@@ -548,7 +740,7 @@ const ProductVarieties = () => {
               keyExtractor={(item) => item._id || item.id || String(item?.name)}
               numColumns={2}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 13, paddingBottom: 20 }}
+              contentContainerStyle={{ paddingHorizontal: moderateScale(13), paddingBottom: moderateScale(20) }}
               renderItem={({ item }) => {
                 const prodId = item._id || item.id;
                 const isFavorite = favorites.has(prodId);
@@ -563,20 +755,122 @@ const ProductVarieties = () => {
                     onAddToCart={handleAddToCart}
                     onUpdateQuantity={handleUpdateQuantity}
                     onPress={openProductDetails}
+                    cardWidth={computedCardWidth}
                   />
                 );
               }}
-              columnWrapperStyle={{ justifyContent: "space-between" }}
+              columnWrapperStyle={{ justifyContent: "space-between", gap: moderateScale(10) }}
             />
           )}
         </>
       )}
+
+      {/* Filter Modal (slides from right) */}
+      <Modal
+        visible={showFilterPopup}
+        transparent
+        animationType="none"
+        onRequestClose={closeFilterPopup}
+      >
+        <View style={filterStyles.modalOverlay}>
+          <TouchableOpacity style={filterStyles.overlayTouchable} activeOpacity={1} onPress={closeFilterPopup} />
+          <Animated.View style={[filterStyles.filterPopup, { transform: [{ translateX: slideAnim }] }]}>
+            <View style={filterStyles.filterHeader}>
+              <View style={filterStyles.filterTitleContainer}>
+                <Ionicons name="options" size={normalizeFont(18)} color="#333" />
+                <Text style={filterStyles.filterTitle}>Filters</Text>
+              </View>
+              <TouchableOpacity onPress={closeFilterPopup}>
+                <Ionicons name="close" size={normalizeFont(20)} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+              <ScrollView contentContainerStyle={{ paddingBottom: moderateScale(20) }}>
+                {/* Sort */}
+                <TouchableOpacity style={filterStyles.filterOption} onPress={() => setExpanded(s => ({ ...s, sort: !s.sort }))}>
+                  <Text style={filterStyles.filterOptionText}>Sort by</Text>
+                  <Ionicons name={expanded.sort ? "chevron-up" : "chevron-down"} size={normalizeFont(14)} color="#666" />
+                </TouchableOpacity>
+                {expanded.sort && (
+                  <View style={filterStyles.filterDetails}>
+                    {['relevance', 'Price - low to high', 'Price - high to low', 'Newest Arrivals'].map(opt => (
+                      <TouchableOpacity key={opt} style={filterStyles.filterOption2} onPress={() => setTempFilters(tf => ({ ...tf, sortBy: opt }))}>
+                        <Text style={[
+                          filterStyles.filterOptionText2,
+                          tempFilters.sortBy === opt && filterStyles.filterOptionText2Active
+                        ]}>{opt}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                {/* Price */}
+                <TouchableOpacity style={filterStyles.filterOption} onPress={() => setExpanded(s => ({ ...s, price: !s.price }))}>
+                  <Text style={filterStyles.filterOptionText}>Price Range</Text>
+                  <Ionicons name={expanded.price ? "chevron-up" : "chevron-down"} size={normalizeFont(14)} color="#666" />
+                </TouchableOpacity>
+                {expanded.price && (
+                  <View style={filterStyles.filterDetails}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: moderateScale(8) }}>
+                      <TextInput
+                        style={[filterStyles.simpleInput, { flex: 1 }]}
+                        placeholder="Min"
+                        keyboardType="numeric"
+                        value={tempFilters.priceMin !== Number.MAX_SAFE_INTEGER ? String(tempFilters.priceMin) : '0'}
+                        onChangeText={(t) => setTempFilters(tf => ({ ...tf, priceMin: t.replace(/[^0-9]/g, '') ? Number(t.replace(/[^0-9]/g, '')) : 0 }))}
+                      />
+                      <TextInput
+                        style={[filterStyles.simpleInput, { flex: 1 }]}
+                        placeholder="Max"
+                        keyboardType="numeric"
+                        value={tempFilters.priceMax === Number.MAX_SAFE_INTEGER ? '' : String(tempFilters.priceMax)}
+                        onChangeText={(t) => setTempFilters(tf => ({ ...tf, priceMax: t.replace(/[^0-9]/g, '') ? Number(t.replace(/[^0-9]/g, '')) : Number.MAX_SAFE_INTEGER }))}
+                      />
+                    </View>
+                    <Text style={{ marginTop: moderateScale(8), color: '#666' }}>Leave Max empty for any</Text>
+                  </View>
+                )}
+
+                {/* Rating */}
+                <TouchableOpacity style={filterStyles.filterOption} onPress={() => setExpanded(s => ({ ...s, rating: !s.rating }))}>
+                  <Text style={filterStyles.filterOptionText}>Rating</Text>
+                  <Ionicons name={expanded.rating ? "chevron-up" : "chevron-down"} size={normalizeFont(14)} color="#666" />
+                </TouchableOpacity>
+                {expanded.rating && (
+                  <View style={filterStyles.filterDetails}>
+                    {[0, 2, 3, 4].map(r => (
+                      <TouchableOpacity key={r} style={filterStyles.checkboxRow} onPress={() => setTempFilters(tf => ({ ...tf, ratingMin: tf.ratingMin === r ? 0 : r }))}>
+                        <View style={[filterStyles.checkbox, tempFilters.ratingMin === r && filterStyles.checkboxChecked]}>
+                          {tempFilters.ratingMin === r && <Ionicons name="checkmark" size={12} color="#fff" />}
+                        </View>
+                        <Text style={filterStyles.checkboxLabel}>{r === 0 ? 'Any' : `${r} and above`}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </ScrollView>
+
+              <View style={filterStyles.filterFooter}>
+                <TouchableOpacity style={[filterStyles.applyButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ccc', marginBottom: moderateScale(8) }]} onPress={() => { clearTempFilters(); }}>
+                  <Text style={[filterStyles.applyButtonText, { color: '#333' }]}>Clear</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={filterStyles.applyButton} onPress={applyFilters}>
+                  <Text style={filterStyles.applyButtonText}>Apply Filters</Text>
+                </TouchableOpacity>
+              </View>
+            </KeyboardAvoidingView>
+          </Animated.View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
 
 export default ProductVarieties;
 
+/* ----------------- styles ----------------- (kept consistent) */
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: moderateScale(12),
@@ -590,10 +884,10 @@ const styles = StyleSheet.create({
     marginHorizontal: moderateScale(8),
     flexDirection: 'row',
     backgroundColor: 'rgba(252, 252, 252, 1)',
-    paddingVertical: moderateScale(10),
+    paddingVertical: moderateScale(5),
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.1)',
-    paddingHorizontal: moderateScale(10),
+    paddingHorizontal: moderateScale(5),
     alignItems: 'center',
     borderRadius: 5,
   },
@@ -602,22 +896,6 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(14),
     color: '#222',
     paddingVertical: 0
-  },
-  backButtonContainer: {
-    padding: 1,
-  },
-  riceContainer: {
-    flex: 1,
-    gap: scale(5),
-  },
-  backIcon: {
-    width: scale(24),
-    height: scale(24),
-  },
-  headerTitle: {
-    fontSize: normalizeFont(15),
-    fontWeight: "600",
-    color: "#333",
   },
   loadingContainer: {
     alignItems: "center",
@@ -658,25 +936,22 @@ const styles = StyleSheet.create({
 
 const cardStyles = StyleSheet.create({
   container: {
-    width: CARD_WIDTH,
-    marginLeft: moderateScale(6),
     marginTop: moderateScale(12),
     marginBottom: moderateScale(8),
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius:10,
+    borderRadius: moderateScale(12),
     overflow: 'hidden',
-    shadowColor: 'rgba(0, 0, 0, 0.2)',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    borderWidth: 2,
-    borderColor: 'rgba(0, 0, 0, 0.2)',
-    elevation: 7,
-    shadowOffset: { width: 0, height: 3 },
+    shadowColor: 'grey',
+    shadowOpacity: 0.12,
+    shadowRadius: moderateScale(4),
+    borderWidth: moderateScale(1),
+    borderColor: 'grey',
+    elevation: 6,
+    shadowOffset: { width: 0, height: moderateScale(3) },
   },
 
-  // image area
   imageContainer: {
     width: '100%',
     height: scale(140),
@@ -686,23 +961,20 @@ const cardStyles = StyleSheet.create({
   productImage: {
     width: '100%',
     height: '100%',
-    borderTopLeftRadius:10,
-    borderTopRightRadius:10,
+    borderTopLeftRadius: moderateScale(10),
+    borderTopRightRadius: moderateScale(10),
   },
-
 
   favoriteButton: {
     position: 'absolute',
-    top: moderateScale(2),
-    right: moderateScale(2),
-    borderRadius: 16,
+    top: moderateScale(4),
+    right: moderateScale(4),
+    borderRadius: moderateScale(16),
     width: scale(30),
     height: scale(30),
     justifyContent: 'center',
     alignItems: 'center',
-    shadowRadius: 4,
   },
-
 
   ratingContainer: {
     position: 'absolute',
@@ -730,44 +1002,25 @@ const cardStyles = StyleSheet.create({
     fontSize: normalizeFont(13),
     fontWeight: '600',
     color: '#2b2b2b',
-
   },
 
   productVeriety: {
     color: 'rgba(66, 66, 66, 0.7)',
     fontSize: normalizeFont(12),
-    paddingVertical:moderateScale(5)
-  },
-
-  productSubtitle: {
-    fontSize: normalizeFont(12),
-    color: '#666',
-    marginBottom: moderateScale(3),
+    paddingVertical: moderateScale(4),
   },
 
   priceContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingTop:moderateScale(4),
-    marginBottom: moderateScale(5),
-  },
-  productPrice: {
-    fontSize: normalizeFont(12),
-    fontWeight: '800',
-    color: '#666',
+    marginBottom: moderateScale(3),
+    marginTop: moderateScale(6),
   },
   productUnit: {
     fontSize: normalizeFont(12),
-    color: '#666',
+    color: '#000',
     marginLeft: moderateScale(6),
     marginBottom: moderateScale(2),
   },
-  weightText: {
-    fontSize: normalizeFont(11),
-    color: '#777',
-    marginLeft: moderateScale(6),
-  },
-
 
   buttonContainer: {
     marginTop: moderateScale(6),
@@ -775,14 +1028,14 @@ const cardStyles = StyleSheet.create({
   },
   addToCartButton: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
-    borderRadius: 8,
+    borderRadius: moderateScale(8),
     paddingVertical: moderateScale(10),
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: moderateScale(6),
+    shadowOffset: { width: 0, height: moderateScale(3) },
     elevation: 2,
   },
   disabledButton: {
@@ -794,14 +1047,13 @@ const cardStyles = StyleSheet.create({
     fontWeight: '700',
   },
 
-
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
+    borderWidth: moderateScale(1),
     borderColor: 'rgba(76, 175, 80, 1)',
-    borderRadius: 8,
+    borderRadius: moderateScale(8),
     paddingHorizontal: moderateScale(4),
     height: scale(36),
     minWidth: scale(120),
@@ -819,8 +1071,8 @@ const cardStyles = StyleSheet.create({
     height: scale(36),
     alignItems: 'center',
     justifyContent: 'center',
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
+    borderLeftWidth: moderateScale(1),
+    borderRightWidth: moderateScale(1),
     borderColor: 'rgba(76, 175, 80, 1)',
     flexDirection: 'row',
   },
@@ -829,5 +1081,225 @@ const cardStyles = StyleSheet.create({
     color: 'rgba(76, 175, 80, 1)',
     fontWeight: '700',
     textAlign: 'center',
+  },
+});
+
+/* Modal styles (qty) */
+const modalStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: moderateScale(20),
+  },
+  modalWrap: {
+    maxWidth: moderateScale(360),
+    backgroundColor: "#fff",
+    borderRadius: moderateScale(10),
+    padding: moderateScale(16),
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: moderateScale(8),
+    shadowOffset: { width: 0, height: moderateScale(4) },
+  },
+  modalTitle: {
+    fontSize: normalizeFont(14),
+    fontWeight: "700",
+    color: "#222",
+    marginBottom: moderateScale(12),
+    textAlign: "center",
+  },
+  editRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: moderateScale(12),
+    marginBottom: moderateScale(14),
+  },
+  pickerBtn: {
+    paddingVertical: moderateScale(8),
+    paddingHorizontal: moderateScale(10),
+    borderRadius: moderateScale(8),
+    borderWidth: 1,
+    borderColor: "#ddd",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fafafa",
+  },
+  qtyInput: {
+    flex: 1,
+    minHeight: moderateScale(44),
+    borderWidth: 1,
+    borderColor: "#eee",
+    borderRadius: moderateScale(8),
+    textAlign: "center",
+    fontSize: normalizeFont(16),
+    paddingVertical: moderateScale(8),
+  },
+  modalActions: {
+    flexDirection: "row",
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: moderateScale(8),
+  },
+  cancelBtn: {
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: moderateScale(8),
+    width: '40%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: moderateScale(1),
+    borderColor: "rgba(76, 175, 80, 1)"
+  },
+  cancelText: {
+    color: "#666",
+    fontSize: normalizeFont(13),
+  },
+  okBtn: {
+    backgroundColor: "rgba(76, 175, 80, 1)",
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: moderateScale(8),
+    width: '40%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  okText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: normalizeFont(13),
+  },
+});
+
+/* Filter styles */
+const filterStyles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  overlayTouchable: {
+    flex: 1,
+  },
+  filterPopup: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    height: "92%",
+    width: moderateScale(250),
+    backgroundColor: '#fff',
+    borderTopLeftRadius: moderateScale(20),
+    borderBottomLeftRadius: moderateScale(20),
+    borderWidth: moderateScale(2),
+    borderColor: 'rgba(255, 202, 40, 1)',
+    elevation: 10,
+    paddingBottom: moderateScale(8),
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: moderateScale(16),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  filterTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterTitle: {
+    fontSize: normalizeFont(13),
+    fontWeight: '600',
+    color: '#333',
+    marginLeft: moderateScale(8),
+  },
+  filterOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(14),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+  },
+  filterOption2: {
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(10),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+  },
+  filterOptionText: {
+    fontSize: normalizeFont(12),
+    fontWeight: '500',
+    color: '#333',
+  },
+  filterOptionText2: {
+    fontSize: normalizeFont(13),
+    color: '#666',
+  },
+  filterOptionText2Active: {
+    fontWeight: '600',
+    color: '#333',
+  },
+  filterDetails: {
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(12),
+    backgroundColor: '#fafafa',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+  },
+  simpleInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: moderateScale(8),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(8),
+    fontSize: normalizeFont(13),
+    backgroundColor: '#fff',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: moderateScale(10),
+  },
+  checkbox: {
+    width: moderateScale(18),
+    height: moderateScale(18),
+    borderRadius: moderateScale(2),
+    borderWidth: 1,
+    borderColor: '#ccc',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: moderateScale(10),
+  },
+  checkboxChecked: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  checkboxLabel: {
+    fontSize: normalizeFont(13),
+    color: '#333',
+  },
+  filterFooter: {
+    padding: moderateScale(16),
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    backgroundColor: '#fff',
+  },
+  applyButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: moderateScale(12),
+    borderRadius: moderateScale(8),
+    alignItems: 'center',
+  },
+  applyButtonText: {
+    color: '#fff',
+    fontSize: normalizeFont(12),
+    fontWeight: '600',
   },
 });
