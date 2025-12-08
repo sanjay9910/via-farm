@@ -160,7 +160,7 @@ const ProductCard = ({
       >
         {/* Product Image */}
         <View style={[styles.imageContainer, { height: imageHeight }]}>
-          <Image source={{ uri: safeImage }} style={styles.productImage} resizeMode="cover" />
+          <Image source={{ uri: safeImage }} style={styles.productImage} resizeMode="stretch" />
 
           {showFavorite && (
             <TouchableOpacity
@@ -178,7 +178,7 @@ const ProductCard = ({
             >
               <Ionicons
                 name={isFavorite ? "heart" : "heart-outline"}
-                size={moderateScale(18)}
+                size={moderateScale(23)}
                 color={isFavorite ? "#ff4757" : "#fff"}
               />
             </TouchableOpacity>
@@ -383,7 +383,7 @@ const ProductCard = ({
                 {isProcessing ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={[styles.modalActionText, { color: "#fff" }]}>Confirm</Text>
+                  <Text style={[styles.modalActionText, { color: "#fff" }]}>OK</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -422,8 +422,8 @@ const styles = StyleSheet.create({
   },
   favoriteButton: {
     position: "absolute",
-    right: moderateScale(8),
-    top: moderateScale(8),
+    right: moderateScale(3),
+    top: moderateScale(3),
     justifyContent: "center",
     alignItems: "center",
   },

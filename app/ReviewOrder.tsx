@@ -1,29 +1,31 @@
-import { Ionicons } from '@expo/vector-icons'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import axios from 'axios'
-import { useNavigation, useRouter } from 'expo-router'
-import { goBack } from 'expo-router/build/global-state/routing'
-import { useEffect, useRef, useState } from 'react'
+// ReviewOrder.jsx
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { useNavigation, useRouter } from 'expo-router';
+import { goBack } from 'expo-router/build/global-state/routing';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Animated,
+  FlatList,
   Image,
   Modal,
   PanResponder,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import SuggestionCard from '../components/myCard/RelatedProduct'
-import { moderateScale, normalizeFont, scale } from './Responsive'
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import SuggestionCard from '../components/myCard/RelatedProduct';
+import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const API_BASE = 'https://viafarm-1.onrender.com';
-
 const AUTO_CLEAR_SERVER_COUPON = true;
 
 const ReviewOrder = () => {
@@ -33,35 +35,59 @@ const ReviewOrder = () => {
   // States
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [serverPriceDetails, setServerPriceDetails] = useState(null);
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [couponModalVisible, setCouponModalVisible] = useState(false);
   const [pincode, setPincode] = useState('110098');
   const slideAnim = useRef(new Animated.Value(300)).current;
 
   // Address states
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
+  const [savingAddress, setSavingAddress] = useState(false);
 
+  // Donation
   const [wantDonation, setWantDonation] = useState(false);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState('');
+
+  // Comments (wired now)
+  const [comments, setComments] = useState('');
 
   // Coupon states
   const [couponCode, setCouponCode] = useState('');
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [couponFetching, setCouponFetching] = useState(false);
 
-  const [savingAddress, setSavingAddress] = useState(false);
+  // Track which cart item(s) are currently updating to prevent double requests
+  const [updatingQuantities, setUpdatingQuantities] = useState({}); // { [cartItemId]: true }
 
+  // ---- Effects ----
   useEffect(() => {
     fetchBuyerAddresses();
+    fetchCartProducts();
+    fetchCoupons();
   }, []);
+
+  // Refresh addresses & cart when screen focused
+  useEffect(() => {
+    const sub = navigation.addListener && navigation.addListener('focus', () => {
+      fetchBuyerAddresses();
+      fetchCartProducts();
+    });
+    return sub;
+  }, [navigation]);
+
+  // --- API Calls ---
 
   const fetchBuyerAddresses = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
+        setAddresses([]);
+        setSelectedAddress(null);
         return;
       }
 
@@ -87,25 +113,24 @@ const ReviewOrder = () => {
         if (defaultAddr) {
           setSelectedAddress(defaultAddr);
           setPincode(defaultAddr.pincode);
+        } else {
+          setSelectedAddress(null);
         }
       } else {
         console.warn('No addresses or failed to fetch addresses', response?.data);
+        setAddresses([]);
+        setSelectedAddress(null);
       }
     } catch (error) {
       console.error('Error fetching buyer addresses:', error);
     }
   };
 
-  useEffect(() => {
-    fetchCartProducts();
-  }, []);
-
   const fetchCartProducts = async () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
-        // not logged in — clear local cart
         setProducts([]);
         setServerPriceDetails(null);
         setLoading(false);
@@ -151,34 +176,7 @@ const ReviewOrder = () => {
                 timeout: 10000,
               });
               // refresh cart after clearing coupon
-              const refreshed = await axios.get(`${API_BASE}/api/buyer/cart`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              if (refreshed.data?.success) {
-                const newItems = refreshed.data.data?.items || [];
-                const newMapped = newItems.map((item) => ({
-                  id: item._id || item.id,
-                  productId: item.productId,
-                  name: item.name || 'Product',
-                  description: item.subtitle || item.variety || 'Fresh Product',
-                  price: Number(item.mrp || item.price || 0),
-                  quantity: item.quantity || 1,
-                  image: { uri: item.imageUrl || item.image || '' },
-                  deliveryDate: item.deliveryText || 'Delivered soon',
-                }));
-                setProducts(newMapped);
-                const newPriceDetails = refreshed.data.data?.priceDetails ?? null;
-                if (newPriceDetails) {
-                  setServerPriceDetails({
-                    totalMRP: Number(newPriceDetails.totalMRP ?? 0),
-                    couponDiscount: Number(newPriceDetails.couponDiscount ?? 0),
-                    deliveryCharge: Number(newPriceDetails.deliveryCharge ?? 0),
-                    totalAmount: Number(newPriceDetails.totalAmount ?? 0),
-                  });
-                } else {
-                  setServerPriceDetails(null);
-                }
-              }
+              await fetchCartProducts();
               setAppliedCoupon(null);
               setCouponCode('');
             } catch (clearErr) {
@@ -204,41 +202,95 @@ const ReviewOrder = () => {
     }
   };
 
-  const computeTotals = () => {
-    const subtotal = products.reduce((sum, p) => sum + (Number(p.price) || 0) * (p.quantity || 0), 0);
-
-    if (serverPriceDetails && serverPriceDetails.totalAmount > 0) {
-      return {
-        subtotal: Number((serverPriceDetails.totalMRP ?? subtotal).toFixed(2)),
-        couponDiscount: Number((serverPriceDetails.couponDiscount ?? 0).toFixed(2)),
-        deliveryCharge: Number((serverPriceDetails.deliveryCharge ?? 0).toFixed(2)),
-        totalAmount: Number((serverPriceDetails.totalAmount ?? subtotal).toFixed(2)),
-        usedServer: true,
-      };
+  const fetchCoupons = async () => {
+    setCouponFetching(true);
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      // endpoint given by user: api/buyer/coupons/highlighted
+      const res = await axios.get(`${API_BASE}/api/buyer/coupons/highlighted`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res?.data?.success) {
+        setAvailableCoupons(res.data.data || []);
+      } else {
+        console.warn('Failed fetch coupons:', res?.data);
+      }
+    } catch (err) {
+      console.warn('Error fetching coupons:', err?.message || err);
+    } finally {
+      setCouponFetching(false);
     }
+  };
 
-    const couponDiscount = 0;
-    const deliveryChargeFallback = 0;
-    const total = subtotal - couponDiscount + deliveryChargeFallback;
+  // --- Helpers for local/optimistic calculations ---
+  const computeLocalSubtotal = () => {
+    return products.reduce((sum, p) => sum + (Number(p.price) || 0) * (p.quantity || 0), 0);
+  };
 
+  // compute preview discount for given coupon and subtotal
+  const computeDiscountForCoupon = (coupon, subtotal) => {
+    if (!coupon) return 0;
+    const d = coupon.discount || {};
+    const value = d.value ?? (d.amount ?? 0);
+    if ((d.type || '').toLowerCase() === 'percentage') {
+      return Number(((subtotal * (Number(value) || 0)) / 100).toFixed(2));
+    } else {
+      return Number(Number(value || 0).toFixed(2));
+    }
+  };
+
+  // combine serverPriceDetails (if present) with optimistic coupon details
+  const previewPriceWithCoupon = (coupon) => {
+    const subtotal = serverPriceDetails?.totalMRP ?? computeLocalSubtotal();
+    const deliveryCharge = serverPriceDetails?.deliveryCharge ?? 0;
+    const discount = computeDiscountForCoupon(coupon, subtotal);
+    const total = Math.max(0, subtotal - discount + deliveryCharge);
     return {
-      subtotal: Number(subtotal.toFixed(2)),
-      couponDiscount: Number(couponDiscount.toFixed(2)),
-      deliveryCharge: Number(deliveryChargeFallback.toFixed(2)),
-      totalAmount: Number(total.toFixed(2)),
-      usedServer: false,
+      subtotal,
+      couponDiscount: discount,
+      deliveryCharge,
+      totalAmount: total,
     };
   };
 
-  // ----- Coupon functions (unchanged) -----
+  // --- Coupon flow (select from dropdown -> shows preview -> apply) ---
+  const onSelectCouponFromList = (coupon) => {
+    if (!coupon) return;
+    const local = {
+      id: coupon._id,
+      code: coupon.code,
+      discount: coupon.discount,
+      minimumOrder: coupon.minimumOrder,
+      startDate: coupon.startDate,
+      expiryDate: coupon.expiryDate,
+    };
+    setCouponCode(local.code);
+    setAppliedCoupon({ ...local, previewDiscount: computeDiscountForCoupon(local, serverPriceDetails?.totalMRP ?? computeLocalSubtotal()) });
+    setCouponModalVisible(false);
+  };
+
   const applyCoupon = async () => {
     if (!couponCode || couponCode.trim().length === 0) {
-      Alert.alert('Invalid', 'Please enter a coupon code');
+      Alert.alert('Invalid', 'Please enter/select a coupon code');
       return;
     }
 
     setApplyingCoupon(true);
     const code = couponCode.trim().toUpperCase();
+
+    // optimistic preview if we found the coupon locally
+    const matched = availableCoupons.find((c) => String(c.code || '').toUpperCase() === code.toUpperCase());
+    const prevServerPrice = serverPriceDetails ? { ...serverPriceDetails } : null;
+
+    if (matched) {
+      const preview = previewPriceWithCoupon({
+        _id: matched._id,
+        code: matched.code,
+        discount: matched.discount,
+      });
+      setServerPriceDetails(preview);
+      setAppliedCoupon({ code: matched.code, id: matched._id, discountRaw: matched.discount, previewDiscount: preview.couponDiscount });
+    }
 
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -248,22 +300,18 @@ const ReviewOrder = () => {
         return;
       }
 
-      const attempts = [
+      const endpoints = [
         { url: `${API_BASE}/api/buyer/cart/apply-coupon`, body: { couponCode: code } },
         { url: `${API_BASE}/api/buyer/cart/apply-coupon`, body: { coupon: code } },
-        { url: `${API_BASE}/api/buyer/cart/apply-coupon`, body: { code } },
         { url: `${API_BASE}/api/buyer/cart/applyCoupon`, body: { couponCode: code } },
         { url: `${API_BASE}/api/buyer/cart/apply`, body: { couponCode: code } },
         { url: `${API_BASE}/api/buyer/cart/update-coupon`, body: { couponCode: code } },
       ];
 
-      let succeeded = false;
-      let lastError = null;
-
-      for (let i = 0; i < attempts.length; i++) {
-        const a = attempts[i];
+      let appliedOnServer = false;
+      for (let i = 0; i < endpoints.length; i++) {
         try {
-          const res = await axios.post(a.url, a.body, {
+          const res = await axios.post(endpoints[i].url, endpoints[i].body, {
             headers: { Authorization: `Bearer ${token}` },
             timeout: 12000,
           });
@@ -280,196 +328,335 @@ const ReviewOrder = () => {
             } else {
               await fetchCartProducts();
             }
-
-            setAppliedCoupon({ code, discount: res.data.data?.discountAmount ?? 0 });
+            appliedOnServer = true;
+            setAppliedCoupon((prev) => ({ ...(prev || {}), code, serverApplied: true, previewDiscount: Number((res.data.data?.discountAmount ?? res.data.discountAmount ?? 0)) }));
             Alert.alert('Success', res.data.message || 'Coupon applied');
-            succeeded = true;
             break;
-          }
-
-          lastError = { status: res.status, data: res.data };
-          const msg = String(res.data?.message || '').toLowerCase();
-          if (/valid coupon code|invalid coupon|coupon code is required|invalid code/.test(msg)) {
-            Alert.alert('Coupon Error', res.data.message || 'Coupon rejected by server');
-            setApplyingCoupon(false);
-            return;
+          } else {
+            const msg = res.data?.message || 'Coupon not applied';
+            if (/invalid|required|not valid/i.test(String(msg))) {
+              if (!appliedOnServer && prevServerPrice) setServerPriceDetails(prevServerPrice);
+              setAppliedCoupon(null);
+              setCouponCode('');
+              Alert.alert('Coupon Error', msg);
+              setApplyingCoupon(false);
+              return;
+            }
           }
         } catch (err) {
-          lastError = { err };
           const serverMsg = err?.response?.data?.message;
-          if (serverMsg && /valid coupon code|required|invalid coupon/i.test(serverMsg)) {
+          if (serverMsg && /invalid|required|not valid/i.test(serverMsg)) {
+            if (!appliedOnServer && prevServerPrice) setServerPriceDetails(prevServerPrice);
+            setAppliedCoupon(null);
+            setCouponCode('');
             Alert.alert('Coupon Error', serverMsg);
             setApplyingCoupon(false);
             return;
           }
+          // otherwise try next endpoint
         }
       }
 
-      if (succeeded) {
-        setApplyingCoupon(false);
-        return;
-      }
-
-      if (!selectedAddress?.id) {
-        const serverMsg = lastError?.data?.message || lastError?.err?.response?.data?.message || 'Coupon not applied. Select an address to validate coupon.';
-        Alert.alert('Coupon Error', serverMsg);
-        setApplyingCoupon(false);
-        return;
-      }
-
-      const validatePayload = {
-        deliveryType: 'Delivery',
-        addressId: selectedAddress.id,
-        paymentMethod: 'UPI',
-        comments: '',
-        couponCode: code,
-        validateOnly: true,
-      };
-
-      try {
-        const resOrder = await axios.post(`${API_BASE}/api/buyer/orders/place`, validatePayload, {
-          headers: { Authorization: `Bearer ${token}` },
-          timeout: 15000,
-        });
-
-        if (resOrder?.data?.success) {
-          if (Array.isArray(resOrder.data.orderIds) && resOrder.data.orderIds.length > 0) {
-            const payments = resOrder.data.payments ?? resOrder.data.data?.payments ?? [];
-            const totalAmountToPay = Number(resOrder.data.totalAmountToPay ?? resOrder.data.data?.totalAmountToPay ?? 0);
-            const orderIds = resOrder.data.orderIds ?? resOrder.data.data?.orderIds ?? [];
-            navigation.navigate('Payment', { payments, totalAmountToPay, orderIds, comments: resOrder.data.comments ?? '' });
+      if (!appliedOnServer) {
+        // Dry-run order validation
+        try {
+          if (!selectedAddress?.id) {
+            if (!appliedOnServer && prevServerPrice) setServerPriceDetails(prevServerPrice);
+            Alert.alert('Coupon Error', 'Select an address to validate coupon.');
             setApplyingCoupon(false);
             return;
           }
 
-          const pd = resOrder.data.data?.priceDetails ?? resOrder.data.data ?? resOrder.data;
-          if (pd) {
-            setServerPriceDetails({
-              totalMRP: Number(pd.totalMRP ?? pd.subtotal ?? 0),
-              couponDiscount: Number(pd.couponDiscount ?? pd.discountAmount ?? 0),
-              deliveryCharge: Number(pd.deliveryCharge ?? 0),
-              totalAmount: Number(pd.totalAmount ?? pd.total ?? 0),
-            });
-          } else {
-            await fetchCartProducts();
-          }
+          const validatePayload = {
+            deliveryType: 'Delivery',
+            addressId: selectedAddress.id,
+            paymentMethod: 'UPI',
+            comments: comments || "I'll pick it up before noon",
+            couponCode: code,
+            validateOnly: true,
+          };
 
-          setAppliedCoupon({ code, discount: resOrder.data.data?.discountAmount ?? resOrder.data.totalDiscount ?? 0 });
-          Alert.alert('Success', resOrder.data.message || 'Coupon validated');
-          setApplyingCoupon(false);
-          return;
-        } else {
-          const message = resOrder?.data?.message || 'Coupon could not be validated';
-          Alert.alert('Coupon Error', message);
-          setApplyingCoupon(false);
-          return;
+          const resOrder = await axios.post(`${API_BASE}/api/buyer/orders/place`, validatePayload, {
+            headers: { Authorization: `Bearer ${token}` },
+            timeout: 15000,
+          });
+
+          if (resOrder?.data?.success) {
+            const pd = resOrder.data.data?.priceDetails ?? resOrder.data.data ?? resOrder.data;
+            if (pd) {
+              setServerPriceDetails({
+                totalMRP: Number(pd.totalMRP ?? pd.subtotal ?? 0),
+                couponDiscount: Number(pd.couponDiscount ?? pd.discountAmount ?? 0),
+                deliveryCharge: Number(pd.deliveryCharge ?? 0),
+                totalAmount: Number(pd.totalAmount ?? pd.total ?? 0),
+              });
+            } else {
+              await fetchCartProducts();
+            }
+            setAppliedCoupon({ code, serverApplied: true, previewDiscount: Number(resOrder.data.data?.discountAmount ?? resOrder.data.totalDiscount ?? 0) });
+            Alert.alert('Success', resOrder.data.message || 'Coupon validated');
+          } else {
+            const message = resOrder?.data?.message || 'Coupon could not be validated';
+            if (!appliedOnServer && prevServerPrice) setServerPriceDetails(prevServerPrice);
+            setAppliedCoupon(null);
+            setCouponCode('');
+            Alert.alert('Coupon Error', message);
+          }
+        } catch (errOrders) {
+          if (!appliedOnServer && prevServerPrice) setServerPriceDetails(prevServerPrice);
+          const serverMsg = errOrders?.response?.data?.message || errOrders?.message || 'Coupon validation failed';
+          Alert.alert('Coupon Error', serverMsg);
         }
-      } catch (errOrders) {
-        const serverMsg = errOrders?.response?.data?.message || errOrders?.message || 'Coupon validation failed';
-        Alert.alert('Coupon Error', serverMsg);
-        setApplyingCoupon(false);
-        return;
       }
     } catch (fatal) {
       console.error('Unexpected error applying coupon:', fatal);
       Alert.alert('Error', (fatal?.response?.data?.message) || fatal?.message || 'Failed to apply coupon');
-      setApplyingCoupon(false);
-      return;
     } finally {
       setApplyingCoupon(false);
     }
   };
 
   const removeCoupon = async () => {
-    try {
-      setApplyingCoupon(true);
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        Alert.alert('Error', 'Please login');
-        setApplyingCoupon(false);
-        return;
-      }
-
+    setApplyingCoupon(true);
+    const prev = serverPriceDetails ? { ...serverPriceDetails } : null;
+    setAppliedCoupon(null);
+    setCouponCode('');
+    if (prev) {
       try {
-        const res = await axios.delete(`${API_BASE}/api/buyer/cart/remove-coupon`, { headers: { Authorization: `Bearer ${token}` } });
-        if (res.data && res.data.success) {
-          setAppliedCoupon(null);
-          setCouponCode('');
-          await fetchCartProducts();
-          Alert.alert('Removed', 'Coupon removed');
+        const token = await AsyncStorage.getItem('userToken');
+        if (!token) {
           setApplyingCoupon(false);
+          await fetchCartProducts();
           return;
         }
-      } catch (e) {
-        console.warn('remove-coupon delete failed:', e?.response?.data || e.message || e);
+        const res = await axios.delete(`${API_BASE}/api/buyer/cart/remove-coupon`, {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 10000,
+        });
+        if (res?.data?.success) {
+          await fetchCartProducts();
+          Alert.alert('Removed', 'Coupon removed');
+        } else {
+          await fetchCartProducts();
+        }
+      } catch (err) {
+        console.warn('remove-coupon error:', err?.message || err);
+        await fetchCartProducts();
+      } finally {
+        setApplyingCoupon(false);
       }
-
-      setAppliedCoupon(null);
-      setCouponCode('');
-      await fetchCartProducts();
-      Alert.alert('Removed', 'Coupon removed');
-    } catch (err) {
-      console.error('Error removing coupon:', err);
-      Alert.alert('Error', 'Failed to remove coupon');
-    } finally {
+    } else {
       setApplyingCoupon(false);
+      await fetchCartProducts();
     }
   };
 
-  // ----- quantity/update/remove functions -----
+  // --- Quantity (optimistic, NO full refresh) ---
+
+  /**
+   * updateQuantityInAPI
+   * - optimistic UI already updated by caller
+   * - this function not do full fetch on success; only update serverPriceDetails if returned
+   * - on error, roll back the product's quantity and show alert
+   */
   const updateQuantityInAPI = async (cartItemId, newQuantity) => {
+    // prevent multiple concurrent updates for same item
+    if (!cartItemId) return;
+    if (updatingQuantities[cartItemId]) return;
+
+    setUpdatingQuantities((prev) => ({ ...prev, [cartItemId]: true }));
+
+    // capture previous quantity so we can rollback if needed
+    const prevProducts = products;
+    const prevItem = prevProducts.find((p) => p.id === cartItemId);
+    const prevQuantity = prevItem ? prevItem.quantity : null;
+
     try {
       const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        throw new Error('Login required');
+      }
+
       const response = await axios.put(
         `${API_BASE}/api/buyer/cart/${cartItemId}/quantity`,
         { quantity: newQuantity },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }
       );
-      if (!response.data.success) throw new Error('Failed to update quantity');
-      fetchCartProducts();
-    } catch (error) {
-      console.error('Error updating quantity:', error);
-      Alert.alert('Error', 'Failed to update quantity');
-      fetchCartProducts();
+
+      if (response?.data && response.data.success) {
+        // If server returns price details, update them; otherwise leave client-side totals intact
+        const pd = response.data.data?.priceDetails ?? response.data.priceDetails ?? response.data.data ?? null;
+        if (pd) {
+          setServerPriceDetails({
+            totalMRP: Number(pd.totalMRP ?? pd.subtotal ?? computeLocalSubtotal()),
+            couponDiscount: Number(pd.couponDiscount ?? pd.discountAmount ?? 0),
+            deliveryCharge: Number(pd.deliveryCharge ?? 0),
+            totalAmount: Number(pd.totalAmount ?? pd.total ?? (computeLocalSubtotal() - (pd.couponDiscount ?? 0) + (pd.deliveryCharge ?? 0))),
+          });
+        }
+        // no full fetch to avoid page refresh/scroll jump
+      } else {
+        // server responded with failure -> rollback
+        setProducts((prev) => prev.map((p) => (p.id === cartItemId ? { ...p, quantity: prevQuantity } : p)));
+        const errMsg = (response?.data?.message) || 'Failed to update quantity';
+        Alert.alert('Update Failed', errMsg);
+      }
+    } catch (err) {
+      console.error('Error updating quantity:', err?.response?.data || err.message || err);
+      // rollback UI
+      if (prevQuantity !== null) {
+        setProducts((prev) => prev.map((p) => (p.id === cartItemId ? { ...p, quantity: prevQuantity } : p)));
+      }
+      // show friendly error
+      const message = err?.response?.data?.message || err.message || 'Failed to update quantity';
+      Alert.alert('Error', message);
+    } finally {
+      setUpdatingQuantities((prev) => {
+        const copy = { ...prev };
+        delete copy[cartItemId];
+        return copy;
+      });
     }
   };
 
   const increaseQuantity = (id) => {
+    // block if already updating this item
+    if (updatingQuantities[id]) return;
+
     const product = products.find(p => p.id === id);
     if (!product) return;
-    const newQuantity = product.quantity + 1;
-    setProducts(products.map(p => p.id === id ? { ...p, quantity: newQuantity } : p));
+    const newQuantity = (product.quantity || 0) + 1;
+
+    // Optimistic UI update
+    setProducts((prev) => prev.map(p => p.id === id ? { ...p, quantity: newQuantity } : p));
+
+    // Fire API but do NOT re-fetch whole cart on success to avoid page refresh
     updateQuantityInAPI(id, newQuantity);
   };
 
   const decreaseQuantity = (id) => {
+    if (updatingQuantities[id]) return;
+
     const product = products.find(p => p.id === id);
     if (!product) return;
-    if (product.quantity <= 1) return;
+    if (product.quantity <= 1) return; // do not allow below 1
+
     const newQuantity = product.quantity - 1;
-    setProducts(products.map(p => p.id === id ? { ...p, quantity: newQuantity } : p));
+    setProducts((prev) => prev.map(p => p.id === id ? { ...p, quantity: newQuantity } : p));
+
     updateQuantityInAPI(id, newQuantity);
   };
 
+  // --- Remove product (optimistic) ---
   const removeProduct = async (id) => {
+    const prev = [...products];
+    setProducts(prev.filter(p => p.id !== id));
     try {
       const token = await AsyncStorage.getItem('userToken');
       const response = await axios.delete(`${API_BASE}/api/buyer/cart/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (response.data.success) {
-        setProducts(products.filter(p => p.id !== id));
-        fetchCartProducts();
+      if (response.data && response.data.success) {
+        // update server totals if present
+        const pd = response.data.data?.priceDetails ?? response.data.priceDetails ?? response.data.data ?? null;
+        if (pd) {
+          setServerPriceDetails({
+            totalMRP: Number(pd.totalMRP ?? pd.subtotal ?? computeLocalSubtotal()),
+            couponDiscount: Number(pd.couponDiscount ?? pd.discountAmount ?? 0),
+            deliveryCharge: Number(pd.deliveryCharge ?? 0),
+            totalAmount: Number(pd.totalAmount ?? pd.total ?? 0),
+          });
+        } else {
+          // best-effort: don't force full refresh to keep UI smooth
+          // but if cart becomes empty we should reflect that
+          if (prev.length === 1) {
+            setServerPriceDetails(null);
+            setProducts([]);
+          }
+        }
         Alert.alert('Success', 'Item removed');
       } else {
-        Alert.alert('Error', response.data.message || 'Failed to remove item');
+        setProducts(prev);
+        Alert.alert('Error', response.data?.message || 'Failed to remove item');
       }
     } catch (error) {
       console.error('Error removing product:', error);
+      setProducts(prev);
       Alert.alert('Error', 'Failed to remove item');
     }
   };
 
+  // --- Address selection (optimistic save) ---
+  const handleAddressSelect = async (addr) => {
+    try {
+      if (!addr || !addr.id) return;
+      setSelectedAddress(addr);
+      setPincode(addr.pincode);
+      closeModal();
+
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
+
+      setSavingAddress(true);
+      const body = { addressId: addr.id };
+      const res = await axios.post(`${API_BASE}/api/buyer/delivery/address`, body, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 15000,
+      });
+
+      if (res && res.data && res.data.success) {
+        await fetchCartProducts();
+        await fetchBuyerAddresses();
+      } else {
+        console.warn('delivery/address response not success:', res?.data);
+        await fetchCartProducts();
+        if (res?.data && !res.data.success && res?.data.message) {
+          Alert.alert('Address', res.data.message);
+        }
+      }
+    } catch (err) {
+      console.error('Error saving delivery address:', err?.response?.data || err.message || err);
+      await fetchBuyerAddresses();
+      await fetchCartProducts();
+      Alert.alert('Error', 'Failed to save delivery address. Try again.');
+    } finally {
+      setSavingAddress(false);
+    }
+  };
+
+  // Delete address (optimistic)
+  const deleteAddress = async (address) => {
+    if (!address?.id) return;
+    const prev = [...addresses];
+    setAddresses(prev.filter(a => a.id !== address.id));
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      const res = await axios.delete(`${API_BASE}/api/buyer/addresses/${address.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res?.data?.success) {
+        if (selectedAddress?.id === address.id) {
+          setSelectedAddress(null);
+        }
+        await fetchBuyerAddresses();
+      } else {
+        setAddresses(prev);
+        Alert.alert('Error', res?.data?.message || 'Failed to delete address');
+      }
+    } catch (err) {
+      console.error('Failed delete address:', err);
+      setAddresses(prev);
+      Alert.alert('Error', 'Failed to delete address');
+      await fetchBuyerAddresses();
+    }
+  };
+
+  const MoveToNewAddress = () => {
+    setModalVisible(false);
+    navigation.navigate('AddNewAddress');
+  };
+
+  // Proceed to payment
   const handleProceedToPayment = () => {
     if (!selectedAddress) {
       Alert.alert('Address Missing', 'Please select a delivery address');
@@ -483,14 +670,54 @@ const ReviewOrder = () => {
     const totalItems = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
     const amountToPay = totals.totalAmount;
 
-    navigation.navigate("Payment", {
+    navigation.navigate('Payment', {
       addressId: selectedAddress.id,
-      deliveryType: "Delivery",
-      comments: "Deliver before 8 PM please",
-      paymentMethod: "UPI",
+      deliveryType: 'Delivery',
+      comments: comments || 'Deliver before 8 PM please',
+      paymentMethod: 'UPI',
       totalAmount: Number(amountToPay.toFixed(2)),
       totalItems: totalItems.toString(),
     });
+  };
+
+  // Totals used by UI: prefer serverPriceDetails when present unless an optimistic applied coupon overrides it
+  const computeTotals = () => {
+    const subtotal = products.reduce((sum, p) => sum + (Number(p.price) || 0) * (p.quantity || 0), 0);
+
+    if (serverPriceDetails && serverPriceDetails.totalAmount !== undefined && serverPriceDetails.totalAmount !== null) {
+      return {
+        subtotal: Number((serverPriceDetails.totalMRP ?? subtotal).toFixed(2)),
+        couponDiscount: Number(serverPriceDetails.couponDiscount ?? 0),
+        deliveryCharge: Number(serverPriceDetails.deliveryCharge ?? 0),
+        totalAmount: Number(serverPriceDetails.totalAmount ?? subtotal),
+        usedServer: true,
+      };
+    }
+
+    if (appliedCoupon && (appliedCoupon.previewDiscount || appliedCoupon.previewDiscount === 0)) {
+      const deliveryChargeFallback = 0;
+      const couponDiscount = Number(appliedCoupon.previewDiscount || 0);
+      const total = Math.max(0, subtotal - couponDiscount + deliveryChargeFallback);
+      return {
+        subtotal: Number(subtotal.toFixed(2)),
+        couponDiscount: Number(couponDiscount.toFixed(2)),
+        deliveryCharge: Number(deliveryChargeFallback.toFixed(2)),
+        totalAmount: Number(total.toFixed(2)),
+        usedServer: false,
+      };
+    }
+
+    const couponDiscount = 0;
+    const deliveryChargeFallback = 0;
+    const total = subtotal - couponDiscount + deliveryChargeFallback;
+
+    return {
+      subtotal: Number(subtotal.toFixed(2)),
+      couponDiscount: Number(couponDiscount.toFixed(2)),
+      deliveryCharge: Number(deliveryChargeFallback.toFixed(2)),
+      totalAmount: Number(total.toFixed(2)),
+      usedServer: false,
+    };
   };
 
   // Modal handlers
@@ -511,87 +738,64 @@ const ReviewOrder = () => {
       else Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true }).start();
     },
   });
-  const handleAddressSelect = async (addr) => {
-    try {
-      if (!addr || !addr.id) return;
-      setSelectedAddress(addr);
-      setPincode(addr.pincode);
-      closeModal();
 
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        return;
-      }
-
-      setSavingAddress(true);
-
-      const body = { addressId: addr.id };
-      const res = await axios.post(`${API_BASE}/api/buyer/delivery/address`, body, {
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 15000,
-      });
-
-      if (res && res.data && res.data.success) {
-        await fetchCartProducts();
-      } else {
-        console.warn('delivery/address response not success:', res?.data);
-        await fetchCartProducts();
-        if (res?.data && !res.data.success && res?.data.message) {
-          Alert.alert('Address', res.data.message);
-        }
-      }
-    } catch (err) {
-      console.error('Error saving delivery address:', err?.response?.data || err.message || err);
-      try { await fetchCartProducts(); } catch (e) { /* ignore */ }
-      Alert.alert('Error', 'Failed to save delivery address. Try again.');
-    } finally {
-      setSavingAddress(false);
-    }
-  };
-
-  const MoveToNewAddress = () => {
-    setModalVisible(false);
-    navigation.navigate("AddNewAddress");
-  };
-
-  const ProductCard = ({ product }) => (
-    <View style={styles.productCard}>
-      <View style={styles.mainContainer}>
-        <TouchableOpacity
-          onPress={() => {
-            const pid = product?._id || product?.id;
-            if (!pid) {
-              Alert.alert("Error", "Product id missing");
-              return;
-            }
-            navigation.navigate("ViewProduct", { productId: pid, product });
-          }}
-        >
-          <Image source={product.image} style={styles.productImage} resizeMode='stretch' />
-        </TouchableOpacity>
-        <View style={styles.productDetails}>
-          <Text style={styles.productName}>{product.name}</Text>
-          <Text style={styles.productDescription}>{product.description}</Text>
-          <Text style={styles.productPrice}>MRP ₹{Number(product.price).toFixed(2)}</Text>
-          <TouchableOpacity style={styles.deleteBtn} onPress={() => removeProduct(product.id)}>
-            <Image source={require('../assets/via-farm-img/icons/deleteBtn.png')} />
+  // Product card
+  const ProductCard = ({ product }) => {
+    const updating = !!updatingQuantities[product.id];
+    return (
+      <View style={styles.productCard}>
+        <View style={styles.mainContainer}>
+          <TouchableOpacity
+            onPress={() => {
+              const pid = product?._id || product?.id;
+              if (!pid) {
+                Alert.alert('Error', 'Product id missing');
+                return;
+              }
+              navigation.navigate('ViewProduct', { productId: pid, product });
+            }}
+          >
+            <Image source={product.image} style={styles.productImage} resizeMode="stretch" />
           </TouchableOpacity>
+          <View style={styles.productDetails}>
+            <Text style={styles.productName}>{product.name}</Text>
+            <Text style={styles.productDescription}>{product.description}</Text>
+            <Text style={styles.productPrice}>MRP ₹{Number(product.price).toFixed(2)}</Text>
+
+            <TouchableOpacity style={styles.deleteBtn} onPress={() => removeProduct(product.id)}>
+              <Image source={require('../assets/via-farm-img/icons/deleteBtn.png')} />
+            </TouchableOpacity>
+
             <View style={styles.quantityContainer}>
-              <TouchableOpacity style={styles.quantityButton} onPress={() => decreaseQuantity(product.id)}>
+              <TouchableOpacity
+                style={styles.quantityButton}
+                onPress={() => decreaseQuantity(product.id)}
+                disabled={updating}
+              >
                 <Text style={styles.quantityText}>-</Text>
               </TouchableOpacity>
-              <Text style={styles.quantityNumber}>{product.quantity}</Text>
-              <TouchableOpacity style={styles.quantityButton} onPress={() => increaseQuantity(product.id)}>
+
+              <View style={{ justifyContent: 'center', alignItems: 'center', minWidth: 40 }}>
+                {updating ? <ActivityIndicator size="small" /> : <Text style={styles.quantityNumber}>{product.quantity}</Text>}
+              </View>
+
+              <TouchableOpacity
+                style={styles.quantityButton}
+                onPress={() => increaseQuantity(product.id)}
+                disabled={updating}
+              >
                 <Text style={styles.quantityText}>+</Text>
               </TouchableOpacity>
             </View>
-          <View style={styles.deliveryRow}>
-            <Text style={styles.deliveryText}>{product.deliveryDate}</Text>
+
+            <View style={styles.deliveryRow}>
+              <Text style={styles.deliveryText}>{product.deliveryDate}</Text>
+            </View>
           </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   if (loading)
     return (
@@ -620,7 +824,7 @@ const ReviewOrder = () => {
           <Image source={require('../assets/via-farm-img/icons/groupArrow.png')} />
         </TouchableOpacity>
         <Text style={styles.headerText}>Review Order</Text>
-        <Text></Text>
+        <Text />
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -629,9 +833,9 @@ const ReviewOrder = () => {
           <Text style={styles.sectionTitle}>Deliver to</Text>
           <View style={styles.addressContainer}>
             <View style={styles.location}>
-              <Image source={require("../assets/via-farm-img/icons/loca.png")} />
+              <Image source={require('../assets/via-farm-img/icons/loca.png')} />
               <Text style={styles.addressText}>
-                {selectedAddress ? `${selectedAddress.name}, ${selectedAddress.pincode || selectedAddress.pincode}` : "Select delivery address"}
+                {selectedAddress ? `${selectedAddress.name}, ${selectedAddress.pincode || selectedAddress.pincode}` : 'Select delivery address'}
               </Text>
             </View>
             <TouchableOpacity onPress={openModal}>
@@ -640,33 +844,16 @@ const ReviewOrder = () => {
           </View>
         </View>
 
-        {products.length > 0 && (
-          <Text style={styles.deliveryDate}>{products[0].deliveryDate || 'Delivered soon'}</Text>
-        )}
+        {products.length > 0 && <Text style={styles.deliveryDate}>{products[0].deliveryDate || 'Delivered soon'}</Text>}
 
-        {products.map(product => (
+        {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
 
         {/* Donation */}
-        <View
-          style={{
-            marginVertical: moderateScale(16),
-            padding: moderateScale(12),
-            borderWidth: 1,
-            borderColor: "#ddd",
-            borderRadius: moderateScale(10),
-            backgroundColor: "#fff",
-          }}
-        >
-          <View style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}>
-            <Text style={{ fontSize: normalizeFont(13), color: "#333", flex: 1 }}>
-              Do you want to donate?
-            </Text>
+        <View style={styles.donationContainer}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ fontSize: normalizeFont(13), color: '#333', flex: 1 }}>Do you want to donate?</Text>
 
             <TouchableOpacity
               onPress={() => setWantDonation(!wantDonation)}
@@ -675,27 +862,18 @@ const ReviewOrder = () => {
                 height: scale(24),
                 borderRadius: moderateScale(12),
                 borderWidth: 2,
-                borderColor: wantDonation ? "#4CAF50" : "#999",
-                alignItems: "center",
-                justifyContent: "center",
+                borderColor: wantDonation ? '#4CAF50' : '#999',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              {wantDonation && (
-                <View style={{
-                    width: scale(12),
-                    height: scale(12),
-                    borderRadius: moderateScale(6),
-                    backgroundColor: "#4CAF50",
-                  }} />
-              )}
+              {wantDonation && <View style={{ width: scale(12), height: scale(12), borderRadius: moderateScale(6), backgroundColor: '#4CAF50' }} />}
             </TouchableOpacity>
           </View>
 
           {wantDonation && (
             <View style={{ marginTop: moderateScale(12) }}>
-              <Text style={{ fontSize: normalizeFont(12), color: "#555", marginBottom: moderateScale(4) }}>
-                Enter donation amount
-              </Text>
+              <Text style={{ fontSize: normalizeFont(12), color: '#555', marginBottom: moderateScale(4) }}>Enter donation amount</Text>
               <TextInput
                 placeholder="Enter amount (₹)"
                 value={amount}
@@ -703,67 +881,149 @@ const ReviewOrder = () => {
                 keyboardType="numeric"
                 style={{
                   borderWidth: 1,
-                  borderColor: "#ccc",
+                  borderColor: '#ccc',
                   borderRadius: moderateScale(8),
                   paddingHorizontal: moderateScale(10),
                   paddingVertical: moderateScale(8),
                   fontSize: normalizeFont(16),
-                  color: "#333",
+                  color: '#333',
                 }}
               />
             </View>
           )}
         </View>
 
-        {/* Coupon / promo area (integrated) */}
-        <View style={styles.couponSection}>
-          <Image source={require('../assets/via-farm-img/icons/promo-code.png')} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.couponTitle}>Have a Coupon?</Text>
-            <Text style={styles.couponSubtitle}>Apply now and Save Extra!</Text>
+        {/* Coupon Dropdown + Input */}
+        <View style={styles.couponContainer}>
+          <View style={styles.couponSection}>
+            <Image source={require('../assets/via-farm-img/icons/promo-code.png')} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.couponTitle}>Have a Coupon?</Text>
+              <Text style={styles.couponSubtitle}>Apply now and Save Extra!</Text>
+            </View>
+            <TouchableOpacity style={{ padding: 8 }} onPress={() => setCouponModalVisible(true)}>
+              <Text style={{ color: '#007AFF', fontWeight: '600' }}>Choose</Text>
+            </TouchableOpacity>
           </View>
-        </View>
 
-        <View style={styles.couponInputContainer}>
-          <TextInput
-            style={styles.couponInput}
-            placeholder="Enter your coupon code"
-            placeholderTextColor="#999"
-            value={couponCode}
-            onChangeText={setCouponCode}
-            autoCapitalize="characters"
-          />
+          <View style={styles.couponInputContainer}>
+            <TextInput
+              style={styles.couponInput}
+              placeholder="Enter your coupon code"
+              placeholderTextColor="#999"
+              value={couponCode}
+              onChangeText={(t) => {
+                setCouponCode(t.toUpperCase());
+                const matched = availableCoupons.find((c) => String(c.code || '').toUpperCase() === String(t).toUpperCase());
+                if (matched) {
+                  const previewDiscount = computeDiscountForCoupon(matched, serverPriceDetails?.totalMRP ?? computeLocalSubtotal());
+                  setAppliedCoupon({ code: matched.code, id: matched._id, discountRaw: matched.discount, previewDiscount });
+                } else {
+                  if (!appliedCoupon?.serverApplied) setAppliedCoupon(null);
+                }
+              }}
+              autoCapitalize="characters"
+            />
 
-          {!appliedCoupon ? (
-            <TouchableOpacity style={styles.Button} onPress={applyCoupon} disabled={applyingCoupon}>
-              {applyingCoupon ? <ActivityIndicator /> : <Text style={{ color: '#fff', fontSize: normalizeFont(12) }} >Apply</Text>}
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.Button} onPress={removeCoupon} disabled={applyingCoupon}>
-              {applyingCoupon ? <ActivityIndicator /> : <Text style={{ color: '#fff' }}>Remove</Text>}
-            </TouchableOpacity>
+            {!appliedCoupon ? (
+              <TouchableOpacity style={styles.Button} onPress={applyCoupon} disabled={applyingCoupon}>
+                {applyingCoupon ? <ActivityIndicator /> : <Text style={{ color: '#fff', fontSize: normalizeFont(12) }}>Apply</Text>}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.Button} onPress={removeCoupon} disabled={applyingCoupon}>
+                {applyingCoupon ? <ActivityIndicator /> : <Text style={{ color: '#fff' }}>Remove</Text>}
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {appliedCoupon && (
+            <View style={styles.appliedCouponRow}>
+              <Text style={styles.appliedCouponText}>
+                Applied: {appliedCoupon.code} {appliedCoupon.previewDiscount ? `- ₹${Number(appliedCoupon.previewDiscount).toFixed(2)}` : ''}
+              </Text>
+            </View>
           )}
         </View>
 
-        {appliedCoupon && (
-          <View style={styles.appliedCouponRow}>
-            <Text style={styles.appliedCouponText}>Applied: {appliedCoupon.code} {appliedCoupon.discount ? `- ₹${Number(appliedCoupon.discount).toFixed(2)}` : ''}</Text>
+        {/* Coupons modal (centered, attractive) */}
+        <Modal visible={couponModalVisible} transparent animationType="fade" onRequestClose={() => setCouponModalVisible(false)}>
+          <View style={styles.centeredOverlay}>
+            <Pressable style={styles.modalBackground} onPress={() => setCouponModalVisible(false)} />
+            <View style={styles.centeredCouponModal}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Choose a Coupon</Text>
+                <TouchableOpacity onPress={() => setCouponModalVisible(false)} style={styles.closeButton}>
+                  <Ionicons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ paddingHorizontal: moderateScale(16), paddingBottom: moderateScale(16), paddingTop: moderateScale(8) }}>
+                {couponFetching ? (
+                  <ActivityIndicator />
+                ) : (
+                  <FlatList
+                    data={availableCoupons}
+                    keyExtractor={(item) => item._id}
+                    renderItem={({ item }) => {
+                      const subtotal = serverPriceDetails?.totalMRP ?? computeLocalSubtotal();
+                      const discountValue = computeDiscountForCoupon(item, subtotal);
+                      return (
+                        <TouchableOpacity style={styles.couponItem} onPress={() => onSelectCouponFromList(item)}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontWeight: '700' }}>{item.code}</Text>
+                            <Text style={{ color: '#666' }}>{item.appliesTo?.join?.(', ') || 'All Products'}</Text>
+                            <Text style={{ color: '#666', marginTop: 6 }}>
+                              {item.discount?.type === 'Percentage' ? `${item.discount.value}% off` : `₹${item.discount.value} off`} • Min ₹{item.minimumOrder || 0}
+                            </Text>
+                          </View>
+                          <View style={{ alignItems: 'flex-end' }}>
+                            <Text style={{ fontWeight: '700' }}>Save</Text>
+                            <Text style={{ color: '#333', marginTop: 6 }}>₹{discountValue.toFixed(2)}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    }}
+                    ListEmptyComponent={<Text style={{ textAlign: 'center', color: '#666' }}>No coupons</Text>}
+                    ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+                  />
+                )}
+              </View>
+            </View>
           </View>
-        )}
+        </Modal>
 
         {/* Price details */}
         <View style={styles.priceSection}>
           <Text style={styles.priceTitle}>Price Details</Text>
-          <View style={styles.priceRow}><Text style={styles.priceLabel}>Total MRP</Text><Text style={styles.priceValue}>₹{totalsForRender.subtotal.toFixed(2)}</Text></View>
-          <View style={styles.priceRow}><Text style={styles.priceLabel}>Coupon Discount</Text><Text style={styles.priceValue}>₹{(-totalsForRender.couponDiscount).toFixed(2)}</Text></View>
-          <View style={styles.priceRow}><Text style={styles.priceLabel}>Delivery Charge</Text><Text style={styles.priceValue}>₹{totalsForRender.deliveryCharge.toFixed(2)}</Text></View>
-          <View style={styles.totalRow}><Text style={styles.totalLabel}>Total Amount</Text><Text style={styles.totalValue}>₹{totalsForRender.totalAmount.toFixed(2)}</Text></View>
+          <View style={styles.priceRow}>
+            <Text style={styles.priceLabel}>Total MRP</Text>
+            <Text style={styles.priceValue}>₹{totalsForRender.subtotal.toFixed(2)}</Text>
+          </View>
+          <View style={styles.priceRow}>
+            <Text style={styles.priceLabel}>Coupon Discount</Text>
+            <Text style={styles.priceValue}>₹{(-totalsForRender.couponDiscount).toFixed(2)}</Text>
+          </View>
+          <View style={styles.priceRow}>
+            <Text style={styles.priceLabel}>Delivery Charge</Text>
+            <Text style={styles.priceValue}>₹{totalsForRender.deliveryCharge.toFixed(2)}</Text>
+          </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Total Amount</Text>
+            <Text style={styles.totalValue}>₹{totalsForRender.totalAmount.toFixed(2)}</Text>
+          </View>
           {totalsForRender.usedServer && <Text style={{ fontSize: normalizeFont(10), color: '#666', marginTop: moderateScale(6) }}>Using server-calculated charges</Text>}
         </View>
 
         <View style={styles.commentsSection}>
           <Text style={styles.commentsTitle}>Comments</Text>
-          <TextInput style={styles.commentsInput} placeholder="Instructions / Comments for the vendor" placeholderTextColor="#999" multiline />
+          <TextInput
+            style={styles.commentsInput}
+            placeholder="Instructions / Comments for the vendor"
+            placeholderTextColor="#999"
+            multiline
+            value={comments}
+            onChangeText={setComments}
+          />
         </View>
 
         <SuggestionCard />
@@ -776,7 +1036,7 @@ const ReviewOrder = () => {
           <Text style={styles.totalPrice}>₹{totalsForRender.totalAmount.toFixed(2)}</Text>
         </View>
         <TouchableOpacity style={styles.proceedButton} onPress={handleProceedToPayment}>
-          <Image source={require("../assets/via-farm-img/icons/UpArrow.png")} />
+          <Image source={require('../assets/via-farm-img/icons/UpArrow.png')} />
           <Text style={styles.proceedButtonText}>Proceed to Payment</Text>
         </TouchableOpacity>
       </View>
@@ -789,7 +1049,9 @@ const ReviewOrder = () => {
             <View style={styles.dragHandle} />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Delivery Location</Text>
-              <TouchableOpacity onPress={closeModal} style={styles.closeButton}><Ionicons name="close" size={24} color="#666" /></TouchableOpacity>
+              <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.addressList} showsVerticalScrollIndicator={false}>
@@ -805,10 +1067,12 @@ const ReviewOrder = () => {
                     </View>
                   </View>
                   <View style={styles.addressDetails}>
-                    <Text style={styles.addressName}>{address.name}, {address.pincode}</Text>
+                    <Text style={styles.addressName}>
+                      {address.name}, {address.pincode}
+                    </Text>
                     <Text style={styles.addressText}>{address.address}</Text>
                   </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(10), }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(10) }}>
                     <TouchableOpacity
                       onPress={() => {
                         closeModal();
@@ -822,8 +1086,8 @@ const ReviewOrder = () => {
                               city: address.city || '',
                               district: address.district || '',
                               isDefault: address.isDefault || false,
-                              name: address.name || 'Buyer'
-                            }
+                              name: address.name || 'Buyer',
+                            },
                           });
                         }, 300);
                       }}
@@ -833,19 +1097,7 @@ const ReviewOrder = () => {
 
                     <TouchableOpacity
                       onPress={async () => {
-                        try {
-                          const token = await AsyncStorage.getItem('userToken');
-                          const res = await axios.delete(`${API_BASE}/api/buyer/addresses/${address.id}`, {
-                            headers: { Authorization: `Bearer ${token}` },
-                          });
-                          if (res.data.success) {
-                            // no need for modal close alert
-                            fetchBuyerAddresses();
-                          }
-                        } catch (err) {
-                          console.error(err);
-                          Alert.alert('Error', 'Failed to delete address');
-                        }
+                        await deleteAddress(address);
                       }}
                     >
                       <Image source={require('../assets/via-farm-img/icons/deleteBtn.png')} />
@@ -868,8 +1120,7 @@ const ReviewOrder = () => {
   );
 };
 
-
-export default ReviewOrder
+export default ReviewOrder;
 
 const styles = StyleSheet.create({
   container: {
@@ -893,6 +1144,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignContent: 'center',
   },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: normalizeFont(16),
+    color: '#666',
+    marginBottom: moderateScale(12),
+  },
+  shopButton: {
+    backgroundColor: '#28a745',
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(10),
+    borderRadius: 8,
+  },
+  shopButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
   productImage: {
     width: scale(155),
     height: scale(128),
@@ -904,17 +1175,8 @@ const styles = StyleSheet.create({
   deleteBtn: {
     position: 'absolute',
     right: 0,
-    bottom:0,
+    bottom: 0,
     padding: moderateScale(5),
-  },
-  indiaCurrency: {
-    backgroundColor: 'rgba(217, 217, 217, 1)',
-    color: 'black',
-    padding: moderateScale(13),
-    borderTopLeftRadius: 5,
-    borderBottomLeftRadius: 5,
-    width: scale(50),
-    fontSize: normalizeFont(20),
   },
   location: {
     flexDirection: 'row',
@@ -930,7 +1192,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(10),
   },
   scrollContent: {
-    paddingBottom: moderateScale(100),
+    paddingBottom: moderateScale(120),
   },
   bottomSpacer: {
     height: scale(20),
@@ -962,7 +1224,6 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: '500',
   },
-
   deliveryDate: {
     fontSize: normalizeFont(12),
     color: 'rgba(66, 66, 66, 1)',
@@ -993,7 +1254,7 @@ const styles = StyleSheet.create({
   },
   deliveryRow: {
     flexDirection: 'row',
-       fontSize: normalizeFont(10),
+    fontSize: normalizeFont(10),
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: moderateScale(2),
@@ -1007,15 +1268,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 5,
-    bottom:0,
+    bottom: 0,
     position: 'absolute',
     marginTop: moderateScale(60),
     borderWidth: 1,
     borderColor: '#000',
+    paddingHorizontal: moderateScale(4),
+    paddingVertical: moderateScale(4),
   },
   quantityButton: {
     paddingHorizontal: 8,
-    // paddingVertical: moderateScale(3),
   },
   quantityText: {
     fontSize: normalizeFont(13),
@@ -1031,11 +1293,16 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderRightWidth: 1,
   },
+  couponContainer: {
+    marginTop: moderateScale(10),
+    marginBottom: moderateScale(10),
+  },
   couponSection: {
     marginTop: moderateScale(15),
     marginBottom: moderateScale(10),
     flexDirection: 'row',
     gap: 10,
+    alignItems: 'center',
   },
   couponTitle: {
     fontSize: normalizeFont(12),
@@ -1067,33 +1334,21 @@ const styles = StyleSheet.create({
     padding: moderateScale(14),
     borderRadius: 10,
   },
-  donationSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: moderateScale(20),
-    borderRadius: moderateScale(10),
-    gap: scale(20),
-    borderWidth: 2,
-    borderColor: 'rgba(0, 0, 0, 0.2)',
-  },
-  donationText: {
-    fontSize: normalizeFont(12),
-    marginTop: moderateScale(10),
-    color: '#666',
-    marginBottom: moderateScale(10),
-  },
-  donationAmount: {
-    backgroundColor: '#F8F8F8',
-    paddingHorizontal: moderateScale(15),
+  appliedCouponRow: {
+    paddingHorizontal: moderateScale(6),
     paddingVertical: moderateScale(8),
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
   },
-  donationValue: {
-    fontSize: normalizeFont(12),
+  appliedCouponText: {
+    color: '#2e7d32',
     fontWeight: '600',
-    color: '#000',
+  },
+  donationContainer: {
+    marginVertical: moderateScale(16),
+    padding: moderateScale(12),
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: moderateScale(10),
+    backgroundColor: '#fff',
   },
   priceSection: {
     backgroundColor: '#F8F8F8',
@@ -1156,7 +1411,6 @@ const styles = StyleSheet.create({
     height: scale(80),
     textAlignVertical: 'top',
   },
-  // Bottom Payment Card Styles
   bottomPaymentCard: {
     position: 'absolute',
     bottom: 0,
@@ -1182,11 +1436,6 @@ const styles = StyleSheet.create({
   paymentLeft: {
     flexDirection: 'column',
   },
-  priceLabelBottom: {
-    fontSize: normalizeFont(12),
-    color: '#666',
-    marginBottom: moderateScale(2),
-  },
   totalPrice: {
     fontSize: normalizeFont(15),
     fontWeight: '700',
@@ -1207,7 +1456,7 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(12),
     fontWeight: '600',
   },
-  // Modal Styles
+  // Modal styles
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -1248,59 +1497,6 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: moderateScale(4),
-  },
-  searchSection: {
-    padding: moderateScale(20),
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  pincodeInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: moderateScale(15),
-  },
-  pincodeInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: moderateScale(8),
-    paddingHorizontal: moderateScale(12),
-    paddingVertical: moderateScale(10),
-    marginRight: moderateScale(10),
-  },
-  checkButton: {
-    borderWidth: 1,
-    borderColor: 'green',
-    paddingHorizontal: moderateScale(15),
-    paddingVertical: moderateScale(10),
-    borderRadius: moderateScale(8),
-  },
-  checkButtonText: {
-    color: 'blue',
-    fontWeight: '600',
-  },
-  locationButton: {
-    flexDirection: 'row',
-    marginBottom: moderateScale(10),
-  },
-  locationButtonText: {
-    color: '#3b82f6',
-    fontWeight: '600',
-    marginLeft: moderateScale(8),
-  },
-  searchLocationButton: {
-    flexDirection: 'row',
-    marginBottom: moderateScale(15),
-    color: '#000',
-  },
-  searchLocationButtonText: {
-    color: 'blue',
-    marginLeft: moderateScale(8),
-  },
-  orText: {
-    textAlign: 'center',
-    color: '#666',
-    fontSize: normalizeFont(12),
   },
   addressList: {
     maxHeight: scale(300),
@@ -1364,7 +1560,7 @@ const styles = StyleSheet.create({
     padding: moderateScale(15),
   },
   NewAddress: {
-    backgroundColor:'rgba(76, 175, 80, 1)',
+    backgroundColor: 'rgba(76, 175, 80, 1)',
     flexDirection: 'row',
     padding: moderateScale(10),
     borderRadius: moderateScale(10),
@@ -1375,4 +1571,40 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(12),
     marginLeft: moderateScale(8),
   },
-})
+
+  // coupon modal centered styles
+  centeredOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centeredCouponModal: {
+    width: '90%',
+    maxHeight: '70%',
+    backgroundColor: '#fff',
+    borderRadius: moderateScale(12),
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#eee',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  couponItem: {
+    paddingVertical: moderateScale(12),
+    paddingHorizontal: moderateScale(10),
+    borderBottomWidth: 1,
+    borderColor: '#eee',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  couponModal: {
+    marginHorizontal: moderateScale(20),
+    marginTop: moderateScale(80),
+    borderRadius: moderateScale(12),
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+  },
+});

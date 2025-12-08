@@ -1,6 +1,6 @@
+import { moderateScale, scale } from "@/app/Responsive";
 import React from "react";
 import { ImageBackground, StyleSheet, TouchableOpacity } from "react-native";
-
 interface PromoCardProps {
   image: string;
   onPress: () => void;
@@ -24,20 +24,20 @@ const styles = StyleSheet.create({
   card: {
     width: "92%",
     alignSelf: "center",
-    borderRadius: 16,
+    borderRadius:moderateScale(16),
     overflow: "hidden",
-    marginVertical: 12,
-    backgroundColor: "#E8F5E9", // fallback color while loading
-    elevation: 4,
+    marginVertical:moderateScale(10),
+    backgroundColor: "#E8F5E9", 
+    elevation:moderateScale(4),
     shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 5,
   },
   imageBackground: {
     width: "100%",
-    height:140,
+    height:scale(145),
   },
   imageStyle: {
-    resizeMode: "cover",
+    resizeMode: "stretch",
   },
 });

@@ -1,3 +1,4 @@
+// MyCart.jsx
 import Responsive from '@/app/Responsive';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -27,16 +28,24 @@ const BASE_URL = 'https://viafarm-1.onrender.com';
 const GET_CART_ENDPOINT = '/api/buyer/cart';
 const ADD_UPDATE_CART_ENDPOINT = '/api/buyer/cart/add';
 const DELETE_CART_ITEM_ENDPOINT = '/api/buyer/cart/';
-const { moderateScale, scale, verticalScale, normalizeFont } = Responsive;
+const SELECT_VENDOR_ENDPOINT = '/api/buyer/cart/selectVendor';
+const GET_HIGHLIGHTED_COUPONS = '/api/buyer/coupons/highlighted';
+const PLACE_PICKUP_ORDER = '/api/buyer/pickuporder';
 
+const { moderateScale, scale, verticalScale, normalizeFont } = Responsive;
+const SELECTED_VENDOR_KEY = 'selectedVendorId_viafarm';
 
 const MyCart = () => {
   const navigation = useNavigation();
 
   const [authToken, setAuthToken] = useState(null);
   const [cartItems, setCartItems] = useState([]);
+  const [vendors, setVendors] = useState([]);
+  const [selectedVendor, setSelectedVendor] = useState(null);
+  const [selectedVendorId, setSelectedVendorId] = useState(null); // preserve selection across refreshes
+  const [selectedVendorItems, setSelectedVendorItems] = useState([]);
+  const [selectedVendorDetails, setSelectedVendorDetails] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [vendorDetails, setVendorDetails] = useState(null);
   const [slot, setSlot] = useState({ date: '', startTime: '', endTime: '' });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
@@ -47,8 +56,6 @@ const MyCart = () => {
   const [startAMPM, setStartAMPM] = useState('AM');
   const [endAMPM, setEndAMPM] = useState('AM');
   const [paymentMethod, setPaymentMethod] = useState('cash');
-
-
   const [priceDetails, setPriceDetails] = useState({
     totalMRP: 0,
     couponDiscount: 0,
@@ -67,14 +74,13 @@ const MyCart = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [appliedCoupon, setAppliedCoupon] = useState(null); // now contains vendorId
   const [couponError, setCouponError] = useState('');
 
-  const availableCoupons = [
-    { code: 'SAVE10', discount: 10, type: 'percentage' },
-    { code: 'SAVE20', discount: 70, type: 'percentage' },
-    { code: 'FREESHIP', discount: 50, type: 'fixed' },
-  ];
+  // highlighted coupons dropdown
+  const [highlightedCoupons, setHighlightedCoupons] = useState([]);
+  const [showCouponsDropdown, setShowCouponsDropdown] = useState(false);
+  const [fetchingCoupons, setFetchingCoupons] = useState(false);
 
   // --- Fetch Token ---
   const getAuthToken = async () => {
@@ -88,8 +94,63 @@ const MyCart = () => {
     }
   };
 
-  const fetchCartItems = useCallback(async (token) => {
+  // persist selected vendor id
+  const persistSelectedVendorId = async (id) => {
+    try {
+      if (id) await AsyncStorage.setItem(SELECTED_VENDOR_KEY, String(id));
+      else await AsyncStorage.removeItem(SELECTED_VENDOR_KEY);
+    } catch (e) {
+      console.warn('persistSelectedVendorId error', e);
+    }
+  };
+
+  // --- Select Vendor (server side) ---
+  const selectVendor = async (vendorId) => {
+    // store selected vendor id for persistence
+    setSelectedVendorId(vendorId);
+    persistSelectedVendorId(vendorId);
+
+    // optimistic UI selection locally; also call server to persist
+    const localVendor = vendors.find(v => String(v.id) === String(vendorId));
+    if (localVendor) {
+      // set selected vendor locally
+      setSelectedVendor(localVendor);
+      setSelectedVendorDetails(localVendor);
+      setSelectedVendorItems(localVendor.items || []);
+      setPriceDetails(localVendor.priceDetails || {
+        totalMRP: 0, couponDiscount: 0, deliveryCharge: 0, totalAmount: 0
+      });
+    }
+
+    try {
+      const token = authToken || (await getAuthToken());
+      if (!token) return; // can't call server without token
+      const res = await fetch(`${BASE_URL}${SELECT_VENDOR_ENDPOINT}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          vendorId: vendorId,
+          selected: true
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      // Log but do not force state changes if server fails; we've already updated UI
+      if (!res.ok || !json.success) {
+        console.warn('Failed to select vendor on server:', json?.message || res.status);
+      }
+    } catch (error) {
+      console.error('Select Vendor Error:', error);
+    }
+  };
+
+  // --- Fetch Cart Items and transform into vendors list ---
+  const fetchCartItems = useCallback(async (tokenArg) => {
+    const token = tokenArg ?? (await getAuthToken());
     if (!token) {
+      // if no token, still try to fetch public coupons but cart requires auth
       setLoading(false);
       return;
     }
@@ -99,80 +160,155 @@ const MyCart = () => {
         method: 'GET',
         headers: { Authorization: `Bearer ${token}` },
       });
-      const json = await res.json();
-      console.log('Fetch cart response:', res.status, json);
-      if (res.ok && json.success) {
-        const items = json.data.items || [];
+      const json = await res.json().catch(() => ({}));
+      // Defensive checks
+      if (res.ok && json?.success) {
+        const items = (json.data && Array.isArray(json.data.items)) ? json.data.items : [];
+        // Group items by vendor
+        const vendorsMap = new Map();
 
-        if (items.length > 0 && items[0].vendor) {
-          const vendor = items[0].vendor;
-          setVendorDetails({
-            id: vendor.id,
-            name: vendor.name,
-            phoneNo: vendor.mobileNumber,
-            profilePicture: vendor.profilePicture,
-            pickupLocationText: `${vendor.address?.houseNumber || ''} ${vendor.address?.street || ''}, ${vendor.address?.locality || ''}, ${vendor.address?.city || ''}`.trim(),
-            address: vendor.address,
-            about: vendor.about,
-            latitude: vendor.address?.latitude || vendor.geoLocation?.[1],
-            longitude: vendor.address?.longitude || vendor.geoLocation?.[0],
-          });
+        items.forEach(item => {
+          const vendor = item.vendor || {};
+          const vendorId = vendor.id || vendor._id || 'unknown_vendor';
+          if (!vendorsMap.has(vendorId)) {
+            vendorsMap.set(vendorId, {
+              id: vendorId,
+              name: vendor.name || 'Unknown Vendor',
+              phoneNo: vendor.mobileNumber || vendor.phone || '',
+              profilePicture: vendor.profilePicture || vendor.image || null,
+              pickupLocationText: `${vendor.address?.houseNumber || ''} ${vendor.address?.street || ''}, ${vendor.address?.locality || ''}, ${vendor.address?.city || ''}`.trim(),
+              address: vendor.address || {},
+              about: vendor.about || '',
+              latitude: vendor.address?.latitude || vendor.geoLocation?.[1] || null,
+              longitude: vendor.address?.longitude || vendor.geoLocation?.[0] || null,
+              items: [],
+              priceDetails: {},
+              selected: false
+            });
+          }
+          const vendorData = vendorsMap.get(vendorId);
+
+          const transformedItem = {
+            id: item.id || item._id || String(Math.random()),
+            title: item.name || item.title || 'Product',
+            subtitle: item.subtitle || '',
+            mrp: Number(item.mrp) || 0,
+            price: Number(item.price ?? item.mrp) || 0,
+            image: item.imageUrl || item.image || null,
+            quantity: Number(item.quantity) || 1,
+            deliveryDate: item.deliveryText || 'Today',
+            vendorId: vendorId,
+            vendorName: vendor.name || 'Vendor'
+          };
+
+          vendorData.items.push(transformedItem);
+
+          // vendor-wise subtotal
+          const subtotal = vendorData.items.reduce((sum, i) => sum + (Number(i.price) || 0) * (i.quantity || 1), 0);
+
+          const vendorPriceDetails = item.vendorPriceDetails || {};
+          vendorData.priceDetails = {
+            totalMRP: subtotal,
+            couponDiscount: Number(vendorPriceDetails.discount || vendorPriceDetails.couponDiscount || 0),
+            deliveryCharge: Number(vendorPriceDetails.deliveryCharge || 0),
+            totalAmount: Number(vendorPriceDetails.totalAmount || Math.max(0, subtotal - (vendorPriceDetails.discount || vendorPriceDetails.couponDiscount || 0) + (vendorPriceDetails.deliveryCharge || 0))),
+          };
+        });
+
+        const vendorsArray = Array.from(vendorsMap.values());
+        setVendors(vendorsArray);
+
+        // Default selection: use preserved selectedVendorId if present, else server selection or first vendor
+        let toSelect = null;
+
+        // try AsyncStorage preserved id first (most persistent)
+        const persisted = await AsyncStorage.getItem(SELECTED_VENDOR_KEY);
+        if (persisted) {
+          toSelect = vendorsArray.find(v => String(v.id) === String(persisted));
         }
 
-        const transformed = items.map(item => ({
-          id: item.id || item._id,
-          title: item.name,
-          subtitle: item.subtitle,
-          mrp: Number(item.mrp) || 0,
-          price: Number(item.mrp) || 0,
-          image: item.imageUrl,
-          quantity: item.quantity || 1,
-          deliveryDate: item.deliveryText || 'Sep 27',
-        }));
-        setCartItems(transformed);
+        // fallback to in-state selectedVendorId (if set earlier)
+        if (!toSelect && selectedVendorId) {
+          toSelect = vendorsArray.find(v => String(v.id) === String(selectedVendorId));
+        }
 
-        const subtotalLocal = transformed.reduce((s, i) => s + (Number(i.price) || 0) * (i.quantity || 0), 0);
-        const serverSummary = json.data.priceDetails ?? json.data.summary ?? {};
-        const serverDeliveryCharge = Number(serverSummary.deliveryCharge ?? 0);
-        if (appliedCoupon) {
-          setPriceDetails({
-            totalMRP: Number(serverSummary.totalMRP ?? subtotalLocal),
-            couponDiscount: Number(serverSummary.discount ?? serverSummary.couponDiscount ?? 0),
-            deliveryCharge: serverDeliveryCharge,
-            totalAmount: Number(serverSummary.totalAmount ?? Math.max(0, subtotalLocal - (serverSummary.discount ?? serverSummary.couponDiscount ?? 0) + serverDeliveryCharge)),
-          });
-        } else {
-          setPriceDetails({
-            totalMRP: subtotalLocal,
-            couponDiscount: 0,
-            deliveryCharge: serverDeliveryCharge,
-            totalAmount: Number((subtotalLocal + serverDeliveryCharge).toFixed(2)),
-          });
-
-          if (json.data.couponCode) {
-            console.log('Server returned couponCode but not auto-applying:', json.data.couponCode);
+        if (!toSelect) {
+          const selectedVendorIds = (json.data && Array.isArray(json.data.selectedVendors)) ? json.data.selectedVendors : [];
+          if (selectedVendorIds.length > 0) {
+            toSelect = vendorsArray.find(v => v.id === selectedVendorIds[0]);
           }
         }
+
+        if (!toSelect && vendorsArray.length > 0) {
+          toSelect = vendorsArray[0];
+        }
+
+        if (toSelect) {
+          setSelectedVendor(toSelect);
+          setSelectedVendorId(toSelect.id);
+          persistSelectedVendorId(toSelect.id);
+          setSelectedVendorDetails(toSelect);
+          setSelectedVendorItems(toSelect.items || []);
+          setPriceDetails(toSelect.priceDetails || {
+            totalMRP: 0, couponDiscount: 0, deliveryCharge: 0, totalAmount: 0
+          });
+        } else {
+          // no vendors
+          setSelectedVendor(null);
+          setSelectedVendorItems([]);
+          setSelectedVendorDetails(null);
+          setPriceDetails({ totalMRP: 0, couponDiscount: 0, deliveryCharge: 0, totalAmount: 0 });
+        }
+
       } else {
-        setCartItems([]);
-        setVendorDetails(null);
+        console.warn('Failed to fetch cart:', json?.message || res.status);
+        setVendors([]);
+        setSelectedVendor(null);
+        setSelectedVendorItems([]);
+        setSelectedVendorDetails(null);
         setPriceDetails({ totalMRP: 0, couponDiscount: 0, deliveryCharge: 0, totalAmount: 0 });
-        console.warn('Failed to fetch cart:', json.message);
       }
     } catch (error) {
       console.error('Fetch Cart Error:', error);
-      Alert.alert('Error', 'Could not fetch cart.');
-      setCartItems([]);
+      setVendors([]);
+      setSelectedVendor(null);
+      setSelectedVendorItems([]);
+      setSelectedVendorDetails(null);
+      setPriceDetails({ totalMRP: 0, couponDiscount: 0, deliveryCharge: 0, totalAmount: 0 });
     } finally {
       setLoading(false);
     }
-  }, [appliedCoupon]);
+  }, [selectedVendorId]);
+
+  // fetch highlighted coupons
+  const fetchHighlightedCoupons = async (token) => {
+    try {
+      setFetchingCoupons(true);
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`${BASE_URL}${GET_HIGHLIGHTED_COUPONS}`, { headers });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json?.success && Array.isArray(json.data)) {
+        setHighlightedCoupons(json.data);
+      } else {
+        setHighlightedCoupons([]);
+      }
+    } catch (err) {
+      console.error('Fetch highlighted coupons error:', err);
+      setHighlightedCoupons([]);
+    } finally {
+      setFetchingCoupons(false);
+    }
+  };
 
   useEffect(() => {
     const init = async () => {
       const token = await getAuthToken();
-      if (token) fetchCartItems(token);
-      else {
+      if (token) {
+        await fetchCartItems(token);
+        await fetchHighlightedCoupons(token);
+      } else {
+        // still attempt to fetch coupons publicly
+        await fetchHighlightedCoupons(null);
         setLoading(false);
       }
     };
@@ -190,90 +326,108 @@ const MyCart = () => {
   }, [fetchCartItems]);
 
   const updateQuantity = async (itemId, newQty) => {
-    if (!authToken) {
-      Alert.alert('Error', 'Token not found.');
+    // ensure token available
+    const token = authToken || (await getAuthToken());
+    if (!token) {
+      Alert.alert('Login required', 'Please login to update cart.');
       return;
     }
 
     if (newQty < 1) return removeItem(itemId);
 
-    const prevItem = cartItems.find(i => i.id === itemId);
+    const prevItem = selectedVendorItems.find(i => i.id === itemId);
+    if (!prevItem) return;
 
-    setCartItems(prev =>
+    // Optimistic update: update local selectedVendorItems & vendors list
+    setSelectedVendorItems(prev =>
       prev.map(i => (i.id === itemId ? { ...i, quantity: newQty } : i))
     );
+    setVendors(prevVendors => prevVendors.map(v => {
+      if (v.id !== selectedVendorId) return v;
+      return { ...v, items: v.items.map(it => it.id === itemId ? { ...it, quantity: newQty } : it) };
+    }));
 
     try {
       const res = await fetch(`${BASE_URL}/api/buyer/cart/${itemId}/quantity`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ quantity: newQty }),
       });
 
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
 
       if (!res.ok || !json.success) {
-        Alert.alert('Update Failed', json.message || 'Could not update quantity.');
-        setCartItems(prev =>
+        // Revert on error
+        setSelectedVendorItems(prev =>
           prev.map(i => (i.id === itemId ? prevItem : i))
         );
+        fetchCartItems(token);
       } else {
-        fetchCartItems(authToken);
+        // keep optimistic change but refresh to get server price details
+        fetchCartItems(token);
       }
     } catch (e) {
       console.error('Update Error:', e);
-      Alert.alert('Error', 'Network error.');
-      setCartItems(prev =>
+      // revert and refresh
+      setSelectedVendorItems(prev =>
         prev.map(i => (i.id === itemId ? prevItem : i))
       );
+      fetchCartItems(token);
     }
   };
 
   const removeItem = async (itemId) => {
-    if (!authToken) return Alert.alert('Error', 'Token not found.');
+    const token = authToken || (await getAuthToken());
+    if (!token) {
+      Alert.alert('Login required', 'Please login to update cart.');
+      return;
+    }
 
-    const prevCart = [...cartItems];
+    const itemToRemove = selectedVendorItems.find(i => i.id === itemId);
+    if (!itemToRemove) return;
 
     // Optimistically remove from UI
-    setCartItems(prev => prev.filter(i => i.id !== itemId));
+    setSelectedVendorItems(prev => prev.filter(i => i.id !== itemId));
+    setVendors(prevVendors => prevVendors.map(v => v.id === selectedVendorId ? { ...v, items: v.items.filter(it => it.id !== itemId) } : v));
 
     try {
       const res = await fetch(`${BASE_URL}${DELETE_CART_ITEM_ENDPOINT}${itemId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!res.ok) {
-        const json = await res.json();
-        Alert.alert('Remove Failed', json.message || 'Could not remove item.');
-        // Revert on error
-        setCartItems(prevCart);
+        const json = await res.json().catch(() => ({}));
+        console.warn('Delete failed', json);
+        fetchCartItems(token);
       } else {
-        Alert.alert('Success', 'Item removed from cart');
-        // Refresh cart to update prices
-        fetchCartItems(authToken);
+        fetchCartItems(token);
       }
     } catch (e) {
       console.error('Remove Error:', e);
-      Alert.alert('Error', 'Network error.');
-      // Revert on error
-      setCartItems(prevCart);
+      fetchCartItems(token);
     }
   };
 
-  // APPLY COUPON: call server endpoint to validate & apply coupon.
-  const applyCoupon = async () => {
+  // apply coupon (keeps your existing server flow)
+  const applyCoupon = async (codeToApplyArg) => {
     setCouponError('');
-    const codeToApply = (couponCode || '').toString().trim();
+    // FIX: avoid mixing ?? and || in one expression
+    const raw = codeToApplyArg ?? couponCode;
+    const codeToApply = (raw || '').toString().trim();
+
     if (!codeToApply) {
       setCouponError('Please enter coupon code');
       return;
     }
 
-    console.log('Applying coupon to API:', codeToApply);
+    if (!selectedVendor) {
+      Alert.alert('Error', 'Please select a vendor first.');
+      return;
+    }
 
     try {
       const token = authToken || (await getAuthToken());
@@ -288,65 +442,91 @@ const MyCart = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ code: codeToApply }),
+        body: JSON.stringify({
+          code: codeToApply,
+          vendorId: selectedVendor.id
+        }),
       });
 
-      const json = await res.json();
-      console.log('Apply coupon response:', res.status, json);
+      const json = await res.json().catch(() => ({}));
 
       if (res.ok && json.success) {
+        // Price data from server
         const pd = json.priceDetails ?? json.summary ?? {};
 
-        setPriceDetails({
-          totalMRP: Number(pd.totalMRP ?? pd.totalMRP ?? 0),
+        // Map server fields defensively
+        const newPriceDetails = {
+          totalMRP: Number(pd.totalMRP ?? pd.totalAmount ?? priceDetails.totalMRP ?? 0),
           couponDiscount: Number(pd.discount ?? pd.couponDiscount ?? 0),
           deliveryCharge: Number(pd.deliveryCharge ?? 0),
-          totalAmount: Number(pd.totalAmount ?? 0),
+          totalAmount: Number(pd.totalAmount ?? (Number(pd.totalMRP ?? 0) - Number(pd.discount ?? pd.couponDiscount ?? 0) + Number(pd.deliveryCharge ?? 0)) ?? 0),
+        };
+
+        // Update vendors array: only change selected vendor's priceDetails
+        const updatedVendors = vendors.map(v => {
+          if (v.id === selectedVendor.id) {
+            return { ...v, priceDetails: newPriceDetails };
+          }
+          return v;
         });
 
-        const serverTotalMRP = Number(pd.totalMRP ?? 0);
-        const serverTotalAmount = Number(pd.totalAmount ?? 0);
-        let computedDiscount = 0;
-        if (serverTotalMRP > 0 && serverTotalAmount >= 0) {
-          computedDiscount = serverTotalMRP - serverTotalAmount;
-        }
-        const explicitDiscount = Number(pd.discount ?? pd.couponDiscount ?? 0);
-        const finalDiscountToShow = explicitDiscount > 0 ? explicitDiscount : computedDiscount;
+        setVendors(updatedVendors);
+
+        // Update selectedVendor state with updated price details
+        const updatedSelectedVendor = updatedVendors.find(v => v.id === selectedVendor.id) || selectedVendor;
+        setSelectedVendor(updatedSelectedVendor);
+        setSelectedVendorDetails(updatedSelectedVendor);
+        setSelectedVendorItems(updatedSelectedVendor.items || []);
+        setPriceDetails(updatedSelectedVendor.priceDetails || newPriceDetails);
 
         setAppliedCoupon({
           code: json.couponCode ?? codeToApply,
-          discount: finalDiscountToShow,
+          discount: Number(pd.discount ?? pd.couponDiscount ?? 0),
           type: 'fixed',
+          vendorId: selectedVendor.id, // mark which vendor got applied coupon
         });
 
-        console.log('Applied coupon resolved discount:', finalDiscountToShow, 'server priceDetails:', pd);
-
-        Alert.alert('Success', json.message || 'Coupon applied successfully.');
+        setCouponCode(codeToApply);
+        // Refresh cart to update vendor-specific data from server (selection preserved by selectedVendorId)
+        fetchCartItems(token);
+        setShowCouponsDropdown(false);
       } else {
-        console.warn('Apply coupon failed:', json);
         const errMsg = json.message || 'Failed to apply coupon';
         setCouponError(errMsg);
-        Alert.alert('Coupon Error', errMsg);
       }
     } catch (err) {
       console.error('Apply coupon error:', err);
       setCouponError('Network error while applying coupon');
-      Alert.alert('Error', 'Network error while applying coupon');
     }
   };
 
-  const removeCoupon = () => {
+  const removeCoupon = async () => {
     setAppliedCoupon(null);
     setCouponCode('');
     setCouponError('');
-    (async () => {
-      const token = authToken || (await getAuthToken());
-      if (token) fetchCartItems(token);
-    })();
+
+    const token = authToken || (await getAuthToken());
+    if (token) {
+      try {
+        await fetch(`${BASE_URL}/api/buyer/cart/remove-coupon`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ vendorId: selectedVendor?.id }),
+        });
+        fetchCartItems(token);
+      } catch (error) {
+        console.error('Remove coupon error:', error);
+        fetchCartItems(token);
+      }
+    }
   };
 
   const handleDateChange = (event, date) => {
-    if (event.type === 'set' && date) {
+    // DateTimePicker returns event.type === 'set' for selection and 'dismissed' otherwise
+    if (event?.type === 'set' && date) {
       const formattedDate = date.toLocaleDateString('en-IN', {
         year: 'numeric',
         month: '2-digit',
@@ -373,7 +553,7 @@ const MyCart = () => {
   };
 
   const handleStartTimeChange = (event, time) => {
-    if (event.type === 'set' && time) {
+    if (event?.type === 'set' && time) {
       const formattedTime = convertTo12Hour(time, startAMPM);
       setSlot({ ...slot, startTime: formattedTime });
       setSelectedStartTime(time);
@@ -382,7 +562,7 @@ const MyCart = () => {
   };
 
   const handleEndTimeChange = (event, time) => {
-    if (event.type === 'set' && time) {
+    if (event?.type === 'set' && time) {
       const formattedTime = convertTo12Hour(time, endAMPM);
       setSlot({ ...slot, endTime: formattedTime });
       setSelectedEndTime(time);
@@ -390,21 +570,11 @@ const MyCart = () => {
     setShowEndTimePicker(false);
   };
 
-  const subtotal = cartItems.reduce((s, i) => s + (Number(i.price) || 0) * (i.quantity || 0), 0);
-  const calculateCouponDiscount = () => {
-    const serverCouponDiscount = Number(priceDetails.couponDiscount ?? priceDetails.discount ?? 0);
-    if (appliedCoupon && serverCouponDiscount > 0) return serverCouponDiscount;
-    if (!appliedCoupon) return 0;
-    if (appliedCoupon.type === 'percentage') {
-      return (subtotal * appliedCoupon.discount) / 100;
-    } else {
-      return Number(appliedCoupon.discount || 0);
-    }
-  };
-
-  const couponDiscount = calculateCouponDiscount();
+  const subtotal = selectedVendorItems.reduce((s, i) => s + (Number(i.price) || 0) * (i.quantity || 0), 0);
+  const couponDiscount = Number(priceDetails.couponDiscount || 0);
   const deliveryCharge = Number(priceDetails.deliveryCharge || 0);
-  const finalAmount = Number((subtotal - couponDiscount + deliveryCharge).toFixed(2));
+  const finalAmount = Number(priceDetails.totalAmount ?? (subtotal - couponDiscount + deliveryCharge));
+
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onPanResponderMove: (evt, gestureState) => {
@@ -466,7 +636,14 @@ const MyCart = () => {
     if (option === 'pickup') {
       openPickupModal();
     } else {
-      navigation.navigate("ReviewOrder");
+      // navigate to ReviewOrder screen to let user confirm delivery (keeps flow similar to your previous implementation)
+      navigation.navigate("ReviewOrder", {
+        vendorId: selectedVendor?.id,
+        vendorName: selectedVendor?.name,
+        items: selectedVendorItems,
+        priceDetails: priceDetails,
+        deliveryType: 'Delivery'
+      });
       setSelectedOption(option);
       closeModal();
     }
@@ -494,7 +671,6 @@ const MyCart = () => {
     });
   };
 
-
   const handlePlaceOrderPickup = async () => {
     if (!slot.date || !slot.startTime || !slot.endTime) {
       Alert.alert('Error', 'Please select date and time slot');
@@ -504,8 +680,13 @@ const MyCart = () => {
       Alert.alert('Error', 'Please select a payment method');
       return;
     }
+    if (!selectedVendor) {
+      Alert.alert('Error', 'No vendor selected');
+      return;
+    }
 
     const orderPayload = {
+      vendorId: selectedVendor.id,
       deliveryType: 'Pickup',
       pickupSlot: {
         date: slot.date,
@@ -515,13 +696,19 @@ const MyCart = () => {
       couponCode: appliedCoupon?.code || '',
       paymentMethod: paymentMethod === 'online' ? 'Online' : 'Cash',
       comments: '',
+      items: selectedVendorItems.map(item => ({
+        id: item.id,
+        quantity: item.quantity
+      }))
     };
+
     if (paymentMethod === 'online') {
       closePickupModal();
       setTimeout(() => {
         navigation.navigate('PickupOnlinePayment', {
           amount: finalAmount,
           orderPayload,
+          vendorId: selectedVendor.id
         });
       }, 300);
       return;
@@ -534,7 +721,7 @@ const MyCart = () => {
         return;
       }
 
-      const res = await fetch(`${BASE_URL}/api/buyer/pickuporder`, {
+      const res = await fetch(`${BASE_URL}${PLACE_PICKUP_ORDER}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -543,7 +730,7 @@ const MyCart = () => {
         body: JSON.stringify(orderPayload),
       });
 
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
 
       if (res.ok && json.success) {
         closePickupModal();
@@ -564,40 +751,18 @@ const MyCart = () => {
     }
   };
 
-
-
-
-
-
-
-  const goReviewPage = () => {
-    if (!slot.date || !slot.startTime || !slot.endTime) {
-      Alert.alert('Error', 'Please select date and time slot');
-      return;
-    }
-    navigation.navigate("index", {
-      totalAmount: finalAmount,
-      totalItems: cartItems.reduce((s, i) => s + (i.quantity || 0), 0).toString(),
-      pickupSlot: slot,
-      paymentMethod: paymentMethod,
-    });
-  };
-
-
   // Cart Card Component
   const CartCard = ({ item }) => (
     <View style={styles.cartCard}>
-      <TouchableOpacity onPress={() => navigation.navigate('ViewProduct', { productId: item._id || item.id, product: item })}>
-
+      <TouchableOpacity onPress={() => navigation.navigate('ViewProduct', { productId: item.id, product: item })}>
         <Image source={{ uri: item.image || 'https://via.placeholder.com/300' }} style={styles.productImage} resizeMode='stretch' />
       </TouchableOpacity>
       <View style={styles.productDetails}>
         <View style={styles.productInfo}>
           <Text style={styles.productTitle}>{item.title}</Text>
           <View style={styles.priceContainer}>
-            <Text style={styles.priceText}><Text style={{ color: 'rgba(66, 66, 66, 1)', fontWeight: 500 }}>MRP </Text>₹{Number(item.price).toFixed(2)}</Text>
+            <Text style={styles.priceText}><Text style={{ color: 'rgba(66, 66, 66, 1)', fontWeight: '500' }}>MRP </Text>₹{Number(item.price).toFixed(2)}</Text>
           </View>
-
           <Text style={styles.deliveryText}>{item.deliveryDate}</Text>
         </View>
 
@@ -615,7 +780,7 @@ const MyCart = () => {
             <Text style={styles.quantityButtonText}>-</Text>
           </TouchableOpacity>
 
-          <View style={styles.quantityButton}>
+          <View style={styles.quantityButtonn}>
             <Text style={styles.quantityText}>{item.quantity}</Text>
           </View>
 
@@ -627,9 +792,50 @@ const MyCart = () => {
           </TouchableOpacity>
         </View>
       </View>
-
     </View>
   );
+
+  // Vendor Section Component: show header + ALL items (but highlight selected vendor visually)
+  const VendorSection = ({ vendor }) => {
+    const isSelected = selectedVendor?.id === vendor.id;
+
+    return (
+      <View
+        style={[
+          styles.vendorSection,
+          isSelected && styles.selectedVendorSection
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.vendorHeader}
+          onPress={() => selectVendor(vendor.id)}
+          activeOpacity={0.8}
+        >
+          <Image
+            source={{ uri: vendor.profilePicture || 'https://via.placeholder.com/40' }}
+            style={styles.vendorAvatar}
+          />
+          <View style={styles.vendorInfoHeader}>
+            <Text style={styles.vendorName}>{vendor.name}</Text>
+            <Text style={styles.vendorItemCount}>{vendor.items?.length || 0} items</Text>
+          </View>
+
+          {isSelected ? (
+            <View style={styles.selectedIndicator}>
+              <Text style={styles.selectedText}>✓</Text>
+            </View>
+          ) : (
+            <View style={styles.unselectedIndicator} />
+          )}
+        </TouchableOpacity>
+
+        {/* Always render items for every vendor */}
+        {vendor.items?.map((item) => (
+          <CartCard key={item.id} item={item} />
+        ))}
+      </View>
+    );
+  };
 
   // Empty Cart Component
   const EmptyCart = () => (
@@ -656,35 +862,74 @@ const MyCart = () => {
         <TouchableOpacity onPress={goBack}>
           <Image source={require("../../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Cart {loading && cartItems.length > 0 && '(Updating...)'}</Text>
+        <Text style={styles.headerTitle}>My Cart {loading && vendors.length > 0 && '(Updating...)'}</Text>
         <View />
       </View>
 
       {/* Scrollable Content */}
-      {cartItems.length === 0 && !loading ? (
+      {vendors.length === 0 && !loading ? (
         <EmptyCart />
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: moderateScale(100) }} showsVerticalScrollIndicator={false}>
-          <View style={styles.cartSection}>
-            {loading ? (
-              <Text style={styles.emptyCartText}></Text>
-            ) : (
-              cartItems.map((item) => (
-                <CartCard key={item.id} item={item} />
-              ))
-            )}
+          {/* Vendor Sections */}
+          <View style={styles.vendorsContainer}>
+            {vendors.map((vendor) => (
+              <VendorSection key={vendor.id} vendor={vendor} />
+            ))}
           </View>
 
-          {/* Coupon Section */}
-          {cartItems.length > 0 && (
+          {/* Coupon Section - Only show for selected vendor */}
+          {selectedVendor && (
             <View style={styles.couponSection}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: moderateScale(10) }}>
-                <Image source={require("../../assets/via-farm-img/icons/promo-code.png")} />
-                <View>
-                  <Text style={styles.couponTitle}>Have a Coupon ?</Text>
-                  <Text style={styles.couponSubtitle}>Apply now and Save Extra!</Text>
+              {/* highlighted coupons dropdown */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: moderateScale(8) }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Image source={require("../../assets/via-farm-img/icons/promo-code.png")} />
+                  <View style={{ marginLeft: moderateScale(8) }}>
+                    <Text style={styles.couponTitle}>Offers & Coupons</Text>
+                    <Text style={styles.couponSubtitle}>Tap a coupon to apply quickly</Text>
+                  </View>
                 </View>
+
+                <TouchableOpacity onPress={() => setShowCouponsDropdown(prev => !prev)}>
+                  <Text style={{ fontSize: normalizeFont(10), color: '#0077ff' }}>{showCouponsDropdown ? 'Hide' : 'View Offers'}</Text>
+                </TouchableOpacity>
               </View>
+
+              {/* Dropdown list */}
+              {showCouponsDropdown && (
+                <View style={{ marginBottom: moderateScale(10) }}>
+                  {fetchingCoupons ? (
+                    <Text style={{ fontSize: normalizeFont(10), color: '#666' }}>Loading coupons...</Text>
+                  ) : (highlightedCoupons.length === 0) ? (
+                    <Text style={{ fontSize: normalizeFont(10), color: '#666' }}>No offers available</Text>
+                  ) : (
+                    highlightedCoupons.map(c => {
+                      const isPercentage = (c.discount?.type || '').toLowerCase() === 'percentage';
+                      const label = isPercentage ? `${c.discount.value}% off` : `₹${c.discount.value} off`;
+                      return (
+                        <TouchableOpacity
+                          key={c._id}
+                          style={styles.highlightCouponRow}
+                          onPress={() => {
+                            // auto-fill and apply
+                            setCouponCode(c.code || '');
+                            applyCoupon(c.code || '');
+                          }}
+                        >
+                          <View>
+                            <Text style={{ fontSize: normalizeFont(11), fontWeight: '600' }}>{c.code}</Text>
+                            <Text style={{ fontSize: normalizeFont(10), color: '#666' }}>{label} • Min ₹{c.minimumOrder ?? 0}</Text>
+                          </View>
+                          <Text style={{ fontSize: normalizeFont(10), color: '#999' }}>
+                            Exp: {c.expiryDate ? new Date(c.expiryDate).toLocaleDateString('en-IN') : 'N/A'}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })
+                  )}
+                </View>
+              )}
 
               <View style={styles.couponInputContainer}>
                 <TextInput
@@ -694,12 +939,12 @@ const MyCart = () => {
                   onChangeText={setCouponCode}
                   editable={!appliedCoupon}
                 />
-                {appliedCoupon ? (
+                {appliedCoupon && appliedCoupon.vendorId === selectedVendor?.id ? (
                   <TouchableOpacity style={styles.removeCouponButton} onPress={removeCoupon}>
                     <Text style={styles.removeCouponText}>Remove</Text>
                   </TouchableOpacity>
                 ) : (
-                  <TouchableOpacity style={styles.applyCouponButton} onPress={applyCoupon}>
+                  <TouchableOpacity style={styles.applyCouponButton} onPress={() => applyCoupon()}>
                     <Text style={styles.applyCouponText}>Apply</Text>
                   </TouchableOpacity>
                 )}
@@ -707,23 +952,22 @@ const MyCart = () => {
 
               {couponError ? (
                 <Text style={styles.couponError}>{couponError}</Text>
-              ) : appliedCoupon ? (
+              ) : (appliedCoupon && appliedCoupon.vendorId === selectedVendor?.id) ? (
                 <Text style={styles.couponSuccess}>
-                  Coupon applied! {appliedCoupon.discount}
-                  {appliedCoupon.type === 'percentage' ? '%' : '₹'} discount
+                  Coupon applied! ₹{appliedCoupon.discount} discount
                 </Text>
               ) : null}
             </View>
           )}
 
-          {/* Price Section */}
-          {cartItems.length > 0 && (
+          {/* Price Section - show price details for selected vendor */}
+          {selectedVendor && (
             <View style={styles.priceSection}>
-              <Text style={styles.priceSectionTitle}>Price Details</Text>
+              <Text style={styles.priceSectionTitle}>Price Details for {selectedVendor?.name}</Text>
 
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>Total MRP</Text>
-                <Text style={styles.priceValue}>₹{Number(subtotal).toFixed(2)}</Text>
+                <Text style={styles.priceValue}>₹{Number(priceDetails.totalMRP || subtotal).toFixed(2)}</Text>
               </View>
 
               <View style={styles.priceRow}>
@@ -743,16 +987,16 @@ const MyCart = () => {
             </View>
           )}
 
-          {Array.isArray(cartItems) && cartItems.length > 0 && <SuggestionCard />}
+          {selectedVendorItems.length > 0 && <SuggestionCard />}
         </ScrollView>
       )}
 
-      {/* Fixed Checkout Button */}
-      {cartItems.length > 0 && (
+      {/* Fixed Checkout Button - Only show if there's a selected vendor with items */}
+      {selectedVendor && selectedVendorItems.length > 0 && (
         <View style={styles.checkoutContainer}>
           <TouchableOpacity style={styles.checkoutButton} onPress={openModal}>
             <Image source={require("../../assets/via-farm-img/icons/UpArrow.png")} />
-            <Text style={styles.checkoutText}>Place Order</Text>
+            <Text style={styles.checkoutText}>Place Order for {selectedVendor?.name}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -801,10 +1045,10 @@ const MyCart = () => {
                   </View>
                   <View style={styles.locationDetails}>
                     <Text style={styles.locationAddress}>
-                      {vendorDetails?.pickupLocationText || 'Loading location...'}
+                      {selectedVendorDetails?.pickupLocationText || 'Loading location...'}
                     </Text>
                     <Text style={styles.locationDistance}>
-                      {vendorDetails?.address?.locality || 'Location details'}
+                      {selectedVendorDetails?.address?.locality || 'Location details'}
                     </Text>
                   </View>
                   <TouchableOpacity style={styles.locationButton}>
@@ -986,18 +1230,15 @@ const MyCart = () => {
                     borderRadius={10}
                     style={{ width: scale(60), height: scale(60) }}
                     source={{
-                      uri: vendorDetails?.profilePicture || "https://via.placeholder.com/60",
+                      uri: selectedVendorDetails?.profilePicture || "https://via.placeholder.com/60",
                     }}
                   />
                   <View style={styles.vendorDetails}>
-                    {/* <Text style={styles.vendorName}>
-                      {vendorDetails?.name || "Vendor Name"}
-                    </Text> */}
-                    {/* <Text style={styles.vendorLocation}>
-                      {vendorDetails?.pickupLocationText || "Vendor Location"}
-                    </Text> */}
+                    <Text style={styles.vendorName}>
+                      {selectedVendorDetails?.name || "Vendor Name"}
+                    </Text>
                     <Text style={styles.vendorPhone}>
-                      Phone: {vendorDetails?.phoneNo || "N/A"}
+                      Phone: {selectedVendorDetails?.phoneNo || "N/A"}
                     </Text>
                   </View>
                 </View>
@@ -1008,7 +1249,7 @@ const MyCart = () => {
                   style={styles.proceedButtonStyle}
                   onPress={handlePlaceOrderPickup}
                 >
-                  <Text style={styles.proceedButtonText}>Place Order</Text>
+                  <Text style={styles.proceedButtonText}>Place Order for {selectedVendor?.name}</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -1016,7 +1257,7 @@ const MyCart = () => {
         </View>
       </Modal>
 
-      {/* Success Modal (shown for Cash order success) */}
+      {/* Success Modal */}
       <Modal visible={showSuccessModal} transparent animationType="fade">
         <View style={styles.successModalOverlay}>
           <View style={styles.successModalBox}>
@@ -1052,7 +1293,7 @@ const MyCart = () => {
             <View style={styles.dragHandle} />
 
             <View style={styles.deliveryModalHeader}>
-              <Text style={styles.modalTitle}>Select One</Text>
+              <Text style={styles.modalTitle}>Select Delivery Option for {selectedVendor?.name}</Text>
             </View>
 
             <View style={styles.optionsContainer}>
@@ -1087,12 +1328,12 @@ const MyCart = () => {
   );
 };
 
-
 const styles = StyleSheet.create({
   emptyCartContainer: {
-   flexDirection:'row',
-   alignItems:'center',
-   justifyContent:'center',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: moderateScale(20),
   },
   emptyCartImage: {
     width: scale(150),
@@ -1125,19 +1366,12 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(10),
     fontWeight: '600',
   },
-  emptyCartText: {
-    textAlign: 'center',
-    fontSize: normalizeFont(10),
-    color: '#666',
-    marginTop: moderateScale(50),
-    padding: moderateScale(20),
-  },
   couponSection: {
     backgroundColor: '#fff',
     margin: moderateScale(8),
     marginTop: moderateScale(16),
     borderRadius: moderateScale(8),
-    padding: moderateScale(16),
+    padding: moderateScale(12),
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },
@@ -1149,7 +1383,18 @@ const styles = StyleSheet.create({
   couponSubtitle: {
     fontSize: normalizeFont(10),
     color: 'rgba(1, 151, 218, 1)',
-    marginBottom: moderateScale(12),
+    marginBottom: moderateScale(6),
+  },
+  highlightCouponRow: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+    padding: moderateScale(10),
+    borderRadius: 8,
+    marginBottom: moderateScale(8),
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   couponInputContainer: {
     flexDirection: 'row',
@@ -1198,7 +1443,6 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(10),
     marginTop: moderateScale(8),
   },
-
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -1219,25 +1463,77 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
-  scrollView: {
-    flex: 1,
-    minHeight: '25%',
-    maxHeight: '25%',
-  },
-  cartSection: {
-    backgroundColor: '#fff',
+  vendorsContainer: {
     marginTop: moderateScale(8),
+    padding:moderateScale(8),
+  },
+  vendorSection: {
+    backgroundColor: '#fff',
+    marginBottom: moderateScale(5),
+    borderRadius: moderateScale(5),
+    borderWidth: 1,
+    borderColor: 'grey',
+    overflow: 'hidden',
+  },
+  selectedVendorSection: {
+    borderColor: 'grey',
+    borderWidth: 2,
+  },
+  vendorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: moderateScale(12),
+    backgroundColor: '#f9f9f9',
+  },
+  vendorAvatar: {
+    width: scale(40),
+    height: scale(40),
+    borderRadius: 20,
+    marginRight: moderateScale(12),
+  },
+  vendorInfoHeader: {
+    flex: 1,
+  },
+  vendorName: {
+    fontSize: normalizeFont(12),
+    fontWeight: '600',
+    color: '#333',
+  },
+  vendorItemCount: {
+    fontSize: normalizeFont(10),
+    color: '#666',
+    marginTop: 2,
+  },
+  selectedIndicator: {
+    width: scale(24),
+    height: scale(24),
+    borderRadius: 12,
+    backgroundColor: 'rgba(76, 175, 80, 1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: normalizeFont(12),
+  },
+  unselectedIndicator: {
+    width: scale(24),
+    height: scale(24),
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#ddd',
   },
   cartCard: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    padding: moderateScale(16),
+    padding: moderateScale(12),
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
   productImage: {
-    width: moderateScale(160),
-    height: moderateScale(148),
+    width: moderateScale(120),
+    height: moderateScale(110),
     borderRadius: moderateScale(8),
     backgroundColor: '#f8f8f8',
   },
@@ -1270,7 +1566,7 @@ const styles = StyleSheet.create({
     color: '#999',
     textDecorationLine: 'line-through',
     marginRight: moderateScale(8),
-    fontWeight: 300,
+    fontWeight: '300',
   },
   priceText: {
     fontSize: normalizeFont(12),
@@ -1280,7 +1576,6 @@ const styles = StyleSheet.create({
   deliveryText: {
     fontSize: normalizeFont(12),
     color: 'rgba(66, 66, 66, 1)',
-    // marginTop: moderateScale(13),
   },
   removeButton: {
     position: 'absolute',
@@ -1292,7 +1587,7 @@ const styles = StyleSheet.create({
   },
   quantityContainer: {
     position: 'absolute',
-    left:"14%",
+    left: "14%",
     bottom: 0,
     width: scale(94),
     height: verticalScale(28),
@@ -1305,35 +1600,38 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     marginRight: scale(71),
   },
-
   quantityButton: {
     width: scale(28),
     height: verticalScale(28),
     borderRadius: moderateScale(3),
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
-
+  quantityButtonn: {
+    width: scale(28),
+    height: verticalScale(28),
+    borderRadius: moderateScale(3),
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
   quantityText: {
-    paddingTop: moderateScale(2),
     width: scale(28),
     height: scale(27),
-    textAlign: 'center',
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderColor: 'rgba(76, 175, 80, 1)',
     fontSize: normalizeFont(13),
     fontWeight: '600',
     color: 'rgba(76, 175, 80, 1)',
+    textAlign: 'center',
+    lineHeight: scale(27),
   },
   quantityButtonText: {
     fontSize: normalizeFont(13),
     fontWeight: '800',
     color: 'rgba(76, 175, 80, 1)',
   },
-
-
-
   priceSection: {
     backgroundColor: '#fff',
     margin: moderateScale(8),
@@ -1406,8 +1704,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
   },
-
-  // Modal Styles
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -1456,12 +1752,6 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(16),
     textAlign: 'center',
   },
-  selectedOptionCard: {
-    backgroundColor: '#fff',
-  },
-  optionIcon: {
-    marginRight: moderateScale(12),
-  },
   optionContent: {
     flex: 1,
   },
@@ -1494,22 +1784,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  radioOuterSelected: {
-    borderColor: '#3b82f6',
-  },
-  radioInner: {
-    width: scale(10),
-    height: scale(10),
-    borderRadius: 5,
-    backgroundColor: '#3b82f6',
-  },
   text: {
     color: 'rgba(76, 175, 80, 1)',
     fontWeight: '600',
     fontSize: normalizeFont(13),
   },
-
-  // Pickup Modal Styles
   modalContainer: {
     backgroundColor: 'transparent',
     paddingBottom: moderateScale(20),
@@ -1617,11 +1896,6 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: normalizeFont(12),
   },
-  timeUnit: {
-    fontSize: normalizeFont(12),
-    marginHorizontal: moderateScale(8),
-    color: '#666',
-  },
   timeTo: {
     fontSize: normalizeFont(12),
     marginHorizontal: moderateScale(8),
@@ -1651,16 +1925,9 @@ const styles = StyleSheet.create({
   vendorDetails: {
     flex: 1,
   },
-  vendorName: {
-    fontSize: normalizeFont(11),
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: moderateScale(2),
-  },
-  vendorLocation: {
+  vendorLocationText: {
     fontSize: normalizeFont(10),
     color: '#666',
-    marginBottom: 1,
   },
   vendorPhone: {
     fontSize: normalizeFont(10),

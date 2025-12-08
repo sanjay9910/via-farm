@@ -15,7 +15,7 @@ const ENDPOINT =
   "/api/admin/public/manage-app/banners/placement/CheckoutPromo";
 
 
-const INTERNAL_API_KEY = ""; // e.g. "12345-internal-key"
+const INTERNAL_API_KEY = ""; 
 
 const ConnactNow = () => {
   const [banner, setBanner] = useState<any>(null);
@@ -30,24 +30,17 @@ const ConnactNow = () => {
       setError(null);
 
       try {
-        // 🔹 1. Get stored token from AsyncStorage
         const token = await AsyncStorage.getItem("userToken");
-
-        // 🔹 2. Prepare headers
         const headers: any = {
           "Content-Type": "application/json",
         };
         if (token) headers["Authorization"] = `Bearer ${token}`;
         if (INTERNAL_API_KEY) headers["X-Internal-Api-Key"] = INTERNAL_API_KEY;
-
-        // 🔹 3. Make the API call
         const res = await fetch(BASE_URL + ENDPOINT, {
           headers,
         });
 
-        console.log("Banner fetch status:", res.status);
-
-        // 🔹 4. Handle 401 case cleanly
+        // console.log("Banner fetch status:", res.status);
         if (res.status === 401) {
           throw new Error("Unauthorized: Invalid or expired token.");
         }
@@ -120,7 +113,7 @@ const ConnactNow = () => {
 
   return (
     <PromoCard
-      image={banner.imageUrl || ""}
+      image={banner.imageUrl || ""} 
       title={banner.title || "Special Offer"}
       buttonText="Get Now"
       onPress={handlePress}

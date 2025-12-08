@@ -1,3 +1,4 @@
+
 import { AuthContext } from '@/app/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -75,24 +76,17 @@ export default function HeaderDesign() {
   const [addressLoading, setAddressLoading] = useState(false);
   const [locating, setLocating] = useState(false);
 
-  // Filter states
+  // Filter states (persistent defaults)
   const [filters, setFilters] = useState({
     sortBy: 'relevance',
-    priceMin:0,
-    priceMax: 1000,
-    distanceMin:0,
-    distanceMax:100,
-    ratingMin: 0,
-  });
-
-  const [tempFilters, setTempFilters] = useState({
-    sortBy: 'relevance',
-    priceMin:0,
-    priceMax: 1000,
-    distanceMin:0,
+    priceMin: 50,
+    priceMax: 3000,
+    distanceMin: 0,
     distanceMax: 100,
     ratingMin: 0,
   });
+
+  const [tempFilters, setTempFilters] = useState({ ...filters });
 
   const [expandedFilters, setExpandedFilters] = useState({
     sortBy: false,
@@ -101,7 +95,6 @@ export default function HeaderDesign() {
     rating: false,
   });
 
-  // PanResponder refs
   const priceMinResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -156,9 +149,44 @@ export default function HeaderDesign() {
     return () => clearInterval(interval);
   }, []);
 
+  const applyFiltersToSuggestions = (products = [], activeFilters = null) => {
+    const f = activeFilters || filters || {};
+    if (!Array.isArray(products)) {
+      setFilteredSuggestions([]);
+      return;
+    }
 
-  
-  // Handle search text change
+    const filtered = products.filter((product) => {
+      const price = Number(product.price ?? product.mrp ?? 0);
+      const rating = Number(product.rating ?? 0);
+
+      const okPrice = price >= (f.priceMin ?? 0) && price <= (f.priceMax ?? Number.MAX_SAFE_INTEGER);
+      const okRating = rating >= (f.ratingMin ?? 0);
+
+      return okPrice && okRating;
+    });
+
+    // apply simple sort if required
+    let sorted = filtered;
+    const sortBy = f.sortBy;
+    if (sortBy && sortBy !== 'relevance') {
+      if (sortBy === 'Price - low to high') {
+        sorted = filtered.slice().sort((a, b) => (Number(a.price ?? a.mrp ?? 0) - Number(b.price ?? b.mrp ?? 0)));
+      } else if (sortBy === 'Price - high to low') {
+        sorted = filtered.slice().sort((a, b) => (Number(b.price ?? b.mrp ?? 0) - Number(a.price ?? a.mrp ?? 0)));
+      } else if (sortBy === 'Newest Arrivals') {
+        sorted = filtered.slice().sort((a, b) => {
+          const da = new Date(a.createdAt || a.createdDate || 0).getTime();
+          const db = new Date(b.createdAt || b.createdDate || 0).getTime();
+          return db - da;
+        });
+      }
+    }
+
+    setFilteredSuggestions(sorted);
+  };
+
+  // --- Search handler with API call ---
   const handleSearchChange = async (text) => {
     setSearchText(text);
 
@@ -171,16 +199,17 @@ export default function HeaderDesign() {
         );
         const data = await response.json();
         let products = [];
-        if (data.success && data.data && Array.isArray(data.data)) {
+        if (data && data.success && Array.isArray(data.data)) {
           products = data.data;
         } else if (Array.isArray(data)) {
           products = data;
-        } else if (data.products && Array.isArray(data.products)) {
+        } else if (data && Array.isArray(data.products)) {
           products = data.products;
         }
 
         setSuggestions(products);
-        applyFiltersToSuggestions(products);
+
+        applyFiltersToSuggestions(products, filters);
       } catch (error) {
         console.error('Search Error:', error);
         setSuggestions([]);
@@ -195,28 +224,11 @@ export default function HeaderDesign() {
     }
   };
 
-
-
-  // Apply filters to suggestions
-  const applyFiltersToSuggestions = (products) => {
-    const filtered = products.filter((product) => {
-      const price = product.price || 0;
-      const rating = product.rating || 0;
-
-      return (
-        price >= tempFilters.priceMin &&
-        price <= tempFilters.priceMax &&
-        rating >= tempFilters.ratingMin
-      );
-    });
-
-    setFilteredSuggestions(filtered);
-  };
-
   // Open filter popup
   const openFilterPopup = () => {
     setTempFilters({ ...filters });
     setShowFilterPopup(true);
+    // animate popup
     Animated.timing(slideAnim, {
       toValue: 0,
       duration: 300,
@@ -235,33 +247,33 @@ export default function HeaderDesign() {
     });
   };
 
-  // Apply filters
   const applyFilters = () => {
     setFilters({ ...tempFilters });
-    applyFiltersToSuggestions(suggestions);
+    applyFiltersToSuggestions(suggestions, tempFilters);
     closeFilterPopup();
+    if (suggestions.length > 0) setShowSuggestions(true);
   };
 
   // Clear filters
   const clearFilters = () => {
-    setTempFilters({
+    const defaults = {
       sortBy: 'relevance',
       priceMin: 50,
       priceMax: 3000,
-      distanceMin: 4,
-      distanceMax: 40,
+      distanceMin: 0,
+      distanceMax: 100,
       ratingMin: 0,
-    });
+    };
+    setTempFilters(defaults);
+    setFilters(defaults);
+    applyFiltersToSuggestions(suggestions, defaults);
   };
 
-  // Handle product click
   const handleProductClick = (product) => {
-    // console.log('Navigating with Product ID:', product._id);
     setShowSuggestions(false);
-    navigation.navigate('ViewProduct', { productId: product._id });
+    navigation.navigate('ViewProduct', { productId: product._id || product.id });
   };
 
-  // Open Address Modal
   const openAddressModal = () => {
     setShowAddressModal(true);
     Animated.timing(slideUpAnim, {
@@ -271,7 +283,6 @@ export default function HeaderDesign() {
     }).start();
   };
 
-  // Close Address Modal
   const closeAddressModal = () => {
     Animated.timing(slideUpAnim, {
       toValue: SCREEN_HEIGHT,
@@ -283,7 +294,6 @@ export default function HeaderDesign() {
     });
   };
 
-  // Reset Address Form
   const resetAddressForm = () => {
     setFormData({
       pinCode: '',
@@ -298,15 +308,10 @@ export default function HeaderDesign() {
     setIsDefaultAddress(false);
   };
 
-  // Handle Address Input Change
   const handleAddressInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Get Current Location
   const handleUseCurrentLocation = async () => {
     try {
       setLocating(true);
@@ -364,14 +369,14 @@ export default function HeaderDesign() {
   };
 
   useEffect(() => {
-    fetchBuyerAddress();
+    if (typeof fetchBuyerAddress === 'function') fetchBuyerAddress();
   }, []);
 
   // Save Address
   const handleSaveAddress = async () => {
     try {
       const requiredFields = ['pinCode', 'houseNumber', 'locality', 'city', 'district', 'state'];
-      const missing = requiredFields.filter((f) => !formData[f] || !formData[f].trim());
+      const missing = requiredFields.filter((f) => !formData[f] || !String(formData[f]).trim());
 
       if (missing.length > 0) {
         Alert.alert('Error', `Please fill all required fields: ${missing.join(', ')}`);
@@ -387,18 +392,16 @@ export default function HeaderDesign() {
       }
 
       const payload = {
-        pinCode: formData.pinCode.trim(),
-        houseNumber: formData.houseNumber.trim(),
-        locality: formData.locality.trim(),
-        city: formData.city.trim(),
-        district: formData.district.trim(),
-        state: formData.state.trim(),
-        isDefault: isDefaultAddress,
+        pinCode: String(formData.pinCode).trim(),
+        houseNumber: String(formData.houseNumber).trim(),
+        locality: String(formData.locality).trim(),
+        city: String(formData.city).trim(),
+        district: String(formData.district).trim(),
+        state: String(formData.state).trim(),
+        isDefault: Boolean(isDefaultAddress),
         latitude: parseFloat(String(formData.latitude || 28.0)),
         longitude: parseFloat(String(formData.longitude || 77.0)),
       };
-
-      // console.log('📤 Sending Address Payload:', payload);
 
       const res = await axios.post(
         `${API_BASE}/api/buyer/addresses`,
@@ -412,43 +415,30 @@ export default function HeaderDesign() {
         }
       );
 
-      // console.log('✅ Server Response:', res.data);
-
-      if (res.data.success) {
-        console.log('🔄 Refreshing address immediately...');
-        await fetchBuyerAddress();
-
+      if (res.data && res.data.success) {
+        if (typeof fetchBuyerAddress === 'function') await fetchBuyerAddress();
         closeAddressModal();
-
         Alert.alert('Success', 'Address added successfully!');
       } else {
-        Alert.alert('Error', res.data.message || 'Failed to add address');
+        Alert.alert('Error', res.data?.message || 'Failed to add address');
       }
     } catch (error) {
-      console.error('❌ Add Address Error:', error);
-
+      console.error('Add Address Error:', error);
       let errorMessage = 'Failed to add address. Please try again.';
-
       if (axios.isAxiosError(error)) {
         if (error.response?.data?.message) {
           errorMessage = error.response.data.message;
-        } else if (error.response?.data?.error) {
-          errorMessage = error.response.data.error;
+        } else if (error.response?.status === 401) {
+          errorMessage = 'Session expired. Please login again.';
+          await AsyncStorage.removeItem('userToken');
         } else if (error.response?.status === 500) {
           errorMessage = 'Server error. Please try again later.';
         } else if (error.response?.status === 400) {
           errorMessage = 'Invalid data. Please check all fields.';
-        } else if (error.response?.status === 401) {
-          errorMessage = 'Session expired. Please login again.';
-          await AsyncStorage.removeItem('userToken');
-          return;
-        } else if (error.response?.status === 403) {
-          errorMessage = 'You do not have permission to add addresses.';
         }
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
-
       Alert.alert('Error', errorMessage);
     } finally {
       setAddressLoading(false);
@@ -464,14 +454,14 @@ export default function HeaderDesign() {
     >
       <View style={styles.suggestionImageContainer}>
         <Image
-          source={{ uri: product.images?.[0] || 'https://via.placeholder.com/60' }}
+          source={{ uri: product.images?.[0] || product.image || 'https://via.placeholder.com/60' }}
           style={styles.suggestionImage}
           resizeMode="cover"
         />
       </View>
       <View style={styles.suggestionInfo}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: scale(5) }}>
-          <Text style={styles.suggestionName} numberOfLines={1}>{product.name}</Text>
+          <Text style={styles.suggestionName} numberOfLines={1}>{product.name || product.title}</Text>
           <View style={styles.suggestionRating}>
             <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
             <Text style={styles.suggestionRatingText}>{product.rating || 0}</Text>
@@ -479,10 +469,10 @@ export default function HeaderDesign() {
         </View>
 
         <Text style={styles.suggestionVendor} numberOfLines={1}>
-          by {product.vendor?.name || 'Unknown'}
+          by {product.vendor?.name || product.sellerName || 'Unknown'}
         </Text>
         <View style={styles.suggestionMeta}>
-          <Text style={styles.suggestionPrice}>₹{product.price}</Text>
+          <Text style={styles.suggestionPrice}>₹{product.price ?? product.mrp ?? 0}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -529,6 +519,7 @@ export default function HeaderDesign() {
             {address?.locality || ''}{address?.district ? `, ${address.district}` : ''}
           </Text>
 
+          {/* Search container: FILTER BUTTON always visible */}
           <View style={styles.searchContainer}>
             <Ionicons name="search" size={normalizeFont(22)} color="#999" style={styles.searchIcon} />
             <TextInput
@@ -549,18 +540,17 @@ export default function HeaderDesign() {
                 <Ionicons name="close-circle" size={normalizeFont(18)} color="#999" />
               </TouchableOpacity>
             )}
-            {showSuggestions && filteredSuggestions.length > 0 && (
-              <TouchableOpacity
-                style={styles.filterButton}
-                onPress={openFilterPopup}
-                activeOpacity={0.7}
-              >
-                <Image source={require("../../assets/via-farm-img/icons/filter.png")}/>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={styles.filterButton}
+              onPress={openFilterPopup}
+              activeOpacity={0.7}
+            >
+              <Image source={require("../../assets/via-farm-img/icons/fltr.png")} style={{ width: scale(22), height: scale(22) }} />
+            </TouchableOpacity>
           </View>
         </View>
 
+        {/* Suggestions dropdown */}
         {showSuggestions && (
           <View style={styles.suggestionsDropdown}>
             {loading ? (
@@ -571,12 +561,13 @@ export default function HeaderDesign() {
               <FlatList
                 data={filteredSuggestions}
                 renderItem={({ item }) => <SuggestionCard product={item} />}
-                keyExtractor={(item, index) => `${item._id}-${index}`}
+                keyExtractor={(item, index) => `${item._id || item.id || index}-${index}`}
                 scrollEnabled={true}
                 nestedScrollEnabled={true}
                 style={styles.suggestionsList}
                 scrollEventThrottle={16}
                 removeClippedSubviews={true}
+                keyboardShouldPersistTaps="handled"
               />
             ) : (
               <View style={styles.noSuggestionsContainer}>
@@ -818,11 +809,19 @@ export default function HeaderDesign() {
 
             <View style={styles.filterFooter}>
               <TouchableOpacity
-                style={styles.applyButton}
+                style={[styles.applyButton, { marginBottom: moderateScale(8) }]}
                 onPress={applyFilters}
                 activeOpacity={0.8}
               >
                 <Text style={styles.applyButtonText}>Apply Filters</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.applyButton, { backgroundColor: '#ddd' }]}
+                onPress={() => { clearFilters(); }}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.applyButtonText, { color: '#333' }]}>Clear Filters</Text>
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -857,9 +856,6 @@ export default function HeaderDesign() {
               </TouchableOpacity>
               <Text style={styles.addressModalTitle}>Add New Address</Text>
               <Text></Text>
-              {/* <TouchableOpacity onPress={closeAddressModal} style={styles.addressCloseBtn}>
-                <Ionicons name="close" size={24} color="#000" />
-              </TouchableOpacity> */}
             </View>
 
             <ScrollView
@@ -956,7 +952,6 @@ export default function HeaderDesign() {
                 </View>
               </View>
 
-              <View  />
             </ScrollView>
 
             {/* Footer Buttons */}
@@ -988,8 +983,6 @@ export default function HeaderDesign() {
     </SafeAreaView>
   );
 }
-
-
 
 const styles = StyleSheet.create({
   container: {
@@ -1050,7 +1043,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   locationSubtitle: {
-    fontSize: normalizeFont(11 ),
+    fontSize: normalizeFont(11),
     color: '#666',
     marginBottom: moderateScale(10),
     marginLeft: moderateScale(2),
@@ -1061,7 +1054,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: moderateScale(8),
     paddingHorizontal: moderateScale(10),
-    paddingVertical: moderateScale(8),
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
@@ -1075,15 +1067,14 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   filterButton: {
-    padding: moderateScale(4),
-    marginLeft: moderateScale(4),
+    padding: moderateScale(6),
+    marginLeft: moderateScale(6),
   },
 
   // Suggestions Dropdown
   suggestionsDropdown: {
     position: 'absolute',
     top: '100%',
-    marginTop:scale(25),
     left:moderateScale(15),
     right:moderateScale(15),
     borderRadius:moderateScale(15),
@@ -1197,9 +1188,10 @@ const styles = StyleSheet.create({
   filterPopup: {
     position: 'absolute',
     right: 0,
-    top: scale(190),
+    top: scale(110),
     bottom: 0,
-    width: moderateScale(280),
+    width:'50%',
+    borderBottomWidth:0,
     backgroundColor: '#fff',
     borderTopLeftRadius: moderateScale(20),
     borderBottomLeftRadius: moderateScale(20),
@@ -1232,10 +1224,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginLeft: moderateScale(8),
-  },
-  filterContent: {
-    flex: 1,
-    paddingVertical: moderateScale(0),
   },
   filterOption: {
     flexDirection: 'row',
@@ -1502,6 +1490,7 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(14),
   },
 });
+
 
 // HeaderDesign_responsive_fonts.jsx
 // import { AuthContext } from '@/app/context/AuthContext';
