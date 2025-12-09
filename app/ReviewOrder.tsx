@@ -994,7 +994,7 @@ const ReviewOrder = () => {
                           </View>
                           <View style={{ alignItems: 'flex-end' }}>
                             <Text style={{ fontWeight: '700' }}>Save</Text>
-                            <Text style={{ color: '#333', marginTop: 6 }}>₹{discountValue.toFixed(2)}</Text>
+                            <Text style={{ color: '#333', marginTop:moderateScale(6) }}>₹{discountValue.toFixed(2)}</Text>
                           </View>
                         </TouchableOpacity>
                       );

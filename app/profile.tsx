@@ -5,7 +5,6 @@ import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from 'expo-location';
 import { useRouter } from "expo-router";
-import { goBack } from "expo-router/build/global-state/routing";
 import { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -293,8 +292,6 @@ const ProfileScreen = () => {
   };
 
   const handleLocationPress = () => {
-    // Don't reset form fields - keep existing data for editing
-    // Only reset if no saved location exists
     if (!savedLocation) {
       setPinCode("");
       setHouseNumber("");
@@ -479,11 +476,16 @@ const ProfileScreen = () => {
     );
   }
 
+
+  const goHome = ()=>{
+    navigation.navigate("(tabs)")
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
       <View style={styles.profile}>
-        <TouchableOpacity onPress={goBack}>
+        <TouchableOpacity onPress={goHome}>
           <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
         <Text style={{ fontWeight: 700, fontSize: normalizeFont(14) }}>My Profile</Text>
@@ -513,13 +515,14 @@ const ProfileScreen = () => {
               {userInfo.role && (
                 <Text style={styles.userRole}>{userInfo.role}</Text>
               )}
+              <TouchableOpacity
+                onPress={handleEditProfile}
+                style={styles.editButtonContainer}
+              >
+                <Image source={require("../assets/via-farm-img/icons/editicon.png")} />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              onPress={handleEditProfile}
-              style={styles.editButtonContainer}
-            >
-              <Image source={require("../assets/via-farm-img/icons/editicon.png")} />
-            </TouchableOpacity>
+
           </View>
         </View>
 
@@ -767,15 +770,6 @@ const ProfileScreen = () => {
                     </Text>
                   </TouchableOpacity>
                 </View>
-
-                {/* {latitude && longitude && (
-                  <View style={styles.coordinatesContainer}>
-                    <Text style={styles.coordinatesText}>
-                      Coordinates: {latitude.toFixed(4)}, {longitude.toFixed(4)}
-                    </Text>
-                  </View>
-                )} */}
-
                 {savedLocation && (
                   <View style={styles.savedLocationNote}>
                   </View>
@@ -954,7 +948,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   editButtonContainer: {
-    padding: moderateScale(8),
+    // padding: moderateScale(8),
+    right:moderateScale(-5),
+    bottom:moderateScale(-5),
+    position: 'absolute'
   },
   menuSection: {
     backgroundColor: "#fff",
@@ -1195,7 +1192,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: moderateScale(22),
-    paddingVertical:moderateScale(5),
+    paddingVertical: moderateScale(5),
   },
   fieldRowContainer: {
     flexDirection: "row",
@@ -1204,7 +1201,7 @@ const styles = StyleSheet.create({
   },
   fieldHalf: {
     width: "48%",
-  },
+  }
 });
 
 ProfileScreen.options = {

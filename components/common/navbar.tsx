@@ -6,7 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import * as Location from 'expo-location';
 import { StatusBar } from 'expo-status-bar';
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -1194,7 +1194,7 @@ const styles = StyleSheet.create({
     borderBottomWidth:0,
     backgroundColor: '#fff',
     borderTopLeftRadius: moderateScale(20),
-    borderBottomLeftRadius: moderateScale(20),
+    // borderBottomLeftRadius: moderateScale(20),
     borderWidth: moderateScale(2),
     borderColor: 'rgba(255, 202, 40, 1)',
     elevation: 10,

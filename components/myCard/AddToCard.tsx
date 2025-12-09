@@ -1,11 +1,13 @@
 // MyCart.jsx
 import Responsive from '@/app/Responsive';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from 'expo-router';
 import { goBack } from 'expo-router/build/global-state/routing';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   DeviceEventEmitter,
@@ -13,6 +15,7 @@ import {
   Image,
   Modal,
   PanResponder,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -42,7 +45,7 @@ const MyCart = () => {
   const [cartItems, setCartItems] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [selectedVendor, setSelectedVendor] = useState(null);
-  const [selectedVendorId, setSelectedVendorId] = useState(null); // preserve selection across refreshes
+  const [selectedVendorId, setSelectedVendorId] = useState(null); 
   const [selectedVendorItems, setSelectedVendorItems] = useState([]);
   const [selectedVendorDetails, setSelectedVendorDetails] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -74,10 +77,9 @@ const MyCart = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState(null); // now contains vendorId
+  const [appliedCoupon, setAppliedCoupon] = useState(null); 
   const [couponError, setCouponError] = useState('');
 
-  // highlighted coupons dropdown
   const [highlightedCoupons, setHighlightedCoupons] = useState([]);
   const [showCouponsDropdown, setShowCouponsDropdown] = useState(false);
   const [fetchingCoupons, setFetchingCoupons] = useState(false);
@@ -104,16 +106,11 @@ const MyCart = () => {
     }
   };
 
-  // --- Select Vendor (server side) ---
   const selectVendor = async (vendorId) => {
-    // store selected vendor id for persistence
     setSelectedVendorId(vendorId);
     persistSelectedVendorId(vendorId);
-
-    // optimistic UI selection locally; also call server to persist
     const localVendor = vendors.find(v => String(v.id) === String(vendorId));
     if (localVendor) {
-      // set selected vendor locally
       setSelectedVendor(localVendor);
       setSelectedVendorDetails(localVendor);
       setSelectedVendorItems(localVendor.items || []);
@@ -124,7 +121,7 @@ const MyCart = () => {
 
     try {
       const token = authToken || (await getAuthToken());
-      if (!token) return; // can't call server without token
+      if (!token) return;
       const res = await fetch(`${BASE_URL}${SELECT_VENDOR_ENDPOINT}`, {
         method: 'POST',
         headers: {
@@ -137,7 +134,6 @@ const MyCart = () => {
         }),
       });
       const json = await res.json().catch(() => ({}));
-      // Log but do not force state changes if server fails; we've already updated UI
       if (!res.ok || !json.success) {
         console.warn('Failed to select vendor on server:', json?.message || res.status);
       }
@@ -146,11 +142,9 @@ const MyCart = () => {
     }
   };
 
-  // --- Fetch Cart Items and transform into vendors list ---
   const fetchCartItems = useCallback(async (tokenArg) => {
     const token = tokenArg ?? (await getAuthToken());
     if (!token) {
-      // if no token, still try to fetch public coupons but cart requires auth
       setLoading(false);
       return;
     }
@@ -217,17 +211,12 @@ const MyCart = () => {
 
         const vendorsArray = Array.from(vendorsMap.values());
         setVendors(vendorsArray);
-
-        // Default selection: use preserved selectedVendorId if present, else server selection or first vendor
         let toSelect = null;
 
-        // try AsyncStorage preserved id first (most persistent)
         const persisted = await AsyncStorage.getItem(SELECTED_VENDOR_KEY);
         if (persisted) {
           toSelect = vendorsArray.find(v => String(v.id) === String(persisted));
         }
-
-        // fallback to in-state selectedVendorId (if set earlier)
         if (!toSelect && selectedVendorId) {
           toSelect = vendorsArray.find(v => String(v.id) === String(selectedVendorId));
         }
@@ -307,7 +296,6 @@ const MyCart = () => {
         await fetchCartItems(token);
         await fetchHighlightedCoupons(token);
       } else {
-        // still attempt to fetch coupons publicly
         await fetchHighlightedCoupons(null);
         setLoading(false);
       }
@@ -326,7 +314,6 @@ const MyCart = () => {
   }, [fetchCartItems]);
 
   const updateQuantity = async (itemId, newQty) => {
-    // ensure token available
     const token = authToken || (await getAuthToken());
     if (!token) {
       Alert.alert('Login required', 'Please login to update cart.');
@@ -338,7 +325,6 @@ const MyCart = () => {
     const prevItem = selectedVendorItems.find(i => i.id === itemId);
     if (!prevItem) return;
 
-    // Optimistic update: update local selectedVendorItems & vendors list
     setSelectedVendorItems(prev =>
       prev.map(i => (i.id === itemId ? { ...i, quantity: newQty } : i))
     );
@@ -360,18 +346,15 @@ const MyCart = () => {
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok || !json.success) {
-        // Revert on error
         setSelectedVendorItems(prev =>
           prev.map(i => (i.id === itemId ? prevItem : i))
         );
         fetchCartItems(token);
       } else {
-        // keep optimistic change but refresh to get server price details
         fetchCartItems(token);
       }
     } catch (e) {
       console.error('Update Error:', e);
-      // revert and refresh
       setSelectedVendorItems(prev =>
         prev.map(i => (i.id === itemId ? prevItem : i))
       );
@@ -389,7 +372,6 @@ const MyCart = () => {
     const itemToRemove = selectedVendorItems.find(i => i.id === itemId);
     if (!itemToRemove) return;
 
-    // Optimistically remove from UI
     setSelectedVendorItems(prev => prev.filter(i => i.id !== itemId));
     setVendors(prevVendors => prevVendors.map(v => v.id === selectedVendorId ? { ...v, items: v.items.filter(it => it.id !== itemId) } : v));
 
@@ -415,7 +397,6 @@ const MyCart = () => {
   // apply coupon (keeps your existing server flow)
   const applyCoupon = async (codeToApplyArg) => {
     setCouponError('');
-    // FIX: avoid mixing ?? and || in one expression
     const raw = codeToApplyArg ?? couponCode;
     const codeToApply = (raw || '').toString().trim();
 
@@ -451,10 +432,7 @@ const MyCart = () => {
       const json = await res.json().catch(() => ({}));
 
       if (res.ok && json.success) {
-        // Price data from server
         const pd = json.priceDetails ?? json.summary ?? {};
-
-        // Map server fields defensively
         const newPriceDetails = {
           totalMRP: Number(pd.totalMRP ?? pd.totalAmount ?? priceDetails.totalMRP ?? 0),
           couponDiscount: Number(pd.discount ?? pd.couponDiscount ?? 0),
@@ -462,7 +440,6 @@ const MyCart = () => {
           totalAmount: Number(pd.totalAmount ?? (Number(pd.totalMRP ?? 0) - Number(pd.discount ?? pd.couponDiscount ?? 0) + Number(pd.deliveryCharge ?? 0)) ?? 0),
         };
 
-        // Update vendors array: only change selected vendor's priceDetails
         const updatedVendors = vendors.map(v => {
           if (v.id === selectedVendor.id) {
             return { ...v, priceDetails: newPriceDetails };
@@ -472,22 +449,22 @@ const MyCart = () => {
 
         setVendors(updatedVendors);
 
-        // Update selectedVendor state with updated price details
         const updatedSelectedVendor = updatedVendors.find(v => v.id === selectedVendor.id) || selectedVendor;
         setSelectedVendor(updatedSelectedVendor);
         setSelectedVendorDetails(updatedSelectedVendor);
         setSelectedVendorItems(updatedSelectedVendor.items || []);
         setPriceDetails(updatedSelectedVendor.priceDetails || newPriceDetails);
 
+        const serverDiscount = Number(pd.discount ?? pd.couponDiscount ?? 0);
+
         setAppliedCoupon({
           code: json.couponCode ?? codeToApply,
-          discount: Number(pd.discount ?? pd.couponDiscount ?? 0),
+          discount: serverDiscount,
           type: 'fixed',
-          vendorId: selectedVendor.id, // mark which vendor got applied coupon
+          vendorId: selectedVendor.id, 
         });
 
         setCouponCode(codeToApply);
-        // Refresh cart to update vendor-specific data from server (selection preserved by selectedVendorId)
         fetchCartItems(token);
         setShowCouponsDropdown(false);
       } else {
@@ -525,7 +502,6 @@ const MyCart = () => {
   };
 
   const handleDateChange = (event, date) => {
-    // DateTimePicker returns event.type === 'set' for selection and 'dismissed' otherwise
     if (event?.type === 'set' && date) {
       const formattedDate = date.toLocaleDateString('en-IN', {
         year: 'numeric',
@@ -571,9 +547,17 @@ const MyCart = () => {
   };
 
   const subtotal = selectedVendorItems.reduce((s, i) => s + (Number(i.price) || 0) * (i.quantity || 0), 0);
-  const couponDiscount = Number(priceDetails.couponDiscount || 0);
-  const deliveryCharge = Number(priceDetails.deliveryCharge || 0);
-  const finalAmount = Number(priceDetails.totalAmount ?? (subtotal - couponDiscount + deliveryCharge));
+
+  const effectiveCouponDiscount = (appliedCoupon && appliedCoupon.vendorId === selectedVendor?.id)
+    ? Number(appliedCoupon.discount || 0)
+    : Number(priceDetails.couponDiscount || 0);
+
+  const serverHas = priceDetails && priceDetails.totalAmount !== undefined && priceDetails.totalAmount !== null;
+  const baseSubtotal = serverHas ? Number(priceDetails.totalMRP ?? subtotal) : subtotal;
+  const baseDelivery = serverHas ? Number(priceDetails.deliveryCharge ?? 0) : Number(priceDetails.deliveryCharge ?? 0);
+  const serverTotal = serverHas ? Number(priceDetails.totalAmount) : Number(baseSubtotal - (Number(priceDetails.couponDiscount || 0)) + baseDelivery);
+
+  const finalAmount = Math.max(0, Number((serverTotal - effectiveCouponDiscount).toFixed(2)));
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -636,7 +620,6 @@ const MyCart = () => {
     if (option === 'pickup') {
       openPickupModal();
     } else {
-      // navigate to ReviewOrder screen to let user confirm delivery (keeps flow similar to your previous implementation)
       navigation.navigate("ReviewOrder", {
         vendorId: selectedVendor?.id,
         vendorName: selectedVendor?.name,
@@ -795,7 +778,6 @@ const MyCart = () => {
     </View>
   );
 
-  // Vendor Section Component: show header + ALL items (but highlight selected vendor visually)
   const VendorSection = ({ vendor }) => {
     const isSelected = selectedVendor?.id === vendor.id;
 
@@ -881,7 +863,7 @@ const MyCart = () => {
           {/* Coupon Section - Only show for selected vendor */}
           {selectedVendor && (
             <View style={styles.couponSection}>
-              {/* highlighted coupons dropdown */}
+              {/* highlighted coupons trigger */}
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: moderateScale(8) }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <Image source={require("../../assets/via-farm-img/icons/promo-code.png")} />
@@ -892,44 +874,65 @@ const MyCart = () => {
                 </View>
 
                 <TouchableOpacity onPress={() => setShowCouponsDropdown(prev => !prev)}>
-                  <Text style={{ fontSize: normalizeFont(10), color: '#0077ff' }}>{showCouponsDropdown ? 'Hide' : 'View Offers'}</Text>
+                  <Text style={{ fontSize: normalizeFont(10), color: '#0077ff' }}>{showCouponsDropdown ? 'Hide' : 'View Coupons'}</Text>
                 </TouchableOpacity>
               </View>
 
-              {/* Dropdown list */}
-              {showCouponsDropdown && (
-                <View style={{ marginBottom: moderateScale(10) }}>
-                  {fetchingCoupons ? (
-                    <Text style={{ fontSize: normalizeFont(10), color: '#666' }}>Loading coupons...</Text>
-                  ) : (highlightedCoupons.length === 0) ? (
-                    <Text style={{ fontSize: normalizeFont(10), color: '#666' }}>No offers available</Text>
-                  ) : (
-                    highlightedCoupons.map(c => {
-                      const isPercentage = (c.discount?.type || '').toLowerCase() === 'percentage';
-                      const label = isPercentage ? `${c.discount.value}% off` : `₹${c.discount.value} off`;
-                      return (
-                        <TouchableOpacity
-                          key={c._id}
-                          style={styles.highlightCouponRow}
-                          onPress={() => {
-                            // auto-fill and apply
-                            setCouponCode(c.code || '');
-                            applyCoupon(c.code || '');
-                          }}
-                        >
-                          <View>
-                            <Text style={{ fontSize: normalizeFont(11), fontWeight: '600' }}>{c.code}</Text>
-                            <Text style={{ fontSize: normalizeFont(10), color: '#666' }}>{label} • Min ₹{c.minimumOrder ?? 0}</Text>
-                          </View>
-                          <Text style={{ fontSize: normalizeFont(10), color: '#999' }}>
-                            Exp: {c.expiryDate ? new Date(c.expiryDate).toLocaleDateString('en-IN') : 'N/A'}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })
-                  )}
+              {/* centered modal for coupons (matches ReviewOrder) */}
+              <Modal visible={showCouponsDropdown} transparent animationType="fade" onRequestClose={() => setShowCouponsDropdown(false)}>
+                <View style={styles.centeredOverlay}>
+                  <Pressable style={styles.modalBackground} onPress={() => setShowCouponsDropdown(false)} />
+                  <View style={styles.centeredCouponModal}>
+                    <View style={styles.modalHeader}>
+                      <Text style={{ fontWeight: '600' }}>Choose a Coupon</Text>
+                      <TouchableOpacity onPress={() => setShowCouponsDropdown(false)} style={styles.closeButton}>
+                        <Ionicons name="close" size={22} color="#666" />
+                      </TouchableOpacity>
+                    </View>
+
+
+                  <ScrollView>
+                    <View style={{ paddingHorizontal: moderateScale(12), paddingBottom: moderateScale(12), paddingTop: moderateScale(8) }}>
+                      {fetchingCoupons ? (
+                        <Text style={{ textAlign: 'center' }}> <ActivityIndicator size="large" color="#6B46C1" /></Text>
+                      ) : highlightedCoupons.length === 0 ? (
+                        <Text style={{ textAlign: 'center', color: '#666' }}>No offers available</Text>
+                      ) : (
+                        highlightedCoupons.map(c => {
+                          const isPercentage = (c.discount?.type || '').toLowerCase() === 'percentage';
+                          const label = isPercentage ? `${c.discount.value}% off` : `₹${c.discount.value} off`;
+                          const subtotalLocal = priceDetails?.totalMRP ?? subtotal;
+                          const previewDiscount = isPercentage
+                            ? Number(((subtotalLocal * Number(c.discount.value || 0)) / 100).toFixed(2))
+                            : Number(Number(c.discount.value || 0).toFixed(2));
+                          return (
+                            <TouchableOpacity
+                              key={c._id}
+                              style={styles.highlightCouponRow}
+                              onPress={() => {
+                                setCouponCode(c.code || '');
+                                applyCoupon(c.code || '');
+                                setShowCouponsDropdown(false);
+                              }}
+                            >
+                              <View>
+                                <Text style={{ fontSize: normalizeFont(11), fontWeight: '600' }}>{c.code}</Text>
+                                <Text style={{ color: '#666' }}>{c.appliesTo?.join?.(', ') || 'All Products'}</Text>
+                                <Text style={{ fontSize: normalizeFont(10), color: '#666' }}>{label} • Min ₹{c.minimumOrder ?? 0}</Text>
+                              </View>
+                              <View style={{alignItems:"flex-end"}}>
+                                <Text style={{color:'#000',fontSize:normalizeFont(13),fontWeight:'bold',marginBottom:moderateScale(6)}}>Save </Text>
+                                <Text style={{color:'grey',fontSize:normalizeFont(10)}}>₹{previewDiscount.toFixed(2)}</Text>
+                              </View>
+                            </TouchableOpacity>
+                          );
+                        })
+                      )}
+                    </View>
+                    </ScrollView>
+                  </View>
                 </View>
-              )}
+              </Modal>
 
               <View style={styles.couponInputContainer}>
                 <TextInput
@@ -954,7 +957,7 @@ const MyCart = () => {
                 <Text style={styles.couponError}>{couponError}</Text>
               ) : (appliedCoupon && appliedCoupon.vendorId === selectedVendor?.id) ? (
                 <Text style={styles.couponSuccess}>
-                  Coupon applied! ₹{appliedCoupon.discount} discount
+                  Coupon applied! ₹{Number(effectiveCouponDiscount).toFixed(2)} discount
                 </Text>
               ) : null}
             </View>
@@ -967,17 +970,17 @@ const MyCart = () => {
 
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>Total MRP</Text>
-                <Text style={styles.priceValue}>₹{Number(priceDetails.totalMRP || subtotal).toFixed(2)}</Text>
+                <Text style={styles.priceValue}>₹{Number(baseSubtotal).toFixed(2)}</Text>
               </View>
 
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>Coupon Discount</Text>
-                <Text style={styles.discountValue}>-₹{Number(couponDiscount).toFixed(2)}</Text>
+                <Text style={styles.discountValue}>-₹{Number(effectiveCouponDiscount).toFixed(2)}</Text>
               </View>
 
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>Delivery Charges</Text>
-                <Text style={styles.priceValue}>₹{Number(deliveryCharge).toFixed(2)}</Text>
+                <Text style={styles.priceValue}>₹{Number(baseDelivery).toFixed(2)}</Text>
               </View>
 
               <View style={[styles.priceRow, styles.totalRow]}>
@@ -1453,7 +1456,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#fff',
     paddingHorizontal: moderateScale(16),
-    paddingTop: moderateScale(50),
+    paddingTop: moderateScale(30),
     paddingBottom: moderateScale(16),
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
@@ -1470,10 +1473,11 @@ const styles = StyleSheet.create({
   vendorSection: {
     backgroundColor: '#fff',
     marginBottom: moderateScale(5),
-    borderRadius: moderateScale(5),
+    borderRadius: moderateScale(10),
     borderWidth: 1,
     borderColor: 'grey',
     overflow: 'hidden',
+    marginTop:moderateScale(15)
   },
   selectedVendorSection: {
     borderColor: 'grey',
@@ -1488,7 +1492,7 @@ const styles = StyleSheet.create({
   vendorAvatar: {
     width: scale(40),
     height: scale(40),
-    borderRadius: 20,
+    borderRadius:50,
     marginRight: moderateScale(12),
   },
   vendorInfoHeader: {
@@ -1507,7 +1511,7 @@ const styles = StyleSheet.create({
   selectedIndicator: {
     width: scale(24),
     height: scale(24),
-    borderRadius: 12,
+    borderRadius:50,
     backgroundColor: 'rgba(76, 175, 80, 1)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1520,7 +1524,7 @@ const styles = StyleSheet.create({
   unselectedIndicator: {
     width: scale(24),
     height: scale(24),
-    borderRadius: 12,
+    borderRadius:50,
     borderWidth: 2,
     borderColor: '#ddd',
   },
@@ -1712,6 +1716,62 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
+  centeredOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding:moderateScale(10),
+  },
+  centeredCouponModal: {
+    width: '90%',
+    maxHeight: '60%',
+    backgroundColor: '#fff',
+    borderRadius: moderateScale(12),
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#eee',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  modalHeader: {
+    padding: moderateScale(12),
+    paddingHorizontal:moderateScale(10),
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+
+  /* rest of styles from original file (delivery modal / pickup modal / etc) kept same as earlier */
+  modalContainer: {
+    backgroundColor: 'transparent',
+    paddingBottom: moderateScale(20),
+  },
+  modalHeaderRow: {
+    padding: moderateScale(12),
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  highlightCouponRow: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+    padding: moderateScale(10),
+    borderRadius: 8,
+    marginBottom: moderateScale(8),
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  /* delivery modal */
   deliveryModalContainer: {
     backgroundColor: 'white',
     borderTopLeftRadius: moderateScale(20),
@@ -1775,37 +1835,22 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(76, 175, 80, 1)',
     borderWidth: 2,
   },
-  radioOuter: {
-    width: scale(20),
-    height: scale(20),
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#ddd',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+
+  /* many remaining styles are kept intact from original file for consistency */
   text: {
     color: 'rgba(76, 175, 80, 1)',
     fontWeight: '600',
     fontSize: normalizeFont(13),
   },
-  modalContainer: {
-    backgroundColor: 'transparent',
-    paddingBottom: moderateScale(20),
-  },
   modalHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: moderateScale(20),
+    paddingVertical:moderateScale(5),
+    paddingHorizontal:moderateScale(20),
   },
-  backButton: {
-    marginRight: moderateScale(15),
-  },
-  modalHeaderTitle: {
-    fontSize: normalizeFont(13),
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'center',
+  closeButton: {
+    padding: moderateScale(4),
   },
   locationInfo: {
     flexDirection: 'row',
@@ -1913,21 +1958,8 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(25),
     gap: scale(10),
   },
-  vendorImage: {
-    width: scale(30),
-    height: scale(30),
-    borderRadius: 25,
-    backgroundColor: '#ddd',
-    marginRight: moderateScale(15),
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   vendorDetails: {
     flex: 1,
-  },
-  vendorLocationText: {
-    fontSize: normalizeFont(10),
-    color: '#666',
   },
   vendorPhone: {
     fontSize: normalizeFont(10),

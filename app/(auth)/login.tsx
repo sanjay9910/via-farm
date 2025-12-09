@@ -252,6 +252,7 @@
 // });
 
 
+// app/screens/LoginScreen.jsx
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "expo-router";
 import { useContext, useState } from "react";
@@ -276,8 +277,8 @@ import { saveToken } from "../utility/Storage";
 
 export default function LoginScreen() {
   const navigation = useNavigation();
-  const [mobile, setMobile] = useState("7777777777");
-  const [password, setPassword] = useState("12345678");
+  const [mobile, setMobile] = useState("");
+  const [password, setPassword] = useState("");
   const { login } = useContext(AuthContext);
 
   const handleLogin = async () => {
@@ -298,7 +299,7 @@ export default function LoginScreen() {
       const response = await login(mobile, password);
 
       if (response.status === "success") {
-        saveToken(response?.data.token);
+        saveToken(response?.data?.token);
         const userRole = response.data?.user?.role;
 
         if (userRole === "Vendor") {
@@ -321,7 +322,7 @@ export default function LoginScreen() {
       console.error("Login error:", err);
       Alert.alert(
         "Error",
-        err.response?.data?.message || "Something went wrong, try again later"
+        err?.response?.data?.message || "Something went wrong, try again later"
       );
     }
   };
@@ -335,7 +336,7 @@ export default function LoginScreen() {
       <KeyboardAvoidingView
         behavior={isIOS ? "padding" : "height"}
         style={styles.keyboardView}
-        keyboardVerticalOffset={isIOS ? verticalScale(10) : verticalScale(20)}
+        keyboardVerticalOffset={isIOS ? verticalScale(10) : verticalScale(18)}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView
@@ -361,11 +362,12 @@ export default function LoginScreen() {
                 <TextInput
                   keyboardType="numeric"
                   value={mobile}
-                  onChangeText={setMobile}
+                  onChangeText={(t) => setMobile(t.replace(/[^0-9]/g, ""))}
                   style={styles.input}
                   maxLength={10}
                   returnKeyType="next"
                   placeholder="Enter 10-digit mobile"
+                  placeholderTextColor="#9e9e9e"
                 />
               </View>
 
@@ -378,6 +380,8 @@ export default function LoginScreen() {
                   onChangeText={setPassword}
                   style={styles.input}
                   returnKeyType="done"
+                  placeholder="Your password"
+                  placeholderTextColor="#9e9e9e"
                 />
               </View>
 
@@ -390,14 +394,15 @@ export default function LoginScreen() {
               <TouchableOpacity
                 style={styles.loginBtn}
                 onPress={handleLogin}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
               >
                 <Ionicons name="log-in-outline" size={moderateScale(18)} color="#fff" />
                 <Text style={styles.loginText}>Login</Text>
               </TouchableOpacity>
 
               {/* Login with OTP */}
-              <TouchableOpacity style={styles.otpBtn} onPress={handleOtpLogin}>
+              <TouchableOpacity style={styles.otpBtn} onPress={handleOtpLogin} activeOpacity={0.85}>
+                <Ionicons name="key-outline" size={moderateScale(16)} color="rgba(76,175,80,1)" />
                 <Text style={styles.otpText}>Login with OTP</Text>
               </TouchableOpacity>
 
@@ -416,10 +421,13 @@ export default function LoginScreen() {
   );
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const HORIZONTAL_PADDING = moderateScale(18);
-const CARD_WIDTH = Math.min(SCREEN_WIDTH - HORIZONTAL_PADDING * 0, scale(420));
+/* ---------- responsive sizing helpers ---------- */
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const HORIZONTAL_MARGIN = moderateScale(18);
+const MAX_CARD_WIDTH = scale(420);
+const CARD_WIDTH = Math.min(Math.max(SCREEN_WIDTH - HORIZONTAL_MARGIN * 2, scale(320)), MAX_CARD_WIDTH);
 
+/* ---------- styles ---------- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -435,95 +443,100 @@ const styles = StyleSheet.create({
     paddingBottom: moderateScale(20),
   },
   logoImage: {
-    width: scale(160),
-    height: verticalScale(160),
+    width: Math.min(scale(180), CARD_WIDTH * 0.6),
+    height: Math.min(verticalScale(160), CARD_WIDTH * 0.6),
     resizeMode: "contain",
-    marginBottom: verticalScale(-30),
+    marginBottom: verticalScale(-28),
   },
   card: {
-    width: CARD_WIDTH,
+    width:'100%',
     minHeight: verticalScale(420),
     backgroundColor: "#fff",
-    borderRadius: moderateScale(18),
+    borderRadius: moderateScale(16),
     paddingHorizontal: moderateScale(20),
-    paddingVertical: moderateScale(26),
-    marginTop: verticalScale(40),
+    paddingVertical: moderateScale(22),
+    marginTop: verticalScale(28),
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderTopWidth: 3,
     borderColor: "rgba(255, 202, 40, 1)",
     alignItems: "center",
+    // shadowColor: "#000",
+    // shadowOpacity: 0.06,
+    // shadowRadius: moderateScale(8),
+    // shadowOffset: { width: 0, height: moderateScale(4) },
+    // elevation: 6,
   },
   heading: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(15),
     fontWeight: "600",
-    marginBottom: moderateScale(18),
+    marginBottom: moderateScale(14),
+    color: "#222",
   },
   inputContainer: {
     width: "100%",
-    marginBottom: moderateScale(14),
+    marginBottom: moderateScale(12),
   },
   label: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     fontWeight: "600",
     color: "#333",
     marginBottom: moderateScale(6),
-    marginLeft: 2,
+    marginLeft: moderateScale(2),
   },
   input: {
     width: "100%",
-    // height: verticalScale(48),
-    paddingVertical:moderateScale(10),
+    paddingVertical: moderateScale(12),
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#e0e0e0",
     borderRadius: moderateScale(10),
     paddingHorizontal: moderateScale(12),
-    backgroundColor: "#fdfdfd",
-    fontSize: normalizeFont(10),
+    backgroundColor: "#fafafa",
+    fontSize: normalizeFont(13),
+    color: "#222",
   },
   forgotWrapper: {
     width: "100%",
     alignItems: "flex-end",
-    marginBottom: moderateScale(20),
+    marginBottom: moderateScale(16),
   },
   forgotText: {
     color: "#007AFF",
-    fontSize: normalizeFont(9),
+    fontSize: normalizeFont(12),
   },
   loginBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    width: "70%",
-    // height: verticalScale(48),
-    paddingVertical:moderateScale(12),
+    width: "78%",
+    paddingVertical: moderateScale(12),
     borderRadius: moderateScale(10),
     backgroundColor: "rgba(76, 175, 80, 1)",
-    marginBottom: moderateScale(20),
+    marginBottom: moderateScale(14),
     paddingHorizontal: moderateScale(8),
   },
   loginText: {
     color: "#fff",
-    fontSize: normalizeFont(10),
-    fontWeight: "600",
+    fontSize: normalizeFont(14),
+    fontWeight: "700",
     marginLeft: moderateScale(8),
   },
   otpBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    width: "70%",
-    // height: verticalScale(48),
-    paddingVertical:moderateScale(10),
+    width: "78%",
+    paddingVertical: moderateScale(10),
     borderRadius: moderateScale(10),
-    borderWidth: 2,
+    borderWidth: 1.6,
     borderColor: "rgba(76, 175, 80, 1)",
-    marginBottom: moderateScale(16),
+    marginBottom: moderateScale(12),
+    backgroundColor: "#fff",
   },
   otpText: {
-    color: "green",
-    fontSize: normalizeFont(11),
-    fontWeight: "600",
+    color: "rgba(76, 175, 80, 1)",
+    fontSize: normalizeFont(13),
+    fontWeight: "700",
     marginLeft: moderateScale(8),
   },
   signupWrapper: {
@@ -531,12 +544,12 @@ const styles = StyleSheet.create({
     marginTop: moderateScale(6),
   },
   signupText: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     color: "#555",
   },
   signupLink: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     color: "#007AFF",
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });

@@ -862,7 +862,7 @@ const ViewAllLocalBest = () => {
                         onChangeText={(t) => setTempFilters(tf => ({ ...tf, priceMax: t.replace(/[^0-9]/g, '') ? Number(t.replace(/[^0-9]/g, '')) : Number.MAX_SAFE_INTEGER })) }
                       />
                     </View>
-                    <Text style={{ marginTop: moderateScale(8), color: '#666' }}>Leave Max empty for any</Text>
+                    <Text style={{ marginTop: moderateScale(8), color: '#666', fontSize:normalizeFont(13)}}>Leave Max empty for any</Text>
                   </View>
                 )}
 
@@ -1066,7 +1066,8 @@ const cardStyles = StyleSheet.create({
 
   priceContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
+
     marginBottom: moderateScale(5),
   },
   productPrice: {
@@ -1077,11 +1078,12 @@ const cardStyles = StyleSheet.create({
   productUnit: {
     fontSize: normalizeFont(10),
     color: '#666',
-    marginLeft: moderateScale(6),
+    
     marginBottom: moderateScale(2),
   },
   weightText: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(12),
+    paddingTop:moderateScale(5),
     color: '#777',
     marginLeft: moderateScale(6),
   },
@@ -1258,7 +1260,7 @@ const filterStyles = StyleSheet.create({
     width: moderateScale(250),
     backgroundColor: '#fff',
     borderTopLeftRadius: moderateScale(20),
-    borderBottomLeftRadius: moderateScale(20),
+    borderBottomWidth:0,
     borderWidth: moderateScale(2),
     borderColor: 'rgba(255, 202, 40, 1)',
     elevation: 10,

@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import axios from 'axios';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -201,9 +201,16 @@ const ProductCard = ({
                 >
                   <Ionicons name="remove" size={scale(16)} color="rgba(76, 175, 80, 1)" />
                 </TouchableOpacity>
-                <View style={cardStyles.quantityValueContainer}>
+
+                {/* === CLICKABLE quantity value => opens modal === */}
+                <TouchableOpacity
+                  style={cardStyles.quantityValueContainer}
+                  activeOpacity={0.8}
+                  onPress={(e) => openQtyModal(e)}
+                >
                   <Text style={cardStyles.quantityText}>{cartQuantity}</Text>
-                </View>
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   style={cardStyles.quantityButton}
                   onPress={(e) => {
@@ -228,7 +235,7 @@ const ProductCard = ({
       >
         <TouchableOpacity style={modalStyles.backdrop} activeOpacity={1} onPress={closeQtyModal}>
           <View style={[modalStyles.modalWrap, { maxWidth: Math.min(420, Dimensions.get('window').width - moderateScale(40)) }]}>
-            <Text style={modalStyles.modalTitle}>Set Quantity</Text>
+            <Text style={modalStyles.modalTitle}>Add Quantity</Text>
 
             <View style={modalStyles.editRow}>
               <TouchableOpacity style={modalStyles.pickerBtn} onPress={decrementEdit}>
@@ -375,7 +382,6 @@ const ProductVarieties = () => {
     fetchVarieties();
     fetchWishlist();
     fetchCart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product, productId, variety]);
 
   // parsing helper
@@ -1018,7 +1024,7 @@ const cardStyles = StyleSheet.create({
   productUnit: {
     fontSize: normalizeFont(12),
     color: '#000',
-    marginLeft: moderateScale(6),
+    // marginLeft: moderateScale(6),
     marginBottom: moderateScale(2),
   },
 
@@ -1194,7 +1200,7 @@ const filterStyles = StyleSheet.create({
     width: moderateScale(250),
     backgroundColor: '#fff',
     borderTopLeftRadius: moderateScale(20),
-    borderBottomLeftRadius: moderateScale(20),
+    borderBottomWidth:0,
     borderWidth: moderateScale(2),
     borderColor: 'rgba(255, 202, 40, 1)',
     elevation: 10,

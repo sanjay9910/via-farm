@@ -1,9 +1,10 @@
+// MyOrdersScreen.jsx
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -474,7 +475,7 @@ const MyOrdersScreen = () => {
                             >
                                 <Ionicons
                                     name={starIndex < ratingVal ? "star" : "star-outline"}
-                                    size={22}
+                                    size={Math.round(moderateScale(22))}
                                     color={starIndex < ratingVal ? "#FFD700" : "#E0E0E0"}
                                 />
                             </TouchableOpacity>
@@ -486,7 +487,7 @@ const MyOrdersScreen = () => {
                         onPress={() => handleWriteReview(order.id, item.productId)}
                     >
                         <Text style={styles.reviewButtonText}>Write a review</Text>
-                        <Ionicons name="chevron-forward" size={16} color="#2196F3" />
+                        <Ionicons name="chevron-forward" size={Math.round(moderateScale(16))} color="#2196F3" />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -505,7 +506,7 @@ const MyOrdersScreen = () => {
                     >
                         <Ionicons
                             name={star <= reviewRating ? "star" : "star-outline"}
-                            size={36}
+                            size={Math.round(moderateScale(36))}
                             color={star <= reviewRating ? "#FFD700" : "#E0E0E0"}
                         />
                     </TouchableOpacity>
@@ -553,7 +554,7 @@ const MyOrdersScreen = () => {
                                         <Text style={styles.productDescription}>Qty: {product.quantity ?? product.qty ?? 1}</Text>
                                         {product.vendorName ? <Text style={{ fontSize: normalizeFont(12),color:'grey' }}>By: {product.vendorName}</Text> : null}
                                     </View>
-                                    <Ionicons name="chevron-forward" size={20} color="#666" />
+                                    <Ionicons name="chevron-forward" size={Math.round(moderateScale(20))} color="#666" />
                                 </TouchableOpacity>
 
                                 {product.canReview && renderStarRating(order, product)}
@@ -562,7 +563,7 @@ const MyOrdersScreen = () => {
                             </View>
                         ))
                     ) : (
-                        <View style={{ paddingVertical: 8 }}>
+                        <View style={{ paddingVertical: moderateScale(8) }}>
                             <Text style={{ color: '#666' }}>No products in this order</Text>
                         </View>
                     )}
@@ -581,7 +582,7 @@ const MyOrdersScreen = () => {
             <SafeAreaView style={styles.container}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={backOrder} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color="#333" />
+                        <Ionicons name="arrow-back" size={Math.round(moderateScale(24))} color="#333" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>My Orders</Text>
                     <View style={styles.placeholder} />
@@ -598,7 +599,7 @@ const MyOrdersScreen = () => {
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={backOrder} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#333" />
+                    <Ionicons name="arrow-back" size={Math.round(moderateScale(24))} color="#333" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>My Orders</Text>
                 <View style={styles.placeholder} />
@@ -606,7 +607,7 @@ const MyOrdersScreen = () => {
 
             <View style={styles.searchContainer}>
                 <View style={styles.searchInputContainer}>
-                    <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+                    <Ionicons name="search" size={Math.round(moderateScale(20))} color="#999" style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search Product, Status, Order ID..."
@@ -618,7 +619,7 @@ const MyOrdersScreen = () => {
                     />
                     {searchQuery.length > 0 && (
                         <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
-                            <Ionicons name="close-circle" size={20} color="#999" />
+                            <Ionicons name="close-circle" size={Math.round(moderateScale(20))} color="#999" />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -639,7 +640,7 @@ const MyOrdersScreen = () => {
 
             {error && filteredOrders.length === 0 && !searchQuery ? (
                 <View style={styles.centerContainer}>
-                    <Ionicons name="alert-circle-outline" size={64} color="#F44336" style={styles.emptyIcon} />
+                    <Ionicons name="alert-circle-outline" size={Math.round(moderateScale(64))} color="#F44336" style={styles.emptyIcon} />
                     <Text style={styles.errorText}>{error}</Text>
                     <TouchableOpacity style={styles.retryButton} onPress={fetchOrders}>
                         <Text style={styles.retryButtonText}>Retry</Text>
@@ -649,7 +650,7 @@ const MyOrdersScreen = () => {
                 <View style={styles.centerContainer}>
                     <Ionicons
                         name={searchQuery ? "search" : "receipt-outline"}
-                        size={64}
+                        size={Math.round(moderateScale(64))}
                         color="#ccc"
                         style={styles.emptyIcon}
                     />
@@ -735,7 +736,7 @@ const MyOrdersScreen = () => {
                                                     style={styles.removeImageButton}
                                                     onPress={() => removeImage(index)}
                                                 >
-                                                    <Ionicons name="close-circle" size={20} color="#FF4444" />
+                                                    <Ionicons name="close-circle" size={Math.round(moderateScale(20))} color="#FF4444" />
                                                 </TouchableOpacity>
                                             </View>
                                         ))}
@@ -745,7 +746,7 @@ const MyOrdersScreen = () => {
 
                             <TouchableOpacity style={styles.modalImageUpload} onPress={selectImage}>
                                 <View style={styles.modalImageUploadContent}>
-                                    <Ionicons name="camera-outline" size={32} color="#999" />
+                                    <Ionicons name="camera-outline" size={Math.round(moderateScale(32))} color="#999" />
                                     <Text style={styles.modalImageUploadText}>
                                         Add other photos of your product (max 5)
                                     </Text>
@@ -793,13 +794,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: moderateScale(16),
-        paddingVertical: moderateScale(16),
+        paddingVertical: moderateScale(14),
         backgroundColor: '#fff',
         borderBottomWidth: 1,
         borderBottomColor: '#f0f0f0',
     },
     backButton: {
-        padding: moderateScale(4),
+        padding: moderateScale(6),
     },
     headerTitle: {
         fontSize: normalizeFont(18),
@@ -821,7 +822,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: moderateScale(16),
-        paddingVertical: moderateScale(12),
+        paddingVertical: moderateScale(10),
         backgroundColor: '#fff',
         gap: scale(12),
     },
@@ -830,8 +831,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#f8f8f8',
-        borderRadius: 8,
-        paddingHorizontal: 12,
+        borderRadius: moderateScale(10),
+        paddingHorizontal: moderateScale(12),
         height: scale(44),
         borderWidth: 1,
         borderColor: '#f0f0f0',
@@ -841,17 +842,17 @@ const styles = StyleSheet.create({
     },
     searchInput: {
         flex: 1,
-        fontSize: normalizeFont(11),
+        fontSize: normalizeFont(12),
         color: '#333',
     },
     clearButton: {
         marginLeft: moderateScale(8),
-        padding: moderateScale(2),
+        padding: moderateScale(4),
     },
     filterButton: {
         padding: moderateScale(12),
         backgroundColor: '#f8f8f8',
-        borderRadius: moderateScale(8),
+        borderRadius: moderateScale(10),
         borderWidth: 1,
         borderColor: '#f0f0f0',
     },
@@ -879,26 +880,30 @@ const styles = StyleSheet.create({
 
     // List Styles
     listContainer: {
-        padding: moderateScale(16),
+        padding: moderateScale(10),
+        paddingBottom: moderateScale(30),
     },
     orderCard: {
         backgroundColor: '#fff',
         borderRadius: moderateScale(12),
-        padding: moderateScale(16),
-        marginBottom: moderateScale(16),
+        padding: moderateScale(14),
+        marginBottom: moderateScale(14),
         shadowColor: '#000',
         shadowOffset: {
             width: 0,
             height: 2,
         },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        shadowOpacity: 0.08,
+        shadowRadius: moderateScale(4),
+        elevation: 2,
     },
 
     // Order Header
     orderHeader: {
-        marginBottom: moderateScale(16),
+        marginBottom: moderateScale(12),
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     statusText: {
         fontSize: normalizeFont(12),
@@ -915,16 +920,16 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         width: '100%',
-        height: scale(85),
-        marginBottom: moderateScale(16),
+        height: scale(100),
+        marginBottom: moderateScale(12),
         backgroundColor: 'rgba(249, 249, 249, 1)',
-        padding: moderateScale(15),
+        padding: moderateScale(12),
         borderRadius: moderateScale(10),
     },
     productImage: {
-        width: scale(75),
-        height: scale(75),
-        borderRadius: 3,
+        width: scale(72),
+        height: scale(72),
+        borderRadius: moderateScale(8),
         marginRight: moderateScale(12),
     },
     productInfo: {
@@ -938,7 +943,7 @@ const styles = StyleSheet.create({
     },
     productDescription: {
         fontSize: normalizeFont(12),
-        paddingVertical: 1,
+        paddingVertical: moderateScale(1),
         color: '#333',
     },
 
@@ -955,10 +960,10 @@ const styles = StyleSheet.create({
     starsContainer: {
         flexDirection: 'row',
         marginBottom: moderateScale(7),
-        gap: 3,
+        gap: moderateScale(4),
     },
     starButton: {
-        padding: moderateScale(2),
+        padding: moderateScale(4),
     },
     reviewButton: {
         flexDirection: 'row',
@@ -968,7 +973,7 @@ const styles = StyleSheet.create({
     reviewButtonText: {
         fontSize: normalizeFont(12),
         color: '#2196F3',
-        marginRight: moderateScale(4),
+        marginRight: moderateScale(6),
     },
 
     // Modal Styles
@@ -988,20 +993,20 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: moderateScale(20),
         borderTopRightRadius: moderateScale(20),
         maxHeight: SCREEN_HEIGHT * 0.88,
-        borderWidth: 2,
+        borderWidth: moderateScale(1),
         borderColor: 'rgba(255, 202, 40, 0.5)',
     },
     modalHandle: {
         width: scale(40),
         height: scale(4),
         backgroundColor: '#E0E0E0',
-        borderRadius: 2,
+        borderRadius: moderateScale(2),
         alignSelf: 'center',
         marginTop: moderateScale(12),
         marginBottom: moderateScale(8),
     },
     modalContent: {
-        padding: moderateScale(10),
+        padding: moderateScale(12),
         paddingBottom: moderateScale(40),
         flex: 1,
     },
@@ -1021,8 +1026,8 @@ const styles = StyleSheet.create({
             width: 0,
             height: 2,
         },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowOpacity: 0.08,
+        shadowRadius: moderateScale(4),
     },
     modalProductImage: {
         width: '100%',
@@ -1056,29 +1061,29 @@ const styles = StyleSheet.create({
     modalImageUpload: {
         borderWidth: moderateScale(2),
         borderColor: 'rgba(255, 202, 40, 0.5)',
-        borderRadius: 8,
-        padding: moderateScale(20),
-        marginBottom: moderateScale(24),
+        borderRadius: moderateScale(10),
+        padding: moderateScale(18),
+        marginBottom: moderateScale(20),
         backgroundColor: '#fff',
     },
     modalImageUploadContent: {
         alignItems: 'center',
     },
     modalImageUploadText: {
-        fontSize: normalizeFont(10),
+        fontSize: normalizeFont(11),
         color: '#999',
         textAlign: 'center',
         marginTop: moderateScale(8),
     },
     modalImageCount: {
-        fontSize: normalizeFont(10),
+        fontSize: normalizeFont(11),
         color: '#666',
         textAlign: 'center',
         marginTop: moderateScale(4),
         fontWeight: '500',
     },
     uploadedImagesContainer: {
-        marginBottom: moderateScale(16),
+        marginBottom: moderateScale(12),
     },
     uploadedImageWrapper: {
         position: 'relative',
@@ -1087,7 +1092,7 @@ const styles = StyleSheet.create({
     uploadedImage: {
         width: scale(70),
         height: scale(70),
-        borderRadius: 8,
+        borderRadius: moderateScale(8),
         backgroundColor: '#F5F5F5',
     },
     removeImageButton: {
@@ -1095,15 +1100,15 @@ const styles = StyleSheet.create({
         top: -6,
         right: -6,
         backgroundColor: '#FFF',
-        borderRadius: moderateScale(10),
+        borderRadius: moderateScale(14),
         elevation: 2,
         shadowColor: '#000',
         shadowOffset: {
             width: 0,
             height: 1,
         },
-        shadowOpacity: 0.2,
-        shadowRadius: 2,
+        shadowOpacity: 0.12,
+        shadowRadius: moderateScale(2),
     },
     modalReviewText: {
         fontSize: normalizeFont(12),
@@ -1114,18 +1119,18 @@ const styles = StyleSheet.create({
     modalReviewInput: {
         borderWidth: 1,
         borderColor: 'rgba(255, 202, 40, 0.5)',
-        borderRadius: moderateScale(8),
+        borderRadius: moderateScale(10),
         padding: moderateScale(12),
         fontSize: normalizeFont(12),
         color: '#333',
         backgroundColor: '#FFF',
-        marginBottom: moderateScale(24),
+        marginBottom: moderateScale(20),
         minHeight: scale(100),
     },
     modalSubmitButton: {
         backgroundColor: 'rgba(76, 175, 80, 1)',
-        paddingVertical: moderateScale(16),
-        borderRadius: 8,
+        paddingVertical: moderateScale(14),
+        borderRadius: moderateScale(10),
         alignItems: 'center',
     },
     modalSubmitButtonText: {
@@ -1139,7 +1144,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingVertical: moderateScale(50),
+        paddingVertical: moderateScale(40),
         paddingHorizontal: moderateScale(20),
     },
     loadingText: {
@@ -1151,13 +1156,13 @@ const styles = StyleSheet.create({
         fontSize: normalizeFont(13),
         color: '#f44336',
         textAlign: 'center',
-        marginBottom: moderateScale(20),
+        marginBottom: moderateScale(16),
     },
     retryButton: {
         backgroundColor: '#4CAF50',
-        paddingHorizontal: moderateScale(20),
+        paddingHorizontal: moderateScale(18),
         paddingVertical: moderateScale(10),
-        borderRadius: 8,
+        borderRadius: moderateScale(8),
     },
     retryButtonText: {
         color: '#fff',
@@ -1165,7 +1170,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     emptyIcon: {
-        marginBottom: moderateScale(16),
+        marginBottom: moderateScale(12),
     },
     emptyText: {
         fontSize: normalizeFont(15),
@@ -1198,7 +1203,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: moderateScale(10),
         paddingHorizontal: moderateScale(8),
-        marginTop: moderateScale(12),
+        marginTop: moderateScale(10),
         backgroundColor: '#fafafa',
         borderRadius: moderateScale(8),
         borderWidth: 1,
@@ -1206,7 +1211,7 @@ const styles = StyleSheet.create({
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.03,
-        shadowRadius: 4,
+        shadowRadius: moderateScale(4),
         elevation: 1,
     },
 

@@ -1,7 +1,7 @@
 // app/screens/MapScreen.jsx
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,

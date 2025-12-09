@@ -1,9 +1,10 @@
+// ViewOrderDetails.jsx
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -28,15 +29,16 @@ const API_BASE = 'https://viafarm-1.onrender.com';
 // Simple star row (read-only)
 const StarRow = ({ value = 0, size = 16 }) => {
   const v = Math.max(0, Math.min(5, Number(value || 0)));
+  const iconSize = Math.round(moderateScale(size));
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
       {[0, 1, 2, 3, 4].map(i => (
         <Ionicons
           key={i}
           name={i < v ? 'star' : 'star-outline'}
-          size={size}
+          size={iconSize}
           color={i < v ? '#FFD700' : '#E0E0E0'}
-          style={{ marginRight: 4 }}
+          style={{ marginRight: scale(4) }}
         />
       ))}
     </View>
@@ -53,11 +55,9 @@ const DetailCard = ({ children, title }) => (
 
 // Normalize incoming raw order payload to a consistent shape
 const normalizeOrder = (raw = {}) => {
-  // Prefer arrays under different keys
   const itemsRaw = raw.items ?? raw.orderItems ?? raw.products ?? raw.items ?? [];
 
   const items = (Array.isArray(itemsRaw) ? itemsRaw : []).map(it => {
-    // API sometimes returns item as { product: {...}, quantity }
     const productObj = it.product ?? it.productObj ?? {};
     const productImage =
       (productObj.images && Array.isArray(productObj.images) && productObj.images[0]) ||
@@ -91,26 +91,16 @@ const normalizeOrder = (raw = {}) => {
     };
   });
 
-  // vendors[] may be present from order-details endpoint
   const vendorsArray = Array.isArray(raw.vendors) ? raw.vendors : (raw.vendors ? [raw.vendors] : []);
-
-  // calculate subtotal from items if API didn't provide
   const subtotalFromItems = items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
-
-  // summary fields: try many possible names
   const topSubtotal = Number(raw.subtotal ?? raw.itemsSubtotal ?? raw.totalPrice ?? raw.sub_total ?? subtotalFromItems ?? 0);
   const coupon = Number(raw.discount ?? raw.couponDiscount ?? raw.coupon ?? 0);
-  // delivery: try per-vendor(s) else global
   const deliveryFromOrder = Number(raw.deliveryCharge ?? raw.shippingCharge ?? raw.delivery ?? 0);
-
-  // If vendors array contains deliveryCharge entries, sum them
   const vendorDeliverySum = vendorsArray.length
     ? vendorsArray.reduce((s, v) => s + (Number(v.deliveryCharge ?? v.delivery ?? 0)), 0)
     : 0;
 
   const delivery = vendorDeliverySum || deliveryFromOrder || 0;
-
-  // final total fallback
   const topTotal = Number(raw.totalPrice ?? raw.total ?? raw.grandTotal ?? raw.amount ?? (topSubtotal - coupon + delivery));
 
   return {
@@ -132,7 +122,6 @@ const normalizeOrder = (raw = {}) => {
       deliveryCharge: Number(v.deliveryCharge ?? v.delivery ?? 0),
       raw: v
     })),
-    // summary values normalized
     summary: {
       subtotal: topSubtotal,
       coupon: coupon,
@@ -155,7 +144,6 @@ const ViewOrderDetails = () => {
   const [loading, setLoading] = useState(!paramOrder && !!paramOrderId);
   const [error, setError] = useState(null);
 
-  // Review modal states & image upload (kept from your code)
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [reviewRating, setReviewRating] = useState(0);
@@ -191,7 +179,6 @@ const ViewOrderDetails = () => {
         }
       }
 
-      // fallback: fetch list and find by id
       if (!resp) {
         const listUrls = [
           `${API_BASE}/api/buyer/orders`,
@@ -218,8 +205,6 @@ const ViewOrderDetails = () => {
 
       const payload = resp.data?.order ?? resp.data?.data ?? resp.data;
       if (!payload) throw new Error('Invalid response from server');
-
-      // Some endpoints wrap object inside `order` or `data`
       const rawOrder = Array.isArray(payload) ? payload[0] : payload;
       setOrder(normalizeOrder(rawOrder));
     } catch (err) {
@@ -237,7 +222,6 @@ const ViewOrderDetails = () => {
 
   const goBack = () => navigation.goBack();
 
-  // Review modal helpers (kept similar to your flow)
   const openReviewModal = (productId) => {
     setSelectedProductId(productId);
     setReviewModalVisible(true);
@@ -360,14 +344,14 @@ const ViewOrderDetails = () => {
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.back} onPress={goBack}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
+            <Ionicons name="arrow-back" size={Math.round(moderateScale(20))} color="#333" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Order Details</Text>
-          <View style={{ width: 40 }} />
+          <View style={{ width: Math.round(scale(40)) }} />
         </View>
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#4CAF50" />
-          <Text style={{ marginTop: 12, color: '#666' }}>Loading order...</Text>
+          <Text style={{ marginTop: moderateScale(12), color: '#666', fontSize: normalizeFont(12) }}>Loading order...</Text>
         </View>
       </SafeAreaView>
     );
@@ -377,16 +361,16 @@ const ViewOrderDetails = () => {
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.back} onPress={goBack}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
+            <Ionicons name="arrow-back" size={Math.round(moderateScale(20))} color="#333" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Order Details</Text>
-          <View style={{ width: 40 }} />
+          <View style={{ width: Math.round(scale(40)) }} />
         </View>
         <View style={styles.center}>
-          <Ionicons name="alert-circle-outline" size={60} color="#F44336" />
-          <Text style={{ color: '#F44336', marginTop: 12, marginBottom: 12, textAlign: 'center', fontSize: 14 }}>{error}</Text>
+          <Ionicons name="alert-circle-outline" size={Math.round(moderateScale(48))} color="#F44336" />
+          <Text style={{ color: '#F44336', marginTop: moderateScale(12), marginBottom: moderateScale(12), textAlign: 'center', fontSize: normalizeFont(12) }}>{error}</Text>
           <TouchableOpacity onPress={() => { setError(null); if (paramOrderId) fetchOrderById(paramOrderId); }} style={styles.retryButton}>
-            <Text style={{ color: '#fff', fontWeight: '600', fontSize: 14 }}>Try Again</Text>
+            <Text style={{ color: '#fff', fontWeight: '600', fontSize: normalizeFont(12) }}>Try Again</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -397,25 +381,22 @@ const ViewOrderDetails = () => {
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.back} onPress={goBack}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
+            <Ionicons name="arrow-back" size={Math.round(moderateScale(20))} color="#333" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Order Details</Text>
-          <View style={{ width: 40 }} />
+          <View style={{ width: Math.round(scale(40)) }} />
         </View>
         <View style={styles.center}>
-          <Text style={{ color: '#666' }}>Order not found</Text>
+          <Text style={{ color: '#666', fontSize: normalizeFont(12) }}>Order not found</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  // Destructure normalized order
-  const { orderNumber, deliveryBy, items, shipping, vendors, summary, orderStatus } = order;
 
-  // Helper to show vendor section (if multiple vendors, show first and allow listing)
+  const { orderNumber, deliveryBy, items, shipping, vendors, summary, orderStatus } = order;
   const renderVendorsBlock = () => {
     if (!Array.isArray(vendors) || vendors.length === 0) {
-      // Attempt to infer vendor from items
       const itemVendor = items?.[0]?.raw?.vendor ?? null;
       if (!itemVendor) {
         return (
@@ -430,7 +411,7 @@ const ViewOrderDetails = () => {
       return (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Image source={{ uri: itemVendor.profilePicture || placeholderImage }} style={styles.vendorAvatar} />
-          <View style={{ marginLeft: 12, flex: 1 }}>
+          <View style={{ marginLeft: moderateScale(12), flex: 1 }}>
             <Text style={styles.detailText}>Name: {v.name || 'N/A'}</Text>
             <Text style={styles.detailText}>Location: {v.address?.locality || v.address?.city || v.address || 'N/A'}</Text>
             <Text style={styles.detailText}>Phone: {v.phone || 'N/A'}</Text>
@@ -439,7 +420,6 @@ const ViewOrderDetails = () => {
       );
     }
 
-    // If vendors array has more than one vendor, show them all
     return vendors.map((v, idx) => (
       <View key={v.id || idx} style={{ marginBottom: moderateScale(8) }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
@@ -455,10 +435,9 @@ const ViewOrderDetails = () => {
     ));
   };
 
-  // Compute a defensive item subtotal (if summary.subtotal seems missing)
+
   const computedSubtotal = summary?.subtotal ?? items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
   const computedCoupon = summary?.coupon ?? Number(order.raw?.discount ?? 0);
-  // delivery taken from normalized summary (already sums vendor delivery charges if present)
   const computedDelivery = summary?.delivery ?? 0;
   const computedTotal = summary?.total ?? (computedSubtotal - computedCoupon + computedDelivery);
 
@@ -466,17 +445,17 @@ const ViewOrderDetails = () => {
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.back} onPress={goBack}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={Math.round(moderateScale(20))} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Order Details</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: Math.round(scale(40)) }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>
         {/* Order Status Header */}
-        <View style={{ marginBottom: 10 }}>
+        <View style={{ marginBottom: moderateScale(10) }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ fontWeight: '700'  }}>{orderStatus}</Text>
+            <Text style={[styles.detailName, { fontSize: normalizeFont(13) }]}>{orderStatus}</Text>
             <Text style={{ color: '#666' ,fontSize:normalizeFont(12)}}>{orderNumber}</Text>
           </View>
         </View>
@@ -490,11 +469,11 @@ const ViewOrderDetails = () => {
         </View>
 
         {/* Items Section */}
-        <View style={{ marginTop: 16 }}>
+        <View style={{ marginTop: moderateScale(16) }}>
           <DetailCard title="Items">
             {items.length === 0 ? (
-              <View style={{ padding: 12 }}>
-                <Text style={{ color: '#666' }}>No items found in this order.</Text>
+              <View style={{ padding: moderateScale(12) }}>
+                <Text style={{ color: '#666', fontSize: normalizeFont(12) }}>No items found in this order.</Text>
               </View>
             ) : (
               items.map((it, index) => (
@@ -505,33 +484,29 @@ const ViewOrderDetails = () => {
                     onPress={() => navigation.navigate('ViewOrderProduct', { productId: it.productId, orderId: order?.id })}
                   >
                     <Image source={{ uri: it.productImage || placeholderImage }} style={styles.itemImage} />
-                    <View style={{ flex: 1, marginLeft: 12 }}>
+                    <View style={{ flex: 1, marginLeft: moderateScale(12) }}>
                       <Text style={styles.itemName}>{it.productName}</Text>
                       <Text style={styles.itemMeta}>Qty: {it.quantity} {it.raw?.unit ?? ''}</Text>
                       <Text style={styles.itemMeta}>Price: {formatCurrency(it.price)}</Text>
-                      {it.vendorName ? <Text style={{ fontSize: 11, color: '#999', marginTop: 4 }}>By: {it.vendorName}</Text> : null}
+                      {it.vendorName ? <Text style={{ fontSize: normalizeFont(11), color: '#999', marginTop: moderateScale(4) }}>By: {it.vendorName}</Text> : null}
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    <Ionicons name="chevron-forward" size={Math.round(moderateScale(18))} color="#ccc" />
                   </TouchableOpacity>
 
                   {it.canReview && (
                     <View style={styles.ratingRow}>
                       <Text style={styles.rateText}>Rate this item</Text>
-                      <Image source={require("../assets/via-farm-img/icons/satar.png")} />
-                      <Image source={require("../assets/via-farm-img/icons/satar.png")} />
-                      <Image source={require("../assets/via-farm-img/icons/satar.png")} />
-                      <Image source={require("../assets/via-farm-img/icons/satar.png")} />
-                      <Image source={require("../assets/via-farm-img/icons/satar.png")} />
+                      {/* <StarRow value={it.rating} size={16} /> */}
                       <TouchableOpacity style={{ marginLeft: 'auto' }} onPress={() => openReviewModal(it.productId)}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center',gap:5}}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(6) }}>
                           <Text style={styles.reviewText}>Write a review</Text>
-                          <Image source={require('../assets/via-farm-img/icons/see.png')} />
+                          {/* <Ionicons name="eye-outline" size={Math.round(moderateScale(16))} color="#2196F3" /> */}
                         </View>
                       </TouchableOpacity>
                     </View>
                   )}
 
-                  {index < items.length - 1 && <View style={{ height: 1, backgroundColor: '#f0f0f0', marginVertical: 8 }} />}
+                  {index < items.length - 1 && <View style={{ height: 1, backgroundColor: '#f0f0f0', marginVertical: moderateScale(8) }} />}
                 </View>
               ))
             )}
@@ -539,14 +514,14 @@ const ViewOrderDetails = () => {
         </View>
 
         {/* Vendor Details */}
-        <View style={{ marginTop: 14 }}>
+        <View style={{ marginTop: moderateScale(14) }}>
           <DetailCard title="Vendor Details">
             {renderVendorsBlock()}
           </DetailCard>
         </View>
 
         {/* Order Summary */}
-        <View style={{ marginTop: 14, marginBottom: 30 }}>
+        <View style={{ marginTop: moderateScale(14), marginBottom: moderateScale(30) }}>
           <DetailCard title="Order Summary">
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Item(s) Subtotal</Text>
@@ -592,7 +567,7 @@ const ViewOrderDetails = () => {
               <View style={styles.modalStarsContainer}>
                 {[1,2,3,4,5].map(star => (
                   <TouchableOpacity key={star} onPress={() => handleReviewRating(star)} style={styles.modalStarButton}>
-                    <Ionicons name={star <= reviewRating ? 'star' : 'star-outline'} size={scale(36)} color={star <= reviewRating ? '#FFD700' : '#E0E0E0'} />
+                    <Ionicons name={star <= reviewRating ? 'star' : 'star-outline'} size={Math.round(moderateScale(32))} color={star <= reviewRating ? '#FFD700' : '#E0E0E0'} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -606,7 +581,7 @@ const ViewOrderDetails = () => {
                       <View key={index} style={styles.uploadedImageWrapper}>
                         <Image source={{ uri: image.uri }} style={styles.uploadedImage} />
                         <TouchableOpacity style={styles.removeImageButton} onPress={() => removeImage(index)}>
-                          <Ionicons name="close-circle" size={scale(20)} color="#FF4444" />
+                          <Ionicons name="close-circle" size={Math.round(moderateScale(20))} color="#FF4444" />
                         </TouchableOpacity>
                       </View>
                     ))}
@@ -616,7 +591,7 @@ const ViewOrderDetails = () => {
 
               <TouchableOpacity style={styles.modalImageUpload} onPress={selectImage}>
                 <View style={styles.modalImageUploadContent}>
-                  <Ionicons name="camera-outline" size={32} color="#999" />
+                  <Ionicons name="camera-outline" size={Math.round(moderateScale(28))} color="#999" />
                   <Text style={styles.modalImageUploadText}>Add other photos of your product (max 5)</Text>
                   <Text style={styles.modalImageCount}>{uploadedImages.length}/5 images uploaded</Text>
                 </View>
@@ -639,7 +614,7 @@ const ViewOrderDetails = () => {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#fff' },
   header: {
-    height: scale(56),
+    height: Math.round(scale(56)),
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#eee',
     flexDirection: 'row',
@@ -648,16 +623,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   back: {
-    width: scale(36),
-    height: scale(36),
+    width: Math.round(scale(36)),
+    height: Math.round(scale(36)),
     justifyContent: 'center',
     alignItems: 'center'
   },
-  headerTitle: { fontSize: normalizeFont(14), fontWeight: '700', color: '#333' },
+  headerTitle: { fontSize: normalizeFont(16), fontWeight: '700', color: '#333' },
 
   container: {
     padding: moderateScale(14),
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
+    paddingBottom: moderateScale(24)
   },
 
   topRow: {
@@ -665,25 +641,25 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between'
   },
-  deliveryLabel: { color: '#37aa5c', fontWeight: '700', marginBottom: moderateScale(4),fontSize:normalizeFont(12), },
-  deliveryDate: { color: '#666',fontSize:normalizeFont(12) },
-  orderNo: { fontWeight: '700', color: '#333',fontSize:normalizeFont(12) },
+  deliveryLabel: { color: '#37aa5c', fontWeight: '700', marginBottom: moderateScale(4), fontSize: normalizeFont(12) },
+  deliveryDate: { color: '#666', fontSize: normalizeFont(12) },
+  orderNo: { fontWeight: '700', color: '#333', fontSize: normalizeFont(12) },
 
   itemRow: {
     flexDirection: 'row',
     backgroundColor: '#f6f6f6',
     padding: moderateScale(10),
-    borderRadius: 8,
+    borderRadius: moderateScale(8),
     marginBottom: moderateScale(10),
     alignItems: 'center'
   },
   itemImage: {
-    width: Math.min(86, width * 0.22),
-    height: Math.min(86, width * 0.22),
-    borderRadius: 8,
+    width: Math.round(Math.min(scale(86), width * 0.22)),
+    height: Math.round(Math.min(scale(86), width * 0.22)),
+    borderRadius: moderateScale(8),
     backgroundColor: '#eee'
   },
-  itemName: { fontWeight: '700', fontSize: normalizeFont(12), color: '#222' },
+  itemName: { fontWeight: '700', fontSize: normalizeFont(13), color: '#222' },
   itemMeta: { color: '#666', fontSize: normalizeFont(11), marginTop: moderateScale(4) },
 
   ratingRow: {
@@ -691,14 +667,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center'
   },
-  rateText: { color: 'rgba(1, 151, 218, 1)', marginRight: 8, fontSize: normalizeFont(12) },
+  rateText: { color: 'rgba(1, 151, 218, 1)', marginRight: moderateScale(8), fontSize: normalizeFont(12) },
   reviewLink: { marginLeft: 'auto' },
-  reviewText: { color: 'rgba(1, 151, 218, 1)',fontSize:normalizeFont(12)},
+  reviewText: { color: 'rgba(1, 151, 218, 1)', fontSize: normalizeFont(12)},
 
   card: {
     borderWidth: 1,
     borderColor: '#eee',
-    borderRadius: 8,
+    borderRadius: moderateScale(8),
     padding: moderateScale(12),
     backgroundColor: '#fff'
   },
@@ -706,34 +682,36 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: moderateScale(8),
     color: '#333',
-    fontSize:normalizeFont(12)
+    fontSize: normalizeFont(13)
   },
 
-  detailName: { fontWeight: '700', fontSize: normalizeFont(12), color: '#222' },
-  detailText: { color: '#666', marginTop: moderateScale(4), fontSize: normalizeFont(11) },
+  detailName: { fontWeight: '700', fontSize: normalizeFont(13), color: '#222' },
+  detailText: { color: '#666', marginTop: moderateScale(4), fontSize: normalizeFont(12) },
+  detailSubText: { color: '#666', marginTop: moderateScale(4), fontSize: normalizeFont(11) },
 
   vendorAvatar: {
-    width:scale(56),
-    height:scale(56),
-    marginTop:moderateScale(5),
-    borderRadius: 8,
+    width: Math.round(scale(56)),
+    height: Math.round(scale(56)),
+    marginTop: moderateScale(5),
+    borderRadius: moderateScale(8),
     backgroundColor: '#eee'
   },
 
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: moderateScale(8)},
-  summaryLabel: { color: '#666' ,fontSize:normalizeFont(12)},
-  summaryValue: { color: '#222' ,fontSize:normalizeFont(12)},
+  summaryLabel: { color: '#666' , fontSize: normalizeFont(12)},
+  summaryValue: { color: '#222' , fontSize: normalizeFont(12)},
 
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: moderateScale(16)
   },
   retryButton: {
     paddingHorizontal: moderateScale(24),
     paddingVertical: moderateScale(10),
     backgroundColor: '#4CAF50',
-    borderRadius: 6,
+    borderRadius: moderateScale(6),
   },
 
   // Modal Styles
@@ -753,14 +731,14 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: moderateScale(20),
     borderTopRightRadius: moderateScale(20),
     maxHeight: SCREEN_HEIGHT * 0.88,
-    borderWidth: 2,
+    borderWidth: moderateScale(1),
     borderColor: 'rgba(255, 202, 40, 0.5)',
   },
   modalHandle: {
-    width: scale(40),
-    height: scale(4),
+    width: Math.round(scale(40)),
+    height: Math.round(scale(4)),
     backgroundColor: '#E0E0E0',
-    borderRadius: 2,
+    borderRadius: moderateScale(2),
     alignSelf: 'center',
     marginTop: moderateScale(12),
     marginBottom: moderateScale(8),
@@ -775,8 +753,8 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(10),
   },
   modalProductImageContainer: {
-    width: scale(110),
-    height: scale(110),
+    width: Math.round(scale(110)),
+    height: Math.round(scale(110)),
     borderRadius: moderateScale(60),
     overflow: 'hidden',
     backgroundColor: '#FFF',
@@ -787,14 +765,14 @@ const styles = StyleSheet.create({
       height: 2,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: moderateScale(4),
   },
   modalProductImage: {
     width: '100%',
     height: '100%',
   },
   modalRateText: {
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(15),
     color: '#333',
     marginBottom: moderateScale(12),
     fontWeight: '500',
@@ -819,11 +797,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   modalImageUpload: {
-    borderWidth: 2,
+    borderWidth: moderateScale(2),
     borderColor: 'rgba(255, 202, 40, 0.5)',
-    borderRadius: 8,
-    padding: moderateScale(20),
-    marginBottom: moderateScale(24),
+    borderRadius: moderateScale(10),
+    padding: moderateScale(18),
+    marginBottom: moderateScale(20),
     backgroundColor: '#fff',
   },
   modalImageUploadContent: {
@@ -836,29 +814,29 @@ const styles = StyleSheet.create({
     marginTop: moderateScale(8),
   },
   modalImageCount: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(11),
     color: '#666',
     textAlign: 'center',
     marginTop: moderateScale(4),
     fontWeight: '500',
   },
   uploadedImagesContainer: {
-    marginBottom: moderateScale(13),
+    marginBottom: moderateScale(12),
   },
   uploadedImageWrapper: {
     position: 'relative',
     marginRight: moderateScale(12),
   },
   uploadedImage: {
-    width: scale(75),
-    height: scale(75),
+    width: Math.round(scale(75)),
+    height: Math.round(scale(75)),
     borderRadius: moderateScale(8),
     backgroundColor: '#F5F5F5',
   },
   removeImageButton: {
     position: 'absolute',
-    top: -6,
-    right: -6,
+    top: -Math.round(scale(6)),
+    right: -Math.round(scale(6)),
     backgroundColor: '#FFF',
     borderRadius: moderateScale(10),
     elevation: 2,
@@ -868,7 +846,7 @@ const styles = StyleSheet.create({
       height: 1,
     },
     shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowRadius: moderateScale(2),
   },
   modalReviewText: {
     fontSize: normalizeFont(12),
@@ -877,20 +855,20 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   modalReviewInput: {
-    borderWidth: 1,
+    borderWidth: moderateScale(1),
     borderColor: 'rgba(255, 202, 40, 0.5)',
-    borderRadius: 8,
+    borderRadius: moderateScale(8),
     padding: moderateScale(12),
     fontSize: normalizeFont(12),
     color: '#333',
     backgroundColor: '#FFF',
-    marginBottom: moderateScale(24),
-    minHeight: scale(100),
+    marginBottom: moderateScale(20),
+    minHeight: Math.round(scale(100)),
   },
   modalSubmitButton: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
-    paddingVertical: moderateScale(16),
-    borderRadius: 8,
+    paddingVertical: moderateScale(14),
+    borderRadius: moderateScale(10),
     alignItems: 'center',
   },
   modalSubmitButtonText: {

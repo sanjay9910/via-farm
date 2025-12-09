@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -156,7 +156,7 @@ const ProductCard = ({
           <View style={cardStyles.priceContainer}>
             <Text style={cardStyles.productPrice}>₹{item?.price ?? "0"}</Text>
             <Text style={cardStyles.productUnit}>/{item?.unit ?? "unit"}</Text>
-            {item?.weightPerPiece ? <Text style={cardStyles.productUnit}>{item.weightPerPiece}</Text> : null}
+            {item?.weightPerPiece ?<Text style={cardStyles.productUnitt}>{item.weightPerPiece}</Text> : null}
           </View>
 
           <View style={cardStyles.buttonContainer}>
@@ -976,8 +976,9 @@ const cardStyles = StyleSheet.create({
   productImage: {
     width: '100%',
     height: '100%',
-    borderTopLeftRadius: moderateScale(10),
-    borderTopRightRadius: moderateScale(10),
+    // borderTopLeftRadius: moderateScale(8),
+    // borderTopRightRadius: moderateScale(0),
+    overflow:'hidden',
   },
 
   favoriteButton: {
@@ -1044,7 +1045,12 @@ const cardStyles = StyleSheet.create({
   productUnit: {
     fontSize: normalizeFont(11),
     color: '#666',
-    marginLeft: moderateScale(6),
+    marginBottom: moderateScale(2),
+  },
+  productUnitt: {
+    fontSize: normalizeFont(11),
+    color: '#666',
+    marginLeft:moderateScale(4),
     marginBottom: moderateScale(2),
   },
 
@@ -1218,8 +1224,8 @@ const filterStyles = StyleSheet.create({
     width: moderateScale(250),
     backgroundColor: '#fff',
     borderTopLeftRadius: moderateScale(20),
-    borderBottomLeftRadius: moderateScale(20),
     borderWidth: moderateScale(2),
+    borderBottomWidth:0,
     borderColor: 'rgba(255, 202, 40, 1)',
     elevation: 10,
     paddingBottom: moderateScale(8),

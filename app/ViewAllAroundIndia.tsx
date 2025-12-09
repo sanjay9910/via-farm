@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import { goBack } from "expo-router/build/global-state/routing";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -158,7 +158,7 @@ const ProductCard = ({
           <View style={cardStyles.priceContainer}>
             <Text style={cardStyles.weightText}>₹{item?.price ?? "0"}</Text>
             <Text style={cardStyles.weightText}>/{item?.unit ?? "unit"}</Text>
-            {item?.weightPerPiece ? <Text style={cardStyles.weightText}>{item.weightPerPiece}</Text> : null}
+            {item?.weightPerPiece ? <Text style={cardStyles.weightTextt}>{item.weightPerPiece}</Text> : null}
           </View>
 
           <View style={cardStyles.buttonContainer}>
@@ -284,11 +284,9 @@ const ViewAllAroundIndia = () => {
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const slideAnim = useRef(new Animated.Value(width)).current;
   const [expanded, setExpanded] = useState({ sort: false, price: true, rating: true });
-
   const window = useWindowDimensions();
-  // compute responsive card width for 2-column grid
-  const horizontalPadding = moderateScale(10) * 2; // FlatList padding left+right
-  const gap = moderateScale(12); // space between columns
+  const horizontalPadding = moderateScale(10) * 2; 
+  const gap = moderateScale(12); 
   const computedCardWidth = Math.max(120, Math.floor((window.width - horizontalPadding - gap) / 2));
 
   // ---------------- fetch functions ----------------
@@ -925,10 +923,8 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     alignItems: "center",
-    // padding: moderateScale(20),
     backgroundColor: "#ffebee",
     borderRadius: 8,
-    // marginHorizontal: moderateScale(20),
     marginTop: moderateScale(20),
   },
   errorText: {
@@ -1046,7 +1042,11 @@ const cardStyles = StyleSheet.create({
   weightText: {
     fontSize: normalizeFont(11),
     color: '#777',
-    marginLeft: moderateScale(6),
+  },
+  weightTextt: {
+    fontSize: normalizeFont(11),
+    color: '#777',
+    marginLeft:moderateScale(5)
   },
 
   buttonContainer: {
@@ -1221,7 +1221,7 @@ const filterStyles = StyleSheet.create({
     width: moderateScale(250),
     backgroundColor: '#fff',
     borderTopLeftRadius: moderateScale(20),
-    borderBottomLeftRadius: moderateScale(20),
+    borderBottomWidth:0,
     borderWidth: moderateScale(2),
     borderColor: 'rgba(255, 202, 40, 1)',
     elevation: 10,
