@@ -277,8 +277,8 @@ import { saveToken } from "../utility/Storage";
 
 export default function LoginScreen() {
   const navigation = useNavigation();
-  const [mobile, setMobile] = useState("");
-  const [password, setPassword] = useState("");
+  const [mobile, setMobile] = useState("7777777777");
+  const [password, setPassword] = useState("12345678");
   const { login } = useContext(AuthContext);
 
   const handleLogin = async () => {
@@ -345,7 +345,7 @@ export default function LoginScreen() {
             keyboardShouldPersistTaps="handled"
             bounces={false}
           >
-            {/* LOGO */}
+            {/* LOGO - made slightly larger & responsive */}
             <Image
               style={styles.logoImage}
               source={require("../../assets/via-farm-img/icons/logo.png")}
@@ -385,7 +385,7 @@ export default function LoginScreen() {
                 />
               </View>
 
-              {/* Forgot Password */}
+              {/* Forgot Password - moved to LEFT */}
               <TouchableOpacity style={styles.forgotWrapper} onPress={ForgetPassword}>
                 <Text style={styles.forgotText}>Forgot password?</Text>
               </TouchableOpacity>
@@ -442,14 +442,15 @@ const styles = StyleSheet.create({
     paddingTop: isIOS ? verticalScale(36) : verticalScale(24),
     paddingBottom: moderateScale(20),
   },
+  // Increased logo size but capped relative to card width for responsiveness
   logoImage: {
-    width: Math.min(scale(180), CARD_WIDTH * 0.6),
-    height: Math.min(verticalScale(160), CARD_WIDTH * 0.6),
+    width: Math.min(scale(400), CARD_WIDTH * 0.75),
+    height: Math.min(verticalScale(350), CARD_WIDTH * 0.75),
     resizeMode: "contain",
-    marginBottom: verticalScale(-28),
+    marginBottom: verticalScale(-30),
   },
   card: {
-    width:'100%',
+    width: '100%',
     minHeight: verticalScale(420),
     backgroundColor: "#fff",
     borderRadius: moderateScale(16),
@@ -460,18 +461,15 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderTopWidth: 3,
     borderColor: "rgba(255, 202, 40, 1)",
-    alignItems: "center",
-    // shadowColor: "#000",
-    // shadowOpacity: 0.06,
-    // shadowRadius: moderateScale(8),
-    // shadowOffset: { width: 0, height: moderateScale(4) },
-    // elevation: 6,
+    // changed to stretch so left-aligned child elements (100% width) behave consistently
+    alignItems: "stretch",
   },
   heading: {
     fontSize: normalizeFont(15),
     fontWeight: "600",
     marginBottom: moderateScale(14),
     color: "#222",
+    textAlign: "center",
   },
   inputContainer: {
     width: "100%",
@@ -495,10 +493,12 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(13),
     color: "#222",
   },
+  // moved to left by aligning start
   forgotWrapper: {
     width: "100%",
-    alignItems: "flex-end",
+    alignItems: "flex-start",
     marginBottom: moderateScale(16),
+    paddingLeft: moderateScale(4),
   },
   forgotText: {
     color: "#007AFF",
@@ -509,6 +509,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     width: "78%",
+    alignSelf: "center",
     paddingVertical: moderateScale(12),
     borderRadius: moderateScale(10),
     backgroundColor: "rgba(76, 175, 80, 1)",
@@ -526,6 +527,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     width: "78%",
+    alignSelf: "center",
     paddingVertical: moderateScale(10),
     borderRadius: moderateScale(10),
     borderWidth: 1.6,
@@ -542,6 +544,7 @@ const styles = StyleSheet.create({
   signupWrapper: {
     flexDirection: "row",
     marginTop: moderateScale(6),
+    justifyContent: "center",
   },
   signupText: {
     fontSize: normalizeFont(12),

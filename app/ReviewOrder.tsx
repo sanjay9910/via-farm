@@ -679,24 +679,13 @@ const ReviewOrder = () => {
       totalItems: totalItems.toString(),
     });
   };
-
-  // Totals used by UI: prefer serverPriceDetails when present unless an optimistic applied coupon overrides it
   const computeTotals = () => {
     const subtotal = products.reduce((sum, p) => sum + (Number(p.price) || 0) * (p.quantity || 0), 0);
-
-    // If server provided price details exist, use them as base.
-    // BUT if an appliedCoupon (optimistic) exists, subtract its previewDiscount from the server total.
     if (serverPriceDetails && serverPriceDetails.totalAmount !== undefined && serverPriceDetails.totalAmount !== null) {
       const serverSubtotal = Number(serverPriceDetails.totalMRP ?? subtotal);
       const serverDelivery = Number(serverPriceDetails.deliveryCharge ?? 0);
       const serverTotal = Number(serverPriceDetails.totalAmount ?? (serverSubtotal + serverDelivery));
-
-      // Determine coupon discount to show:
-      // Prefer appliedCoupon.previewDiscount (optimistic) if present — this ensures the discount is subtracted visually.
-      // Otherwise fall back to server's couponDiscount.
       const couponDiscount = appliedCoupon ? Number(appliedCoupon.previewDiscount || 0) : Number(serverPriceDetails.couponDiscount || 0);
-
-      // Apply coupon discount to server total (but do not go negative)
       const adjustedTotal = Math.max(0, serverTotal - (couponDiscount || 0));
 
       return {
@@ -708,7 +697,6 @@ const ReviewOrder = () => {
       };
     }
 
-    // If no server price details, but coupon applied (optimistic), compute via local subtotal
     if (appliedCoupon && (appliedCoupon.previewDiscount || appliedCoupon.previewDiscount === 0)) {
       const deliveryChargeFallback = 0;
       const couponDiscount = Number(appliedCoupon.previewDiscount || 0);
@@ -722,7 +710,6 @@ const ReviewOrder = () => {
       };
     }
 
-    // Default: no coupon, client-only calculation
     const couponDiscount = 0;
     const deliveryChargeFallback = 0;
     const total = subtotal - couponDiscount + deliveryChargeFallback;

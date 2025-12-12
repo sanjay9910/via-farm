@@ -25,7 +25,7 @@ import { moderateScale, normalizeFont, scale } from "./Responsive";
 
 const API_BASE = "https://viafarm-1.onrender.com";
 
-// ----------------- ProductCard (same look/behavior as ViewAllFruits) with qty modal -----------------
+// ========== ProductCard (client-perfect visuals) ==========
 const ProductCard = ({
   item,
   isFavorite,
@@ -41,21 +41,15 @@ const ProductCard = ({
     || (Array.isArray(item?.images) && item.images.length > 0 && item.images[0])
     || "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image";
 
-  const distance =
-    item?.distanceFromVendor ??
-    item?.distance ??
-    item?.vendor?.distanceFromVendor ??
-    null;
+  const rating = Number(item?.rating || 0).toFixed(1);
+  const unit = item?.unit || "kg";
+  const weight = item?.weightPerPiece || "";
 
-  const status = item?.status ?? (item?.stock === 0 ? "Out of Stock" : "In Stock");
-
-  const rating = (typeof item?.rating === "number") ? item.rating : (item?.rating ? Number(item.rating) : 0);
-
-  // Modal state for exact quantity edit
+  // modal for exact qty edit
   const [qtyModalVisible, setQtyModalVisible] = useState(false);
   const [editQuantity, setEditQuantity] = useState(String(cartQuantity || 0));
 
-  React.useEffect(() => {
+  useEffect(() => {
     setEditQuantity(String(cartQuantity || 0));
   }, [cartQuantity]);
 
@@ -71,12 +65,10 @@ const ProductCard = ({
     const newQty = Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
     const currentQty = cartQuantity || 0;
     const delta = newQty - currentQty;
-
     if (delta === 0) {
       closeQtyModal();
       return;
     }
-
     try {
       onUpdateQuantity && onUpdateQuantity(item, delta);
     } catch (err) {
@@ -102,33 +94,32 @@ const ProductCard = ({
         activeOpacity={0.85}
         onPress={() => onPress && onPress(item)}
       >
-        <View style={[cardStyles.imageContainer]}>
+        <View style={cardStyles.imageContainer}>
           <Image
             source={{ uri: imageUri }}
             style={cardStyles.productImage}
-            resizeMode="stretch"
+            resizeMode="cover"
           />
 
           <TouchableOpacity
             style={cardStyles.favoriteButton}
             activeOpacity={0.7}
             onPress={(e) => {
-              e.stopPropagation?.();
+              e?.stopPropagation?.();
               onToggleFavorite && onToggleFavorite(item);
             }}
           >
             <Ionicons
               name={isFavorite ? 'heart' : 'heart-outline'}
-              size={moderateScale(25)}
+              size={moderateScale(28)}
               color={isFavorite ? '#ff4444' : '#fff'}
             />
           </TouchableOpacity>
 
           <View style={cardStyles.ratingContainer}>
             <Ionicons name="star" size={moderateScale(10)} color="#FFD700" />
-            <Text style={cardStyles.ratingText}>
-              {rating ? Number(rating).toFixed(1) : "0.0"}
-            </Text>
+            {/* no extra spacing between star and rating */}
+            <Text style={cardStyles.ratingText}>{rating}</Text>
           </View>
         </View>
 
@@ -141,17 +132,18 @@ const ProductCard = ({
             By {item?.vendor?.name ?? "N/A"}
           </Text>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(6), marginTop: moderateScale(6) }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: moderateScale(6) }}>
             <Image source={require("../assets/via-farm-img/icons/loca.png")} />
             <Text style={cardStyles.distanceText}>
-              {distance ?? "0.0 km"}
+              {item?.distance ?? item?.vendor?.distance ?? "0.0 km"}
             </Text>
           </View>
 
           <View style={cardStyles.priceContainer}>
             <Text style={cardStyles.productUnit}>₹{item?.price ?? "0"}</Text>
-            <Text style={cardStyles.productUnit}>/{item?.unit ?? "unit"}</Text>
-            {item?.weightPerPiece ? <Text style={cardStyles.productUnit}>{item.weightPerPiece}</Text> : null}
+            {/* glued unit and weight without extra spaces */}
+            <Text style={cardStyles.productUnit}>/{unit}</Text>
+            {weight ? <Text style={cardStyles.productUnit}>/{weight}</Text> : null}
           </View>
 
           <View style={cardStyles.buttonContainer}>
@@ -159,17 +151,17 @@ const ProductCard = ({
               <TouchableOpacity
                 style={[
                   cardStyles.addToCartButton,
-                  status !== "In Stock" && cardStyles.disabledButton
+                  (item?.status === 'Out of Stock' || item?.stock === 0) && cardStyles.disabledButton
                 ]}
                 activeOpacity={0.8}
-                disabled={status !== "In Stock"}
+                disabled={item?.status === 'Out of Stock' || item?.stock === 0}
                 onPress={(e) => {
-                  e.stopPropagation?.();
+                  e?.stopPropagation?.();
                   onAddToCart && onAddToCart(item);
                 }}
               >
                 <Text style={cardStyles.addToCartText}>
-                  {status === "In Stock" ? "Add to Cart" : status}
+                  {(item?.status === 'Out of Stock' || item?.stock === 0) ? "Out of Stock" : "Add to Cart"}
                 </Text>
               </TouchableOpacity>
             ) : (
@@ -177,23 +169,25 @@ const ProductCard = ({
                 <TouchableOpacity
                   activeOpacity={0.85}
                   onPress={openQtyModal}
-                  onLongPress={(e) => { e.stopPropagation?.(); openQtyModal(e); }}
+                  onLongPress={(e) => { e?.stopPropagation?.(); openQtyModal(e); }}
                 >
                   <View style={cardStyles.quantityContainer}>
                     <TouchableOpacity
                       style={cardStyles.quantityButton}
                       onPress={(e) => {
-                        e.stopPropagation?.();
+                        e?.stopPropagation?.();
                         onUpdateQuantity && onUpdateQuantity(item, -1);
                       }}
                     >
                       <Ionicons name="remove" size={moderateScale(14)} color="rgba(76, 175, 80, 1)" />
                     </TouchableOpacity>
+
                     <Text style={cardStyles.quantityText}>{cartQuantity}</Text>
+
                     <TouchableOpacity
                       style={cardStyles.quantityButton}
                       onPress={(e) => {
-                        e.stopPropagation?.();
+                        e?.stopPropagation?.();
                         onUpdateQuantity && onUpdateQuantity(item, 1);
                       }}
                     >
@@ -202,7 +196,6 @@ const ProductCard = ({
                   </View>
                 </TouchableOpacity>
 
-                {/* Modal for editing exact quantity */}
                 <Modal
                   visible={qtyModalVisible}
                   animationType="fade"
@@ -253,21 +246,26 @@ const ProductCard = ({
   );
 };
 
-// ----------------- MyWishlist Screen -----------------
+// ========== MyWishlist Screen ==========
 const MyWishlist = () => {
   const navigation = useNavigation();
-  const animation = useRef(new Animated.Value(0)).current;
 
   const [wishlistData, setWishlistData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filteredData, setFilteredData] = useState([]);
 
   const [favorites, setFavorites] = useState(new Set());
   const [cartItems, setCartItems] = useState({});
-  const [selectedOption, setSelectedOption] = useState('All');
-  const [options, setAllCategory] = useState([]);
 
+  const [selectedOption, setSelectedOption] = useState('All');
+  const [options, setAllCategory] = useState(['All']);
+
+  // dropdown animation
+  const animation = useRef(new Animated.Value(0)).current;
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // fetch wishlist list and map to normalized products
   const fetchWishlistData = async () => {
     try {
       setLoading(true);
@@ -331,10 +329,13 @@ const MyWishlist = () => {
     }
   };
 
+  // fetch favorites & cart meta
   const fetchMeta = async () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) return;
+
+      // wishlist meta
       try {
         const res = await axios.get(`${API_BASE}/api/buyer/wishlist`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -378,7 +379,7 @@ const MyWishlist = () => {
     fetchMeta();
   }, []);
 
-  // Add to wishlist (no success alert)
+  // add/remove wishlist
   const addToWishlist = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -448,28 +449,6 @@ const MyWishlist = () => {
     }
   };
 
-  useEffect(() => {
-    const getAllCategory = async () => {
-      try {
-        const token = await AsyncStorage.getItem("userToken");
-        const catRes = await axios.get(`${API_BASE}/api/admin/manage-app/categories`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-        });
-
-        const onlyNames = catRes.data?.categories?.map((item) => item.name) || [];
-        // ensure 'All' is first option
-        setAllCategory(['All', ...onlyNames.filter(n => n !== 'All')])
-      } catch (error) {
-        console.log("Error", error)
-        // fallback to at least 'All'
-        setAllCategory(prev => prev.length ? prev : ['All'])
-      }
-    }
-    getAllCategory();
-  }, [])
-
   const handleToggleFavorite = async (product) => {
     const productId = product._id || product.id || product.productId;
     if (favorites.has(productId)) {
@@ -479,7 +458,7 @@ const MyWishlist = () => {
     }
   };
 
-  // Add to cart (no success alert)
+  // cart flows
   const handleAddToCart = async (product) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -587,10 +566,13 @@ const MyWishlist = () => {
     }
   };
 
+  // dropdown control (use state to avoid private animation internals)
   const toggleDropdown = () => {
+    const next = !dropdownOpen;
+    setDropdownOpen(next);
     Animated.timing(animation, {
-      toValue: animation._value === 0 ? 1 : 0,
-      duration: 300,
+      toValue: next ? 1 : 0,
+      duration: 250,
       useNativeDriver: false,
     }).start();
   };
@@ -619,6 +601,27 @@ const MyWishlist = () => {
     toggleDropdown();
   };
 
+  // categories fetch for dropdown
+  useEffect(() => {
+    const getAllCategory = async () => {
+      try {
+        const token = await AsyncStorage.getItem("userToken");
+        const catRes = await axios.get(`${API_BASE}/api/admin/manage-app/categories`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+        });
+
+        const onlyNames = catRes.data?.categories?.map((item) => item.name) || [];
+        setAllCategory(['All', ...onlyNames.filter(n => n !== 'All')]);
+      } catch (error) {
+        console.log("Error fetching categories", error);
+        setAllCategory(prev => prev.length ? prev : ['All']);
+      }
+    };
+    getAllCategory();
+  }, []);
+
   const confirmRemove = (item) => {
     Alert.alert(
       'Remove from Wishlist',
@@ -632,7 +635,7 @@ const MyWishlist = () => {
 
   const renderCard = ({ item }) => {
     const productId = item._id || item.id || item.productId;
-    const isFavorite = favorites.has(productId);
+    const isFav = favorites.has(productId);
     const cartQty = cartItems[productId]?.quantity || 0;
     const normalized = {
       ...item,
@@ -642,7 +645,7 @@ const MyWishlist = () => {
     return (
       <ProductCard
         item={normalized}
-        isFavorite={isFavorite}
+        isFavorite={isFav}
         onToggleFavorite={handleToggleFavorite}
         cartQuantity={cartQty}
         onAddToCart={handleAddToCart}
@@ -683,14 +686,15 @@ const MyWishlist = () => {
           <TouchableOpacity onPress={goBack}>
             <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
           </TouchableOpacity>
-
         </View>
+
         <Text style={styles.text}>My Wishlist</Text>
+
         <View style={styles.filterWrapper}>
           <TouchableOpacity style={styles.filterBtn} onPress={toggleDropdown}>
             <View style={styles.filterExpand}>
               <Text style={styles.filterText}>{selectedOption}</Text>
-              <Image width={moderateScale(14)} source={require('../assets/via-farm-img/icons/expandArrow.png')} />
+              <Image width={moderateScale(20)} source={require('../assets/via-farm-img/icons/expandArrow.png')} />
             </View>
           </TouchableOpacity>
 
@@ -706,24 +710,18 @@ const MyWishlist = () => {
         </View>
       </View>
 
-      {loading ? (
-        renderLoading()
-      ) : error ? (
-        renderError()
-      ) : filteredData.length === 0 ? (
-        selectedOption === 'All' ? renderEmpty() : (
-          <View style={styles.centerContainer}>
-            <Text style={styles.emptyText}>No items found for {selectedOption}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={() => handleSelect('All')}>
-              <Text style={styles.retryButtonText}>Show All</Text>
-            </TouchableOpacity>
-          </View>
-        )
-      ) : (
+      {loading ? renderLoading() : error ? renderError() : filteredData.length === 0 ? (selectedOption === 'All' ? renderEmpty() : (
+        <View style={styles.centerContainer}>
+          <Text style={styles.emptyText}>No items found for {selectedOption}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => handleSelect('All')}>
+            <Text style={styles.retryButtonText}>Show All</Text>
+          </TouchableOpacity>
+        </View>
+      )) : (
         <FlatList
           data={filteredData}
           renderItem={renderCard}
-          keyExtractor={(item) => item._id || item.id || item.productId || String(Math.random())}
+          keyExtractor={(item, idx) => (item._id || item.id || item.productId || String(idx))}
           numColumns={2}
           contentContainerStyle={styles.flatListContent}
           showsVerticalScrollIndicator={false}
@@ -736,8 +734,7 @@ const MyWishlist = () => {
   );
 };
 
-
-// ----------------- Styles -----------------
+// ========== Styles ==========
 const cardStyles = StyleSheet.create({
   container: {
     width: '48%',
@@ -749,7 +746,7 @@ const cardStyles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'grey',
-    elevation:4
+    elevation: 4,
   },
   imageContainer: {
     width: '100%',
@@ -764,30 +761,32 @@ const cardStyles = StyleSheet.create({
   favoriteButton: {
     position: 'absolute',
     right: moderateScale(2),
-    padding: moderateScale(6),
-    borderRadius: moderateScale(14)
+    top: moderateScale(2),
+    borderRadius: moderateScale(14),
+    padding: moderateScale(4)
   },
   ratingContainer: {
     position: 'absolute',
     left: moderateScale(8),
-    top: moderateScale(100),
+    bottom: moderateScale(8),
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: moderateScale(6),
-    paddingVertical: moderateScale(4),
-    backgroundColor: 'rgba(141, 141, 141, 0.6)',
+    paddingVertical: moderateScale(3),
+    backgroundColor: 'rgba(0,0,0,0.45)',
     borderRadius: moderateScale(12)
   },
   ratingText: {
     color: '#fff',
-    marginLeft: moderateScale(4),
-    fontSize: normalizeFont(8)
+    marginLeft: moderateScale(2),
+    fontSize: normalizeFont(9),
+    fontWeight: '600'
   },
   cardContent: {
     padding: scale(10)
   },
   productTitle: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(11),
     fontWeight: '600',
     color: '#222'
   },
@@ -798,18 +797,19 @@ const cardStyles = StyleSheet.create({
   },
   distanceText: {
     fontSize: normalizeFont(11),
-    color: '#444'
+    color: '#444',
+    marginLeft: moderateScale(6)
   },
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: scale(6),
     marginTop: moderateScale(8)
   },
   productUnit: {
-    fontSize: normalizeFont(13),
-    fontWeight: '700',
-    color: '#333'
+    fontSize: normalizeFont(11),
+    fontWeight: '600',
+    color: '#333',
+    marginLeft: moderateScale(1) 
   },
   buttonContainer: {
     marginTop: moderateScale(10),
@@ -817,11 +817,10 @@ const cardStyles = StyleSheet.create({
   },
   addToCartButton: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
-    paddingVertical: moderateScale(12),
+    paddingVertical: moderateScale(10),
     paddingHorizontal: moderateScale(12),
     borderRadius: moderateScale(6),
     width: '100%',
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -829,7 +828,6 @@ const cardStyles = StyleSheet.create({
     color: '#fff',
     fontSize: normalizeFont(13),
     fontWeight: '600',
-
   },
   disabledButton: {
     backgroundColor: '#ddd'
@@ -837,7 +835,7 @@ const cardStyles = StyleSheet.create({
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: 'rgba(76, 175, 80, 1)',
     paddingHorizontal: moderateScale(6),
@@ -847,12 +845,10 @@ const cardStyles = StyleSheet.create({
   },
   quantityButton: {
     paddingHorizontal: moderateScale(8),
-    color: 'rgba(76, 175, 80, 1)',
   },
   quantityText: {
     color: 'rgba(76, 175, 80, 1)',
     minWidth: moderateScale(42),
-    top: 0,
     textAlign: 'center',
     fontWeight: '600',
     borderLeftWidth: 1,
@@ -870,13 +866,11 @@ const styles = StyleSheet.create({
   filterExpand: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: scale(8),
     justifyContent: 'space-around'
   },
   backArrow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: scale(12)
   },
   header: {
     flexDirection: 'row',
@@ -899,11 +893,11 @@ const styles = StyleSheet.create({
     paddingVertical: scale(6),
     borderRadius: moderateScale(6),
     borderWidth: 1,
-    borderColor: 'rgba(66, 66, 66, 0.7)'
+    borderColor: 'rgba(66, 66, 66, 0.7)',
+    paddingHorizontal: moderateScale(8)
   },
   filterText: {
     color: 'rgba(66, 66, 66, 0.7)',
-    textAlign: 'center',
     fontSize: normalizeFont(13)
   },
   dropdown: {
@@ -915,12 +909,13 @@ const styles = StyleSheet.create({
     top: scale(36),
     left: 0,
     right: 0,
-    zIndex: 1000
+    zIndex: 1000,
+    elevation: 6
   },
   dropdownItem: {
     padding: scale(8),
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(66, 66, 66, 0.7)'
+    borderBottomColor: 'rgba(66, 66, 66, 0.06)'
   },
   dropdownText: {
     color: 'rgba(66, 66, 66, 0.7)',
@@ -959,7 +954,7 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   emptyText: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     color: '#333',
     marginTop: scale(12)

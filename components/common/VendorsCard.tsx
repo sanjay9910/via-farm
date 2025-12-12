@@ -100,8 +100,8 @@ const styles = StyleSheet.create({
   },
 
   profileImage: {
-    width: scale(135),
-    height: verticalScale(150),
+    width: scale(140),
+    height: verticalScale(160),
     borderTopLeftRadius: moderateScale(14),
     borderBottomLeftRadius: moderateScale(14),
     backgroundColor: "#f5f5f5",

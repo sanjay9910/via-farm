@@ -38,14 +38,16 @@ const ProductCard = ({
   title,
   subtitle,
   price,
+  unit,
+  weightPerPiece,
   rating,
   image,
   isFavorite = false,
   onPress,
   onFavoritePress,
   onAddToCart,
-  onQuantityChange, 
-  cartQuantity = 0, 
+  onQuantityChange,
+  cartQuantity = 0,
   width = Math.round(moderateScale(140)),
   showRating = true,
   showFavorite = true,
@@ -72,7 +74,7 @@ const ProductCard = ({
     setModalQtyText(String(cartQuantity || 0));
   }, [modalVisible, cartQuantity]);
 
-  // run optimistic helper
+  // optimistic helper
   const runOptimistic = async ({ apply, rollback, callback }) => {
     if (isProcessing) return false;
     setIsProcessing(true);
@@ -123,16 +125,13 @@ const ProductCard = ({
   };
 
   const handleModalConfirm = async () => {
-    // sanitize input
     let desired = parseInt((modalQtyText || "0").replace(/\D/g, ""), 10);
     if (Number.isNaN(desired) || desired < 0) desired = 0;
     const current = Number(cartQuantity || 0);
     const delta = desired - current;
     setModalVisible(false);
 
-    if (delta === 0) {
-      return;
-    }
+    if (delta === 0) return;
 
     await runOptimistic({
       apply: () => setLocalQty(desired),
@@ -143,24 +142,30 @@ const ProductCard = ({
 
   const qty = Number(localQty || 0);
 
-  const SIDE_BTN_WIDTH = Math.round(moderateScale(47)); 
-  const QUANTITY_NUM_MIN_WIDTH = Math.round(moderateScale(36)); 
-  const CONTROL_WIDTH = SIDE_BTN_WIDTH * 2 + QUANTITY_NUM_MIN_WIDTH; 
-  const CONTROL_HEIGHT = Math.round(Math.min(Math.max(verticalScale(36), moderateScale(34)), verticalScale(52)));
+  // Control sizes used for buttons; these are computed per-render so we can set explicit heights
+  const SIDE_BTN_WIDTH = Math.round(moderateScale(47));
+  const QUANTITY_NUM_MIN_WIDTH = Math.round(moderateScale(36));
+  const CONTROL_WIDTH = SIDE_BTN_WIDTH * 2 + QUANTITY_NUM_MIN_WIDTH;
+  const CONTROL_HEIGHT = Math.round(
+    Math.min(Math.max(verticalScale(36), moderateScale(34)), verticalScale(52))
+  );
 
   const safeImage = image ? image : DEFAULT_IMAGE;
+
+  // Ensure card has minimum height so font scaling won't push the add button out of place.
+  const cardMinHeight = imageHeight + moderateScale(92); // tuned to keep content stable with scaling
 
   return (
     <View style={[{ width }, cardStyle]}>
       <TouchableOpacity
-        style={[styles.card, { width }]}
-        activeOpacity={0.9}
+        style={[styles.card, { width, minHeight: cardMinHeight }]}
+        activeOpacity={0.92}
         onPress={() => onPress?.(id)}
         disabled={isProcessing}
       >
         {/* Product Image */}
         <View style={[styles.imageContainer, { height: imageHeight }]}>
-          <Image source={{ uri: safeImage }} style={styles.productImage} resizeMode="stretch" />
+          <Image source={{ uri: safeImage }} style={styles.productImage} resizeMode="cover" />
 
           {showFavorite && (
             <TouchableOpacity
@@ -178,7 +183,7 @@ const ProductCard = ({
             >
               <Ionicons
                 name={isFavorite ? "heart" : "heart-outline"}
-                size={moderateScale(23)}
+                size={moderateScale(20)}
                 color={isFavorite ? "#ff4757" : "#fff"}
               />
             </TouchableOpacity>
@@ -203,27 +208,37 @@ const ProductCard = ({
 
         {/* Product Info */}
         <View style={[styles.cardContent, { padding: moderateScale(8) }]}>
-          <Text
-            style={[
-              styles.productTitle,
-              { fontSize: normalizeFont(12) },
-            ]}
-            numberOfLines={1}
-          >
+          <Text style={styles.productTitle} numberOfLines={1} allowFontScaling>
             {title}
           </Text>
-          <Text
-            style={[
-              styles.productSubtitle,
-              { fontSize: normalizeFont(12) },
-            ]}
-            numberOfLines={1}
-          >
+
+          <Text style={styles.productSubtitle} numberOfLines={1} allowFontScaling>
             {subtitle ? `By ${subtitle}` : ""}
           </Text>
-          <Text style={[styles.productPrice, { fontSize: normalizeFont(12) }]}>{`₹${price}`}</Text>
 
-          <View style={styles.buttonContainer}>
+          {/* UNIT + PRICE */}
+          <View style={styles.unitPriceRow}>
+            <Text
+              style={[styles.productPrice, { fontSize: normalizeFont(11) }]}
+              numberOfLines={1}
+              allowFontScaling
+            >
+              {`₹${price}`}
+            </Text>
+            {unit ? (
+              <Text style={[styles.unitText, { fontSize: normalizeFont(11) }]} numberOfLines={1} allowFontScaling>
+                /{unit}
+              </Text>
+            ) : null}
+            {weightPerPiece ? (
+              <Text style={[styles.unitText, { fontSize: normalizeFont(11) }]} numberOfLines={1} allowFontScaling>
+                /{weightPerPiece}
+              </Text>
+            ) : null}
+          </View>
+
+          {/* Button area */}
+          <View style={[styles.buttonContainer, { minHeight: CONTROL_HEIGHT + moderateScale(6) }]}>
             {qty <= 0 ? (
               <TouchableOpacity
                 style={[
@@ -231,12 +246,10 @@ const ProductCard = ({
                   {
                     width: CONTROL_WIDTH,
                     height: CONTROL_HEIGHT,
-                    paddingHorizontal: moderateScale(10),
                     borderRadius: moderateScale(6),
-                    flexDirection: "row",
-                    alignItems: "center",
                     justifyContent: "center",
-                    opacity: isProcessing ? 0.9 : 1,
+                    alignItems: "center",
+                    paddingHorizontal: moderateScale(8),
                   },
                 ]}
                 onPress={handleAdd}
@@ -246,15 +259,17 @@ const ProductCard = ({
                 {isProcessing ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={[styles.addToCartText, { fontSize: normalizeFont(12) }]}>Add to Cart</Text>
+                  <Text
+                    style={[styles.addToCartText, { fontSize: normalizeFont(12) }]}
+                    numberOfLines={1}
+                    allowFontScaling
+                  >
+                    Add to Cart
+                  </Text>
                 )}
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => setModalVisible(true)}
-                disabled={isProcessing}
-              >
+              <TouchableOpacity activeOpacity={0.9} onPress={() => setModalVisible(true)} disabled={isProcessing}>
                 <View
                   style={[
                     styles.quantityBox,
@@ -265,7 +280,6 @@ const ProductCard = ({
                       flexDirection: "row",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      opacity: isProcessing ? 0.9 : 1,
                     },
                   ]}
                 >
@@ -321,12 +335,7 @@ const ProductCard = ({
       </TouchableOpacity>
 
       {/* Quantity Modal */}
-      <Modal
-        visible={modalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setModalVisible(false)}
-      >
+      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Add Quantity</Text>
@@ -365,26 +374,12 @@ const ProductCard = ({
             </View>
 
             <View style={styles.modalActionsRow}>
-              <TouchableOpacity
-                style={[styles.modalActionBtn, { backgroundColor: "#e0e0e0" }]}
-                onPress={() => setModalVisible(false)}
-                activeOpacity={0.8}
-                disabled={isProcessing}
-              >
+              <TouchableOpacity style={[styles.modalActionBtn, { backgroundColor: "#e0e0e0" }]} onPress={() => setModalVisible(false)} activeOpacity={0.8} disabled={isProcessing}>
                 <Text style={[styles.modalActionText, { color: "#333" }]}>Cancel</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.modalActionBtn, { backgroundColor: "rgba(76,175,80,1)" }]}
-                onPress={handleModalConfirm}
-                activeOpacity={0.8}
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={[styles.modalActionText, { color: "#fff" }]}>OK</Text>
-                )}
+              <TouchableOpacity style={[styles.modalActionBtn, { backgroundColor: "rgba(76,175,80,1)" }]} onPress={handleModalConfirm} activeOpacity={0.8} disabled={isProcessing}>
+                {isProcessing ? <ActivityIndicator size="small" color="#fff" /> : <Text style={[styles.modalActionText, { color: "#fff" }]}>OK</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -393,6 +388,8 @@ const ProductCard = ({
     </View>
   );
 };
+
+const COMMON_TEXT_SIZE = normalizeFont(12); // shared font size for title & subtitle
 
 const styles = StyleSheet.create({
   card: {
@@ -422,8 +419,8 @@ const styles = StyleSheet.create({
   },
   favoriteButton: {
     position: "absolute",
-    right: moderateScale(3),
-    top: moderateScale(3),
+    right: moderateScale(6),
+    top: moderateScale(6),
     justifyContent: "center",
     alignItems: "center",
   },
@@ -443,20 +440,33 @@ const styles = StyleSheet.create({
     marginLeft: moderateScale(6),
     fontWeight: "600",
   },
-  cardContent: {},
+  cardContent: {
+    // leave flexible but avoid collapse
+  },
   productTitle: {
     fontWeight: "600",
     color: "#222",
     marginBottom: moderateScale(4),
+    fontSize: COMMON_TEXT_SIZE,
   },
   productSubtitle: {
     color: "#666",
     marginBottom: moderateScale(6),
+    fontSize: COMMON_TEXT_SIZE,
+  },
+  /* unit + price row */
+  unitPriceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: moderateScale(8),
+  },
+  unitText: {
+    color: "#111",
+    // marginLeft: moderateScale(6),
   },
   productPrice: {
     fontWeight: "700",
     color: "#111",
-    marginBottom: moderateScale(8),
   },
   buttonContainer: {
     justifyContent: "center",
@@ -464,13 +474,11 @@ const styles = StyleSheet.create({
   },
   addToCartButton: {
     backgroundColor: "rgba(76, 175, 80, 1)",
-    paddingVertical: moderateScale(8),
-    paddingHorizontal: moderateScale(12),
-    borderRadius: moderateScale(6),
   },
   addToCartText: {
     color: "#fff",
     fontWeight: "700",
+    textAlign: "center",
   },
   quantityBox: {
     borderWidth: 1.2,

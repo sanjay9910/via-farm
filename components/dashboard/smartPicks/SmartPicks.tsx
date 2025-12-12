@@ -1,3 +1,4 @@
+// screens/.../SmartPicks.js  (replace your current file with this)
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -67,6 +68,7 @@ const SmartPicks = () => {
   const [cartItems, setCartItems] = useState({});
   const [updatingMap, setUpdatingMap] = useState({});
   const cartItemsRef = useRef(cartItems);
+
   useEffect(() => {
     cartItemsRef.current = cartItems;
   }, [cartItems]);
@@ -76,9 +78,12 @@ const SmartPicks = () => {
     favoritesRef.current = favorites;
   }, [favorites]);
 
-  const animation = useRef(new Animated.Value(0)).current;
+  // animate dropdown height (useNativeDriver: false ensures scroll works on Android)
+  const dropdownHeight = useRef(new Animated.Value(0)).current;
+  const isAnimatingRef = useRef(false);
+  const DROPDOWN_MAX = moderateScale(240);
 
-  // normalize
+  // normalize / mapping helpers
   const normalizeApiItem = (item = {}) => {
     const productId = String(item.productId ?? item._id ?? item.id ?? '');
     const id = String(item.id ?? item._id ?? productId);
@@ -86,6 +91,59 @@ const SmartPicks = () => {
     if (item.vendor?.name) vendorName = item.vendor.name;
     else if (item.vendorName) vendorName = item.vendorName;
     else if (item.seller?.name) vendorName = item.seller.name;
+
+    const unitFromApi =
+      item.unit ??
+      item.uom ??
+      item.measurement ??
+      item.unitOfMeasure ??
+      item.unit_name ??
+      item.uom_name ??
+      item.uomType ??
+      (item.raw && item.raw.unit) ??
+      '';
+
+    const weightCandidates = [
+      'weightPerPiece',
+      'weight_per_piece',
+      'weight',
+      'pieceWeight',
+      'weightPerPc',
+      'wpp',
+      'netWeight',
+      'net_weight',
+      'grossWeight',
+      'weight_in_g',
+      'weight_in_kg',
+      'weightValue',
+      'measurementValue',
+      'size',
+      'packSize',
+    ];
+
+    let weightValue = '';
+    for (const key of weightCandidates) {
+      if (Object.prototype.hasOwnProperty.call(item, key) && item[key] != null && String(item[key]).trim() !== '') {
+        weightValue = String(item[key]).trim();
+        break;
+      }
+      if (item.raw && Object.prototype.hasOwnProperty.call(item.raw, key) && item.raw[key] != null && String(item.raw[key]).trim() !== '') {
+        weightValue = String(item.raw[key]).trim();
+        break;
+      }
+    }
+    if (weightValue) {
+      const numClean = weightValue.replace(/[^\d.]/g, '');
+      if (numClean && numClean === weightValue) {
+        if (String(unitFromApi).toLowerCase().includes('kg') || String(weightValue).length > 3) {
+          weightValue = `${numClean}${String(unitFromApi || 'kg')}`;
+        } else if (String(unitFromApi).toLowerCase().includes('g')) {
+          weightValue = `${numClean}${String(unitFromApi || 'g')}`;
+        } else {
+          weightValue = `${numClean}${unitFromApi || 'pcs'}`;
+        }
+      }
+    }
 
     return {
       raw: item,
@@ -100,6 +158,8 @@ const SmartPicks = () => {
         (typeof item.categoryName === 'string' ? item.categoryName : 'General'),
       rating: item.rating ?? 0,
       ratingCount: item.ratingCount ?? 0,
+      unit: unitFromApi || '',
+      weightPerPiece: weightValue || '',
     };
   };
 
@@ -117,6 +177,8 @@ const SmartPicks = () => {
       raw: n.raw,
       productId: String(n.productId || n.id),
       category: n.category,
+      unit: n.unit,
+      weightPerPiece: n.weightPerPiece,
     };
   }, []);
 
@@ -208,7 +270,7 @@ const SmartPicks = () => {
     }
   }, []);
 
-  // fetch categories (simple)
+  // fetch categories
   const fetchCategories = useCallback(async () => {
     try {
       const res = await axios.get(`${API_BASE}/api/admin/manage-app/categories`, {
@@ -247,7 +309,13 @@ const SmartPicks = () => {
     const sub = DeviceEventEmitter.addListener('cartUpdated', () => {
       fetchCart();
     });
-    return () => sub.remove();
+    return () => {
+      try {
+        sub?.remove?.();
+      } catch (e) {
+        // ignore
+      }
+    };
   }, [fetchProducts, fetchWishlist, fetchCart, fetchCategories]);
 
   // filtered products by category
@@ -261,21 +329,43 @@ const SmartPicks = () => {
     setFilteredProducts(filtered);
   }, [products, selectedCategory]);
 
+  // dropdown open/close (animate height). useNativeDriver false so ScrollView receives touches on Android.
   const openDropdown = useCallback(() => {
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
     setShowDropdown(true);
-    Animated.timing(animation, { toValue: 1, duration: 200, useNativeDriver: false }).start();
-  }, [animation]);
+    Animated.timing(dropdownHeight, {
+      toValue: DROPDOWN_MAX,
+      duration: 200,
+      useNativeDriver: false,
+    }).start(() => {
+      isAnimatingRef.current = false;
+    });
+  }, [dropdownHeight]);
 
   const closeDropdown = useCallback(() => {
-    Animated.timing(animation, { toValue: 0, duration: 180, useNativeDriver: false }).start(() => {
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
+    Animated.timing(dropdownHeight, {
+      toValue: 0,
+      duration: 160,
+      useNativeDriver: false,
+    }).start(() => {
       setShowDropdown(false);
+      isAnimatingRef.current = false;
     });
-  }, [animation]);
+  }, [dropdownHeight]);
 
   const toggleDropdown = useCallback(() => {
+    if (isAnimatingRef.current) return;
     if (showDropdown) closeDropdown();
     else openDropdown();
   }, [showDropdown, openDropdown, closeDropdown]);
+
+  const handleCategorySelect = useCallback((category) => {
+    setSelectedCategory(category);
+    closeDropdown();
+  }, [closeDropdown]);
 
   // updating flags helpers
   const setUpdating = useCallback((id, v) => {
@@ -290,8 +380,6 @@ const SmartPicks = () => {
         Alert.alert('Error', 'Invalid product id');
         return false;
       }
-
-      // prevent double updates
       if (updatingMap[productId]) {
         log('addToCart: in progress', productId);
         return false;
@@ -303,10 +391,9 @@ const SmartPicks = () => {
         return false;
       }
 
-      // optimistic UI change
       setUpdating(productId, true);
       setCartItems((prev) => {
-        if (prev[productId]) return prev; 
+        if (prev[productId]) return prev;
         return { ...prev, [productId]: { quantity: 1, cartItemId: prev[productId]?.cartItemId || null } };
       });
 
@@ -319,7 +406,7 @@ const SmartPicks = () => {
           quantity: 1,
           category: product.category || 'General',
           variety: product.subtitle || product.raw?.variety || 'Standard',
-          unit: product.raw?.unit || 'piece',
+          unit: product.unit || product.raw?.unit || 'piece',
         };
 
         const response = await axios.post(`${API_BASE}${CART_ADD_ENDPOINT}`, payload, {
@@ -333,7 +420,6 @@ const SmartPicks = () => {
           setUpdating(productId, false);
           return true;
         } else {
-          // rollback
           setCartItems((prev) => {
             const next = { ...prev };
             delete next[productId];
@@ -346,7 +432,6 @@ const SmartPicks = () => {
         }
       } catch (err) {
         console.error('Error adding to cart:', err);
-        // rollback
         setCartItems((prev) => {
           const next = { ...prev };
           delete next[productId];
@@ -383,7 +468,6 @@ const SmartPicks = () => {
       }
 
       const entry = cartItemsRef.current[productIdKey];
-      // if no cartItemId, refresh cart and abort
       if (!entry || !entry.cartItemId) {
         await fetchCart();
         return;
@@ -391,7 +475,6 @@ const SmartPicks = () => {
 
       const cartItemId = entry.cartItemId;
 
-      // optimistic update local
       setUpdating(productIdKey, true);
       setCartItems((prev) => {
         const prevEntry = prev[productIdKey] || { quantity: 0, cartItemId };
@@ -429,7 +512,6 @@ const SmartPicks = () => {
         }
       } catch (err) {
         console.error('Error updating cart quantity:', err);
-        // rollback by refreshing authoritative state
         await fetchCart();
         setUpdating(productIdKey, false);
         const msg = err.response?.data?.message || err.message || 'Failed to update cart';
@@ -439,7 +521,7 @@ const SmartPicks = () => {
     [fetchCart, updatingMap, setUpdating]
   );
 
-  // wishlist - optimistic add
+  // wishlist flows
   const addToWishlist = useCallback(
     async (product) => {
       const productId = String(product.productId ?? product.id ?? '');
@@ -450,7 +532,6 @@ const SmartPicks = () => {
         return false;
       }
 
-      // optimistic
       setFavorites((prev) => {
         const next = new Set(prev);
         next.add(productId);
@@ -465,7 +546,7 @@ const SmartPicks = () => {
           price: product.price,
           category: product.category,
           variety: product.subtitle || 'Standard',
-          unit: 'piece',
+          unit: product.unit || 'piece',
         };
         const response = await axios.post(`${API_BASE}${WISHLIST_ADD_ENDPOINT}`, payload, {
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -478,7 +559,6 @@ const SmartPicks = () => {
         }
       } catch (err) {
         console.error('Error adding wishlist:', err);
-        // rollback
         setFavorites((prev) => {
           const next = new Set(prev);
           next.delete(productId);
@@ -502,7 +582,6 @@ const SmartPicks = () => {
         return false;
       }
 
-      // optimistic
       setFavorites((prev) => {
         const next = new Set(prev);
         next.delete(productId);
@@ -521,7 +600,6 @@ const SmartPicks = () => {
         }
       } catch (err) {
         console.error('Error removing wishlist:', err);
-        // rollback
         setFavorites((prev) => new Set(prev).add(productId));
         const msg = err.response?.data?.message || err.message || 'Failed to remove from wishlist';
         Alert.alert('Error', msg);
@@ -531,7 +609,7 @@ const SmartPicks = () => {
     []
   );
 
-  // handlers used by ProductCard
+  // navigation / handlers for ProductCard
   const handleCardPress = useCallback(
     (productId, item) => {
       try {
@@ -598,6 +676,8 @@ const SmartPicks = () => {
             title={item.title}
             subtitle={item.subtitle}
             price={item.price}
+            unit={item.unit}
+            weightPerPiece={item.weightPerPiece}
             rating={item.rating}
             image={item.image}
             isFavorite={favorites.has(String(item.productId ?? item.id))}
@@ -630,6 +710,7 @@ const SmartPicks = () => {
     [favorites, cartItems, handleCardPress, handleFavoritePress, handleAddToCart, handleQuantityChange, updatingMap]
   );
 
+  // loading placeholder
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
@@ -639,36 +720,54 @@ const SmartPicks = () => {
     );
   }
 
+  // dropdown height interpolation (direct height Animated.Value used)
+  const animatedDropdownStyle = {
+    height: dropdownHeight,
+    opacity: dropdownHeight.interpolate({
+      inputRange: [0, DROPDOWN_MAX * 0.5, DROPDOWN_MAX],
+      outputRange: [0, 0.6, 1],
+    }),
+  };
+
+  // main render
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Smart Picks</Text>
+        <Text style={styles.title} numberOfLines={1} allowFontScaling>
+          Smart Picks
+        </Text>
 
+        {/* FILTER */}
         <View style={styles.filterWrapper}>
-          <TouchableOpacity style={styles.filterBtn} onPress={toggleDropdown} activeOpacity={0.8}>
-            <View style={styles.filterExpand}>
-              <Text numberOfLines={1} ellipsizeMode="tail" style={styles.filterText}>
-                {selectedCategory}
-              </Text>
-              <Ionicons name={showDropdown ? 'chevron-up' : 'chevron-down'} size={normalizeFont(14)} color="#666" />
-            </View>
+          <TouchableOpacity
+            style={styles.filterBtn}
+            onPress={toggleDropdown}
+            activeOpacity={0.8}
+            hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+            disabled={isAnimatingRef.current}
+          >
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={styles.filterText}
+              allowFontScaling
+            >
+              {selectedCategory}
+            </Text>
+            <Ionicons name={showDropdown ? 'chevron-up' : 'chevron-down'} size={normalizeFont(14)} color="#666" style={styles.filterIcon} />
           </TouchableOpacity>
+
+          {/* Animated height dropdown (rendered when showDropdown true OR animation > 0) */}
           <Animated.View
             pointerEvents={showDropdown ? 'auto' : 'none'}
-            style={[
-              styles.dropdown,
-              {
-                height: animation.interpolate({ inputRange: [0, 1], outputRange: [0, moderateScale(240)] }),
-                borderWidth: animation.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }),
-                opacity: animation,
-              },
-            ]}
+            style={[styles.dropdown, animatedDropdownStyle]}
           >
             <ScrollView
               style={{ flex: 1 }}
               contentContainerStyle={styles.dropdownScrollContent}
-              nestedScrollEnabled
-              showsVerticalScrollIndicator
+              nestedScrollEnabled={true}
+              showsVerticalScrollIndicator={true}
+              keyboardShouldPersistTaps="handled"
             >
               {categories.map((category) => {
                 const isSelected = String(category).toLowerCase() === String(selectedCategory).toLowerCase();
@@ -677,10 +776,7 @@ const SmartPicks = () => {
                     key={category}
                     style={[styles.dropdownItem, isSelected && styles.selectedDropdownItem]}
                     activeOpacity={0.7}
-                    onPress={() => {
-                      setSelectedCategory(category);
-                      closeDropdown();
-                    }}
+                    onPress={() => handleCategorySelect(category)}
                   >
                     <Text style={[styles.dropdownText, isSelected && styles.selectedDropdownText]}>
                       {category}
@@ -718,32 +814,96 @@ const SmartPicks = () => {
         bounces={false}
         alwaysBounceHorizontal={false}
         contentInsetAdjustmentBehavior="never"
-        snapToInterval={ITEM_FULL}
-        snapToAlignment="start"
-        decelerationRate="fast"
+        decelerationRate="normal"
         scrollEventThrottle={16}
       />
     </View>
   );
 };
 
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
+
+  /* Loading */
   loadingContainer: { paddingVertical: verticalScale(30), justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8f9fa' },
   loadingText: { marginTop: verticalScale(10), fontSize: normalizeFont(12), color: '#666' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: verticalScale(6), paddingTop: verticalScale(10), paddingHorizontal: moderateScale(13) },
-  title: { fontSize: normalizeFont(14), fontWeight: '600', color: '#333' },
-  filterWrapper: { position: 'relative', minWidth: moderateScale(120) },
-  filterBtn: { paddingVertical: verticalScale(8), borderRadius: moderateScale(6), borderWidth: 1, borderColor: 'rgba(66, 66, 66, 0.7)' },
-  filterExpand: { flexDirection: 'row', alignItems: 'center',paddingLeft:moderateScale(10), gap:moderateScale(8)},
-  filterText: { color: 'rgba(66, 66, 66, 0.9)', fontSize: normalizeFont(12),  },
-  dropdown: { overflow: 'hidden', backgroundColor: '#fff', borderColor: 'rgba(66, 66, 66, 0.7)', borderRadius: moderateScale(6), position: 'absolute', top: moderateScale(35), left: 0, right: 0, zIndex: 1000, elevation: 10 },
-  dropdownScrollContent: { paddingVertical:moderateScale(6) },
-  dropdownItem: { padding: moderateScale(12), borderBottomWidth: 1, borderBottomColor: 'rgba(66, 66, 66, 0.06)' },
+
+  /* Header */
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: verticalScale(6),
+    paddingTop: verticalScale(10),
+    paddingHorizontal: moderateScale(13),
+  },
+  title: {
+    fontSize: normalizeFont(14),
+    fontWeight: '600',
+    color: '#333',
+    flex: 1,
+    marginRight: moderateScale(8),
+  },
+
+  /* FILTER */
+  filterWrapper: {
+    position: 'relative',
+    minWidth: moderateScale(80),
+    maxWidth: Math.min(moderateScale(220), SCREEN_WIDTH * 0.62),
+    alignSelf: 'flex-end',
+    zIndex: 3000,
+  },
+  filterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: verticalScale(6),
+    paddingHorizontal: moderateScale(10),
+    borderRadius: moderateScale(8),
+    borderWidth: 1,
+    borderColor: 'rgba(66,66,66,0.7)',
+    backgroundColor: '#fff',
+    minWidth: moderateScale(120),
+  },
+  filterText: {
+    color: 'rgba(66, 66, 66, 0.9)',
+    fontSize: normalizeFont(12),
+    flexShrink: 1,
+    marginRight: moderateScale(6),
+  },
+  filterIcon: {
+    marginLeft: 2,
+  },
+
+  /* Dropdown */
+  dropdown: {
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: 'rgba(66, 66, 66, 0.7)',
+    borderRadius: moderateScale(6),
+    position: 'absolute',
+    top: moderateScale(46),
+    left: 0,
+    right: 0,
+    zIndex: 4000,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    // no hard maxHeight here; animation controls height
+  },
+  dropdownScrollContent: { paddingVertical: moderateScale(6) },
+  dropdownItem: {
+    padding: moderateScale(12),
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(66, 66, 66, 0.06)',
+  },
   selectedDropdownItem: { backgroundColor: 'rgba(76, 175, 80, 0.08)' },
   dropdownText: { color: 'rgba(66, 66, 66, 0.9)', fontSize: normalizeFont(11) },
   selectedDropdownText: { color: '#4CAF50', fontWeight: '600' },
+
+  /* List */
   listContainer: { alignItems: 'flex-start', paddingHorizontal: moderateScale(5), paddingVertical: verticalScale(8) },
   flatListStyle: { paddingBottom: moderateScale(10) },
   cardWrapper: { marginHorizontal: ITEM_HORIZONTAL_MARGIN },

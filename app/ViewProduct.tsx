@@ -1,30 +1,32 @@
+// ProductDetailScreen.jsx
 import SuggestionCard from '@/components/myCard/SuggestionCard';
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import { goBack } from 'expo-router/build/global-state/routing';
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
+  Animated,
   Dimensions,
   FlatList,
   Image,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Responsive from './Responsive';
 
-const { moderateScale, scale, verticalScale ,normalizeFont} = Responsive;
+const { moderateScale, scale, verticalScale, normalizeFont } = Responsive;
 
 const API_BASE = "https://viafarm-1.onrender.com";
 const { width: SCREEN_W } = Dimensions.get("window");
-
 
 const scaleFont = (size) => {
   try {
@@ -57,6 +59,36 @@ export default function ProductDetailScreen() {
   // NEW: track quantity for cart
   const [quantity, setQuantity] = useState(1);
 
+  // --- Modal states for quantity edit (new) ---
+  const [qtyModalVisible, setQtyModalVisible] = useState(false);
+  const [editQuantity, setEditQuantity] = useState(String(quantity || 1));
+
+  // non-blocking message (toast) state
+  const [message, setMessage] = useState(null);
+  const messageAnim = useRef(new Animated.Value(0)).current;
+  const messageTimerRef = useRef<number | null>(null);
+
+  const showMessage = (msg) => {
+    if (!msg) return;
+    setMessage(String(msg));
+    Animated.timing(messageAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    if (messageTimerRef.current) {
+      clearTimeout(messageTimerRef.current);
+    }
+    messageTimerRef.current = setTimeout(() => {
+      Animated.timing(messageAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => setMessage(null));
+      messageTimerRef.current = null;
+    }, 1800);
+    // also log for debugging
+    console.warn('UI message:', msg);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (messageTimerRef.current) clearTimeout(messageTimerRef.current);
+    };
+  }, []);
+
   const fetchProduct = useCallback(async (id) => {
     try {
       setLoading(true);
@@ -76,12 +108,13 @@ export default function ProductDetailScreen() {
         }
         if (token) checkCartWishlist(p._id, token);
       } else {
-        Alert.alert("Error", "Product not found");
+        // non-blocking message then go back
+        showMessage("Product not found");
         navigation.back?.();
       }
     } catch (err) {
       console.error("fetchProduct error:", err?.response?.data ?? err.message);
-      Alert.alert("Error", "Failed to load product");
+      showMessage("Failed to load product");
       navigation.back?.();
     } finally {
       setLoading(false);
@@ -90,7 +123,7 @@ export default function ProductDetailScreen() {
 
   useEffect(() => {
     if (!productId) {
-      Alert.alert("Error", "Product id missing");
+      showMessage("Product id missing");
       return;
     }
     fetchProduct(productId);
@@ -120,101 +153,98 @@ export default function ProductDetailScreen() {
     }
   };
 
+  // keep modal editQuantity in sync when quantity changes
+  useEffect(() => {
+    setEditQuantity(String(quantity || 1));
+  }, [quantity]);
+
   const toggleWishlist = async () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
-      if (!token) { Alert.alert("Login required", "Please login to manage wishlist"); return; }
+      if (!token) { showMessage("Login required"); return; }
       const res = await axios.post(`${API_BASE}/api/buyer/wishlist/add`, { productId: product._id }, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.data?.success) setInWishlist(prev => !prev);
-      Alert.alert(res.data?.message ?? (inWishlist ? "Removed from wishlist" : "Added to wishlist"));
+      if (res.data?.success) {
+        setInWishlist(prev => !prev);
+        showMessage(res.data?.message ?? (inWishlist ? "Removed from wishlist" : "Added to wishlist"));
+      } else {
+        showMessage(res.data?.message ?? "Could not update wishlist");
+      }
     } catch (err) {
       console.error("toggleWishlist", err?.response?.data ?? err.message);
-      Alert.alert("Error", "Could not update wishlist");
+      showMessage("Could not update wishlist");
     }
   };
 
-
-
-  useEffect(()=>{
-    const wishlistGet = async ()=>{
-      try{
-      const token = await AsyncStorage.getItem ("userToken");
-      if(!token){
-        console.log("Token Required !")
+  useEffect(() => {
+    const wishlistGet = async () => {
+      try {
+        const token = await AsyncStorage.getItem("userToken");
+        const res = await axios.get(`${API_BASE}/api/buyer/wishlist`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setWishlist(res.data?.data?.items.length ?? "0");
+      } catch (error) {
+        console.warn("wishlistGet error", error);
       }
-      const res = await axios.get(`${API_BASE }/api/buyer/wishlist`,{
-        headers:{Authorization:`Bearer ${token}`}
-      })
-      setWishlist(res.data?.data?.items.length ?? "0" )
-      }catch(error){
-        console.log("Error",error)
-      }
-    }
+    };
     wishlistGet();
-  },[])
+  }, []);
 
-
-  useEffect(()=>{
-    const cardGet = async ()=>{
-      try{
-      const token = await AsyncStorage.getItem ("userToken");
-      if(!token){
-        console.log("Token Required !")
+  useEffect(() => {
+    const cardGet = async () => {
+      try {
+        const token = await AsyncStorage.getItem("userToken");
+        const res = await axios.get(`${API_BASE}/api/buyer/cart`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setCardGet(res.data?.data?.items.length ?? "0");
+      } catch (error) {
+        console.warn("cardGet error", error);
       }
-      const res = await axios.get(`${API_BASE }/api/buyer/cart`,{
-        headers:{Authorization:`Bearer ${token}`}
-      })
-      setCardGet(res.data?.data?.items.length ?? "0")
-      }catch(error){
-        console.log("Error",error)
-      }
-    }
+    };
     cardGet();
-  },[])
-
-
+  }, []);
 
   // NOTE: addToCart now supports updating quantity as well
   const addToCart = async (qty = 1) => {
     if (!product) return;
     try {
       const token = await AsyncStorage.getItem("userToken");
-      if (!token) { Alert.alert("Login required", "Please login to add items to cart"); return; }
+      if (!token) { showMessage("Login required"); return; }
       const payload = { productId: product._id, quantity: qty, vendorId: vendor?.id ?? vendor?._id ?? product.vendor?._id ?? product.vendor };
       const res = await axios.post(`${API_BASE}/api/buyer/cart/add`, payload, { headers: { Authorization: `Bearer ${token}` } });
       if (res.data?.success) {
         setInCart(true);
         setQuantity(qty);
-        Alert.alert(res.data.message ?? "Added to cart");
+        showMessage(res.data.message ?? "Added to cart");
       } else {
         setInCart(true);
         setQuantity(qty);
-        Alert.alert(res.data?.message ?? "Updated cart");
+        showMessage(res.data?.message ?? "Updated cart");
       }
     } catch (err) {
       console.error("addToCart", err?.response?.data ?? err.message);
-      Alert.alert("Error", "Could not add to cart");
+      showMessage("Could not add to cart");
     }
   };
 
   const removeFromCart = async () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
-      if (!token) { Alert.alert("Login required"); return; }
-      // best-effort delete by product id (backend may require cartItemId)
+      if (!token) { showMessage("Login required"); return; }
       const res = await axios.delete(`${API_BASE}/api/buyer/cart/${product._id}`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.data?.success) {
         setInCart(false);
         setQuantity(1);
-        Alert.alert(res.data.message ?? "Removed from cart");
+        showMessage(res.data.message ?? "Removed from cart");
       } else {
         setInCart(false);
         setQuantity(1);
-        Alert.alert(res.data?.message ?? "Removed from cart");
+        showMessage(res.data?.message ?? "Removed from cart");
       }
     } catch (err) {
       console.error("removeFromCart", err?.response?.data ?? err.message);
-      Alert.alert("Error", "Could not remove from cart");
+      showMessage("Could not remove from cart");
     }
   };
 
@@ -244,7 +274,7 @@ export default function ProductDetailScreen() {
   };
 
   const openVendorMap = () => {
-    Alert.alert("Comming Soon...");
+    showMessage("Coming soon...");
   };
 
   const openRecommended = (id) => {
@@ -255,10 +285,45 @@ export default function ProductDetailScreen() {
   const openVendorDetails = () => {
     const vid = vendor?.id ?? vendor?._id ?? product.vendor?._id ?? product.vendor;
     if (!vid) {
-      Alert.alert("Vendor not available");
+      showMessage("Vendor not available");
       return;
     }
     navigation.navigate?.('VendorsDetails', { vendorId: vid });
+  };
+
+  // --- Modal handlers ---
+  const openQtyModal = (e) => {
+    e?.stopPropagation?.();
+    setEditQuantity(String(quantity || 1));
+    setQtyModalVisible(true);
+  };
+  const closeQtyModal = () => setQtyModalVisible(false);
+
+  const applyQuantityChange = async () => {
+    const parsed = parseInt(String(editQuantity).replace(/\D/g, ''), 10);
+    const newQty = Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
+
+    if (newQty <= 0) {
+      // treat as remove
+      await removeFromCart();
+    } else {
+      await addToCart(newQty);
+    }
+
+    closeQtyModal();
+  };
+
+  const incrementEdit = () => {
+    const v = parseInt(editQuantity || "0", 10) || 0;
+    setEditQuantity(String(v + 1));
+  };
+  const decrementEdit = () => {
+    const v = parseInt(editQuantity || "0", 10) || 0;
+    setEditQuantity(String(Math.max(0, v - 1)));
+  };
+
+  const headerWishlistPress = () => {
+    navigation.navigate('wishlist');
   };
 
   if (loading) {
@@ -279,12 +344,15 @@ export default function ProductDetailScreen() {
   const vendorAddr = vendor?.address ?? product.vendor?.address ?? {};
   const pickupAddress = `${vendorAddr.houseNumber ? vendorAddr.houseNumber + ', ' : ''}${vendorAddr.locality ?? vendorAddr.street ?? ''}${vendorAddr.city ? ', ' + vendorAddr.city : ''}`;
 
-  const headerWishlistPress = () => {
-    navigation.navigate('wishlist');
-  };
-
   return (
     <SafeAreaView style={styles.page}>
+      {/* non-blocking message banner */}
+      {message ? (
+        <Animated.View style={[toastStyles.container, { opacity: messageAnim, transform: [{ translateY: messageAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) }] }]}>
+          <Text numberOfLines={2} style={toastStyles.text}>{message}</Text>
+        </Animated.View>
+      ) : null}
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconBtn} onPress={goBack}>
@@ -294,14 +362,14 @@ export default function ProductDetailScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>{product.name}</Text>
 
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={headerWishlistPress} style={{ marginRight:moderateScale(12) }}>
-            <Ionicons name={"heart-outline"} size={25} />
+          <TouchableOpacity onPress={headerWishlistPress} style={{ marginRight: moderateScale(12) }}>
+            <Image style={{ width: 20, height: 20 }} source={require("../assets/via-farm-img/icons/wishlist.png")} />
             <View style={styles.countWishlistA}>
               <Text style={styles.countA}>{wishlist || "0"}</Text>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity onPress={headerWishlistPress} style={{ marginRight:moderateScale(12) }}>
-           <Image width={160}  source={require("../assets/via-farm-img/icons/bx_cart.png")} />
+          <TouchableOpacity onPress={headerWishlistPress} style={{ marginRight: moderateScale(12) }}>
+            <Image width={160} source={require("../assets/via-farm-img/icons/bx_cart.png")} />
             <View style={styles.countWishlistA}>
               <Text style={styles.countA}>{cardGet || "0"}</Text>
             </View>
@@ -318,24 +386,25 @@ export default function ProductDetailScreen() {
 
         <View style={styles.infoCard}>
           <View style={styles.rowBetween}>
-            <View style={{ flex: 1, paddingRight:moderateScale(8) }}>
-              <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
+            <View style={{ flex: 1, paddingRight: moderateScale(8) }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Text style={styles.title}>{product.name}</Text>
                 <View style={styles.ratingPill}>
                   <Image source={require("../assets/via-farm-img/icons/satar.png")} />
-                  <Text style={{ marginLeft:moderateScale(6), fontWeight: '700', fontSize: scaleFont(12) }}>{product.rating ?? 0}</Text>
+                  <Text style={{ fontWeight: '700', fontSize: scaleFont(12) }}>
+                    {Number(product.rating || 0).toFixed(1)}
+                  </Text>
                 </View>
               </View>
 
-              <Text style={styles.smallText}>{product.category} {product.variety}</Text>
-              <Text style={styles.mrp}>MRP <Text style={{fontWeight:700,color:"#000", fontSize: scaleFont(13)}}>₹{product.price}/{product.unit ?? 'pc'}</Text></Text>
+              <Text style={styles.mrp}>MRP <Text style={{ fontWeight: 700, color: "#000", fontSize: scaleFont(13) }}>₹{product.price}/{product.unit ?? 'pc'}</Text></Text>
             </View>
           </View>
 
-          <Text style={[styles.sectionTitle, { marginTop:moderateScale(12) }]}>About the product</Text>
-          <Text style={{fontSize:scaleFont(11),marginVertical:moderateScale(5)}}>Category: {product.category}</Text>
-          <Text style={{fontSize:scaleFont(11)}}>Variety: {product.variety}</Text>
-    
+          <Text style={[styles.sectionTitle, { marginTop: moderateScale(12) }]}>About the product</Text>
+          <Text style={{ fontSize: scaleFont(11), marginVertical: moderateScale(5) }}>Category: {product.category}</Text>
+          <Text style={{ fontSize: scaleFont(11) }}>Variety: {product.variety}</Text>
+
           <Text style={[styles.description, { fontSize: scaleFont(12) }]}>Description: {product.description}</Text>
 
           <TouchableOpacity style={styles.vendorHeader} onPress={() => setVendorExpanded(v => !v)}>
@@ -344,12 +413,11 @@ export default function ProductDetailScreen() {
           </TouchableOpacity>
 
           {vendorExpanded && (
-            // Wrap vendor area in TouchableOpacity so clicking image or text opens vendor details
             <TouchableOpacity onPress={openVendorDetails} activeOpacity={0.8} style={styles.vendorExpanded}>
               <Image source={{ uri: vendor?.profilePicture ?? product.vendor?.profilePicture }} style={styles.vendorImage} />
               <View style={{ flex: 1, marginLeft: moderateScale(12) }}>
-                <Text style={{ fontWeight: '600',fontSize: scaleFont(12), }}>{vendor?.name ?? product.vendor?.name}</Text>
-                <Text style={{ color: '#666', marginTop:moderateScale(6) ,fontSize:scaleFont(11)}}>{vendorAddr.houseNumber ? `${vendorAddr.houseNumber}, ` : ''}{vendorAddr.locality ?? vendorAddr.street ?? ''}{vendorAddr.city ? `, ${vendorAddr.city}` : ''}</Text>
+                <Text style={{ fontWeight: '600', fontSize: scaleFont(12), }}>{vendor?.name ?? product.vendor?.name}</Text>
+                <Text style={{ color: '#666', marginTop: moderateScale(6), fontSize: scaleFont(11) }}>{vendorAddr.houseNumber ? `${vendorAddr.houseNumber}, ` : ''}{vendorAddr.locality ?? vendorAddr.street ?? ''}{vendorAddr.city ? `, ${vendorAddr.city}` : ''}</Text>
               </View>
             </TouchableOpacity>
           )}
@@ -358,8 +426,8 @@ export default function ProductDetailScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
               <Image source={require("../assets/via-farm-img/icons/loca.png")} />
               <View style={{ marginLeft: moderateScale(10) }}>
-                <Text style={{ fontWeight: '500', fontSize: scaleFont(11)}}>Pickup Location</Text>
-                <Text style={{ color: '#666',fontSize:scaleFont(11), maxWidth: SCREEN_W - scale(120) }} numberOfLines={1}>{pickupAddress}</Text>
+                <Text style={{ fontWeight: '500', fontSize: scaleFont(11) }}>Pickup Location</Text>
+                <Text style={{ color: '#666', fontSize: scaleFont(11), maxWidth: SCREEN_W - scale(120) }} numberOfLines={1}>{pickupAddress}</Text>
               </View>
             </View>
             <TouchableOpacity onPress={openVendorMap} style={{ padding: scale(8) }}>
@@ -368,13 +436,13 @@ export default function ProductDetailScreen() {
           </View>
 
           <View style={{ marginTop: 6 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal:moderateScale(4) }}>
-              <Text style={{ fontWeight: '600',fontSize:scaleFont(12) }}>Ratings & Reviews</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: moderateScale(4) }}>
+              <Text style={{ fontWeight: '600', fontSize: scaleFont(12) }}>Ratings & Reviews</Text>
               <TouchableOpacity onPress={() => navigation.navigate?.('SeeAllReview', {
-                  vendor,
-                  reviews,
-                })} style={{flexDirection:'row',alignItems:'center',gap:5}}>
-                <Text style={{ color: '#3b82f6',fontSize:scaleFont(11) }}>See All</Text>
+                vendor,
+                reviews,
+              })} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Text style={{ color: '#3b82f6', fontSize: scaleFont(11) }}>See All</Text>
                 <Image source={require('../assets/via-farm-img/icons/see.png')} />
               </TouchableOpacity>
             </View>
@@ -404,7 +472,7 @@ export default function ProductDetailScreen() {
             renderItem={({ item }) => (
               <View style={styles.reviewCard}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: moderateScale(8) }}>
-                  <Image source={{ uri: item.user?.profilePicture ?? 'https://cdn-icons-png.flaticon.com/512/149/149071.png' }} style={{ width: scale(40), height: scale(40), borderRadius: moderateScale(20), marginRight:moderateScale(10) }} />
+                  <Image source={{ uri: item.user?.profilePicture ?? 'https://cdn-icons-png.flaticon.com/512/149/149071.png' }} style={{ width: scale(40), height: scale(40), borderRadius: moderateScale(20), marginRight: moderateScale(10) }} />
                   <View>
                     <Text style={{ fontWeight: '700', fontSize: scaleFont(12) }}>{item.user?.name ?? 'Anonymous'}</Text>
                     <Text style={{ color: '#777', fontSize: scaleFont(11) }}>{new Date(item.createdAt).toLocaleDateString()}</Text>
@@ -419,7 +487,7 @@ export default function ProductDetailScreen() {
             )}
             ListEmptyComponent={() => (
               <View>
-                <Text style={{ color: '#777',fontSize:scaleFont(11) }}>No reviews yet</Text>
+                <Text style={{ color: '#777', fontSize: scaleFont(11) }}>No reviews yet</Text>
               </View>
             )}
           />
@@ -431,9 +499,52 @@ export default function ProductDetailScreen() {
         </View>
       </ScrollView>
 
+      {/* Quantity Edit Modal (opens when clicking qty display) */}
+      <Modal
+        visible={qtyModalVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={closeQtyModal}
+      >
+        <TouchableOpacity style={modalStyles.backdrop} activeOpacity={1} onPress={closeQtyModal}>
+          <View style={[modalStyles.modalWrap, { maxWidth: Math.min(420, Dimensions.get('window').width - moderateScale(40)) }]}>
+            <Text style={modalStyles.modalTitle}>Set quantity</Text>
+
+            <View style={modalStyles.editRow}>
+              <TouchableOpacity style={modalStyles.pickerBtn} onPress={decrementEdit}>
+                <Ionicons name="remove" size={moderateScale(18)} color="#111" />
+              </TouchableOpacity>
+
+              <TextInput
+                style={modalStyles.qtyInput}
+                keyboardType="number-pad"
+                value={String(editQuantity)}
+                onChangeText={(t) => setEditQuantity(t.replace(/[^0-9]/g, ""))}
+                maxLength={5}
+                placeholder="0"
+                placeholderTextColor="#999"
+              />
+
+              <TouchableOpacity style={modalStyles.pickerBtn} onPress={incrementEdit}>
+                <Ionicons name="add" size={moderateScale(18)} color="#111" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={modalStyles.modalActions}>
+              <TouchableOpacity style={modalStyles.cancelBtn} onPress={closeQtyModal}>
+                <Text style={modalStyles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={modalStyles.okBtn} onPress={applyQuantityChange}>
+                <Text style={modalStyles.okText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Bottom bar */}
       <View style={styles.bottomBar}>
-        <View style={{ flex:1, }}>
+        <View style={{ flex: 1, }}>
           <Text style={{ color: '#666', fontSize: scaleFont(12) }}>Price</Text>
           <Text style={{ fontWeight: '600', fontSize: scaleFont(16) }}>₹{product.price}</Text>
         </View>
@@ -445,9 +556,10 @@ export default function ProductDetailScreen() {
               <Text style={styles.qtyBtnText}>−</Text>
             </TouchableOpacity>
 
-            <View style={styles.qtyDisplay}>
+            {/* Make qty display pressable to open modal */}
+            <TouchableOpacity style={styles.qtyDisplay} onPress={openQtyModal}>
               <Text style={styles.qtyText}>{String(quantity).padStart(2, '0')}</Text>
-            </View>
+            </TouchableOpacity>
 
             <TouchableOpacity style={styles.qtyBtn} onPress={incrementQuantity}>
               <Text style={styles.qtyBtnText}>+</Text>
@@ -464,6 +576,26 @@ export default function ProductDetailScreen() {
   );
 }
 
+const toastStyles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    top: moderateScale(8),
+    left: moderateScale(12),
+    right: moderateScale(12),
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    paddingVertical: moderateScale(8),
+    paddingHorizontal: moderateScale(12),
+    borderRadius: moderateScale(8),
+    zIndex: 9999,
+    alignItems: 'center',
+  },
+  text: {
+    color: '#fff',
+    textAlign: 'center',
+    fontSize: normalizeFont(12),
+  },
+});
+
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: '#fff' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -472,71 +604,57 @@ const styles = StyleSheet.create({
   headerTitle: { flex: 1, textAlign: 'center', fontSize: scaleFont(15), fontWeight: '600' },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
 
-countWishlistA: {
-  position: 'absolute',
-  top: moderateScale(-6),       
-  right: moderateScale(-6),      
-  minWidth: moderateScale(20),
-  height: moderateScale(20),
-  paddingHorizontal: moderateScale(4),
-  borderRadius: moderateScale(11), 
-  backgroundColor: '#FF3B30',    
-  justifyContent: 'center',
-  alignItems: 'center',
-  borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.85)',
-  shadowColor: 'grey',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.12,
-  shadowRadius: 4,
-  elevation: 6,
-  zIndex: 99,
-},
-countA: {
-  color: '#fff',
-  fontWeight: '700',
-  fontSize: normalizeFont(10),
-  lineHeight: normalizeFont(12),
-  textAlign: 'center',
-  includeFontPadding: false,
-},
-
+  countWishlistA: {
+    position: 'absolute',
+    top: moderateScale(-6),
+    right: moderateScale(-6),
+    minWidth: moderateScale(20),
+    height: moderateScale(20),
+    paddingHorizontal: moderateScale(4),
+    borderRadius: moderateScale(11),
+    backgroundColor: '#FF3B30',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.85)',
+    shadowColor: 'grey',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 6,
+    zIndex: 99,
+  },
+  countA: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: normalizeFont(10),
+    lineHeight: normalizeFont(12),
+    textAlign: 'center',
+    includeFontPadding: false,
+  },
 
   container: { flex: 1 },
 
   heroImage: { width: SCREEN_W, height: SCREEN_W * 0.7, backgroundColor: '#f3f3f3' },
-  favButton: { position: 'absolute', right: moderateScale(18), top:6, backgroundColor: 'transparent' },
+  favButton: { position: 'absolute', right: moderateScale(18), top: 6, backgroundColor: 'transparent' },
 
-  infoCard: { backgroundColor: '#fff', marginTop: -14,  padding:moderateScale(14), minHeight:scale(220) },
+  infoCard: { backgroundColor: '#fff', marginTop: -14, padding: moderateScale(14), minHeight: scale(220) },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: scaleFont(16), fontWeight: '700' },
-  smallText: { color: '#666', fontSize: scaleFont(12)},
-  mrp: { fontSize: scaleFont(12), marginTop:moderateScale(5) },
-  ratingPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal:moderateScale(10),paddingVertical:moderateScale(1) ,borderRadius:8, marginTop:moderateScale(8),borderWidth:1, borderColor:'rgba(0, 0, 0, 0.4)' },
+  smallText: { color: '#666', fontSize: scaleFont(12) },
+  mrp: { fontSize: scaleFont(12), marginTop: moderateScale(5) },
+  ratingPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: moderateScale(10), paddingVertical: moderateScale(1), borderRadius: 8, marginTop: moderateScale(8), borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.4)' },
 
   sectionTitle: { fontSize: scaleFont(13), fontWeight: '600' },
-  description: { color: '#444', marginTop:moderateScale(6) },
-
-  nutriRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: moderateScale(12) },
-  nutriCol: { alignItems: 'center', flex: 1 },
-  nutriLabel: { color: '#777', fontSize: scaleFont(11) },
-  nutriVal: { fontWeight: '600', marginTop:moderateScale(6) },
+  description: { color: '#444', marginTop: moderateScale(6) },
 
   vendorHeader: { marginTop: moderateScale(12), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  vendorExpanded: { flexDirection: 'row', marginTop:moderateScale(10), alignItems: 'center' },
+  vendorExpanded: { flexDirection: 'row', marginTop: moderateScale(10), alignItems: 'center' },
   vendorImage: { width: scale(70), height: scale(70), borderRadius: moderateScale(10), backgroundColor: '#f3f3f3' },
 
   pickupRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: moderateScale(12), padding: moderateScale(8), backgroundColor: '#fafafa', borderRadius: 8 },
 
-  deliverySec: { marginTop: moderateScale(12) },
-  deliveryBox: { marginTop: moderateScale(8), borderWidth: 0.8, borderColor: '#eee', padding: moderateScale(12), borderRadius: moderateScale(10) },
-
-  coupon: { marginTop: moderateScale(14), paddingTop: moderateScale(8) },
-  couponTitle: { fontWeight: '700' },
-  couponSub: { color: '#3b82f6', marginTop: moderateScale(4) },
-  couponInput: { borderWidth: 1, borderColor: '#e0e0e0', borderRadius: moderateScale(8), padding: moderateScale(10), marginTop: moderateScale(8) },
-
-  reviewCard: { width:scale(300), backgroundColor: '#fff', borderRadius: moderateScale(12), padding: moderateScale(12), marginRight: moderateScale(12), elevation: 2 },
+  reviewCard: { width: scale(300), backgroundColor: '#fff', borderRadius: moderateScale(12), padding: moderateScale(12), marginRight: moderateScale(12), elevation: 2 },
 
   bottomBar: { flexDirection: 'row', alignItems: 'center', padding: moderateScale(12), borderTopWidth: 0.6, borderTopColor: '#eee', backgroundColor: '#fff' },
   cartBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#22c55e', paddingHorizontal: moderateScale(18), paddingVertical: moderateScale(12), borderRadius: moderateScale(10) },
@@ -547,7 +665,7 @@ countA: {
     alignItems: 'center',
     borderWidth: 1.2,
     borderColor: '#22c55e',
-    borderRadius:moderateScale(11),
+    borderRadius: moderateScale(11),
     overflow: 'hidden',
   },
   qtyBtn: {
@@ -564,7 +682,7 @@ countA: {
     color: '#22c55e',
   },
   qtyDisplay: {
-    minWidth:scale(42),
+    minWidth: scale(42),
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderColor: '#22c55e',
@@ -577,5 +695,98 @@ countA: {
     fontWeight: '700',
     fontSize: scaleFont(13),
     color: '#22c55e',
+  },
+});
+
+/* Modal styles (local for qty modal) */
+const modalStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: moderateScale(20),
+  },
+  modalWrap: {
+    width: '100%',
+    maxWidth: moderateScale(360),
+    backgroundColor: "#fff",
+    borderRadius: moderateScale(10),
+    padding: moderateScale(16),
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: moderateScale(8),
+    shadowOffset: { width: 0, height: moderateScale(4) },
+  },
+  modalTitle: {
+    fontSize: normalizeFont(14),
+    fontWeight: "700",
+    color: "#222",
+    marginBottom: moderateScale(12),
+    textAlign: "center",
+  },
+  editRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: moderateScale(12),
+    marginBottom: moderateScale(14),
+  },
+  pickerBtn: {
+    paddingVertical: moderateScale(8),
+    paddingHorizontal: moderateScale(10),
+    borderRadius: moderateScale(8),
+    borderWidth: 1,
+    borderColor: "#ddd",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fafafa",
+  },
+  qtyInput: {
+    flex: 1,
+    minHeight: moderateScale(44),
+    borderWidth: 1,
+    borderColor: "#eee",
+    borderRadius: moderateScale(8),
+    textAlign: "center",
+    fontSize: normalizeFont(16),
+    paddingVertical: moderateScale(8),
+  },
+  modalActions: {
+    flexDirection: "row",
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: moderateScale(8),
+  },
+  cancelBtn: {
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: moderateScale(8),
+    width: '40%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: moderateScale(1),
+    borderColor: "rgba(76, 175, 80, 1)"
+  },
+  cancelText: {
+    color: "#666",
+    fontSize: normalizeFont(13),
+  },
+  okBtn: {
+    backgroundColor: "rgba(76, 175, 80, 1)",
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: moderateScale(8),
+    width: '40%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  okText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: normalizeFont(13),
   },
 });

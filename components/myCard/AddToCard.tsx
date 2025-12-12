@@ -23,6 +23,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import SuggestionCard from '../myCard/RelatedProduct';
 
 const { width, height } = Dimensions.get('window');
@@ -66,7 +67,7 @@ const MyCart = () => {
     totalAmount: 0,
   });
 
-  // Modal state
+  // Modal state (delivery/payment)
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
   const slideAnim = useRef(new Animated.Value(300)).current;
@@ -83,6 +84,11 @@ const MyCart = () => {
   const [highlightedCoupons, setHighlightedCoupons] = useState([]);
   const [showCouponsDropdown, setShowCouponsDropdown] = useState(false);
   const [fetchingCoupons, setFetchingCoupons] = useState(false);
+
+  // --- NEW: quantity-edit modal state for MyCart (same behavior as ProductDetailScreen) ---
+  const [qtyModalVisible, setQtyModalVisible] = useState(false);
+  const [editQuantity, setEditQuantity] = useState('1');
+  const [editingItemId, setEditingItemId] = useState(null);
 
   // --- Fetch Token ---
   const getAuthToken = async () => {
@@ -313,6 +319,7 @@ const MyCart = () => {
     };
   }, [fetchCartItems]);
 
+  // update quantity (server + optimistic UI)
   const updateQuantity = async (itemId, newQty) => {
     const token = authToken || (await getAuthToken());
     if (!token) {
@@ -325,6 +332,7 @@ const MyCart = () => {
     const prevItem = selectedVendorItems.find(i => i.id === itemId);
     if (!prevItem) return;
 
+    // optimistic UI
     setSelectedVendorItems(prev =>
       prev.map(i => (i.id === itemId ? { ...i, quantity: newQty } : i))
     );
@@ -346,11 +354,13 @@ const MyCart = () => {
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok || !json.success) {
+        // rollback
         setSelectedVendorItems(prev =>
           prev.map(i => (i.id === itemId ? prevItem : i))
         );
         fetchCartItems(token);
       } else {
+        // refresh server truth
         fetchCartItems(token);
       }
     } catch (e) {
@@ -734,6 +744,46 @@ const MyCart = () => {
     }
   };
 
+  // --- NEW: quantity modal helpers for MyCart ---
+  const openQtyModal = (item) => {
+    if (!item) return;
+    setEditingItemId(item.id);
+    setEditQuantity(String(item.quantity || 1));
+    setQtyModalVisible(true);
+  };
+
+  const closeQtyModal = () => {
+    setQtyModalVisible(false);
+    setEditingItemId(null);
+  };
+
+  const applyQtyChange = async () => {
+    const parsed = parseInt(String(editQuantity).replace(/\D/g, ''), 10);
+    const newQty = Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
+
+    if (!editingItemId) {
+      closeQtyModal();
+      return;
+    }
+
+    if (newQty <= 0) {
+      await removeItem(editingItemId);
+    } else {
+      await updateQuantity(editingItemId, newQty);
+    }
+
+    closeQtyModal();
+  };
+
+  const incrementEdit = () => {
+    const v = parseInt(editQuantity || "0", 10) || 0;
+    setEditQuantity(String(v + 1));
+  };
+  const decrementEdit = () => {
+    const v = parseInt(editQuantity || "0", 10) || 0;
+    setEditQuantity(String(Math.max(0, v - 1)));
+  };
+
   // Cart Card Component
   const CartCard = ({ item }) => (
     <View style={styles.cartCard}>
@@ -759,19 +809,22 @@ const MyCart = () => {
           <TouchableOpacity
             style={styles.quantityButton}
             onPress={() => updateQuantity(item.id, (item.quantity || 1) - 1)}
+            activeOpacity={0.7}
           >
-            <Text style={styles.quantityButtonText}>-</Text>
+            <Text style={styles.quantityButtonText} allowFontScaling={false}>−</Text>
           </TouchableOpacity>
 
-          <View style={styles.quantityButtonn}>
-            <Text style={styles.quantityText}>{item.quantity}</Text>
-          </View>
+          {/* MAKE quantity display pressable to open modal (exactly like ProductDetailScreen) */}
+          <TouchableOpacity style={styles.quantityButtonn} onPress={() => openQtyModal(item)} activeOpacity={0.8}>
+            <Text style={styles.quantityText} allowFontScaling={false}>{String(item.quantity).padStart(2, '0')}</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.quantityButton}
             onPress={() => updateQuantity(item.id, (item.quantity || 1) + 1)}
+            activeOpacity={0.7}
           >
-            <Text style={styles.quantityButtonText}>+</Text>
+            <Text style={styles.quantityButtonText} allowFontScaling={false}>+</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -838,7 +891,7 @@ const MyCart = () => {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#fff' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack}>
@@ -976,11 +1029,6 @@ const MyCart = () => {
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>Coupon Discount</Text>
                 <Text style={styles.discountValue}>-₹{Number(effectiveCouponDiscount).toFixed(2)}</Text>
-              </View>
-
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Delivery Charges</Text>
-                <Text style={styles.priceValue}>₹{Number(baseDelivery).toFixed(2)}</Text>
               </View>
 
               <View style={[styles.priceRow, styles.totalRow]}>
@@ -1271,6 +1319,49 @@ const MyCart = () => {
         </View>
       </Modal>
 
+      {/* Quantity Modal (NEW - same behavior as ProductDetailScreen) */}
+      <Modal
+        visible={qtyModalVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={closeQtyModal}
+      >
+        <TouchableOpacity style={modalStyles.backdrop} activeOpacity={1} onPress={closeQtyModal}>
+          <View style={[modalStyles.modalWrap, { maxWidth: Math.min(420, Dimensions.get('window').width - moderateScale(40)) }]}>
+            <Text style={modalStyles.modalTitle}>Set quantity</Text>
+
+            <View style={modalStyles.editRow}>
+              <TouchableOpacity style={modalStyles.pickerBtn} onPress={decrementEdit}>
+                <Ionicons name="remove" size={moderateScale(18)} color="#111" />
+              </TouchableOpacity>
+
+              <TextInput
+                style={modalStyles.qtyInput}
+                keyboardType="number-pad"
+                value={String(editQuantity)}
+                onChangeText={(t) => setEditQuantity(t.replace(/[^0-9]/g, ""))}
+                maxLength={5}
+                placeholder="0"
+                placeholderTextColor="#999"
+              />
+
+              <TouchableOpacity style={modalStyles.pickerBtn} onPress={incrementEdit}>
+                <Ionicons name="add" size={moderateScale(18)} color="#111" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={modalStyles.modalActions}>
+              <TouchableOpacity style={modalStyles.cancelBtn} onPress={closeQtyModal}>
+                <Text style={modalStyles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={modalStyles.okBtn} onPress={applyQtyChange}>
+                <Text style={modalStyles.okText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Delivery Option Modal */}
       <Modal
         visible={modalVisible}
@@ -1327,7 +1418,7 @@ const MyCart = () => {
           </Animated.View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -1456,8 +1547,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#fff',
     paddingHorizontal: moderateScale(16),
-    paddingTop: moderateScale(30),
-    paddingBottom: moderateScale(16),
+    height:scale(50),
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
@@ -1554,7 +1644,7 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(13),
     fontWeight: '500',
     color: 'rgba(66, 66, 66, 1)',
-    marginBottom: moderateScale(10),
+    // marginBottom: moderateScale(10),
   },
   productSubtitle: {
     fontSize: normalizeFont(12),
@@ -1589,53 +1679,64 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: moderateScale(20),
   },
+
+  /* ---------- UPDATED QUANTITY STYLES: CENTERED BOTH AXES ---------- */
   quantityContainer: {
     position: 'absolute',
-    left: "14%",
+    left: "1%",
     bottom: 0,
-    width: scale(94),
+    width:"50%",
     height: verticalScale(28),
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'center',        
+    justifyContent: 'space-between', 
     borderRadius: moderateScale(5),
     borderWidth: moderateScale(1),
     borderColor: 'rgba(76, 175, 80, 1)',
     backgroundColor: '#fff',
-    marginRight: scale(71),
+    paddingHorizontal: moderateScale(4),
   },
+
   quantityButton: {
     width: scale(28),
     height: verticalScale(28),
     borderRadius: moderateScale(3),
-    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   quantityButtonn: {
-    width: scale(28),
+    minWidth: scale(36),
     height: verticalScale(28),
-    borderRadius: moderateScale(3),
-    flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: moderateScale(4),
   },
+
   quantityText: {
-    width: scale(28),
-    height: scale(27),
+    minWidth: scale(34),
+    height: verticalScale(28),
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderColor: 'rgba(76, 175, 80, 1)',
     fontSize: normalizeFont(13),
-    fontWeight: '600',
+    fontWeight: '700',
     color: 'rgba(76, 175, 80, 1)',
     textAlign: 'center',
-    lineHeight: scale(27),
+    textAlignVertical: 'center',
+    lineHeight: verticalScale(28), 
   },
+
   quantityButtonText: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(18),
+    lineHeight: verticalScale(22),
     fontWeight: '800',
     color: 'rgba(76, 175, 80, 1)',
+    textAlign: 'center',
   },
+
+  /* ---------- rest unchanged ---------- */
+
   priceSection: {
     backgroundColor: '#fff',
     margin: moderateScale(8),
@@ -1745,8 +1846,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: '#f0f0f0',
   },
-
-  /* rest of styles from original file (delivery modal / pickup modal / etc) kept same as earlier */
   modalContainer: {
     backgroundColor: 'transparent',
     paddingBottom: moderateScale(20),
@@ -1759,19 +1858,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: '#f0f0f0',
   },
-  highlightCouponRow: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
-    padding: moderateScale(10),
-    borderRadius: 8,
-    marginBottom: moderateScale(8),
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-
-  /* delivery modal */
   deliveryModalContainer: {
     backgroundColor: 'white',
     borderTopLeftRadius: moderateScale(20),
@@ -1835,19 +1921,10 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(76, 175, 80, 1)',
     borderWidth: 2,
   },
-
-  /* many remaining styles are kept intact from original file for consistency */
   text: {
     color: 'rgba(76, 175, 80, 1)',
     fontWeight: '600',
     fontSize: normalizeFont(13),
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical:moderateScale(5),
-    paddingHorizontal:moderateScale(20),
   },
   closeButton: {
     padding: moderateScale(4),
@@ -2006,3 +2083,96 @@ const styles = StyleSheet.create({
 });
 
 export default MyCart;
+
+/* Modal styles (local for qty modal) */
+const modalStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: moderateScale(20),
+  },
+  modalWrap: {
+    width: '100%',
+    maxWidth: moderateScale(360),
+    backgroundColor: "#fff",
+    borderRadius: moderateScale(10),
+    padding: moderateScale(16),
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: moderateScale(8),
+    shadowOffset: { width: 0, height: moderateScale(4) },
+  },
+  modalTitle: {
+    fontSize: normalizeFont(14),
+    fontWeight: "700",
+    color: "#222",
+    marginBottom: moderateScale(12),
+    textAlign: "center",
+  },
+  editRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: moderateScale(12),
+    marginBottom: moderateScale(14),
+  },
+  pickerBtn: {
+    paddingVertical: moderateScale(8),
+    paddingHorizontal: moderateScale(10),
+    borderRadius: moderateScale(8),
+    borderWidth: 1,
+    borderColor: "#ddd",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fafafa",
+  },
+  qtyInput: {
+    flex: 1,
+    minHeight: moderateScale(44),
+    borderWidth: 1,
+    borderColor: "#eee",
+    borderRadius: moderateScale(8),
+    textAlign: "center",
+    fontSize: normalizeFont(16),
+    paddingVertical: moderateScale(8),
+  },
+  modalActions: {
+    flexDirection: "row",
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: moderateScale(8),
+  },
+  cancelBtn: {
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: moderateScale(8),
+    width: '40%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: moderateScale(1),
+    borderColor: "rgba(76, 175, 80, 1)"
+  },
+  cancelText: {
+    color: "#666",
+    fontSize: normalizeFont(13),
+  },
+  okBtn: {
+    backgroundColor: "rgba(76, 175, 80, 1)",
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: moderateScale(8),
+    width: '40%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  okText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: normalizeFont(13),
+  },
+});

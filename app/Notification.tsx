@@ -49,7 +49,7 @@ const NotificationCard = ({ item, onPressCta }) => (
 
       <View style={styles.cardTextWrap}>
         <View style={styles.rowTop}>
-          <Text style={styles.cardDate}>{item.date}</Text>
+          <Text style={styles.cardDate} numberOfLines={2}>{item.date} </Text>
         </View>
 
         <Text style={styles.cardTitle} numberOfLines={2}>
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   cardTextWrap: { flex: 1 },
   rowTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: moderateScale(6) },
   cardTitle: { fontSize: normalizeFont(12), fontWeight: "600", color: "#222", flex: 1, paddingRight: moderateScale(8) },
-  cardDate: { fontSize: normalizeFont(11), color: "#9aa0a6", alignSelf: "flex-start" },
+  cardDate: { fontSize: normalizeFont(8), color: "#9aa0a6", alignSelf: "flex-start" },
   cardMessage: { fontSize: normalizeFont(11), color: "#9a9a9a", marginBottom: moderateScale(10) },
   ctaText: { color: "rgba(76, 175, 80, 1)", fontWeight: "600", marginTop: 0, marginRight: 0, fontSize: normalizeFont(12) },
   empty: { marginTop: moderateScale(40), alignItems: "center" },

@@ -160,7 +160,7 @@ const ProductCard = React.memo(({
           <View style={cardStyles.priceContainer}>
             <Text style={cardStyles.productPrice}>₹{item?.price ?? "0"}</Text>
             <Text style={cardStyles.productUnit}>/{item?.unit ?? "unit"}</Text>
-            {item?.weightPerPiece ? <Text style={cardStyles.weightText}>{item.weightPerPiece}</Text> : null}
+            {item?.weightPerPiece ? <Text style={cardStyles.productUnit}>/{item.weightPerPiece}</Text> : null}
           </View>
 
           <View style={cardStyles.buttonContainer}>
@@ -662,7 +662,7 @@ const ViewAllLocalBest = () => {
             </TouchableOpacity>
 
             <View style={[styles.searchWrapper, { flex: 1 }]}>
-              <Ionicons name="search" size={scale(15)} color="#888" style={{ marginRight: moderateScale(8) }} />
+              <Ionicons name="search" size={scale(20)} color="#888" style={{ marginRight: moderateScale(8) }} />
               <TextInput
                 value={query}
                 onChangeText={setQuery}
@@ -684,25 +684,16 @@ const ViewAllLocalBest = () => {
               slideAnim.setValue(Dimensions.get('window').width);
               Animated.timing(slideAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start();
             }} style={{ marginLeft: moderateScale(8) }}>
-              <Image style={{ width:scale(30), height:scale(30) }} source={require("../assets/via-farm-img/icons/fltr.png")} />
+              <Image style={{ width:scale(30), height:scale(30)  }} source={require("../assets/via-farm-img/icons/filter.png")} />
             </TouchableOpacity>
             </View>
-{/* 
-            <TouchableOpacity onPress={() => {
-              setTempFilters({ ...filters });
-              setShowFilterPopup(true);
-              slideAnim.setValue(Dimensions.get('window').width);
-              Animated.timing(slideAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start();
-            }} style={{ marginLeft: moderateScale(8) }}>
-              <Image style={{ width:scale(30), height:scale(30) }} source={require("../assets/via-farm-img/icons/fltr.png")} />
-            </TouchableOpacity> */}
           </View>
         </View>
 
         <MemoLocalVendor />
 
         <View style={{ paddingHorizontal: moderateScale(10), paddingTop: moderateScale(8) }}>
-          <Text style={{ fontSize: normalizeFont(13), fontWeight: "700" }}>Local Best Products</Text>
+          <Text style={{ fontSize: normalizeFont(12), }}>Local Best Products</Text>
         </View>
       </View>
     );
@@ -927,7 +918,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
     color: '#222',
     paddingVertical: 0
   },
