@@ -3,7 +3,15 @@ import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Dimensions, ScrollView, StyleSheet, Text, View, } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
+} from "react-native";
 import OrderCard from "../vendors/OrderCard";
 import OrderFilter from "../vendors/filter/OrderFilter";
 
@@ -11,7 +19,7 @@ const API_BASE = "https://viafarm-1.onrender.com";
 const { width, height } = Dimensions.get("window");
 
 export default function AllOrders() {
-  const [orders, setOrders] = useState([]); 
+  const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
@@ -19,7 +27,7 @@ export default function AllOrders() {
     sortBy: "",
     priceRange: 5000,
     statusFilter: "",
-    dateFilter: ""
+    dateFilter: "",
   });
 
   const fetchOrders = async () => {
@@ -28,73 +36,93 @@ export default function AllOrders() {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) {
         console.log("No token found!");
+        setOrders([]);
+        setFilteredOrders([]);
         setLoading(false);
         return;
       }
 
       const res = await axios.get(`${API_BASE}/api/vendor/orders`, {
         headers: { Authorization: `Bearer ${token}` },
-        timeout: 10000
+        timeout: 10000,
       });
 
-      if (res.data && (res.data.success && Array.isArray(res.data.data) || Array.isArray(res.data.orders) || Array.isArray(res.data.data))) {
-        const source = Array.isArray(res.data.data) ? res.data.data : (Array.isArray(res.data.orders) ? res.data.orders : res.data.data);
-        const formattedOrders = (source || []).map((o) => {
-          const products = Array.isArray(o.products) ? o.products : (Array.isArray(o.items) ? o.items : []);
+      // Decide source array in a defensive way
+      const sourceArray =
+        (res?.data?.data && Array.isArray(res.data.data) && res.data.data) ||
+        (res?.data?.orders && Array.isArray(res.data.orders) && res.data.orders) ||
+        (Array.isArray(res?.data) && res.data) ||
+        [];
 
-          const itemNames = products.length
-            ? products
-                .map((p, idx) => {
-                  const prod = p.product || {};
-                  const name = prod.name || `Product-${idx + 1}`;
-                  const unit = prod.unit || "N/A";
-                  const qty = p.quantity ?? 0;
-                  return `${name} | ${qty} ${unit}`;
-                })
-                .join(", ")
-            : "N/A";
+      const formattedOrders = (sourceArray || []).map((o) => {
+        const products = Array.isArray(o.products)
+          ? o.products
+          : Array.isArray(o.items)
+          ? o.items
+          : [];
 
-          const uniqueUnits = Array.from(
-            new Set(
-              products
-                .map((p) => p.product?.unit || p.unit)
-                .filter(Boolean)
-            )
-          ).join(", ") || "N/A";
+        const itemNames = products.length
+          ? products
+              .map((p, idx) => {
+                const prod = p.product || {};
+                const name = prod.name || `Product-${idx + 1}`;
+                const unit = prod.unit || "N/A";
+                const qty = p.quantity ?? 0;
+                return `${name} | ${qty} ${unit}`;
+              })
+              .join(", ")
+          : "N/A";
 
-          const totalQty = products.reduce((sum, p) => sum + (Number(p.quantity) || 0), 0);
+        const uniqueUnits = Array.from(
+          new Set(
+            products
+              .map((p) => p.product?.unit || p.unit)
+              .filter(Boolean)
+          )
+        ).join(", ") || "N/A";
 
-          return {
-            // primary id used for API calls should be DB _id
-            id: o._id || o.id || o.orderId || "N/A",
-            orderId: o.orderId || o._id,
-            buyer: (o.buyer && (o.buyer.name || o.buyer)) || (o.buyerName || "N/A"),
-            contact: (o.buyer && o.buyer.mobileNumber) || o.shippingAddress?.mobileNumber || o.contact || "N/A",
-            item: itemNames,
-            quantity: totalQty.toString(),
-            units: uniqueUnits,
-            price: o.totalPrice ? `₹${o.totalPrice}` : "₹0",
-            orderType: o.orderType || "N/A",
-            paymentMethod: o.paymentMethod || "N/A",
-            comments: o.comments || "",
-            totalPrice: o.totalPrice || Number(o.total) || 0,
-            deliveredAt: o.createdAt ? new Date(o.createdAt).toLocaleString() : "N/A",
-            status: o.orderStatus || o.status || "Pending",
-            productsRaw: products,
-            originalDate: o.createdAt || o.updatedAt || null,
-            __updating: false 
-          };
-        });
+        const totalQty = products.reduce((sum, p) => sum + (Number(p.quantity) || 0), 0);
 
-        setOrders(formattedOrders);
-        setFilteredOrders(formattedOrders);
-      } else {
-        setOrders([]);
-        setFilteredOrders([]);
-      }
+        const orderTypeVal = (o.orderType || o.type || "").toString();
+
+        // remove comments if orderType is pickup (case-insensitive)
+        const rawComments = o.comments || o.comment || "";
+        const commentsForUI =
+          orderTypeVal.toLowerCase() === "pickup" ? "" : String(rawComments || "");
+
+        return {
+          // primary id used for API calls should be DB _id
+          id: o._id || o.id || o.orderId || "N/A",
+          orderId: o.orderId || o._id || o.id,
+          buyer: (o.buyer && (o.buyer.name || o.buyer)) || o.buyerName || "N/A",
+          contact:
+            (o.buyer && o.buyer.mobileNumber) ||
+            o.shippingAddress?.mobileNumber ||
+            o.contact ||
+            "N/A",
+          item: itemNames,
+          quantity: totalQty.toString(),
+          units: uniqueUnits,
+          price: o.totalPrice ? `₹${o.totalPrice}` : o.totalPrice === 0 ? "₹0" : "₹0",
+          orderType: orderTypeVal || "N/A",
+          paymentMethod: o.paymentMethod || "N/A",
+          comments: commentsForUI,
+          totalPrice: Number(o.totalPrice ?? o.total ?? 0),
+          deliveredAt: o.createdAt ? new Date(o.createdAt).toLocaleString() : "N/A",
+          status: o.orderStatus || o.status || "Pending",
+          productsRaw: products,
+          originalDate: o.createdAt || o.updatedAt || null,
+          __updating: false,
+        };
+      });
+
+      setOrders(formattedOrders);
+      setFilteredOrders(formattedOrders);
     } catch (error) {
       console.log("Error fetching orders:", error);
       Alert.alert("Error", "Failed to fetch orders. Check console for details.");
+      setOrders([]);
+      setFilteredOrders([]);
     } finally {
       setLoading(false);
     }
@@ -121,9 +149,9 @@ export default function AllOrders() {
       const resp = await axios.put(url, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        timeout: 10000
+        timeout: 10000,
       });
 
       if (!(resp && resp.status >= 200 && resp.status < 300 && (resp.data?.success || resp.data))) {
@@ -134,16 +162,11 @@ export default function AllOrders() {
       const serverStatus = updated.orderStatus ?? updated.status ?? newStatus;
 
       setOrders((prev) =>
-        prev.map((o) =>
-          o.id === orderId ? { ...o, status: serverStatus, __updating: false } : o
-        )
+        prev.map((o) => (o.id === orderId ? { ...o, status: serverStatus, __updating: false } : o))
       );
       setFilteredOrders((prev) =>
-        prev.map((o) =>
-          o.id === orderId ? { ...o, status: serverStatus, __updating: false } : o
-        )
+        prev.map((o) => (o.id === orderId ? { ...o, status: serverStatus, __updating: false } : o))
       );
-
     } catch (err) {
       console.error("Status update error:", err);
 
@@ -182,23 +205,22 @@ export default function AllOrders() {
 
     if (searchText.trim()) {
       const searchTerm = searchText.toLowerCase().trim();
-      result = result.filter(order =>
-        (order.buyer || "").toLowerCase().includes(searchTerm) ||
-        (order.contact || "").includes(searchTerm) ||
-        (order.item || "").toLowerCase().includes(searchTerm)
+      result = result.filter(
+        (order) =>
+          (order.buyer || "").toLowerCase().includes(searchTerm) ||
+          (order.contact || "").includes(searchTerm) ||
+          (order.item || "").toLowerCase().includes(searchTerm)
       );
     }
 
     if (filters.statusFilter) {
-      result = result.filter(order =>
+      result = result.filter((order) =>
         (order.status || "").toLowerCase().includes(filters.statusFilter.toLowerCase())
       );
     }
 
-    if (filters.priceRange < 5000) {
-      result = result.filter(order =>
-        order.totalPrice <= filters.priceRange
-      );
+    if (typeof filters.priceRange === "number" && filters.priceRange < 5000) {
+      result = result.filter((order) => Number(order.totalPrice || 0) <= filters.priceRange);
     }
 
     if (filters.dateFilter) {
@@ -206,19 +228,19 @@ export default function AllOrders() {
       let startDate = new Date();
 
       switch (filters.dateFilter) {
-        case 'Today':
+        case "Today":
           startDate.setHours(0, 0, 0, 0);
           break;
-        case 'Last 7 days':
+        case "Last 7 days":
           startDate.setDate(now.getDate() - 7);
           break;
-        case 'Last 30 days':
+        case "Last 30 days":
           startDate.setDate(now.getDate() - 30);
           break;
-        case 'Last 3 months':
+        case "Last 3 months":
           startDate.setMonth(now.getMonth() - 3);
           break;
-        case 'Last 6 months':
+        case "Last 6 months":
           startDate.setMonth(now.getMonth() - 6);
           break;
         default:
@@ -226,8 +248,9 @@ export default function AllOrders() {
       }
 
       if (startDate) {
-        result = result.filter(order => {
+        result = result.filter((order) => {
           const orderDate = new Date(order.originalDate);
+          if (!orderDate || Number.isNaN(orderDate.getTime())) return false;
           return orderDate >= startDate;
         });
       }
@@ -235,14 +258,14 @@ export default function AllOrders() {
 
     if (filters.sortBy) {
       switch (filters.sortBy) {
-        case 'Price - high to low':
+        case "Price - high to low":
           result.sort((a, b) => b.totalPrice - a.totalPrice);
           break;
-        case 'Price - low to high':
+        case "Price - low to high":
           result.sort((a, b) => a.totalPrice - b.totalPrice);
           break;
-        case 'Newest Arrivals':
-        case 'Freshness':
+        case "Newest Arrivals":
+        case "Freshness":
           result.sort((a, b) => new Date(b.originalDate) - new Date(a.originalDate));
           break;
         default:
@@ -254,7 +277,8 @@ export default function AllOrders() {
   };
 
   const handleSearchChange = (text) => setSearchText(text);
-  const handleFilterApply = (newFilters) => setFilters(newFilters);
+  const handleFilterApply = (newFilters) =>
+    setFilters((prev) => ({ ...prev, ...newFilters }));
 
   useEffect(() => {
     fetchOrders();
@@ -281,8 +305,8 @@ export default function AllOrders() {
       {filteredOrders.length === 0 ? (
         <View style={styles.center}>
           <Text style={styles.noOrdersText}>
-            {searchText || Object.values(filters).some(f => f)
-              ? " No orders found"
+            {searchText || Object.values(filters).some((f) => Boolean(f))
+              ? "No orders found"
               : "No orders match your search/filters."}
           </Text>
         </View>
@@ -293,11 +317,7 @@ export default function AllOrders() {
           showsVerticalScrollIndicator={true}
         >
           {filteredOrders.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              onStatusChange={handleStatusChange}
-            />
+            <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} />
           ))}
         </ScrollView>
       )}
@@ -322,7 +342,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOffset: { width: 0, height: moderateScale(2) },
     shadowOpacity: 0.1,
-    shadowRadius: moderateScale(3),
+    shadowRadius: 0,
     paddingHorizontal: scale(12),
     paddingVertical: moderateScale(8),
   },
@@ -346,10 +366,10 @@ const styles = StyleSheet.create({
   },
 
   noOrdersText: {
-    fontSize: normalizeFont(18),
+    fontSize: normalizeFont(14),
     color: "#666",
     textAlign: "center",
-    lineHeight: normalizeFont(22),
+    lineHeight: normalizeFont(20),
     paddingHorizontal: scale(8),
   },
 

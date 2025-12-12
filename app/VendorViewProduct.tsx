@@ -1,3 +1,4 @@
+// VendorViewProduct.jsx
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -12,11 +13,12 @@ import {
   Image,
   Modal,
   PanResponder,
+  PixelRatio,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -25,12 +27,25 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 /* small responsive helpers */
 const guidelineBaseWidth = 375;
-const scale = (size: number) => (SCREEN_WIDTH / guidelineBaseWidth) * size;
-const moderateScale = (size: number, factor = 0.5) =>
+const scale = (size) => (SCREEN_WIDTH / guidelineBaseWidth) * size;
+const moderateScale = (size, factor = 0.5) =>
   size + (scale(size) - size) * factor;
-const normalizeFont = (size: number) => {
-  const scaledSize = moderateScale(size);
-  return Math.round(scaledSize);
+
+/**
+ * Responsive font normalizer:
+ * - scales with screen width (same base as scale/moderateScale)
+ * - accounts for device font scale (PixelRatio.getFontScale())
+ * - rounds to nearest pixel and clamps to reasonable min/max values
+ */
+const normalizeFont = (size) => {
+  const scaleFactor = SCREEN_WIDTH / guidelineBaseWidth;
+  const newSize = size * scaleFactor;
+  const fontScale = PixelRatio.getFontScale() || 1;
+  const rounded = Math.round(PixelRatio.roundToNearestPixel(newSize));
+  // Respect user's font accessibility setting (but avoid extremes)
+  const adjusted = Math.round(rounded / fontScale);
+  // Clamp to keep layout stable on very large/small devices
+  return Math.min(Math.max(adjusted, 10), 36);
 };
 
 /* -------------------------
@@ -41,11 +56,6 @@ const ImageModalViewer = ({
   images,
   initialIndex = 0,
   onClose,
-}: {
-  visible: boolean;
-  images: string[];
-  initialIndex?: number;
-  onClose: () => void;
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const scaleValue = useRef(new Animated.Value(1)).current;
@@ -85,14 +95,14 @@ const ImageModalViewer = ({
           const touch2 = evt.nativeEvent.touches[1];
           const distance = Math.sqrt(
             Math.pow(touch2.pageX - touch1.pageX, 2) +
-            Math.pow(touch2.pageY - touch1.pageY, 2)
+              Math.pow(touch2.pageY - touch1.pageY, 2)
           );
-          
+
           if (!panResponder.current.initialDistance) {
             panResponder.current.initialDistance = distance;
           } else {
-            const scale = distance / panResponder.current.initialDistance;
-            scaleValue.setValue(Math.max(1, Math.min(scale, 4)));
+            const scaleNow = distance / panResponder.current.initialDistance;
+            scaleValue.setValue(Math.max(1, Math.min(scaleNow, 4)));
           }
         } else if (lastScale.current > 1) {
           // Pan when zoomed
@@ -104,7 +114,7 @@ const ImageModalViewer = ({
         scaleValue.flattenOffset();
         translateX.flattenOffset();
         translateY.flattenOffset();
-        
+
         scaleValue.addListener(({ value }) => {
           lastScale.current = value;
         });
@@ -118,14 +128,18 @@ const ImageModalViewer = ({
         panResponder.current.initialDistance = null;
 
         // Double tap to zoom
-        if (evt.nativeEvent.touches.length === 0 && 
-            gestureState.dx === 0 && 
-            gestureState.dy === 0) {
+        if (
+          evt.nativeEvent.touches.length === 0 &&
+          gestureState.dx === 0 &&
+          gestureState.dy === 0
+        ) {
           const now = Date.now();
           const DOUBLE_TAP_DELAY = 300;
-          
-          if (panResponder.current.lastTap && 
-              (now - panResponder.current.lastTap) < DOUBLE_TAP_DELAY) {
+
+          if (
+            panResponder.current.lastTap &&
+            now - panResponder.current.lastTap < DOUBLE_TAP_DELAY
+          ) {
             if (lastScale.current > 1) {
               Animated.parallel([
                 Animated.timing(scaleValue, {
@@ -142,7 +156,7 @@ const ImageModalViewer = ({
                   toValue: 0,
                   duration: 200,
                   useNativeDriver: true,
-                })
+                }),
               ]).start(() => {
                 lastScale.current = 1;
                 lastTranslateX.current = 0;
@@ -188,8 +202,8 @@ const ImageModalViewer = ({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity 
-        style={styles.modalOverlay} 
+      <TouchableOpacity
+        style={styles.modalOverlay}
         activeOpacity={1}
         onPress={handleBackgroundPress}
       >
@@ -204,8 +218,8 @@ const ImageModalViewer = ({
                 transform: [
                   { scale: scaleValue },
                   { translateX: translateX },
-                  { translateY: translateY }
-                ]
+                  { translateY: translateY },
+                ],
               }}
             >
               <Image
@@ -218,7 +232,7 @@ const ImageModalViewer = ({
         </View>
 
         <View style={styles.modalCounter}>
-          <Text style={styles.modalCounterText}>
+          <Text style={styles.modalCounterText} allowFontScaling={false}>
             {currentIndex + 1} / {images.length}
           </Text>
         </View>
@@ -250,38 +264,34 @@ const ImageModalViewer = ({
 /* -------------------------
    Small subcomponents
    ------------------------- */
-const RatingBadge = ({ rating }: { rating: number }) => (
+const RatingBadge = ({ rating }) => (
   <View style={styles.ratingBadge}>
-   <Image source={require("../assets/via-farm-img/icons/satar.png")} />
-    <Text style={styles.ratingBadgeText}>{Number(rating ?? 0).toFixed(1)}</Text>
+    <Image source={require("../assets/via-farm-img/icons/satar.png")} />
+    <Text style={styles.ratingBadgeText} allowFontScaling={false}>
+      {Number(rating ?? 0).toFixed(1)}
+    </Text>
   </View>
 );
 
 const ReviewCard = ({
   r,
   onImagePress,
-}: {
-  r: any;
-  onImagePress?: (images: string[], index: number) => void;
 }) => {
   const avatar =
     r?.user?.profilePicture ?? r?.user?.avatar ?? "https://i.pravatar.cc/100";
   const name = r?.user?.name ?? "Anonymous";
-  const date = r?.createdAt
-    ? new Date(r.createdAt).toLocaleDateString()
-    : r?.date ?? "";
+  const date = r?.createdAt ? new Date(r.createdAt).toLocaleDateString() : r?.date ?? "";
 
-  // Extract review images
-  const reviewImages = Array.isArray(r?.images)
-    ? r.images.filter((img: any) => img)
-    : [];
+  const reviewImages = Array.isArray(r?.images) ? r.images.filter((img) => img) : [];
 
   return (
     <View style={styles.reviewCard}>
       <View style={styles.reviewHeader}>
         <Image source={{ uri: avatar }} style={styles.reviewAvatar} resizeMode="stretch" />
         <View style={{ flex: 1 }}>
-          <Text style={styles.reviewUser}>{name}</Text>
+          <Text style={styles.reviewUser} allowFontScaling={false}>
+            {name}
+          </Text>
           <View
             style={{
               flexDirection: "row",
@@ -296,27 +306,23 @@ const ReviewCard = ({
             }}
           >
             <Image source={require("../assets/via-farm-img/icons/satar.png")} />
-            <Text>{r?.rating ?? ""}</Text>
+            <Text allowFontScaling={false}>{r?.rating ?? ""}</Text>
           </View>
         </View>
-        <Text style={styles.reviewMeta}>{date}</Text>
+        <Text style={styles.reviewMeta} allowFontScaling={false}>
+          {date}
+        </Text>
       </View>
 
-      <Text style={styles.reviewText}>{r?.comment ?? r?.text ?? ""}</Text>
+      <Text style={styles.reviewText} allowFontScaling={false}>
+        {r?.comment ?? r?.text ?? ""}
+      </Text>
 
-      {/* Review Images */}
       {reviewImages.length > 0 && (
         <View style={styles.reviewImagesRow}>
-          {reviewImages.map((img: string, i: number) => (
-            <TouchableOpacity
-              key={`${img}-${i}`}
-              onPress={() => onImagePress?.(reviewImages, i)}
-            >
-              <Image
-                source={{ uri: img }}
-                style={styles.reviewImage}
-                resizeMode="stretch"
-              />
+          {reviewImages.map((img, i) => (
+            <TouchableOpacity key={`${img}-${i}`} onPress={() => onImagePress?.(reviewImages, i)}>
+              <Image source={{ uri: img }} style={styles.reviewImage} resizeMode="stretch" />
             </TouchableOpacity>
           ))}
         </View>
@@ -329,13 +335,13 @@ const ReviewCard = ({
    Main screen
    ------------------------- */
 export default function VendorViewProduct() {
-  const { productId } = useLocalSearchParams() as { productId?: string };
+  const { productId } = useLocalSearchParams() || {};
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-  const [product, setProduct] = useState<any>(null);
+  const [product, setProduct] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalImages, setModalImages] = useState<string[]>([]);
+  const [modalImages, setModalImages] = useState([]);
   const [modalInitialIndex, setModalInitialIndex] = useState(0);
 
   useEffect(() => {
@@ -345,6 +351,7 @@ export default function VendorViewProduct() {
       return;
     }
     fetchProductDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
 
   const fetchProductDetails = async () => {
@@ -361,7 +368,7 @@ export default function VendorViewProduct() {
       }
 
       const list = Array.isArray(res.data.data) ? res.data.data : [];
-      const found = list.find((it: any) => String(it._id) === String(productId));
+      const found = list.find((it) => String(it._id) === String(productId));
       if (!found) {
         Alert.alert("Error", "Product not found");
         router.back();
@@ -389,16 +396,14 @@ export default function VendorViewProduct() {
     }
   };
 
-  const handleGalleryImagePress = (index: number) => {
-    const gallery = Array.isArray(product.images) && product.images.length > 0
-      ? product.images
-      : [""];
+  const handleGalleryImagePress = (index) => {
+    const gallery = Array.isArray(product.images) && product.images.length > 0 ? product.images : [""];
     setModalImages(gallery);
     setModalInitialIndex(index);
     setModalVisible(true);
   };
 
-  const handleReviewImagePress = (images: string[], index: number) => {
+  const handleReviewImagePress = (images, index) => {
     setModalImages(images);
     setModalInitialIndex(index);
     setModalVisible(true);
@@ -408,36 +413,22 @@ export default function VendorViewProduct() {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color="#6B46C1" />
-        <Text style={{ marginTop: 10 }}>Loading product...</Text>
+        <Text style={{ marginTop: 10 }} allowFontScaling={false}>Loading product...</Text>
       </View>
     );
   }
 
-  const gallery =
-    Array.isArray(product.images) && product.images.length > 0
-      ? product.images
-      : [""];
+  const gallery = Array.isArray(product.images) && product.images.length > 0 ? product.images : [""];
   const nutrients = product.nutritionalValue?.nutrients ?? [];
-  const additionalNote =
-    product.nutritionalValue?.additionalNote ??
-    product.nutritionalValue?.note ??
-    "";
+  const additionalNote = product.nutritionalValue?.additionalNote ?? product.nutritionalValue?.note ?? "";
 
   return (
     <SafeAreaView style={styles.container}>
-      <ImageModalViewer
-        visible={modalVisible}
-        images={modalImages}
-        initialIndex={modalInitialIndex}
-        onClose={() => setModalVisible(false)}
-      />
+      <ImageModalViewer visible={modalVisible} images={modalImages} initialIndex={modalInitialIndex} onClose={() => setModalVisible(false)} />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.heroWrap}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => handleGalleryImagePress(0)}
-          >
+          <TouchableOpacity activeOpacity={0.8} onPress={() => handleGalleryImagePress(0)}>
             <Image source={{ uri: gallery[0] }} style={styles.heroImage} resizeMode="stretch" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
@@ -447,54 +438,49 @@ export default function VendorViewProduct() {
 
         <View style={styles.infoCard}>
           <View style={styles.titleRow}>
-            <Text style={styles.title}>{product.name ?? "Untitled Product"}</Text>
+            <Text style={styles.title} allowFontScaling={false}>
+              {product.name ?? "Untitled Product"}
+            </Text>
             <RatingBadge rating={product.rating ?? 0} />
           </View>
 
           <View style={styles.metaRow}>
-            <Text style={styles.categoryText}>
+            <Text style={styles.categoryText} allowFontScaling={false}>
               {product.category ?? "Uncategorized"}
             </Text>
             <View style={{ flex: 1 }} />
-            <Text style={styles.priceValue}>{`₹${product.price ?? "-"}`}</Text>
+            <Text style={styles.priceValue} allowFontScaling={false}>
+              {`₹${product.price ?? "-"}`}
+            </Text>
           </View>
 
-          <Text style={styles.sectionTitle}>About the product</Text>
-          <Text style={styles.aboutText}>
+          <Text style={styles.sectionTitle} allowFontScaling={false}>About the product</Text>
+          <Text style={styles.aboutText} allowFontScaling={false}>
             {product.description || "No description available"}
           </Text>
 
           <View style={styles.nutritionRow}>
             <View style={styles.nutritionLeft}>
-              <Text style={styles.nutritionHeading}>Nutritional Value</Text>
-              <Text style={styles.nutritionSub}>
-                {product.weightPerPiece
-                  ? `${product.weightPerPiece} per piece`
-                  : ""}
+              <Text style={styles.nutritionHeading} allowFontScaling={false}>Nutritional Value</Text>
+              <Text style={styles.nutritionSub} allowFontScaling={false}>
+                {product.weightPerPiece ? `${product.weightPerPiece} per piece` : ""}
               </Text>
 
               {Array.isArray(nutrients) && nutrients.length > 0 ? (
                 <View style={styles.nutritionList}>
-                  {nutrients.map((n: any, idx: number) => (
-                    <Text
-                      key={`${n.name ?? idx}-${idx}`}
-                      style={styles.nutritionItem}
-                    >
+                  {nutrients.map((n, idx) => (
+                    <Text key={`${n.name ?? idx}-${idx}`} style={styles.nutritionItem} allowFontScaling={false}>
                       {n.name} : {n.amount}
                     </Text>
                   ))}
-                  {additionalNote ? (
-                    <Text style={{ marginTop: 6, color: "#666" }}>
-                      {additionalNote}
-                    </Text>
-                  ) : null}
+                  {additionalNote ? <Text style={{ marginTop: 6, color: "#666" }} allowFontScaling={false}>{additionalNote}</Text> : null}
                 </View>
               ) : (
                 <View style={styles.nutritionList}>
-                  <Text style={styles.nutritionItem}>Calories : -</Text>
-                  <Text style={styles.nutritionItem}>Carbs : -</Text>
-                  <Text style={styles.nutritionItem}>Protein : -</Text>
-                  <Text style={styles.nutritionItem}>Fats : -</Text>
+                  <Text style={styles.nutritionItem} allowFontScaling={false}>Calories : -</Text>
+                  <Text style={styles.nutritionItem} allowFontScaling={false}>Carbs : -</Text>
+                  <Text style={styles.nutritionItem} allowFontScaling={false}>Protein : -</Text>
+                  <Text style={styles.nutritionItem} allowFontScaling={false}>Fats : -</Text>
                 </View>
               )}
             </View>
@@ -503,54 +489,33 @@ export default function VendorViewProduct() {
           </View>
 
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Ratings & Reviews</Text>
+            <Text style={styles.sectionTitle} allowFontScaling={false}>Ratings & Reviews</Text>
           </View>
 
           {Array.isArray(product.reviews) && product.reviews.length > 0 ? (
             <FlatList
               data={product.reviews}
               keyExtractor={(it, idx) => `${it._id ?? it.id ?? "rev"}-${idx}`}
-              renderItem={({ item }) => (
-                <ReviewCard
-                  r={item}
-                  onImagePress={handleReviewImagePress}
-                />
-              )}
-              ItemSeparatorComponent={() => (
-                <View style={{ height: moderateScale(10) }} />
-              )}
+              renderItem={({ item }) => <ReviewCard r={item} onImagePress={handleReviewImagePress} />}
+              ItemSeparatorComponent={() => <View style={{ height: moderateScale(10) }} />}
               contentContainerStyle={{ paddingTop: moderateScale(10) }}
               scrollEnabled={false}
             />
           ) : (
-            <Text style={{ marginTop: 10, color: "#666" }}>
-              No reviews available
-            </Text>
+            <Text style={{ marginTop: 10, color: "#666" }} allowFontScaling={false}>No reviews available</Text>
           )}
         </View>
 
-        <View
-          style={{
-            paddingHorizontal: moderateScale(16),
-            paddingTop: moderateScale(14),
-          }}
-        >
-          <Text style={styles.sectionTitle}>Gallery</Text>
+        <View style={{ paddingHorizontal: moderateScale(16), paddingTop: moderateScale(14) }}>
+          <Text style={styles.sectionTitle} allowFontScaling={false}>Gallery</Text>
 
           <FlatList
             horizontal
             data={gallery}
             keyExtractor={(g, i) => `${g ?? "img"}-${i}`}
             renderItem={({ item, index }) => (
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => handleGalleryImagePress(index)}
-              >
-                <Image
-                  source={{ uri: item }}
-                  style={styles.galleryThumb}
-                  resizeMode="stretch"
-                />
+              <TouchableOpacity activeOpacity={0.8} onPress={() => handleGalleryImagePress(index)}>
+                <Image source={{ uri: item }} style={styles.galleryThumb} resizeMode="stretch" />
               </TouchableOpacity>
             )}
             showsHorizontalScrollIndicator={false}
@@ -593,10 +558,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: moderateScale(12),
     padding: moderateScale(14),
-    // shadowColor: "#000",
-    // shadowOpacity: 0.08,
-    // shadowRadius: moderateScale(8),
-    // elevation: 4,
   },
 
   titleRow: {
@@ -625,7 +586,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginLeft: moderateScale(6),
     color: "#111",
-    fontSize: normalizeFont(12)
+    fontSize: normalizeFont(12),
   },
 
   metaRow: {
@@ -664,7 +625,7 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(12),
   },
   nutritionLeft: { flex: 1 },
-  nutritionHeading: { fontWeight: "700", marginBottom: moderateScale(6),fontSize:normalizeFont(11) },
+  nutritionHeading: { fontWeight: "700", marginBottom: moderateScale(6), fontSize: normalizeFont(11) },
   nutritionSub: {
     fontSize: normalizeFont(11),
     color: "#666",

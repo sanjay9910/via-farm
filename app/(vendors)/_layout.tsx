@@ -1,84 +1,82 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
-import { moderateScale, normalizeFont, scale } from '../Responsive';
+// VendorLayout.jsx
+import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
+import React from "react";
+import { Platform, StyleSheet, Text, View } from "react-native";
+import { moderateScale, normalizeFont, scale } from "../Responsive";
+
+const ICON_SIZE = moderateScale(20);
+const PILL_WIDTH = moderateScale(86);
+const PILL_HEIGHT = moderateScale(63);
+const PILL_RADIUS = moderateScale(20);
+
+function TabButton({ label, iconName, focused }) {
+  if (focused) {
+    return (
+      <View style={styles.tabItemContainer}>
+        <View style={styles.pillActive}>
+          <Ionicons name={iconName} size={ICON_SIZE} color="#FFFFFF" />
+          <Text style={styles.pillLabel}>{label}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.tabItemContainer}>
+      <Ionicons name={iconName} size={ICON_SIZE} color="#111827" />
+      <Text style={styles.inactiveLabel}>{label}</Text>
+    </View>
+  );
+}
 
 export default function VendorLayout() {
-  
   return (
     <Tabs
       screenOptions={{
-        tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: '#fff',
-        tabBarInactiveTintColor: '#666',
-        tabBarLabelStyle: styles.tabLabel,
         headerShown: false,
-        tabBarShowLabel: true,
-        tabBarItemStyle: styles.tabItem,
+        tabBarShowLabel: false, // we render labels ourselves
+        tabBarStyle: styles.tabBar,
+        tabBarItemStyle: styles.tabBarItem,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.activeIconContainer]}>
-              <Ionicons 
-                name="home" 
-                size={30} 
-                color={focused ? '#fff' : '#666'} 
-              />
-            </View>
+          title: "Home",
+          tabBarIcon: ({ focused }) => (
+            <TabButton label="Home" iconName="home" focused={focused} />
           ),
-          tabBarLabel: 'Home',
         }}
       />
+
       <Tabs.Screen
         name="orders"
         options={{
-          title: 'Orders',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.activeIconContainer]}>
-              <Ionicons 
-                name="cube" 
-                size={30} 
-                color={focused ? '#fff' : '#666'} 
-              />
-            </View>
+          title: "Orders",
+          tabBarIcon: ({ focused }) => (
+            <TabButton label="Orders" iconName="cube" focused={focused} />
           ),
-          tabBarLabel: 'Orders',
         }}
       />
+
       <Tabs.Screen
         name="products"
         options={{
-          title: 'Products',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.activeIconContainer]}>
-              <Ionicons 
-                name="grid" 
-                size={30} 
-                color={focused ? '#fff' : '#666'} 
-              />
-            </View>
+          title: "Products",
+          tabBarIcon: ({ focused }) => (
+            <TabButton label="Products" iconName="grid" focused={focused} />
           ),
-          tabBarLabel: 'Products',
         }}
       />
+
       <Tabs.Screen
         name="vendorprofile"
         options={{
-          title: 'My Profile',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.activeIconContainer]}>
-              <Ionicons 
-                name="person" 
-                size={30} 
-                color={focused ? '#fff' : '#666'} 
-              />
-            </View>
+          title: "My Profile",
+          tabBarIcon: ({ focused }) => (
+            <TabButton label="My Profile" iconName="person" focused={focused} />
           ),
-          tabBarLabel: 'My Profile',
         }}
       />
     </Tabs>
@@ -87,43 +85,55 @@ export default function VendorLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    height: scale(80),
-    paddingBottom:moderateScale(12),
-    paddingTop: moderateScale(12),
-    paddingLeft:moderateScale(10),
-    paddingRight:moderateScale(10),
-    elevation: moderateScale(8),
-    shadowColor: '#000',
+    borderTopColor: "#e6e6e6",
+    height: Platform.OS === "android" ? scale(78) : scale(78),
+    paddingBottom: moderateScale(8),
+    paddingTop: moderateScale(8),
+    paddingHorizontal: moderateScale(6),
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 6,
   },
-  tabLabel: {
-    fontSize: normalizeFont(11),
-    fontWeight: '600',
-    marginTop: moderateScale(8),
+
+  tabBarItem: {
+    paddingTop: moderateScale(6),
+    alignItems: "center",
+    justifyContent: "center",
   },
-  tabItem: {
-    paddingTop:moderateScale(3),
+
+  tabItemContainer: {
+    width: PILL_WIDTH,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  iconContainer: {
-    width: scale(85),
-    marginTop:14,
-    height: scale(70),
-    borderRadius:moderateScale(20),
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
+
+  pillActive: {
+    width: PILL_WIDTH,
+    height: PILL_HEIGHT,
+    borderRadius: PILL_RADIUS,
+    backgroundColor: "#22c55e", 
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: moderateScale(6),
   },
-  activeIconContainer: {
-    backgroundColor: 'rgba(76, 175, 80, 1)',
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+
+  pillLabel: {
+    marginTop: moderateScale(4),
+    color: "#ffffff",
+    fontSize: normalizeFont(12),
+    fontWeight: "700",
+    textAlign: "center",
+  },
+
+  inactiveLabel: {
+    marginTop: moderateScale(6),
+    color: "#111827",
+    fontSize: normalizeFont(12),
+    fontWeight: "600",
+    textAlign: "center",
   },
 });

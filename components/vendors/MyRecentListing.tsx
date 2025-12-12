@@ -66,7 +66,7 @@ const MyRecentListing = () => {
         });
 
         // Deduplicate by id (last occurrence wins)
-        const map = new Map<string, any>();
+        const map = new Map();
         formatted.forEach(p => map.set(p.id, p));
         const uniqueList = Array.from(map.values());
         setListingsData(uniqueList);
@@ -242,27 +242,27 @@ const MyRecentListing = () => {
               />
               <View style={{ position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: "rgba(141, 141, 141, 0.6)", bottom:moderateScale(5), left:moderateScale(5), borderRadius:moderateScale(10), paddingHorizontal:moderateScale(5) }}>
                 <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
-                <Text style={{ color: "#fff", fontSize: normalizeFont(11) }}>5.0</Text>
+                <Text style={{ color: "#fff", fontSize: normalizeFont(11 + 2) }} allowFontScaling={false}>5.0</Text>
               </View>
             </View>
 
             <View style={styles.textContainer}>
               <View style={styles.headerRow}>
-                <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+                <Text style={styles.itemName} numberOfLines={1} allowFontScaling={false}>{item.name}</Text>
                 <View style={styles.priceQuantityContainer}>
-                  <Text style={styles.priceText}>₹{item.price}/{item.unit}</Text>
-                  <Text style={styles.quantity}>{item.weightPerPiece}</Text>
+                  <Text style={styles.priceText} allowFontScaling={false}>₹{item.price}/{item.unit}</Text>
+                  <Text style={styles.quantity} allowFontScaling={false}>{item.weightPerPiece}</Text>
                 </View>
               </View>
 
               <View style={styles.detailsContainer}>
-                <Text style={styles.uploadLabel}>Uploaded on:</Text>
-                <Text style={styles.uploadLabel}>{item.uploadedOn}</Text>
+                <Text style={styles.uploadLabel} allowFontScaling={false}>Uploaded on:</Text>
+                <Text style={styles.uploadLabel} allowFontScaling={false}>{item.uploadedOn}</Text>
               </View>
 
               <View style={styles.startAllIndia}>
                 <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
-                <Text style={styles.txetAll}>All India Delivery</Text>
+                <Text style={styles.txetAll} allowFontScaling={false}>All India Delivery</Text>
               </View>
 
               <View style={styles.editBtn}>
@@ -275,12 +275,12 @@ const MyRecentListing = () => {
                   {isCurrentlyUpdating ? (
                     <View style={styles.statusRow}>
                       <ActivityIndicator size="small" color="rgba(255,202,40,1)" />
-                      <Text style={styles.statusTextUpdating}>Updating...</Text>
+                      <Text style={styles.statusTextUpdating} allowFontScaling={false}>Updating...</Text>
                     </View>
                   ) : (
                     <View style={styles.statusRow}>
                       <View style={[styles.statusCircle, { backgroundColor: circleColor }]} />
-                      <Text style={[styles.statusText, { color: circleColor }]}>{item.status}</Text>
+                      <Text style={[styles.statusText, { color: circleColor }]} allowFontScaling={false}>{item.status}</Text>
                     </View>
                   )}
                   <Image source={require("../../assets/via-farm-img/icons/downArrow.png")} />
@@ -313,7 +313,7 @@ const MyRecentListing = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="rgba(255,202,40,1)" />
-        <Text style={styles.loadingText}>Loading products...</Text>
+        <Text style={styles.loadingText} allowFontScaling={false}>Loading products...</Text>
       </View>
     );
   }
@@ -321,8 +321,8 @@ const MyRecentListing = () => {
   if (!listingsData || listingsData.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No products found</Text>
-        <Text style={styles.emptySubText}>Start adding products to see them here</Text>
+        <Text style={styles.emptyText} allowFontScaling={false}>No products found</Text>
+        <Text style={styles.emptySubText} allowFontScaling={false}>Start adding products to see them here</Text>
       </View>
     );
   }
@@ -330,9 +330,9 @@ const MyRecentListing = () => {
   return (
     <View style={styles.container}>
       <View style={styles.headerRowContainer}>
-        <Text style={styles.headerTitle}>My Recent Listings</Text>
+        <Text style={styles.headerTitle} allowFontScaling={false}>My Recent Listings</Text>
         <TouchableOpacity onPress={viewAll} style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
-          <Text style={styles.seeAll}>See All</Text>
+          <Text style={styles.seeAll} allowFontScaling={false}>See All</Text>
           <Image source={require("../../assets/via-farm-img/icons/see.png")} />
         </TouchableOpacity>
       </View>
@@ -359,14 +359,14 @@ const MyRecentListing = () => {
               <View style={[styles.stockDropdown, { position: 'absolute', top: stockDropdownPosition.y, left: stockDropdownPosition.x }]}>
                 <TouchableOpacity style={styles.stockOption} onPress={() => handleStockChange("In Stock")}>
                   <View style={[styles.stockDot, { backgroundColor: "#22c55e" }]} />
-                  <Text style={styles.stockOptionText}>In Stock</Text>
+                  <Text style={styles.stockOptionText} allowFontScaling={false}>In Stock</Text>
                 </TouchableOpacity>
 
                 <View style={styles.stockDivider} />
 
                 <TouchableOpacity style={styles.stockOption} onPress={() => handleStockChange("Out of Stock")}>
                   <View style={[styles.stockDot, { backgroundColor: "#ef4444" }]} />
-                  <Text style={styles.stockOptionText}>Out of Stock</Text>
+                  <Text style={styles.stockOptionText} allowFontScaling={false}>Out of Stock</Text>
                 </TouchableOpacity>
               </View>
             </TouchableWithoutFeedback>
@@ -384,7 +384,7 @@ const MyRecentListing = () => {
 
 export default MyRecentListing;
 
-/* styles (kept same as your original) */
+/* styles (kept same as your original but font sizes increased by 2px via normalizeFont(... +2)) */
 const styles = StyleSheet.create({
   container: {
     paddingVertical: moderateScale(16),
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: moderateScale(12),
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(12 + 2),
     color: "#666",
   },
   emptyContainer: {
@@ -410,13 +410,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(20),
   },
   emptyText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(12 + 2),
     fontWeight: "600",
     color: "#333",
     marginBottom: moderateScale(8),
   },
   emptySubText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(12 + 2),
     color: "#666",
     textAlign: "center",
   },
@@ -428,12 +428,12 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(12),
   },
   headerTitle: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(13 + 2),
     fontWeight: "700",
     color: "#333",
   },
   seeAll: {
-    fontSize: normalizeFont(9),
+    fontSize: normalizeFont(9 + 2),
     color: "rgba(1, 151, 218, 1)",
   },
   flatListContent: {
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(8),
   },
   itemName: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(11 + 2),
     fontWeight: "600",
     color: "#424242",
     flex: 1,
@@ -486,12 +486,12 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   priceText: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(11 + 2),
     fontWeight: "700",
     color: "#2E7D32",
   },
   quantity: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(10 + 2),
     color: "#666",
     marginTop: moderateScale(2),
   },
@@ -501,11 +501,11 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(4),
   },
   uploadLabel: {
-    fontSize: normalizeFont(9),
+    fontSize: normalizeFont(9 + 2),
     color: "#666",
   },
   uploadValue: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(11 + 2),
     color: "#000",
     fontWeight: "500",
   },
@@ -513,11 +513,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: moderateScale(5),
-    fontSize:normalizeFont(10),
+    fontSize: normalizeFont(10 + 2),
     marginVertical: moderateScale(4),
   },
   txetAll: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(10 + 2),
   },
   editBtn: {
     flexDirection: "row",
@@ -550,11 +550,11 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(5),
   },
   statusText: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(11 + 2),
     fontWeight: "500",
   },
   statusTextUpdating: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(12 + 2),
     fontWeight: "500",
     color: "#666",
   },
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
     gap: moderateScale(8),
   },
   stockOptionText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(12 + 2),
     fontWeight: "500",
     color: "#374151",
   },

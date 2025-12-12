@@ -244,8 +244,8 @@ const ViewOrderDetails = () => {
     try {
       setSubmitLoading(true);
       const token = await AsyncStorage.getItem('userToken');
-      if (!token) { Alert.alert('Error','User not logged in.'); setSubmitLoading(false); return; }
-      if (!selectedProductId) { Alert.alert('Error','Product id missing.'); setSubmitLoading(false); return; }
+      if (!token) { Alert.alert('Error', 'User not logged in.'); setSubmitLoading(false); return; }
+      if (!selectedProductId) { Alert.alert('Error', 'Product id missing.'); setSubmitLoading(false); return; }
 
       const form = new FormData();
       form.append('orderId', order?.id || '');
@@ -307,21 +307,21 @@ const ViewOrderDetails = () => {
   };
   const openCamera = async () => {
     try {
-      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1,1], quality: 0.8 });
+      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.8 });
       if (!result.canceled) setUploadedImages(prev => [...prev, result.assets[0]]);
     } catch (err) { Alert.alert('Error', 'Failed to open camera.'); }
   };
   const openGallery = async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1,1], quality: 0.8 });
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.8 });
       if (!result.canceled) setUploadedImages(prev => [...prev, result.assets[0]]);
     } catch (err) { Alert.alert('Error', 'Failed to open gallery.'); }
   };
 
   const removeImage = (index) => {
-    Alert.alert('Remove Image','Are you sure?', [
+    Alert.alert('Remove Image', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => setUploadedImages(prev => prev.filter((_,i)=>i!==index)) }
+      { text: 'Remove', style: 'destructive', onPress: () => setUploadedImages(prev => prev.filter((_, i) => i !== index)) }
     ]);
   };
 
@@ -456,7 +456,7 @@ const ViewOrderDetails = () => {
         <View style={{ marginBottom: moderateScale(10) }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={[styles.detailName, { fontSize: normalizeFont(13) }]}>{orderStatus}</Text>
-            <Text style={{ color: '#666' ,fontSize:normalizeFont(12)}}>{orderNumber}</Text>
+            <Text style={{ color: '#666', fontSize: normalizeFont(12) }}>{orderNumber}</Text>
           </View>
         </View>
 
@@ -496,12 +496,9 @@ const ViewOrderDetails = () => {
                   {it.canReview && (
                     <View style={styles.ratingRow}>
                       <Text style={styles.rateText}>Rate this item</Text>
-                      {/* <StarRow value={it.rating} size={16} /> */}
-                      <TouchableOpacity style={{ marginLeft: 'auto' }} onPress={() => openReviewModal(it.productId)}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(6) }}>
+                      <TouchableOpacity  style={styles.revieww} onPress={() => openReviewModal(it.productId)}>
                           <Text style={styles.reviewText}>Write a review</Text>
-                          {/* <Ionicons name="eye-outline" size={Math.round(moderateScale(16))} color="#2196F3" /> */}
-                        </View>
+                          <Image source={require("../assets/via-farm-img/icons/see.png")} />
                       </TouchableOpacity>
                     </View>
                   )}
@@ -565,9 +562,9 @@ const ViewOrderDetails = () => {
 
               <Text style={styles.modalRateText}>Rate this item <Text style={styles.modalRequired}>*</Text></Text>
               <View style={styles.modalStarsContainer}>
-                {[1,2,3,4,5].map(star => (
+                {[1, 2, 3, 4, 5].map(star => (
                   <TouchableOpacity key={star} onPress={() => handleReviewRating(star)} style={styles.modalStarButton}>
-                    <Ionicons name={star <= reviewRating ? 'star' : 'star-outline'} size={Math.round(moderateScale(32))} color={star <= reviewRating ? '#FFD700' : '#E0E0E0'} />
+                    <Ionicons name={star <= reviewRating ? 'star' : 'star-outline'} size={Math.round(moderateScale(20))} color={star <= reviewRating ? '#FFD700' : '#E0E0E0'} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -593,7 +590,7 @@ const ViewOrderDetails = () => {
                 <View style={styles.modalImageUploadContent}>
                   <Ionicons name="camera-outline" size={Math.round(moderateScale(28))} color="#999" />
                   <Text style={styles.modalImageUploadText}>Add other photos of your product (max 5)</Text>
-                  <Text style={styles.modalImageCount}>{uploadedImages.length}/5 images uploaded</Text>
+                  {/* <Text style={styles.modalImageCount}>{uploadedImages.length}/5 images uploaded</Text> */}
                 </View>
               </TouchableOpacity>
 
@@ -601,7 +598,7 @@ const ViewOrderDetails = () => {
               <TextInput style={styles.modalReviewInput} placeholder="Share your experience with this product..." placeholderTextColor="#999" value={reviewText} onChangeText={setReviewText} multiline numberOfLines={6} textAlignVertical="top" />
 
               <TouchableOpacity style={styles.modalSubmitButton} onPress={submitReview}>
-                <Text style={styles.modalSubmitButtonText}>{submitLoading ? 'Submitting...' : '✓ Submit'}</Text>
+                <Text style={styles.modalSubmitButtonText}>{submitLoading ? 'Submitting...' : 'Submit'}</Text>
               </TouchableOpacity>
             </ScrollView>
           </Animated.View>
@@ -661,15 +658,24 @@ const styles = StyleSheet.create({
   },
   itemName: { fontWeight: '700', fontSize: normalizeFont(13), color: '#222' },
   itemMeta: { color: '#666', fontSize: normalizeFont(11), marginTop: moderateScale(4) },
+  revieww:{
+  flexDirection:'row',
+  alignItems:'center',
+  gap:moderateScale(4),
+  lineHeight:scale(10)
+  },
 
   ratingRow: {
     marginTop: moderateScale(8),
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    justifyContent:'space-between',
+    width:'100%'
   },
   rateText: { color: 'rgba(1, 151, 218, 1)', marginRight: moderateScale(8), fontSize: normalizeFont(12) },
   reviewLink: { marginLeft: 'auto' },
-  reviewText: { color: 'rgba(1, 151, 218, 1)', fontSize: normalizeFont(12)},
+  reviewText: { color: 'rgba(1, 151, 218, 1)', fontSize: normalizeFont(11) },
+
 
   card: {
     borderWidth: 1,
@@ -697,9 +703,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#eee'
   },
 
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: moderateScale(8)},
-  summaryLabel: { color: '#666' , fontSize: normalizeFont(12)},
-  summaryValue: { color: '#222' , fontSize: normalizeFont(12)},
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: moderateScale(8) },
+  summaryLabel: { color: '#666', fontSize: normalizeFont(12) },
+  summaryValue: { color: '#222', fontSize: normalizeFont(12) },
 
   center: {
     flex: 1,
@@ -730,7 +736,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: moderateScale(20),
     borderTopRightRadius: moderateScale(20),
-    maxHeight: SCREEN_HEIGHT * 0.88,
+    maxHeight: SCREEN_HEIGHT * 0.92,
     borderWidth: moderateScale(1),
     borderColor: 'rgba(255, 202, 40, 0.5)',
   },
@@ -779,13 +785,14 @@ const styles = StyleSheet.create({
   },
   modalRequired: {
     color: '#f44336',
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(12),
   },
   modalStarsContainer: {
     flexDirection: 'row',
-    marginBottom: moderateScale(24),
+    marginBottom: moderateScale(5),
     justifyContent: 'flex-start',
-    gap: scale(8),
+    gap: scale(2),
+    width: '100%'
   },
   modalStarButton: {
     padding: moderateScale(4),
@@ -793,7 +800,7 @@ const styles = StyleSheet.create({
   modalImageText: {
     fontSize: normalizeFont(12),
     color: '#333',
-    marginBottom: moderateScale(12),
+    marginBottom: moderateScale(5),
     fontWeight: '500',
   },
   modalImageUpload: {

@@ -1,3 +1,4 @@
+// HeaderWithLocation.js
 import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -15,15 +16,14 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
 const API_BASE = "https://viafarm-1.onrender.com";
 
-// Reverse Geocoding Function
+// Reverse Geocoding Function (OpenStreetMap Nominatim)
 const reverseGeocodeLocation = async (latitude, longitude) => {
   try {
-    // Using OpenStreetMap Nominatim API (free, no key required)
     const response = await axios.get(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
       {
@@ -34,7 +34,7 @@ const reverseGeocodeLocation = async (latitude, longitude) => {
       }
     );
 
-    const data = response.data;
+    const data = response.data || {};
     const address = data.address || {};
 
     return {
@@ -48,7 +48,6 @@ const reverseGeocodeLocation = async (latitude, longitude) => {
     };
   } catch (error) {
     console.error("Reverse geocoding error:", error);
-    // Return with just coordinates if geocoding fails
     return {
       pinCode: "",
       houseNumber: "",
@@ -74,7 +73,6 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
   const [loading, setLoading] = useState(false);
   const [fetchingLocation, setFetchingLocation] = useState(false);
 
-  // Prefill values when modal opens
   useEffect(() => {
     if (visible && initialData) {
       setPinCode(initialData.pinCode || "");
@@ -82,23 +80,17 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
       setLocality(initialData.locality || "");
       setCity(initialData.city || "");
       setDistrict(initialData.district || "");
-      setDeliveryRadius(
-        String(initialData.deliveryRadius || "").replace("km", "")
-      );
+      setDeliveryRadius(String(initialData.deliveryRadius || "").replace("km", ""));
       setLatitude(initialData.latitude || null);
       setLongitude(initialData.longitude || null);
     }
   }, [visible, initialData]);
 
-  // Request Location Permissions
   const requestLocationPermission = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(
-          "Permission Denied",
-          "Location permission is required to use this feature."
-        );
+        Alert.alert("Permission Denied", "Location permission is required to use this feature.");
         return false;
       }
       return true;
@@ -109,7 +101,6 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
     }
   };
 
-  // Get Current Location
   const handleUseCurrentLocation = async () => {
     const hasPermission = await requestLocationPermission();
     if (!hasPermission) return;
@@ -120,13 +111,10 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
         accuracy: Location.Accuracy.High,
       });
 
-      const { latitude: lat, longitude: lng } = location.coords;
-      console.log("Current Location:", lat, lng);
-
+      const { latitude: lat, longitude: lng } = location.coords || {};
       setLatitude(lat);
       setLongitude(lng);
 
-      // Reverse Geocode to get address details
       const geocodedAddress = await reverseGeocodeLocation(lat, lng);
 
       if (geocodedAddress) {
@@ -135,7 +123,7 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
         setLocality(geocodedAddress.locality);
         setCity(geocodedAddress.city);
         setDistrict(geocodedAddress.district);
-        
+
         if (geocodedAddress.city) {
           Alert.alert("Success", "Location fetched successfully!");
         } else {
@@ -148,28 +136,21 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
     } catch (error) {
       console.error("Location fetch error:", error);
       let errorMessage = "Could not fetch current location";
-
       if (error.code === "LOCATION_TIMEOUT") {
         errorMessage = "Location request timed out. Please try again.";
       } else if (error.code === "LOCATION_UNAVAILABLE") {
         errorMessage = "Location service is unavailable.";
       }
-
       Alert.alert("Error", errorMessage);
     } finally {
       setFetchingLocation(false);
     }
   };
 
-  // Search Location (Placeholder for now)
   const handleSearchLocation = () => {
-    Alert.alert(
-      "Search Location",
-      "Location search feature coming soon. Use 'Use my current location' for now."
-    );
+    Alert.alert("Search Location", "Location search feature coming soon. Use 'Use my current location' for now.");
   };
 
-  // Submit Handler
   const handleSubmit = async () => {
     if (!pinCode || !houseNumber || !locality || !city || !district) {
       Alert.alert("Error", "Please fill all required address fields.");
@@ -178,10 +159,7 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
 
     const radiusInt = parseInt(deliveryRadius, 10);
     if (isNaN(radiusInt) || radiusInt < 0 || radiusInt > 10000) {
-      Alert.alert(
-        "Error",
-        "Delivery radius must be a valid number between 0 and 10,000."
-      );
+      Alert.alert("Error", "Delivery radius must be a valid number between 0 and 10,000.");
       return;
     }
 
@@ -206,38 +184,28 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
         deliveryRegion: `${radiusInt}km`,
       };
 
-      console.log("Sending Location Update Body:", body);
+      const response = await axios.put(`${API_BASE}/api/vendor/update-location`, body, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 15000,
+      });
 
-      const response = await axios.put(
-        `${API_BASE}/api/vendor/update-location`,
-        body,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.data.success) {
+      if (response.data && response.data.success) {
         Alert.alert("Success", "Location updated successfully!");
-        onSubmit(response.data.data);
-        onClose();
+        onSubmit && onSubmit(response.data.data);
+        onClose && onClose();
       } else {
-        Alert.alert("Error", response.data.message || "Something went wrong!");
+        Alert.alert("Error", (response.data && response.data.message) || "Something went wrong!");
       }
     } catch (error) {
       console.log("Location update error:", error);
-
       let errorMessage = "Failed to update location. Please try again later.";
-
       if (error.response) {
-        console.log("Server Response:", error.response.data);
         if (error.response.data?.message) {
           errorMessage = error.response.data.message;
         } else if (error.response.status === 400) {
-          errorMessage =
-            "Invalid data submitted. Please check pin code and delivery radius.";
+          errorMessage = "Invalid data submitted. Please check pin code and delivery radius.";
         }
       }
-
       Alert.alert("Error", errorMessage);
     } finally {
       setLoading(false);
@@ -246,81 +214,39 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
 
   return (
     <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
-      <TouchableOpacity
-        style={modalStyles.modalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <View
-          style={modalStyles.modalContainer}
-          onStartShouldSetResponder={() => true}
-        >
+      <TouchableOpacity style={modalStyles.modalOverlay} activeOpacity={1} onPress={onClose}>
+        <View style={modalStyles.modalContainer} onStartShouldSetResponder={() => true}>
           {/* Header */}
           <View style={modalStyles.header}>
             <TouchableOpacity onPress={onClose} style={modalStyles.headerIcon}>
-             <Image source={require('../../assets/via-farm-img/icons/groupArrow.png')} />
+              <Image source={require("../../assets/via-farm-img/icons/groupArrow.png")} />
             </TouchableOpacity>
-            <Text style={modalStyles.headerTitle}>Location</Text>
+            <Text style={modalStyles.headerTitle} allowFontScaling={false}>Location</Text>
             <View style={{ width: scale(40) }} />
           </View>
 
-          {/* Scrollable Content */}
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={modalStyles.scrollViewContent}
-          >
-            <Text style={modalStyles.sectionTitle}>Your Address</Text>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={modalStyles.scrollViewContent}>
+            <Text style={modalStyles.sectionTitle} allowFontScaling={false}>Your Address</Text>
 
-            {/* Location Actions */}
             <TouchableOpacity
-              style={[
-                modalStyles.locationButton,
-                fetchingLocation && modalStyles.locationButtonDisabled,
-              ]}
+              style={[modalStyles.locationButton, fetchingLocation && modalStyles.locationButtonDisabled]}
               onPress={handleUseCurrentLocation}
               disabled={fetchingLocation}
             >
               {fetchingLocation ? (
                 <>
-                  <ActivityIndicator
-                    size="small"
-                    color="#00B0FF"
-                    style={{ marginRight: moderateScale(10) }}
-                  />
-                  <Text style={modalStyles.locationButtonText}>
-                    Fetching location...
-                  </Text>
+                  <ActivityIndicator size="small" color="#00B0FF" style={{ marginRight: moderateScale(10) }} />
+                  <Text style={modalStyles.locationButtonText} allowFontScaling={false}>Fetching location...</Text>
                 </>
               ) : (
                 <>
                   <Ionicons name="locate" size={18} color="#00B0FF" />
-                  <Text style={modalStyles.locationButtonText}>
-                    Use my current location
-                  </Text>
+                  <Text style={modalStyles.locationButtonText} allowFontScaling={false}>Use my current location</Text>
                   <Ionicons name="chevron-forward" size={16} color="#00B0FF" />
                 </>
               )}
             </TouchableOpacity>
 
-            {/* <TouchableOpacity
-              style={modalStyles.locationButton}
-              onPress={handleSearchLocation}
-            >
-              <Ionicons name="search" size={18} color="#00B0FF" />
-              <Text style={modalStyles.locationButtonText}>Search Location</Text>
-              <Ionicons name="chevron-forward" size={16} color="#00B0FF" />
-            </TouchableOpacity> */}
-
-            {/* Coordinates Display */}
-            {/* {latitude !== null && latitude !== undefined && longitude !== null && longitude !== undefined && (
-              <View style={modalStyles.coordinatesBox}>
-                <Text style={modalStyles.coordinatesText}>
-                  📍 Lat: {typeof latitude === 'number' ? latitude.toFixed(6) : latitude} | Lng: {typeof longitude === 'number' ? longitude.toFixed(6) : longitude}
-                </Text>
-              </View>
-            )} */}
-
-            {/* Address Inputs */}
             <TextInput
               style={modalStyles.textInput}
               placeholder="Pin Code *"
@@ -329,6 +255,7 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
               maxLength={6}
               value={pinCode}
               onChangeText={setPinCode}
+              allowFontScaling={false}
             />
 
             <TextInput
@@ -337,6 +264,7 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
               placeholderTextColor="#999"
               value={houseNumber}
               onChangeText={setHouseNumber}
+              allowFontScaling={false}
             />
 
             <TextInput
@@ -345,15 +273,17 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
               placeholderTextColor="#999"
               value={locality}
               onChangeText={setLocality}
+              allowFontScaling={false}
             />
 
-            <View style={modalStyles.row}>
+            <View style={modalStyles.modalRow}>
               <TextInput
                 style={[modalStyles.textInput, modalStyles.halfInput]}
                 placeholder="City *"
                 placeholderTextColor="#999"
                 value={city}
                 onChangeText={setCity}
+                allowFontScaling={false}
               />
               <TextInput
                 style={[modalStyles.textInput, modalStyles.halfInput]}
@@ -361,13 +291,13 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
                 placeholderTextColor="#999"
                 value={district}
                 onChangeText={setDistrict}
+                allowFontScaling={false}
               />
             </View>
 
-            {/* Delivery Region */}
-            <Text style={modalStyles.sectionTitle}>Delivery Region</Text>
+            <Text style={modalStyles.sectionTitle} allowFontScaling={false}>Delivery Region</Text>
             <View style={modalStyles.deliveryRow}>
-              <Text style={modalStyles.uptoText}>Upto</Text>
+              <Text style={modalStyles.uptoText} allowFontScaling={false}>Upto</Text>
               <TextInput
                 style={modalStyles.deliveryInput}
                 placeholder="0"
@@ -375,12 +305,12 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
                 keyboardType="numeric"
                 value={deliveryRadius}
                 onChangeText={setDeliveryRadius}
+                allowFontScaling={false}
               />
-              <Text style={modalStyles.kmsText}>kms</Text>
+              <Text style={modalStyles.kmsText} allowFontScaling={false}>kms</Text>
             </View>
           </ScrollView>
 
-          {/* Submit Button */}
           <TouchableOpacity
             style={modalStyles.updateButton}
             onPress={handleSubmit}
@@ -389,9 +319,9 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
             {loading ? (
               <ActivityIndicator color="#fff" style={{ marginRight: moderateScale(8) }} />
             ) : (
-             <Image source={require("../../assets/via-farm-img/icons/updateDetails.png")} />
+              <Image source={require("../../assets/via-farm-img/icons/updateDetails.png")} />
             )}
-            <Text style={modalStyles.updateButtonText}>
+            <Text style={modalStyles.updateButtonText} allowFontScaling={false}>
               {loading ? "Updating..." : "Update Details"}
             </Text>
           </TouchableOpacity>
@@ -403,7 +333,7 @@ const EditLocationModal = ({ visible, onClose, initialData, onSubmit }) => {
 
 // ============ Header Component ============
 const Header = () => {
-  const [address, setAddress] = useState(null);
+  const [address, setAddress] = useState({});
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const navigation = useNavigation();
@@ -416,19 +346,17 @@ const Header = () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) {
-        console.log("No token found");
         setLoading(false);
         return;
       }
 
       const response = await axios.get(`${API_BASE}/api/vendor/profile`, {
         headers: { Authorization: `Bearer ${token}` },
+        timeout: 15000,
       });
 
-      if (response.data.success && response.data.user) {
+      if (response.data && response.data.success && response.data.user) {
         setAddress(response.data.user.address || {});
-      } else {
-        console.log("Failed to fetch address");
       }
     } catch (error) {
       console.error("Address fetch error:", error);
@@ -438,7 +366,7 @@ const Header = () => {
   };
 
   const handleLocationUpdate = (updatedData) => {
-    setAddress(updatedData);
+    setAddress(updatedData || {});
     fetchVendorAddress();
   };
 
@@ -461,39 +389,23 @@ const Header = () => {
   return (
     <>
       <View style={styles.container}>
-        {/* Left: Location info */}
-        <TouchableOpacity
-          style={styles.locationWrapper}
-          onPress={handleLocationPress}
-        >
+        <TouchableOpacity style={styles.locationWrapper} onPress={handleLocationPress}>
           <View style={styles.row}>
-            <Text style={styles.cityText}>
+            <Text style={styles.cityText} allowFontScaling={false}>
               {address?.city || "Unknown City"}
             </Text>
-            <Ionicons
-              name="chevron-down"
-              size={16}
-              color="#000"
-              style={{ marginLeft: 4 }}
-            />
+            <Ionicons name="chevron-down" size={16} color="#000" style={{ marginLeft: 4 }} />
           </View>
-          <Text style={styles.subText}>
-            {address?.locality
-              ? `${address.locality}, ${address.city}`
-              : "Tap to add location"}
+          <Text style={styles.subText} allowFontScaling={false}>
+            {address?.locality ? `${address.locality}, ${address.city}` : "Tap to add location"}
           </Text>
         </TouchableOpacity>
 
-        {/* Right: Notification bell */}
-        <TouchableOpacity
-          style={styles.bellWrapper}
-          onPress={handleNotification}
-        >
+        <TouchableOpacity style={styles.bellWrapper} onPress={handleNotification}>
           <Ionicons name="notifications-outline" size={22} color="#555" />
         </TouchableOpacity>
       </View>
 
-      {/* Location Modal */}
       <EditLocationModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -524,12 +436,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cityText: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(15),
     fontWeight: "600",
     color: "#000",
   },
   subText: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     color: "#555",
     marginTop: moderateScale(1),
   },
@@ -574,13 +486,8 @@ const modalStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  iconText: {
-    fontSize: normalizeFont(22),
-    color: "#4CAF50",
-    fontWeight: "600",
-  },
   headerTitle: {
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(17),
     fontWeight: "600",
     color: "#333",
   },
@@ -589,7 +496,7 @@ const modalStyles = StyleSheet.create({
     paddingHorizontal: moderateScale(20),
   },
   sectionTitle: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(14),
     fontWeight: "600",
     color: "#333",
     marginBottom: moderateScale(15),
@@ -611,7 +518,7 @@ const modalStyles = StyleSheet.create({
   },
   locationButtonText: {
     flex: 1,
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(13),
     color: "#00B0FF",
     marginLeft: moderateScale(10),
     fontWeight: "500",
@@ -625,7 +532,7 @@ const modalStyles = StyleSheet.create({
     marginBottom: moderateScale(15),
   },
   coordinatesText: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(13),
     color: "#00B0FF",
     fontWeight: "500",
   },
@@ -636,11 +543,11 @@ const modalStyles = StyleSheet.create({
     paddingHorizontal: moderateScale(15),
     paddingVertical: moderateScale(12),
     color: "#333",
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(14),
     backgroundColor: "#f9f9f9",
     marginBottom: moderateScale(15),
   },
-  row: {
+  modalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     gap: moderateScale(10),
@@ -661,26 +568,26 @@ const modalStyles = StyleSheet.create({
     marginBottom: moderateScale(20),
   },
   uptoText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(13),
     color: "#666",
     marginRight: moderateScale(10),
   },
   deliveryInput: {
     flex: 1,
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(14),
     color: "#333",
     paddingVertical: moderateScale(10),
     textAlign: "center",
   },
   kmsText: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(13),
     color: "#666",
     marginLeft: moderateScale(10),
   },
   updateButton: {
     backgroundColor: "#4CAF50",
     flexDirection: "row",
-    gap:4,
+    gap: moderateScale(6),
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: moderateScale(15),
@@ -691,7 +598,7 @@ const modalStyles = StyleSheet.create({
   },
   updateButtonText: {
     color: "#fff",
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(15),
     fontWeight: "600",
   },
 });

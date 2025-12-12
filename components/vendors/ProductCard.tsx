@@ -1,3 +1,4 @@
+// ProductList.jsx
 import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -7,7 +8,6 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Dimensions,
   FlatList,
@@ -39,26 +39,33 @@ const ProductCard = ({ item, onDelete, onStockUpdate, onEdit }) => {
   const router = useRouter();
 
   const handleMenuPress = () => {
-    if (menuButtonRef.current) {
-      menuButtonRef.current.measureInWindow((x, y, width, height) => {
+    if (menuButtonRef.current && menuButtonRef.current.measureInWindow) {
+      menuButtonRef.current.measureInWindow((x, y, w, h) => {
         setMenuPosition({
-          x: x - 140,
-          y: y + height + 4,
+          x: Math.max(8, x - 140),
+          y: y + h + 4,
         });
         setIsMenuOpen(true);
       });
+    } else {
+      // fallback open at center
+      setMenuPosition({ x: width / 2 - moderateScale(60), y: moderateScale(120) });
+      setIsMenuOpen(true);
     }
   };
 
   const handleStockPress = () => {
-    if (stockButtonRef.current) {
-      stockButtonRef.current.measureInWindow((x, y, width, height) => {
+    if (stockButtonRef.current && stockButtonRef.current.measureInWindow) {
+      stockButtonRef.current.measureInWindow((x, y, w, h) => {
         setStockDropdownPosition({
-          x: x - 80,
-          y: y + height + 4,
+          x: Math.max(8, x - 80),
+          y: y + h + 4,
         });
         setIsStockDropdownOpen(true);
       });
+    } else {
+      setStockDropdownPosition({ x: width / 2 - moderateScale(40), y: moderateScale(120) });
+      setIsStockDropdownOpen(true);
     }
   };
 
@@ -73,63 +80,48 @@ const ProductCard = ({ item, onDelete, onStockUpdate, onEdit }) => {
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) {
-        Alert.alert("Error", "User not logged in!");
+        console.log("Delete attempted but user not logged in.");
+        setIsMenuOpen(false);
         return;
       }
 
-      const tokenData = JSON.parse(atob(token.split(".")[1]));
-      const userRole = tokenData.role;
-
-      let deleteUrl = "";
-      if (userRole === "Vendor") {
-        deleteUrl = `${API_BASE}/api/vendor/products/${item._id}`;
-      } else if (userRole === "Admin") {
-        deleteUrl = `${API_BASE}/api/admin/products/${item._id}`;
-      } else {
-        Alert.alert("Permission Denied", "Only vendors or admins can delete products.");
-        return;
+      let userRole = null;
+      try {
+        const payload = token.split(".")[1];
+        const decoded = BufferFromBase64(payload);
+        userRole = decoded?.role ?? null;
+      } catch (err) {
+        // ignore decoding issues
       }
 
-      Alert.alert(
-        "Delete Product",
-        "Are you sure you want to delete this product?",
-        [
-          { text: "Cancel", style: "cancel", onPress: () => setIsMenuOpen(false) },
-          {
-            text: "Delete",
-            style: "destructive",
-            onPress: async () => {
-              try {
-                const response = await axios.delete(deleteUrl, {
-                  headers: { Authorization: `Bearer ${token}` },
-                });
+      const vendorPath = `${API_BASE}/api/vendor/products/${item._id || item.id}`;
+      const adminPath = `${API_BASE}/api/admin/products/${item._id || item.id}`;
+      const deleteUrl = userRole === "Admin" ? adminPath : vendorPath;
 
-                if (response.data?.success) {
-                  Alert.alert("Success", "Product deleted successfully!");
-                  if (onDelete) onDelete(item._id);
-                } else {
-                  Alert.alert("Error", response.data?.message || "Failed to delete");
-                }
-              } catch (error) {
-                console.log("Delete error:", error.response?.data || error.message);
-                if (error.response?.status === 403) {
-                  Alert.alert(
-                    "Unauthorized",
-                    "Your account is not allowed to delete this product."
-                  );
-                } else {
-                  Alert.alert("Error", "Something went wrong while deleting");
-                }
-              } finally {
-                setIsMenuOpen(false);
-              }
-            },
-          },
-        ]
-      );
+      // optimistic UI update
+      if (onDelete) onDelete(item._id || item.id);
+
+      axios
+        .delete(deleteUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 10000,
+        })
+        .then((response) => {
+          if (!(response.data && (response.data.success || response.status === 200 || response.status === 204))) {
+            console.log("Delete response not success:", response.data);
+          } else {
+            console.log("Product deleted on server:", item._id || item.id);
+          }
+        })
+        .catch((error) => {
+          console.log("Delete error:", error?.response?.data || error?.message || error);
+        })
+        .finally(() => {
+          setIsMenuOpen(false);
+        });
     } catch (err) {
-      console.log("Error:", err);
-      Alert.alert("Error", "Unexpected error occurred");
+      console.log("Unexpected delete error:", err);
+      setIsMenuOpen(false);
     }
   };
 
@@ -139,138 +131,125 @@ const ProductCard = ({ item, onDelete, onStockUpdate, onEdit }) => {
 
     try {
       const token = await AsyncStorage.getItem("userToken");
-
       if (!token) {
-        Alert.alert("Error", "User not logged in!");
+        console.log("Stock update attempted but user not logged in.");
         setUpdatingStock(false);
         return;
       }
 
-      let response = null;
-      let lastError = null;
+      if (onStockUpdate) onStockUpdate(item._id || item.id, newStatus);
 
-      try {
-        response = await axios.patch(
-          `${API_BASE}/api/vendor/products/${item._id}/status`,
-          { status: newStatus },
-          {
+      const tryEndpoints = [
+        {
+          method: "patch",
+          url: `${API_BASE}/api/vendor/products/${item._id || item.id}/status`,
+          data: { status: newStatus },
+        },
+        {
+          method: "patch",
+          url: `${API_BASE}/api/vendor/products/${item._id || item.id}`,
+          data: { status: newStatus },
+        },
+        {
+          method: "put",
+          url: `${API_BASE}/api/vendor/products/${item._id || item.id}`,
+          data: { status: newStatus },
+        },
+      ];
+
+      let succeeded = false;
+      for (let ep of tryEndpoints) {
+        try {
+          const resp = await axios({
+            method: ep.method,
+            url: ep.url,
+            data: ep.data,
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
             timeout: 10000,
+          });
+          if (resp && (resp.data?.success || resp.status === 200 || resp.status === 204)) {
+            succeeded = true;
+            console.log("Stock update succeeded at:", ep.url);
+            break;
           }
-        );
-      } catch (err) {
-        lastError = err;
-        try {
-          response = await axios.patch(
-            `${API_BASE}/api/vendor/products/${item._id}`,
-            { status: newStatus },
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-              timeout: 10000,
-            }
-          );
-        } catch (err2) {
-          lastError = err2;
-          try {
-            response = await axios.put(
-              `${API_BASE}/api/vendor/products/${item._id}`,
-              { status: newStatus },
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  "Content-Type": "application/json",
-                },
-                timeout: 10000,
-              }
-            );
-          } catch (err3) {
-            lastError = err3;
-          }
+        } catch (err) {
+          console.log("Stock endpoint failed:", ep.url, err?.response?.status || err?.message || err);
         }
       }
 
-      if (response && response.data && response.data.success) {
-        Alert.alert("Success", `Product marked as ${newStatus}`);
-        onStockUpdate(item._id, newStatus);
-      } else {
-        throw lastError || new Error("Failed to update status");
+      if (!succeeded) {
+        console.log("All stock endpoints failed for", item._id || item.id);
       }
     } catch (error) {
-      console.log("Stock update error:", error);
-
-      if (error.response?.status === 401) {
-        Alert.alert("Error", "Authentication failed. Please login again.");
-      } else if (error.response?.status === 404) {
-        Alert.alert("Error", "API endpoint not found. Please check server.");
-      } else if (error.response?.status === 403) {
-        Alert.alert("Error", "You don't have permission to update this product.");
-      } else if (error.response?.status === 500) {
-        Alert.alert(
-          "Server Error",
-          error.response?.data?.message || "Internal server error"
-        );
-      } else if (error.code === "ECONNABORTED") {
-        Alert.alert("Timeout", "Request took too long.");
-      } else if (error.message === "Network Error") {
-        Alert.alert("Network Error", "Cannot connect to server.");
-      } else {
-        Alert.alert("Error", "Something went wrong while updating stock");
-      }
+      console.log("Stock update unexpected error:", error);
     } finally {
       setUpdatingStock(false);
     }
   };
 
-const viewPage = () => {
-  router.push(`/VendorViewProduct?productId=${item._id || item.id}`);
-};
+  const viewPage = () => {
+    router.push(`/VendorViewProduct?productId=${(item._id || item.id)}`);
+  };
 
   return (
-    <TouchableOpacity style={cardStyles.card} onPress={viewPage}> 
+    <TouchableOpacity style={cardStyles.card} onPress={viewPage} activeOpacity={0.9}>
       <Image
-        source={{ uri: item.images?.[0] }}
+        source={{ uri: (item.images && item.images[0]) || item.image || undefined }}
         style={cardStyles.image}
         resizeMode="stretch"
+        // defaultSource={require("../assets/via-farm-img/placeholder.png")}
       />
-      <View style={{position:'absolute',bottom:moderateScale(5),left:moderateScale(5),flexDirection:'row',alignItems:'center',gap:5, backgroundColor:'rgba(141, 141, 141, 0.6)',borderRadius:moderateScale(10),paddingVertical:3,paddingHorizontal:3}}>
-       <Image source={require("../../assets/via-farm-img/icons/satar.png")} /> 
-        <Text style={{color:'#fff',fontSize:normalizeFont(10)}}>5.0</Text> 
+      <View style={{
+        position: 'absolute',
+        bottom: moderateScale(6),
+        left: moderateScale(6),
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: 'rgba(0,0,0,0.46)',
+        borderRadius: moderateScale(10),
+        paddingVertical: 4,
+        paddingHorizontal: 8
+      }}>
+        <Image style={{ width: scale(10), height: scale(15) }} source={require("../../assets/via-farm-img/icons/satar.png")} />
+        <Text allowFontScaling={false} style={{ color: '#fff', fontSize: normalizeFont(11), width: '100%' }}>5.0</Text>
       </View>
       <View style={cardStyles.details}>
         <View style={cardStyles.header}>
-          <Text style={cardStyles.productName}>{item.name}</Text>
+          <Text allowFontScaling={false} numberOfLines={2} ellipsizeMode="tail" style={cardStyles.productName}>{item.name}</Text>
           <TouchableOpacity
             ref={menuButtonRef}
             style={cardStyles.menuButton}
-            onPress={handleMenuPress}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              handleMenuPress();
+            }}
             disabled={updatingStock}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Feather name="more-vertical" size={20} color="#6b7280" />
           </TouchableOpacity>
         </View>
 
         <View style={cardStyles.row}>
-          <Text style={cardStyles.label}>Category</Text>
-          <Text style={cardStyles.colon}>:</Text>
-          <Text style={cardStyles.value}>{item.category}</Text>
+          <Text allowFontScaling={false} style={cardStyles.label}>Category</Text>
+          <Text allowFontScaling={false} style={cardStyles.colon}>:</Text>
+          <Text allowFontScaling={false} numberOfLines={1} style={cardStyles.value}>{item.category || item.category?.name || "—"}</Text>
         </View>
 
         <View style={cardStyles.row}>
-          <Text style={cardStyles.label}>Price</Text>
-          <Text style={cardStyles.colon}>:</Text>
-          <Text style={cardStyles.value}>
-            ₹ {item.price}/ {item.unit === "pc" ? `1${item.unit}` : item.unit} {item.weightPerPiece}
+          <Text allowFontScaling={false} style={cardStyles.label}>Price</Text>
+          <Text allowFontScaling={false} style={cardStyles.colon}>:</Text>
+          <Text allowFontScaling={false} style={cardStyles.value}>
+            ₹{(typeof item.price === "number" ? item.price : (item.price || "0"))}/{item.unit ? (item.unit === "pc" ? `1${item.unit}` : item.unit) : "—"} {item.weightPerPiece || ""}
           </Text>
         </View>
-        
-        <Text style={cardStyles.uploadDate}>
-          Uploaded on {new Date(item.datePosted).toLocaleDateString()}
+
+        <Text allowFontScaling={false} style={cardStyles.uploadDate}>
+          Uploaded on {item.datePosted ? new Date(item.datePosted).toLocaleDateString() : "—"}
         </Text>
 
         <View style={cardStyles.stockContainer}>
@@ -278,45 +257,46 @@ const viewPage = () => {
             ref={stockButtonRef}
             style={[
               cardStyles.stockBadge,
-              item.status === "In Stock"
-                ? cardStyles.inStock
-                : cardStyles.outOfStock,
-              updatingStock && cardStyles.stockBadgeDisabled
+              (item.status === "In Stock" || item.status === "in stock") ? cardStyles.inStock : cardStyles.outOfStock,
+              updatingStock && cardStyles.stockBadgeDisabled,
             ]}
-            onPress={handleStockPress}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              handleStockPress();
+            }}
             disabled={updatingStock}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
             {updatingStock ? (
               <>
-                <ActivityIndicator size="small" color={item.status === "In Stock" ? "#22c55e" : "#ef4444"} />
-                <Text style={[cardStyles.stockText, cardStyles.updatingText]}>
-                  Updating...
-                </Text>
+                <ActivityIndicator size="small" color={(item.status === "In Stock" || item.status === "in stock") ? "#22c55e" : "#ef4444"} />
+                <Text allowFontScaling={false} style={[cardStyles.stockText, cardStyles.updatingText]}>Updating...</Text>
               </>
             ) : (
               <>
                 <View
                   style={[
                     cardStyles.stockDot,
-                    item.status === "In Stock"
+                    (item.status === "In Stock" || item.status === "in stock")
                       ? cardStyles.inStockDot
                       : cardStyles.outOfStockDot,
                   ]}
                 />
                 <Text
+                  allowFontScaling={false}
                   style={[
                     cardStyles.stockText,
-                    item.status === "In Stock"
+                    (item.status === "In Stock" || item.status === "in stock")
                       ? cardStyles.inStockText
                       : cardStyles.outOfStockText,
                   ]}
                 >
-                  {item.status}
+                  {item.status || "In Stock"}
                 </Text>
                 <Feather
                   name="chevron-down"
                   size={16}
-                  color={item.status === "In Stock" ? "#22c55e" : "#ef4444"}
+                  color={(item.status === "In Stock" || item.status === "in stock") ? "#22c55e" : "#ef4444"}
                 />
               </>
             )}
@@ -331,11 +311,7 @@ const viewPage = () => {
         animationType="none"
         onRequestClose={() => setIsMenuOpen(false)}
       >
-        <TouchableOpacity
-          style={cardStyles.modalOverlayTransparent}
-          activeOpacity={1}
-          onPress={() => setIsMenuOpen(false)}
-        >
+        <TouchableOpacity style={cardStyles.modalOverlayTransparent} activeOpacity={1} onPress={() => setIsMenuOpen(false)}>
           <View
             style={[
               cardStyles.menuPopup,
@@ -348,22 +324,26 @@ const viewPage = () => {
           >
             <TouchableOpacity
               style={cardStyles.menuItem}
-              onPress={handleEdit}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                handleEdit();
+              }}
             >
               <Feather name="edit-2" size={18} color="#374151" />
-              <Text style={cardStyles.menuItemText}>Edit</Text>
+              <Text allowFontScaling={false} style={cardStyles.menuItemText}>Edit</Text>
             </TouchableOpacity>
 
             <View style={cardStyles.menuDivider} />
 
             <TouchableOpacity
               style={cardStyles.menuItem}
-              onPress={handleDelete}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                handleDelete();
+              }}
             >
               <Feather name="trash-2" size={18} color="#ef4444" />
-              <Text style={[cardStyles.menuItemText, cardStyles.deleteText]}>
-                Delete
-              </Text>
+              <Text allowFontScaling={false} style={[cardStyles.menuItemText, cardStyles.deleteText]}>Delete</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -376,11 +356,7 @@ const viewPage = () => {
         animationType="none"
         onRequestClose={() => setIsStockDropdownOpen(false)}
       >
-        <TouchableOpacity
-          style={cardStyles.modalOverlayTransparent}
-          activeOpacity={1}
-          onPress={() => setIsStockDropdownOpen(false)}
-        >
+        <TouchableOpacity style={cardStyles.modalOverlayTransparent} activeOpacity={1} onPress={() => setIsStockDropdownOpen(false)}>
           <View
             style={[
               cardStyles.stockDropdown,
@@ -394,14 +370,12 @@ const viewPage = () => {
             <TouchableOpacity
               style={[
                 cardStyles.stockOption,
-                item.status === "In Stock" && cardStyles.stockOptionActive,
+                (item.status === "In Stock" || item.status === "in stock") && cardStyles.stockOptionActive,
               ]}
               onPress={() => handleStockChange("In Stock")}
             >
               <View style={[cardStyles.stockDot, cardStyles.inStockDot]} />
-              <Text style={[cardStyles.stockOptionText, cardStyles.inStockText]}>
-                In Stock
-              </Text>
+              <Text allowFontScaling={false} style={[cardStyles.stockOptionText, cardStyles.inStockText]}>In Stock</Text>
             </TouchableOpacity>
 
             <View style={cardStyles.stockDivider} />
@@ -409,14 +383,12 @@ const viewPage = () => {
             <TouchableOpacity
               style={[
                 cardStyles.stockOption,
-                item.status === "Out of Stock" && cardStyles.stockOptionActive,
+                (item.status === "Out of Stock" || item.status === "out of stock") && cardStyles.stockOptionActive,
               ]}
               onPress={() => handleStockChange("Out of Stock")}
             >
               <View style={[cardStyles.stockDot, cardStyles.outOfStockDot]} />
-              <Text style={[cardStyles.stockOptionText, cardStyles.outOfStockText]}>
-                Out of Stock
-              </Text>
+              <Text allowFontScaling={false} style={[cardStyles.stockOptionText, cardStyles.outOfStockText]}>Out of Stock</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -425,6 +397,26 @@ const viewPage = () => {
   );
 };
 
+// helper to decode base64 safely in RN (polyfill)
+function BufferFromBase64(b64) {
+  try {
+    if (!b64) return {};
+    if (typeof atob === "function") {
+      const jsonStr = atob(b64.replace(/-/g, "+").replace(/_/g, "/"));
+      return JSON.parse(jsonStr);
+    }
+    if (typeof Buffer !== "undefined" && Buffer.from) {
+      const str = Buffer.from(b64, "base64").toString("utf8");
+      return JSON.parse(str);
+    }
+    const decoded = global && typeof global.atob === "function" ? global.atob(b64) : null;
+    if (decoded) return JSON.parse(decoded);
+    return {};
+  } catch (err) {
+    console.log("Base64 decode failed:", err);
+    return {};
+  }
+}
 
 const stockOptions = ["Out of Stock", "In Stock"];
 const dateOptions = ["Today", "Last 7 Days", "Last 30 Days", "All Time"];
@@ -444,7 +436,7 @@ const ProductFilter = ({
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
-  const [ categories ,setAllCategory] = useState([]);
+  const [categories, setAllCategory] = useState(["All"]);
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
@@ -457,23 +449,26 @@ const ProductFilter = ({
   const dropdownButtonRef = useRef(null);
 
   useEffect(()=>{
-  const   getAllCategory = async ()=>{
-    try{
-     const token = await AsyncStorage.getItem("userToken");
-     const catRes = await axios.get(`${API_BASE}/api/admin/manage-app/categories`,{
-      headers:{
-       Authorization:`Bearer ${token}`
-      },
-     });
+    const getAllCategory = async ()=>{
+      try{
+        const token = await AsyncStorage.getItem("userToken");
+        const catRes = await axios.get(`${API_BASE}/api/admin/manage-app/categories`,{
+          headers:{
+            Authorization:`Bearer ${token}`
+          },
+          timeout: 10000,
+        });
 
-     const onlyNames = catRes.data?.categories?.map((item) => item.name) || [];
-     setAllCategory(onlyNames)
-    }catch(error){
-      console.log("Error",error)
-    }
-  }
-  getAllCategory();
-},[])
+        const onlyNames = catRes.data?.categories?.map((item) => item.name).filter(Boolean) || [];
+        const unique = Array.from(new Set(["All", ...onlyNames]));
+        setAllCategory(unique);
+      }catch(error){
+        console.log("Error fetching categories:", error?.message ?? error);
+        setAllCategory(["All"]);
+      }
+    };
+    getAllCategory();
+  },[]);
 
 
   useEffect(() => {
@@ -494,10 +489,15 @@ const ProductFilter = ({
   }, [isFilterOpen]);
 
   const openDropdown = () => {
-    dropdownButtonRef.current?.measure((fx, fy, w, h, px, py) => {
-      setDropdownPos({ top: py + h, left: px, width: w });
+    if (dropdownButtonRef.current && dropdownButtonRef.current.measure) {
+      dropdownButtonRef.current.measure((fx, fy, w, h, px, py) => {
+        setDropdownPos({ top: py + h + moderateScale(6), left: px, width: w });
+        setIsDropdownOpen(true);
+      });
+    } else {
+      setDropdownPos({ top: moderateScale(220), left: moderateScale(16), width: moderateScale(160) });
       setIsDropdownOpen(true);
-    });
+    }
   };
 
   const onCategorySelect = (category) => {
@@ -520,7 +520,7 @@ const ProductFilter = ({
 
   return (
     <View style={filterStyles.container}>
-      <Text style={filterStyles.title}>My Products</Text>
+      <Text allowFontScaling={false} style={filterStyles.title}>My Products</Text>
 
       <View style={filterStyles.controls}>
         <TouchableOpacity
@@ -529,7 +529,7 @@ const ProductFilter = ({
           onPress={openDropdown}
           activeOpacity={0.7}
         >
-          <Text style={filterStyles.dropdownText}>{selectedCategory}</Text>
+          <Text allowFontScaling={false} style={filterStyles.dropdownText}>{selectedCategory}</Text>
           <Feather name="chevron-down" size={18} color="#6b7280" />
         </TouchableOpacity>
 
@@ -538,144 +538,75 @@ const ProductFilter = ({
           onPress={() => setIsFilterOpen(true)}
           activeOpacity={0.7}
         >
-          {/* <Ionicons name="filter" size={28} color="black" /> */}
-          {/* <MaterialIcons name="filter-list" size={28} color="black" /> */}
-          <Image source={require("../../assets/via-farm-img/icons/fltr.png")}  style={{width:20,height:20}}/>
+          <Image source={require("../../assets/via-farm-img/icons/fltr.png")} style={{ width: 20, height: 20 }} />
         </TouchableOpacity>
       </View>
 
-
-
-<Modal
-  visible={isDropdownOpen}
-  transparent={true}
-  animationType="fade"
-  onRequestClose={() => setIsDropdownOpen(false)}
->
-  <TouchableWithoutFeedback onPress={() => setIsDropdownOpen(false)}>
-    <View style={filterStyles.modalOverlay}>
-      <View
-        style={[
-          filterStyles.dropdownMenu,
-          {
-            position: "absolute",
-            top:scale(223),
-            left: dropdownPos.left,
-            width: dropdownPos.width,
-            maxHeight: scale(300), 
-            overflow: "hidden",
-          },
-        ]}
-      >
-        <ScrollView
-          nestedScrollEnabled
-          showsVerticalScrollIndicator
-          contentContainerStyle={{ paddingVertical: 4 }}
-        >
-          {categories.map((category) => (
-            <TouchableOpacity
-              key={category}
+      <Modal visible={isDropdownOpen} transparent={true} animationType="fade" onRequestClose={() => setIsDropdownOpen(false)}>
+        <TouchableWithoutFeedback onPress={() => setIsDropdownOpen(false)}>
+          <View style={filterStyles.modalOverlay}>
+            <View
               style={[
-                filterStyles.dropdownItem,
-                selectedCategory === category && filterStyles.dropdownItemActive,
+                filterStyles.dropdownMenu,
+                {
+                  position: "absolute",
+                  top: dropdownPos.top || scale(220),
+                  left: dropdownPos.left || moderateScale(16),
+                  width: dropdownPos.width || moderateScale(160),
+                  maxHeight: scale(300),
+                  overflow: "hidden",
+                },
               ]}
-              onPress={() => {
-                onCategorySelect(category);
-                setIsDropdownOpen(false); // close after select
-              }}
-              activeOpacity={0.7}
             >
-              <Text
-                style={[
-                  filterStyles.dropdownItemText,
-                  selectedCategory === category && filterStyles.dropdownItemTextActive,
-                ]}
-              >
-                {category}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-    </View>
-  </TouchableWithoutFeedback>
-</Modal>
+              <ScrollView nestedScrollEnabled showsVerticalScrollIndicator contentContainerStyle={{ paddingVertical: 4 }}>
+                {categories.map((category) => (
+                  <TouchableOpacity
+                    key={String(category)}
+                    style={[
+                      filterStyles.dropdownItem,
+                      selectedCategory === category && filterStyles.dropdownItemActive,
+                    ]}
+                    onPress={() => onCategorySelect(category)}
+                    activeOpacity={0.7}
+                  >
+                    <Text allowFontScaling={false} style={[
+                      filterStyles.dropdownItemText,
+                      selectedCategory === category && filterStyles.dropdownItemTextActive,
+                    ]}>
+                      {category}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
 
-
-
-
-      <Modal
-        animationType="none"
-        transparent={true}
-        visible={isFilterOpen}
-        onRequestClose={() => setIsFilterOpen(false)}
-      >
-        <TouchableOpacity
-          style={filterStyles.filterOverlay}
-          activeOpacity={1}
-          onPress={() => setIsFilterOpen(false)}
-        >
-          <Animated.View
-            style={[
-              filterStyles.filterModal,
-              { transform: [{ translateX: slideAnim }] },
-            ]}
-            onStartShouldSetResponder={() => true}
-          >
+      <Modal animationType="none" transparent={true} visible={isFilterOpen} onRequestClose={() => setIsFilterOpen(false)}>
+        <TouchableOpacity style={filterStyles.filterOverlay} activeOpacity={1} onPress={() => setIsFilterOpen(false)}>
+          <Animated.View style={[filterStyles.filterModal, { transform: [{ translateX: slideAnim }] }]} onStartShouldSetResponder={() => true}>
             <View style={filterStyles.modalHeader}>
-              <Text style={filterStyles.modalTitle}>Filters</Text>
+              <Text allowFontScaling={false} style={filterStyles.modalTitle}>Filters</Text>
               <TouchableOpacity onPress={() => setIsFilterOpen(false)}>
-                <Text style={filterStyles.closeButton}>✕</Text>
+                <Text allowFontScaling={false} style={filterStyles.closeButton}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            <ScrollView
-              style={filterStyles.modalBody}
-              showsVerticalScrollIndicator={false}
-            >
+            <ScrollView style={filterStyles.modalBody} showsVerticalScrollIndicator={false}>
               <View style={filterStyles.filterSection}>
-                <TouchableOpacity
-                  style={filterStyles.filterHeader}
-                  onPress={() => toggleSection("stock")}
-                >
-                  <Text style={filterStyles.filterTitle}>Stock</Text>
-                  <Text
-                    style={[
-                      filterStyles.chevron,
-                      expandedSections.stock && filterStyles.chevronRotated,
-                    ]}
-                  >
-                    ›
-                  </Text>
+                <TouchableOpacity style={filterStyles.filterHeader} onPress={() => toggleSection("stock")}>
+                  <Text allowFontScaling={false} style={filterStyles.filterTitle}>Stock</Text>
+                  <Text allowFontScaling={false} style={[filterStyles.chevron, expandedSections.stock && filterStyles.chevronRotated]}>›</Text>
                 </TouchableOpacity>
                 {expandedSections.stock && (
                   <View style={filterStyles.filterOptions}>
                     {stockOptions.map((option) => (
-                      <TouchableOpacity
-                        key={option}
-                        style={filterStyles.radioOption}
-                        onPress={() => setStockFilter(option)}
-                      >
-                        <View
-                          style={[
-                            filterStyles.radioCircle,
-                            stockFilter === option &&
-                            filterStyles.radioCircleSelected,
-                          ]}
-                        >
-                          {stockFilter === option && (
-                            <View style={filterStyles.radioSelected} />
-                          )}
+                      <TouchableOpacity key={option} style={filterStyles.radioOption} onPress={() => setStockFilter(option)}>
+                        <View style={[filterStyles.radioCircle, stockFilter === option && filterStyles.radioCircleSelected]}>
+                          {stockFilter === option && <View style={filterStyles.radioSelected} />}
                         </View>
-                        <Text
-                          style={[
-                            filterStyles.optionText,
-                            stockFilter === option &&
-                            filterStyles.optionTextSelected,
-                          ]}
-                        >
-                          {option}
-                        </Text>
+                        <Text allowFontScaling={false} style={[filterStyles.optionText, stockFilter === option && filterStyles.optionTextSelected]}>{option}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -683,48 +614,18 @@ const ProductFilter = ({
               </View>
 
               <View style={filterStyles.filterSection}>
-                <TouchableOpacity
-                  style={filterStyles.filterHeader}
-                  onPress={() => toggleSection("date")}
-                >
-                  <Text style={filterStyles.filterTitle}>By Date</Text>
-                  <Text
-                    style={[
-                      filterStyles.chevron,
-                      expandedSections.date && filterStyles.chevronRotated,
-                    ]}
-                  >
-                    ›
-                  </Text>
+                <TouchableOpacity style={filterStyles.filterHeader} onPress={() => toggleSection("date")}>
+                  <Text allowFontScaling={false} style={filterStyles.filterTitle}>By Date</Text>
+                  <Text allowFontScaling={false} style={[filterStyles.chevron, expandedSections.date && filterStyles.chevronRotated]}>›</Text>
                 </TouchableOpacity>
                 {expandedSections.date && (
                   <View style={filterStyles.filterOptions}>
                     {dateOptions.map((option) => (
-                      <TouchableOpacity
-                        key={option}
-                        style={filterStyles.radioOption}
-                        onPress={() => setDateFilter(option)}
-                      >
-                        <View
-                          style={[
-                            filterStyles.radioCircle,
-                            dateFilter === option &&
-                            filterStyles.radioCircleSelected,
-                          ]}
-                        >
-                          {dateFilter === option && (
-                            <View style={filterStyles.radioSelected} />
-                          )}
+                      <TouchableOpacity key={option} style={filterStyles.radioOption} onPress={() => setDateFilter(option)}>
+                        <View style={[filterStyles.radioCircle, dateFilter === option && filterStyles.radioCircleSelected]}>
+                          {dateFilter === option && <View style={filterStyles.radioSelected} />}
                         </View>
-                        <Text
-                          style={[
-                            filterStyles.optionText,
-                            dateFilter === option &&
-                            filterStyles.optionTextSelected,
-                          ]}
-                        >
-                          {option}
-                        </Text>
+                        <Text allowFontScaling={false} style={[filterStyles.optionText, dateFilter === option && filterStyles.optionTextSelected]}>{option}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -732,48 +633,18 @@ const ProductFilter = ({
               </View>
 
               <View style={filterStyles.filterSection}>
-                <TouchableOpacity
-                  style={filterStyles.filterHeader}
-                  onPress={() => toggleSection("amount")}
-                >
-                  <Text style={filterStyles.filterTitle}>Amount</Text>
-                  <Text
-                    style={[
-                      filterStyles.chevron,
-                      expandedSections.amount && filterStyles.chevronRotated,
-                    ]}
-                  >
-                    ›
-                  </Text>
+                <TouchableOpacity style={filterStyles.filterHeader} onPress={() => toggleSection("amount")}>
+                  <Text allowFontScaling={false} style={filterStyles.filterTitle}>Amount</Text>
+                  <Text allowFontScaling={false} style={[filterStyles.chevron, expandedSections.amount && filterStyles.chevronRotated]}>›</Text>
                 </TouchableOpacity>
                 {expandedSections.amount && (
                   <View style={filterStyles.filterOptions}>
                     {amountOptions.map((option) => (
-                      <TouchableOpacity
-                        key={option}
-                        style={filterStyles.radioOption}
-                        onPress={() => setAmountFilter(option)}
-                      >
-                        <View
-                          style={[
-                            filterStyles.radioCircle,
-                            amountFilter === option &&
-                            filterStyles.radioCircleSelected,
-                          ]}
-                        >
-                          {amountFilter === option && (
-                            <View style={filterStyles.radioSelected} />
-                          )}
+                      <TouchableOpacity key={option} style={filterStyles.radioOption} onPress={() => setAmountFilter(option)}>
+                        <View style={[filterStyles.radioCircle, amountFilter === option && filterStyles.radioCircleSelected]}>
+                          {amountFilter === option && <View style={filterStyles.radioSelected} />}
                         </View>
-                        <Text
-                          style={[
-                            filterStyles.optionText,
-                            amountFilter === option &&
-                            filterStyles.optionTextSelected,
-                          ]}
-                        >
-                          {option}
-                        </Text>
+                        <Text allowFontScaling={false} style={[filterStyles.optionText, amountFilter === option && filterStyles.optionTextSelected]}>{option}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -782,11 +653,8 @@ const ProductFilter = ({
             </ScrollView>
 
             <View style={filterStyles.modalFooter}>
-              <TouchableOpacity
-                style={filterStyles.applyButton}
-                onPress={handleApplyFilters}
-              >
-                <Text style={filterStyles.applyButtonText}>Apply Filters</Text>
+              <TouchableOpacity style={filterStyles.applyButton} onPress={handleApplyFilters}>
+                <Text allowFontScaling={false} style={filterStyles.applyButtonText}>Apply Filters</Text>
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -824,12 +692,18 @@ const ProductList = ({ refreshbut }) => {
       const token = await AsyncStorage.getItem("userToken");
       const res = await axios.get(`${API_BASE}/api/vendor/products`, {
         headers: { Authorization: `Bearer ${token}` },
+        timeout: 15000,
       });
-      if (res.data.success) {
-        setProducts(res.data.data);
+      if (res.data && res.data.success) {
+        setProducts(res.data.data || []);
+      } else if (res.data && Array.isArray(res.data)) {
+        setProducts(res.data);
+      } else {
+        setProducts([]);
       }
     } catch (error) {
-      console.log("Error fetching products:", error);
+      console.log("Error fetching products:", error?.message ?? error);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -854,7 +728,7 @@ const ProductList = ({ refreshbut }) => {
   const handleStockUpdate = (productId, newStatus) => {
     setProducts(prevProducts =>
       prevProducts.map(product =>
-        product._id === productId
+        (product._id || product.id) === productId
           ? { ...product, status: newStatus }
           : product
       )
@@ -862,19 +736,19 @@ const ProductList = ({ refreshbut }) => {
   };
 
   const handleDeleteFromList = (id) => {
-    setProducts((prev) => prev.filter((item) => item._id !== id));
+    setProducts((prev) => prev.filter((item) => (item._id || item.id) !== id));
   };
 
   const handleEditProduct = (product) => {
     const formattedProduct = {
-      id: product._id,
+      id: product._id || product.id,
       name: product.name,
       price: product.price,
       quantity: product.quantity,
-      uploadedOn: new Date(product.datePosted).toLocaleDateString(),
-      image: product.images?.[0] || "",
+      uploadedOn: product.datePosted ? new Date(product.datePosted).toLocaleDateString() : "",
+      image: (product.images && product.images[0]) || product.image || "",
       status: product.status || "In Stock",
-      category: product.category || "Fruits",
+      category: (product.category && (product.category.name || product.category)) || "Fruits",
     };
     setSelectedProduct(formattedProduct);
     setModalVisible(true);
@@ -887,7 +761,7 @@ const ProductList = ({ refreshbut }) => {
 
   const submitModal = (updatedProduct) => {
     const updatedList = products.map((item) =>
-      item._id === updatedProduct.id 
+      (item._id || item.id) === updatedProduct.id
         ? {
             ...item,
             name: updatedProduct.name,
@@ -899,7 +773,7 @@ const ProductList = ({ refreshbut }) => {
         : item
     );
     setProducts(updatedList);
-    closeModal()
+    closeModal();
     fetchProducts();
   };
 
@@ -909,18 +783,24 @@ const ProductList = ({ refreshbut }) => {
     const categoryToFilter =
       appliedFilters.category === "All" ? null : appliedFilters.category;
     if (categoryToFilter) {
-      filtered = filtered.filter((item) => item.category === categoryToFilter);
+      filtered = filtered.filter((item) => {
+        const cat = item.category;
+        if (!cat) return false;
+        if (typeof cat === "string") return cat === categoryToFilter;
+        if (typeof cat === "object") return (cat.name || "") === categoryToFilter;
+        return false;
+      });
     }
 
     const stockToFilter = appliedFilters.stock;
     if (stockToFilter && stockToFilter !== "") {
-      filtered = filtered.filter((item) => item.status === stockToFilter);
+      filtered = filtered.filter((item) => (item.status || "").toLowerCase() === stockToFilter.toLowerCase());
     }
 
     if (appliedFilters.amount === "Low to High") {
-      filtered.sort((a, b) => a.price - b.price);
+      filtered.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
     } else if (appliedFilters.amount === "High to Low") {
-      filtered.sort((a, b) => b.price - a.price);
+      filtered.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
     }
 
     return filtered;
@@ -929,10 +809,6 @@ const ProductList = ({ refreshbut }) => {
   useEffect(() => {
     fetchProducts();
   }, [refreshbut]);
-  useEffect(() => {
-    if (!modalVisible) {
-    }
-  }, [modalVisible]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -950,16 +826,14 @@ const ProductList = ({ refreshbut }) => {
       />
 
       {loading ? (
-        <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
           <ActivityIndicator size="large" color="rgba(255,202,40,1)" />
-          <Text style={{ marginTop:moderateScale(12), color: "#666" }}>Loading products...</Text>
+          <Text allowFontScaling={false} style={{ marginTop: moderateScale(12), color: "#666", fontSize: normalizeFont(12) }}>Loading products...</Text>
         </View>
       ) : (
         <FlatList
           data={filteredProducts}
-          keyExtractor={(item) => item._id}
+          keyExtractor={(item) => String(item._id || item.id)}
           renderItem={({ item }) => (
             <ProductCard
               item={item}
@@ -971,7 +845,7 @@ const ProductList = ({ refreshbut }) => {
           contentContainerStyle={cardStyles.listContainer}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <Text style={{ textAlign: "center", marginTop: 20, color: "#666" }}>
+            <Text allowFontScaling={false} style={{ textAlign: "center", marginTop: moderateScale(20), color: "#666", fontSize: normalizeFont(12) }}>
               No products found matching your filters.
             </Text>
           }
@@ -1004,10 +878,10 @@ export const cardStyles = StyleSheet.create({
     borderWidth: moderateScale(1),
     borderColor: "rgba(255, 202, 40, 1)",
     overflow: "hidden",
-    height:scale(157),
+    height: scale(157),
   },
 
-  image: { width: moderateScale(155), height: "100%", minHeight: moderateScale(120) },
+  image: { width: moderateScale(155), height: "100%", minHeight: moderateScale(120), backgroundColor: "#f3f4f6" },
 
   details: { flex: 1, padding: moderateScale(8), justifyContent: "space-between" },
 
@@ -1019,25 +893,23 @@ export const cardStyles = StyleSheet.create({
   },
 
   productName: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(12), // bumped +1
     fontWeight: "600",
     color: "#1f2937",
     flex: 1,
     marginRight: moderateScale(8),
   },
 
-  // menuButton: { padding: moderateScale(1) },
-
   row: { flexDirection: "row", alignItems: "center", marginBottom: moderateScale(1) },
 
-  label: { fontSize: normalizeFont(10), color: "#6b7280", width: moderateScale(60) },
+  label: { fontSize: normalizeFont(11), color: "#6b7280", width: moderateScale(55) }, // bumped +1
 
-  colon: { fontSize: normalizeFont(10), color: "#6b7280", marginHorizontal: moderateScale(8) },
+  colon: { fontSize: normalizeFont(11), color: "#6b7280", marginHorizontal: moderateScale(8) }, // bumped +1
 
-  value: { fontSize: normalizeFont(10), color: "#6b7280", fontWeight: "500", flex: 1 },
+  value: { fontSize: normalizeFont(11), color: "#6b7280", fontWeight: "500", flex: 1 }, // bumped +1
 
   uploadDate: {
-    fontSize: normalizeFont(9),
+    fontSize: normalizeFont(10), // bumped +1
     color: "#9ca3af",
     marginTop: moderateScale(4),
     marginBottom: moderateScale(12),
@@ -1066,7 +938,7 @@ export const cardStyles = StyleSheet.create({
   inStockDot: { backgroundColor: "#22c55e" },
   outOfStockDot: { backgroundColor: "#ef4444" },
 
-  stockText: { fontSize: normalizeFont(10), fontWeight: "500" },
+  stockText: { fontSize: normalizeFont(11), fontWeight: "500" }, // bumped +1
   inStockText: { color: "#22c55e" },
   outOfStockText: { color: "#ef4444" },
   updatingText: { color: "#6b7280" },
@@ -1097,7 +969,7 @@ export const cardStyles = StyleSheet.create({
     gap: moderateScale(12),
   },
 
-  menuItemText: { fontSize: normalizeFont(11), color: "#374151", fontWeight: "500" },
+  menuItemText: { fontSize: normalizeFont(12), color: "#374151", fontWeight: "500" }, // bumped +1
   deleteText: { color: "#ef4444" },
 
   menuDivider: { height: moderateScale(1), backgroundColor: "#f3f4f6", marginHorizontal: moderateScale(8) },
@@ -1130,7 +1002,7 @@ export const cardStyles = StyleSheet.create({
   },
 
   stockOptionText: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(11), // bumped +1
     fontWeight: "500",
   },
 
@@ -1152,7 +1024,7 @@ export const filterStyles = StyleSheet.create({
     zIndex: 10,
   },
 
-  title: { fontSize: normalizeFont(14), fontWeight: "600", color: "#374151" },
+  title: { fontSize: normalizeFont(15), fontWeight: "600", color: "#374151" }, // bumped +1
 
   controls: { flexDirection: "row", alignItems: "center", gap: moderateScale(10) },
 
@@ -1169,7 +1041,7 @@ export const filterStyles = StyleSheet.create({
     minWidth: moderateScale(110),
   },
 
-  dropdownText: { fontSize: normalizeFont(11), color: "#374151", fontWeight: "400" },
+  dropdownText: { fontSize: normalizeFont(12), color: "#374151", fontWeight: "400" }, // bumped +1
 
   filterButton: {
     padding: moderateScale(5),
@@ -1187,14 +1059,14 @@ export const filterStyles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: moderateScale(10),
     shadowColor: "#000",
-    paddingVertical:moderateScale(3),
+    paddingVertical: moderateScale(3),
     shadowOffset: { width: 0, height: moderateScale(4) },
     shadowOpacity: Platform.OS === "ios" ? 0.15 : 0.22,
     shadowRadius: moderateScale(12),
     elevation: moderateScale(8),
     overflow: "hidden",
     borderWidth: moderateScale(1),
-    height:scale(200),
+    height: scale(200),
     borderColor: "rgba(0,0,0,0.3)",
   },
 
@@ -1207,7 +1079,7 @@ export const filterStyles = StyleSheet.create({
 
   dropdownItemActive: { backgroundColor: "#f3f4f6"},
 
-  dropdownItemText: { fontSize: normalizeFont(11), color: "#374151"},
+  dropdownItemText: { fontSize: normalizeFont(12), color: "#374151"}, // bumped +1
 
   dropdownItemTextActive: { fontWeight: "600", color: "#111827" },
 
@@ -1240,9 +1112,9 @@ export const filterStyles = StyleSheet.create({
     borderBottomColor: "#f0f0f0",
   },
 
-  modalTitle: { fontSize: normalizeFont(12), fontWeight: "600", color: "#333" },
+  modalTitle: { fontSize: normalizeFont(13), fontWeight: "600", color: "#333" }, // bumped +1
 
-  closeButton: { fontSize:normalizeFont(13), color: "#333" },
+  closeButton: { fontSize: normalizeFont(14), color: "#333" },
 
   modalBody: { flex: 1, backgroundColor: "#fff" },
 
@@ -1253,16 +1125,16 @@ export const filterStyles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: moderateScale(10),
-    paddingHorizontal:moderateScale(16)
+    paddingHorizontal: moderateScale(16)
   },
 
-  filterTitle: { fontSize: normalizeFont(10), fontWeight: "500", color: "#333" },
+  filterTitle: { fontSize: normalizeFont(11), fontWeight: "500", color: "#333" }, // bumped +1
 
   chevron: { fontSize: moderateScale(14), color: "#666", transform: [{ rotate: "90deg" }] },
 
   chevronRotated: { transform: [{ rotate: "270deg" }] },
 
-  filterOptions: { paddingBottom: moderateScale(16),paddingHorizontal:16 },
+  filterOptions: { paddingBottom: moderateScale(16), paddingHorizontal: 16 },
 
   radioOption: {
     flexDirection: "row",
@@ -1289,7 +1161,7 @@ export const filterStyles = StyleSheet.create({
     backgroundColor: "#22c55e",
   },
 
-  optionText: { fontSize: normalizeFont(10), color: "#6b7280" },
+  optionText: { fontSize: normalizeFont(11), color: "#6b7280" }, // bumped +1
   optionTextSelected: { color: "#1f2937", fontWeight: "600" },
 
   modalFooter: { padding: moderateScale(17), borderTopWidth: moderateScale(1), borderTopColor: "#f0f0f0" },
@@ -1300,6 +1172,6 @@ export const filterStyles = StyleSheet.create({
     borderRadius: moderateScale(8),
     alignItems: "center",
   },
-  
-  applyButtonText: { color: "#fff", fontSize: normalizeFont(10), fontWeight: "600" },
+
+  applyButtonText: { color: "#fff", fontSize: normalizeFont(11), fontWeight: "600" }, // bumped +1
 });

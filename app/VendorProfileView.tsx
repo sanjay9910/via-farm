@@ -17,39 +17,46 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, normalizeFont, scale } from './Responsive';
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://your-api.com';
+const API_BASE = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_BASE)
+  ? process.env.REACT_APP_API_BASE
+  : 'https://viafarm-1.onrender.com';
 
 const VendorProfileViewDetails = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const rawParams = route.params || {};
+  const rawParams = route?.params || {};
   const vendorFromParams =
     rawParams.user || rawParams.vendor || rawParams.userData || rawParams;
 
   const [vendor, setVendor] = useState(vendorFromParams || null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     setVendor(vendorFromParams || null);
-  }, [route.params]);
+  }, [route?.params]);
+
   useEffect(() => {
     if (!vendor) return;
+
     const vendorReviewsList =
-      vendor.reviews?.list ?? 
-      vendor.reviews ?? 
-      vendor.reviewList ?? 
+      vendor.reviews?.list ??
+      vendor.reviews ??
+      vendor.reviewList ??
       null;
 
     if (Array.isArray(vendorReviewsList) && vendorReviewsList.length > 0) {
       setReviews(vendorReviewsList);
       return;
     }
+
     const vendorId = vendor.id || vendor._id || vendor.vendorId;
     if (vendorId) {
       fetchReviews(vendorId);
     } else {
       setReviews([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vendor]);
 
   const fetchReviews = async (vendorId) => {
@@ -59,9 +66,9 @@ const VendorProfileViewDetails = () => {
 
       const response = await axios.get(`${API_BASE}/api/vendor/${vendorId}/reviews`, {
         headers: { Authorization: token ? `Bearer ${token}` : '' },
+        timeout: 15000,
       });
 
-      // Try common shapes
       if (response?.data?.success && Array.isArray(response.data.reviews)) {
         setReviews(response.data.reviews);
       } else if (Array.isArray(response?.data?.data)) {
@@ -139,7 +146,7 @@ const VendorProfileViewDetails = () => {
   const image = getImageUri(v);
   const vendorLocation = extractLocationText(v);
   const vendorName = v?.name || v?.businessName || 'Vendor';
-  const vendorPhone = v?.mobileNumber || v?.phone || v?.contact || 'N/A';
+  const vendorPhone = v?.mobileNumber || v?.phone || v?.contact || null;
   const vendorUpi = v?.upiId || v?.upi || null;
   const vendorRating = v?.rating ?? v?.ratingValue ?? '—';
   const farmImages = Array.isArray(v?.farmImages) ? v.farmImages : [];
@@ -160,16 +167,16 @@ const VendorProfileViewDetails = () => {
       <View style={styles.reviewCard}>
         <View style={styles.reviewHeader}>
           <Image source={{ uri: avatarUri }} style={styles.avatar} />
-          <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.reviewerName} numberOfLines={1}>
+          <View style={{ flex: 1, marginLeft: moderateScale(10) }}>
+            <Text style={styles.reviewerName} numberOfLines={1} allowFontScaling={false}>
               {item?.user?.name || item?.name || 'Anonymous'}
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center',marginTop:moderateScale(5) }}>
-             <Image source={require("../assets/via-farm-img/icons/satar.png")} />
-              <Text style={styles.ratingText}>{' '}{item?.rating ?? 'N/A'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: moderateScale(5) }}>
+              <Image source={require("../assets/via-farm-img/icons/satar.png")} />
+              <Text style={styles.ratingText} allowFontScaling={false}>{' '}{item?.rating ?? 'N/A'}</Text>
             </View>
           </View>
-          <Text style={styles.reviewDate}>
+          <Text style={styles.reviewDate} allowFontScaling={false}>
             {item?.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB') : 'N/A'}
           </Text>
         </View>
@@ -178,17 +185,17 @@ const VendorProfileViewDetails = () => {
           <FlatList
             data={reviewImages}
             horizontal
-            keyExtractor={(_img, idx) => `img-${idx}`}
+            keyExtractor={(_, idx) => `img-${idx}`}
             renderItem={({ item: img }) => {
               const uri = typeof img === 'string' ? img : img?.url ?? img?.image ?? '';
               return uri ? <Image source={{ uri }} style={styles.reviewImage} /> : null;
             }}
             showsHorizontalScrollIndicator={false}
-            style={{ marginVertical: 8 }}
+            style={{ marginVertical: moderateScale(8) }}
           />
         )}
 
-        <Text style={styles.reviewComment}>
+        <Text style={styles.reviewComment} allowFontScaling={false}>
           {item?.comment || item?.text || item?.message || 'No comment provided.'}
         </Text>
       </View>
@@ -210,63 +217,60 @@ const VendorProfileViewDetails = () => {
         <View style={styles.vendorInfo}>
           <View style={styles.vendorHeader}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.vendorName}>{vendorName}</Text>
+              <Text style={styles.vendorName} allowFontScaling={false}>{vendorName}</Text>
               <View style={styles.row}>
                 <Ionicons name="location-sharp" size={16} color="#757575" />
-                <Text style={styles.vendorLocation} numberOfLines={2}>
-                  {vendorLocation} {v.distance ? `(${v.distance})` : ''}
+                <Text style={styles.vendorLocation} numberOfLines={2} allowFontScaling={false}>
+                  {vendorLocation} {v?.distance ? `(${v.distance})` : ''}
                 </Text>
               </View>
             </View>
 
             <View style={styles.ratingBadge}>
               <Image source={require("../assets/via-farm-img/icons/satar.png")} />
-              <Text style={styles.vendorRating}>{String(vendorRating)}</Text>
+              <Text style={styles.vendorRating} allowFontScaling={false}>{String(vendorRating)}</Text>
             </View>
           </View>
 
           {/* Contact Info */}
-          {(vendorPhone && vendorPhone !== 'N/A') && (
+          {vendorPhone && (
             <View style={styles.contactInfo}>
               <Image source={require("../assets/via-farm-img/icons/call.png")} />
-              <Text style={styles.contactText}>{vendorPhone}</Text>
+              <Text style={styles.contactText} allowFontScaling={false}>{vendorPhone}</Text>
             </View>
           )}
 
           {vendorUpi && (
             <View style={styles.contactInfo}>
-             <Image source={require(".././/assets/via-farm-img/icons/upi.png")} />
-              <Text style={styles.contactText}>{vendorUpi}</Text>
+              <Image source={require("../assets/via-farm-img/icons/upi.png")} />
+              <Text style={styles.contactText} allowFontScaling={false}>{vendorUpi}</Text>
             </View>
           )}
 
-          <Text style={styles.aboutHeader}>About</Text>
-          <Text style={styles.aboutText}>
-            {v.about || v.description || v.summary || 'No description available.'}
+          <Text style={styles.aboutHeader} allowFontScaling={false}>About</Text>
+          <Text style={styles.aboutText} allowFontScaling={false}>
+            {v?.about || v?.description || v?.summary || 'No description available.'}
           </Text>
 
           {/* Small gallery / farm images thumbnails */}
           {farmImages.length > 0 && (
-            <>
-              {/* <Text style={[styles.aboutHeader, { marginTop: 12 }]}>Photos</Text> */}
-              <FlatList
-                data={farmImages}
-                horizontal
-                keyExtractor={(_, idx) => `farm-${idx}`}
-                renderItem={({ item }) => <Image source={{ uri: item }} style={styles.thumbImage} />}
-                showsHorizontalScrollIndicator={false}
-                style={{ marginTop: 8 }}
-              />
-            </>
+            <FlatList
+              data={farmImages}
+              horizontal
+              keyExtractor={(_, idx) => `farm-${idx}`}
+              renderItem={({ item }) => <Image source={{ uri: item }} style={styles.thumbImage} />}
+              showsHorizontalScrollIndicator={false}
+              style={{ marginTop: moderateScale(8) }}
+            />
           )}
         </View>
 
         {/* Reviews Section */}
         <View style={styles.reviewsContainer}>
-          <Text style={styles.allReviewsTitle}>All Reviews ({reviews.length} reviews)</Text>
+          <Text style={styles.allReviewsTitle} allowFontScaling={false}>All Reviews ({reviews.length} reviews)</Text>
 
           {loading ? (
-            <ActivityIndicator size="large" color="#4CAF50" style={{ marginVertical: 20 }} />
+            <ActivityIndicator size="large" color="#4CAF50" style={{ marginVertical: moderateScale(20) }} />
           ) : reviews && reviews.length > 0 ? (
             <FlatList
               data={reviews}
@@ -278,12 +282,12 @@ const VendorProfileViewDetails = () => {
           ) : (
             <View style={styles.emptyBox}>
               <Ionicons name="star-outline" size={60} color="#ccc" />
-              <Text style={styles.noReviewText}>No reviews yet.</Text>
+              <Text style={styles.noReviewText} allowFontScaling={false}>No reviews yet.</Text>
             </View>
           )}
         </View>
 
-        <View style={{ height: 20 }} />
+        <View style={{ height: moderateScale(20) }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -295,13 +299,13 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   scrollContent: { flex: 1 },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  noDataText: { fontSize: normalizeFont(16), color: '#757575', marginBottom:moderateScale(20) },
+  noDataText: { fontSize: normalizeFont(16), color: '#757575', marginBottom: moderateScale(20) },
   backButton: { paddingHorizontal: moderateScale(20), paddingVertical: moderateScale(10), backgroundColor: '#4CAF50', borderRadius: 5 },
   backButtonText: { color: '#fff', fontSize: normalizeFont(16), fontWeight: 'bold' },
 
   imageBox: { width: '100%', height: scale(220), position: 'relative' },
   headerImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-  backBtn: { position: 'absolute', top:moderateScale(40), left: moderateScale(15), backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: moderateScale(20), padding: moderateScale(6) },
+  backBtn: { position: 'absolute', top: moderateScale(40), left: moderateScale(15), backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: moderateScale(20), padding: moderateScale(6) },
 
   vendorInfo: {
     backgroundColor: '#fff',
@@ -315,13 +319,13 @@ const styles = StyleSheet.create({
   vendorName: { fontSize: normalizeFont(17), fontWeight: 'bold', color: '#333' },
   row: { flexDirection: 'row', alignItems: 'center', marginVertical: moderateScale(4) },
   vendorLocation: { fontSize: normalizeFont(11), color: '#757575', marginLeft: moderateScale(5), flex: 1 },
-  ratingBadge: { flexDirection: 'row', alignItems: 'center',  paddingHorizontal:8, paddingVertical:4, borderRadius:8, borderWidth:1, borderColor:'rgba(0, 0, 0, 0.4)' },
+  ratingBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: moderateScale(8), paddingVertical: moderateScale(4), borderRadius: moderateScale(8), borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)' },
   vendorRating: { fontSize: normalizeFont(14), fontWeight: 'bold', marginLeft: moderateScale(5), color: '#333' },
 
   aboutHeader: { fontSize: normalizeFont(13), marginTop: moderateScale(20), color: '#333' },
-  aboutText: { fontSize: normalizeFont(12), color: 'rgba(66, 66, 66, 0.7)', marginTop: moderateScale(5), lineHeight: scale(20) },
+  aboutText: { fontSize: normalizeFont(12), color: 'rgba(66, 66, 66, 0.8)', marginTop: moderateScale(5), lineHeight: scale(20) },
 
-  contactInfo: { flexDirection: 'row', alignItems: 'center', marginTop:5, paddingTop:5,  },
+  contactInfo: { flexDirection: 'row', alignItems: 'center', marginTop: moderateScale(8) },
   contactText: { fontSize: normalizeFont(14), color: '#333', marginLeft: moderateScale(8), fontWeight: '500' },
 
   thumbImage: { width: scale(86), height: scale(80), borderRadius: moderateScale(8), marginRight: moderateScale(8) },

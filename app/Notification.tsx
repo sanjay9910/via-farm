@@ -49,14 +49,16 @@ const NotificationCard = ({ item, onPressCta }) => (
 
       <View style={styles.cardTextWrap}>
         <View style={styles.rowTop}>
-          <Text style={styles.cardDate} numberOfLines={2}>{item.date} </Text>
+          <Text style={styles.cardDate} numberOfLines={2} allowFontScaling={false}>
+            {item.date}
+          </Text>
         </View>
 
-        <Text style={styles.cardTitle} numberOfLines={2}>
+        <Text style={styles.cardTitle} numberOfLines={2} allowFontScaling={false}>
           {item.title}
         </Text>
 
-        <Text numberOfLines={2} style={styles.cardMessage}>
+        <Text numberOfLines={2} style={styles.cardMessage} allowFontScaling={false}>
           {item.message}
         </Text>
       </View>
@@ -262,7 +264,9 @@ export default function NotificationsScreen() {
 
   const renderEmpty = () => (
     <View style={styles.empty}>
-      <Text style={{ color: "#999", fontSize: normalizeFont(14) }}>No notifications yet</Text>
+      <Text style={{ color: "#999", fontSize: normalizeFont(14 + 2) }} allowFontScaling={false}>
+        No notifications yet
+      </Text>
     </View>
   );
 
@@ -277,7 +281,7 @@ export default function NotificationsScreen() {
             resizeMode="contain"
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <Text style={styles.headerTitle} allowFontScaling={false}>Notifications</Text>
         <View style={{ width: moderateScale(40) }} />
       </View>
 
@@ -316,7 +320,7 @@ const styles = StyleSheet.create({
     height: moderateScale(22),
   },
   headerTitle: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(14 + 2),
     fontWeight: "700",
     color: "#222",
     textAlign: "center",
@@ -345,9 +349,9 @@ const styles = StyleSheet.create({
   },
   cardTextWrap: { flex: 1 },
   rowTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: moderateScale(6) },
-  cardTitle: { fontSize: normalizeFont(12), fontWeight: "600", color: "#222", flex: 1, paddingRight: moderateScale(8) },
-  cardDate: { fontSize: normalizeFont(8), color: "#9aa0a6", alignSelf: "flex-start" },
-  cardMessage: { fontSize: normalizeFont(11), color: "#9a9a9a", marginBottom: moderateScale(10) },
-  ctaText: { color: "rgba(76, 175, 80, 1)", fontWeight: "600", marginTop: 0, marginRight: 0, fontSize: normalizeFont(12) },
+  cardTitle: { fontSize: normalizeFont(12 + 2), fontWeight: "600", color: "#222", flex: 1, paddingRight: moderateScale(8) },
+  cardDate: { fontSize: normalizeFont(8 + 2), color: "#9aa0a6", alignSelf: "flex-start" },
+  cardMessage: { fontSize: normalizeFont(11 + 2), color: "#9a9a9a", marginBottom: moderateScale(10) },
+  ctaText: { color: "rgba(76, 175, 80, 1)", fontWeight: "600", marginTop: 0, marginRight: 0, fontSize: normalizeFont(12 + 2) },
   empty: { marginTop: moderateScale(40), alignItems: "center" },
 });

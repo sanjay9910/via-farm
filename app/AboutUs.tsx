@@ -51,9 +51,8 @@ const AboutUs = ({ navigation }) => {
         setTitle('About Us');
         setParagraphs([]);
       } else {
-        // If first block looks like a short heading (one line), use it
+        // If first block looks like a short heading (<= 8 words), use it
         const first = blocks[0];
-        // If the first block is a short line (<= 6 words), treat as title
         const isHeading = first.split(/\s+/).length <= 8;
         if (isHeading) {
           // remove leading emoji if any
@@ -85,7 +84,11 @@ const AboutUs = ({ navigation }) => {
           <Image source={require('../assets/via-farm-img/icons/groupArrow.png')} />
         </TouchableOpacity>
 
-        <Text numberOfLines={1} style={styles.headerTitle}>
+        <Text
+          allowFontScaling={false}
+          numberOfLines={1}
+          style={styles.headerTitle}
+        >
           About Us
         </Text>
 
@@ -103,33 +106,39 @@ const AboutUs = ({ navigation }) => {
             {loading ? (
               <View style={styles.loadingRow}>
                 <ActivityIndicator size="small" color="#ff6b35" />
-                <Text style={styles.loadingText}>Fetching information...</Text>
+                <Text allowFontScaling={false} style={styles.loadingText}>Fetching information...</Text>
               </View>
             ) : error ? (
               <View style={styles.errorBlock}>
-                <Text style={styles.errorTitle}>Oops — couldn't load content</Text>
-                <Text style={styles.errorMessage}>{error}</Text>
+                <Text allowFontScaling={false} style={styles.errorTitle}>Oops — couldn't load content</Text>
+                <Text allowFontScaling={false} style={styles.errorMessage}>{error}</Text>
                 <TouchableOpacity style={styles.retryButton} onPress={fetchAbout}>
-                  <Text style={styles.retryText}>Retry</Text>
+                  <Text allowFontScaling={false} style={styles.retryText}>Retry</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <>
-                <Text style={styles.title}>{title}</Text>
+                <Text allowFontScaling={false} style={styles.title}>{title}</Text>
 
                 <View style={styles.metaRow}>
                   <View style={styles.badge}>
-                    <Text style={styles.badgeText}>ViaFarm</Text>
+                    <Text allowFontScaling={false} style={styles.badgeText}>ViaFarm</Text>
                   </View>
-                  <Text style={styles.smallText}>Connecting you with local farmers</Text>
+                  <Text allowFontScaling={false} style={styles.smallText}>Connecting you with local farmers</Text>
                 </View>
 
                 <View style={styles.contentSection}>
-                  {paragraphs.map((p, i) => (
-                    <Text key={i} style={styles.contentText}>
-                      {p}
+                  {Array.isArray(paragraphs) && paragraphs.length > 0 ? (
+                    paragraphs.map((p, i) => (
+                      <Text allowFontScaling={false} key={i} style={styles.contentText}>
+                        {p}
+                      </Text>
+                    ))
+                  ) : (
+                    <Text allowFontScaling={false} style={styles.contentText}>
+                      ViaFarm connects consumers directly with local farmers and small producers — delivering fresh produce with transparency and fair pricing.
                     </Text>
-                  ))}
+                  )}
                 </View>
               </>
             )}
@@ -240,6 +249,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#7f1d1d',
     marginBottom: moderateScale(12),
+    fontSize: normalizeFont(13),
   },
 
   retryButton: {

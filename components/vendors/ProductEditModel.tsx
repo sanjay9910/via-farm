@@ -64,12 +64,15 @@ const normalizeUnitForDropdown = (unit) => {
   if (u === "kg" || u === "kilogram" || u === "kilograms") return "kg";
   if (u === "ltr" || u === "liter" || u === "litre") return "ltr";
   if (u === "dozen") return "dozen";
-  return u; 
+  return u;
 };
+
+// bumpFont: add +1 to every font size (user requested)
+const bumpFont = (size) => (typeof normalizeFont === "function" ? normalizeFont(size) + 1 : size + 1);
 
 const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
   const [name, setName] = useState("");
-  const [category, setCategory] = useState(""); 
+  const [category, setCategory] = useState("");
   const [unit, setUnit] = useState("");
   const [variety, setVariety] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -79,8 +82,8 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
   const [weightPerPiece, setWeightPerPiece] = useState("");
 
   // images
-  const [existingImages, setExistingImages] = useState([]); 
-  const [newImages, setNewImages] = useState([]); 
+  const [existingImages, setExistingImages] = useState([]);
+  const [newImages, setNewImages] = useState([]);
 
   const [loading, setLoading] = useState(false);
 
@@ -164,7 +167,13 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
   useEffect(() => {
     if (categories.length > 0 && initialCategoryId) {
       // find by _id or name match
-      const found = categories.find((c) => c._id === initialCategoryId || c.id === initialCategoryId || c.name === initialCategoryId || String(c._id) === String(initialCategoryId));
+      const found = categories.find(
+        (c) =>
+          c._id === initialCategoryId ||
+          c.id === initialCategoryId ||
+          c.name === initialCategoryId ||
+          String(c._id) === String(initialCategoryId)
+      );
       if (found) {
         setCategory(found.name);
       }
@@ -173,7 +182,13 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
 
   useEffect(() => {
     if (allVarieties.length > 0 && initialVarietyId) {
-      const found = allVarieties.find((v) => v._id === initialVarietyId || v.id === initialVarietyId || v.name === initialVarietyId || String(v._id) === String(initialVarietyId));
+      const found = allVarieties.find(
+        (v) =>
+          v._id === initialVarietyId ||
+          v.id === initialVarietyId ||
+          v.name === initialVarietyId ||
+          String(v._id) === String(initialVarietyId)
+      );
       if (found) {
         setVariety(found.name);
       }
@@ -236,7 +251,7 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
         } else if (typeof v.category === "object") {
           const catName = (v.category.name || "").toLowerCase();
           const catId = v.category._id ?? v.category.id;
-          return (catName === selectedCategory.toLowerCase()) || (String(catId) === String(selectedCategory));
+          return catName === selectedCategory.toLowerCase() || String(catId) === String(selectedCategory);
         }
         return false;
       });
@@ -301,8 +316,6 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
     const normalizedUnit = unit.trim().toLowerCase();
     if (normalizedUnit === "pc" && !weightPerPiece.trim()) return Alert.alert("Error", "Please enter weight per piece for pc unit");
 
-    // if (existingImages.length + newImages.length === 0) return Alert.alert("Error", "Please add at least one image");
-
     return true;
   };
 
@@ -333,7 +346,12 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
         const fileUri = Platform.OS === "ios" ? uri.replace("file://", "") : uri;
         const filename = fileUri.split("/").pop() || `image_${idx}.jpg`;
         const fileType = filename.split(".").pop()?.toLowerCase() || "jpg";
-        const mimeType = fileType === "jpg" || fileType === "jpeg" ? "image/jpeg" : fileType === "png" ? "image/png" : `image/${fileType}`;
+        const mimeType =
+          fileType === "jpg" || fileType === "jpeg"
+            ? "image/jpeg"
+            : fileType === "png"
+            ? "image/png"
+            : `image/${fileType}`;
         formData.append("images", {
           uri: Platform.OS === "android" ? uri : `file://${fileUri}`,
           name: filename,
@@ -390,24 +408,32 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
               <Pressable onPress={() => !loading && onClose()}>
                 <Ionicons name="arrow-back" size={24} color="#000" />
               </Pressable>
-              <Text style={styles.headerText}>Edit Product</Text>
+              <Text style={styles.headerText} allowFontScaling={false}>Edit Product</Text>
               <View style={{ width: 24 }} />
             </View>
 
-            <Text style={styles.smallNote}>* marks important fields</Text>
+            <Text style={styles.smallNote} allowFontScaling={false}>* marks important fields</Text>
 
-            <Text style={styles.label}>Product Name *</Text>
-            <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="e.g., Kashmiri Apples" editable={!loading} />
+            <Text style={styles.label} allowFontScaling={false}>Product Name *</Text>
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="e.g., Kashmiri Apples"
+              editable={!loading}
+              allowFontScaling={false}
+              placeholderTextColor="#999"
+            />
 
             <View style={styles.row}>
               <View style={{ flex: 1, position: "relative", marginRight: moderateScale(8) }}>
-                <Text style={styles.label}>Category *</Text>
+                <Text style={styles.label} allowFontScaling={false}>Category *</Text>
                 <TouchableOpacity
                   style={[styles.input, styles.pickerInput]}
                   onPress={() => !categoriesLoading && setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
                   disabled={loading || categoriesLoading}
                 >
-                  <Text style={{ fontSize: normalizeFont(10), color: category ? "#000" : "#999" }}>
+                  <Text style={{ fontSize: bumpFont(10), color: category ? "#000" : "#999" }} allowFontScaling={false}>
                     {category || "Select Category"}
                   </Text>
                   <Ionicons name={isCategoryDropdownOpen ? "chevron-up" : "chevron-down"} size={15} color="#333" />
@@ -428,25 +454,25 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
                               setIsCategoryDropdownOpen(false);
                             }}
                           >
-                            <Text style={{ fontSize: normalizeFont(10) }}>{cat.name}</Text>
+                            <Text style={{ fontSize: bumpFont(10) }} allowFontScaling={false}>{cat.name}</Text>
                           </TouchableOpacity>
                         ))}
                       </ScrollView>
                     ) : (
-                      <View style={styles.dropdownOption}><Text style={{ color: "#999" }}>No categories available</Text></View>
+                      <View style={styles.dropdownOption}><Text style={{ color: "#999", fontSize: bumpFont(10) }} allowFontScaling={false}>No categories available</Text></View>
                     )}
                   </View>
                 )}
               </View>
 
               <View style={{ flex: 1, position: "relative" }}>
-                <Text style={styles.label}>Variety *</Text>
+                <Text style={styles.label} allowFontScaling={false}>Variety *</Text>
                 <TouchableOpacity
                   style={[styles.input, styles.pickerInput]}
                   onPress={() => !varietyLoading && setIsVarietyDropdownOpen(!isVarietyDropdownOpen)}
                   disabled={loading || varietyLoading}
                 >
-                  <Text style={{ fontSize: normalizeFont(10), color: variety ? "#000" : "#999" }}>
+                  <Text style={{ fontSize: bumpFont(10), color: variety ? "#000" : "#999" }} allowFontScaling={false}>
                     {variety || (category ? "Select Variety" : "All Varieties")}
                   </Text>
                   <Ionicons name={isVarietyDropdownOpen ? "chevron-up" : "chevron-down"} size={15} color="#333" />
@@ -467,12 +493,12 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
                               setIsVarietyDropdownOpen(false);
                             }}
                           >
-                            <Text style={{ fontSize: normalizeFont(10) }}>{varName}</Text>
+                            <Text style={{ fontSize: bumpFont(10) }} allowFontScaling={false}>{varName}</Text>
                           </TouchableOpacity>
                         ))}
                       </ScrollView>
                     ) : (
-                      <View style={styles.dropdownOption}><Text style={{ color: "#999" }}>No varieties available</Text></View>
+                      <View style={styles.dropdownOption}><Text style={{ color: "#999", fontSize: bumpFont(10) }} allowFontScaling={false}>No varieties available</Text></View>
                     )}
                   </View>
                 )}
@@ -481,19 +507,37 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
 
             <View style={styles.row}>
               <View style={styles.flex1}>
-                <Text style={styles.label}>Price (₹) *</Text>
-                <TextInput style={styles.input} value={price} onChangeText={setPrice} placeholder="eg.0" keyboardType="numeric" editable={!loading} />
+                <Text style={styles.label} allowFontScaling={false}>Price (₹) *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={price}
+                  onChangeText={setPrice}
+                  placeholder="eg.0"
+                  keyboardType="numeric"
+                  editable={!loading}
+                  allowFontScaling={false}
+                  placeholderTextColor="#999"
+                />
               </View>
 
               <View style={styles.flex1}>
-                <Text style={styles.label}>Quantity *</Text>
-                <TextInput style={styles.input} value={quantity} onChangeText={setQuantity} placeholder="eg.0" keyboardType="numeric" editable={!loading} />
+                <Text style={styles.label} allowFontScaling={false}>Quantity *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={quantity}
+                  onChangeText={setQuantity}
+                  placeholder="eg.0"
+                  keyboardType="numeric"
+                  editable={!loading}
+                  allowFontScaling={false}
+                  placeholderTextColor="#999"
+                />
               </View>
 
               <View style={{ flex: 1, position: "relative" }}>
-                <Text style={styles.label}>Unit *</Text>
+                <Text style={styles.label} allowFontScaling={false}>Unit *</Text>
                 <TouchableOpacity style={[styles.input, styles.pickerInput]} onPress={() => setIsUnitDropdownOpen(!isUnitDropdownOpen)} disabled={loading}>
-                  <Text style={{ fontSize: normalizeFont(10), color: unit ? "#000" : "#999" }}>{unit || "Select Unit"}</Text>
+                  <Text style={{ fontSize: bumpFont(10), color: unit ? "#000" : "#999" }} allowFontScaling={false}>{unit || "Select Unit"}</Text>
                   <Ionicons name={isUnitDropdownOpen ? "chevron-up" : "chevron-down"} size={15} color="#333" />
                 </TouchableOpacity>
 
@@ -501,7 +545,7 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
                   <View style={styles.dropdownBelowInput}>
                     {unitOptions.map((opt) => (
                       <TouchableOpacity key={opt} style={[styles.dropdownOption, unit === opt && styles.dropdownOptionSelected]} onPress={() => { setUnit(opt); setIsUnitDropdownOpen(false); }}>
-                        <Text style={{ fontSize: normalizeFont(10) }}>{opt}</Text>
+                        <Text style={{ fontSize: bumpFont(10) }} allowFontScaling={false}>{opt}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -511,13 +555,21 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
 
             {(unit || "").toLowerCase() === "pc" && (
               <View>
-                <Text style={styles.label}>Weight Per Piece *</Text>
-                <TextInput style={styles.input} value={weightPerPiece} onChangeText={setWeightPerPiece} placeholder="e.g., 400g or 0.4kg" editable={!loading} />
-                <Text style={styles.helperText}>Enter weight of one piece (e.g., 400gm, 0.5kg)</Text>
+                <Text style={styles.label} allowFontScaling={false}>Weight Per Piece *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={weightPerPiece}
+                  onChangeText={setWeightPerPiece}
+                  placeholder="e.g., 400g or 0.4kg"
+                  editable={!loading}
+                  allowFontScaling={false}
+                  placeholderTextColor="#999"
+                />
+                <Text style={styles.helperText} allowFontScaling={false}>Enter weight of one piece (e.g., 400gm, 0.5kg)</Text>
               </View>
             )}
 
-            <Text style={styles.label}>Images</Text>
+            <Text style={styles.label} allowFontScaling={false}>Images</Text>
 
             {/* Existing images */}
             {existingImages.length > 0 && (
@@ -547,7 +599,7 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
                       </TouchableOpacity>
                     )}
                     <View style={{ position: "absolute", bottom: 4, left: 6, backgroundColor: "#00000060", paddingHorizontal: 6, borderRadius: 6 }}>
-                      <Text style={{ color: "#fff", fontSize: normalizeFont(10) }}>New</Text>
+                      <Text style={{ color: "#fff", fontSize: bumpFont(10) }} allowFontScaling={false}>New</Text>
                     </View>
                   </View>
                 ))}
@@ -556,22 +608,31 @@ const ProductEditModal = ({ visible, onClose, onUpdated, product }) => {
 
             <TouchableOpacity style={[styles.imageUpload, (loading || existingImages.length + newImages.length >= 5) && styles.imageUploadDisabled]} onPress={pickImages} disabled={loading || existingImages.length + newImages.length >= 5}>
               <Ionicons name="folder-outline" size={28} color="#777" />
-              <Text style={styles.imageUploadText}>{existingImages.length + newImages.length >= 5 ? "Maximum 5 images reached" : `Add photos (${existingImages.length + newImages.length}/5)`}</Text>
+              <Text style={styles.imageUploadText} allowFontScaling={false}>{existingImages.length + newImages.length >= 5 ? "Maximum 5 images reached" : `Add photos (${existingImages.length + newImages.length}/5)`}</Text>
             </TouchableOpacity>
 
-            <Text style={styles.label}>Description</Text>
-            <TextInput style={[styles.input, { height: moderateScale(80), textAlignVertical: "top" }]} value={description} onChangeText={setDescription} placeholder="Write product details here (optional)" multiline editable={!loading} />
+            <Text style={styles.label} allowFontScaling={false}>Description</Text>
+            <TextInput
+              style={[styles.input, { height: moderateScale(80), textAlignVertical: "top" }]}
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Write product details here (optional)"
+              multiline
+              editable={!loading}
+              allowFontScaling={false}
+              placeholderTextColor="#999"
+            />
 
             <View style={styles.checkboxRow}>
               <Checkbox value={allIndiaDelivery} onValueChange={setAllIndiaDelivery} disabled={loading} />
-              <Text style={{ marginLeft: moderateScale(8), fontSize: normalizeFont(12) }}>All India Delivery</Text>
+              <Text style={{ marginLeft: moderateScale(8), fontSize: bumpFont(12) }} allowFontScaling={false}>All India Delivery</Text>
             </View>
 
             <View style={styles.submitContainer}>
               <TouchableOpacity style={[styles.submitBtn, loading && styles.submitBtnDisabled]} onPress={handleUpdate} disabled={loading} activeOpacity={loading ? 1 : 0.7}>
                 {loading ? <ActivityIndicator color="#fff" size="small" /> : (<>
                   <Feather name="check-circle" size={18} color="#fff" />
-                  <Text style={styles.submitText}>Update Product</Text>
+                  <Text style={styles.submitText} allowFontScaling={false}>Update Product</Text>
                 </>)}
               </TouchableOpacity>
             </View>
@@ -605,14 +666,14 @@ export const styles = StyleSheet.create({
   content: { flex: 1, paddingRight: moderateScale(10) },
 
   title: {
-    fontSize: normalizeFont(15),
+    fontSize: bumpFont(15),
     fontWeight: "600",
     color: "#1f2937",
     marginBottom: moderateScale(6),
   },
 
   subtitle: {
-    fontSize: normalizeFont(11),
+    fontSize: bumpFont(11),
     color: "#6b7280",
   },
 
@@ -643,6 +704,7 @@ export const styles = StyleSheet.create({
     borderTopRightRadius: moderateScale(16),
     padding: moderateScale(13),
     borderWidth: 2,
+    borderBottomWidth:0,
     borderColor: "rgba(255, 202, 40, 1)",
   },
 
@@ -654,19 +716,19 @@ export const styles = StyleSheet.create({
   },
 
   headerText: {
-    fontSize: normalizeFont(12),
+    fontSize: bumpFont(12),
     fontWeight: "600",
     color: "#000",
   },
 
   smallNote: {
-    fontSize: normalizeFont(11),
+    fontSize: bumpFont(11),
     color: "#777",
     marginBottom: moderateScale(10),
   },
 
   label: {
-    fontSize: normalizeFont(10),
+    fontSize: bumpFont(10),
     fontWeight: "500",
     marginTop: moderateScale(10),
     marginBottom: moderateScale(4),
@@ -683,7 +745,7 @@ export const styles = StyleSheet.create({
     padding: moderateScale(12),
     backgroundColor: "#fff",
     marginBottom: moderateScale(8),
-    fontSize: normalizeFont(10),
+    fontSize: bumpFont(10),
   },
 
   row: {
@@ -700,7 +762,7 @@ export const styles = StyleSheet.create({
     borderRadius: moderateScale(10),
     backgroundColor: "#fff",
     position: "absolute",
-    top: moderateScale(66),
+    top: moderateScale(70),
     left: 0,
     right: 0,
     zIndex: 1000,
@@ -757,7 +819,7 @@ export const styles = StyleSheet.create({
   submitText: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: normalizeFont(12),
+    fontSize: bumpFont(12),
   },
 
   imageUpload: {
@@ -779,7 +841,7 @@ export const styles = StyleSheet.create({
   imageUploadText: {
     marginTop: moderateScale(8),
     color: "#777",
-    fontSize: normalizeFont(10),
+    fontSize: bumpFont(10),
   },
 
   imagePreviewContainer: {
@@ -803,7 +865,7 @@ export const styles = StyleSheet.create({
   },
 
   helperText: {
-    fontSize: normalizeFont(10),
+    fontSize: bumpFont(10),
     color: "#777",
     marginBottom: moderateScale(4),
   },

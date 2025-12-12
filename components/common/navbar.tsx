@@ -1,4 +1,4 @@
-
+// HeaderDesign.jsx
 import { AuthContext } from '@/app/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -186,30 +186,82 @@ export default function HeaderDesign() {
     setFilteredSuggestions(sorted);
   };
 
-  // --- Search handler with API call ---
+  // --- Search handler with API call (now also searches categories and fetches category products) ---
   const handleSearchChange = async (text) => {
     setSearchText(text);
 
     if (text.trim().length > 0) {
       setLoading(true);
       setShowSuggestions(true);
+
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/api/buyer/products/search?q=${encodeURIComponent(text)}`
-        );
-        const data = await response.json();
+        const q = encodeURIComponent(text.trim());
+
+        // 1) Product search request
+        const prodPromise = fetch(`${API_BASE_URL}/api/buyer/products/search?q=${q}`).then(res => res.json()).catch(() => ({}));
+
+        // 2) Category search request (to support searching by category name)
+        //    Assumes: GET /api/buyer/categories/search?q=<q>
+        const catPromise = fetch(`${API_BASE_URL}/api/buyer/categories/search?q=${q}`).then(res => res.json()).catch(() => ({}));
+
+        const [prodRes, catRes] = await Promise.all([prodPromise, catPromise]);
+
+        // Normalize product list from prodRes
         let products = [];
-        if (data && data.success && Array.isArray(data.data)) {
-          products = data.data;
-        } else if (Array.isArray(data)) {
-          products = data;
-        } else if (data && Array.isArray(data.products)) {
-          products = data.products;
+        if (Array.isArray(prodRes)) {
+          products = prodRes;
+        } else if (prodRes && Array.isArray(prodRes.data)) {
+          products = prodRes.data;
+        } else if (prodRes && Array.isArray(prodRes.products)) {
+          products = prodRes.products;
         }
 
-        setSuggestions(products);
+        // If categories found, fetch products for those categories and merge
+        let categoryProducts = [];
+        let categories = [];
+        if (Array.isArray(catRes)) {
+          categories = catRes;
+        } else if (catRes && Array.isArray(catRes.data)) {
+          categories = catRes.data;
+        }
 
-        applyFiltersToSuggestions(products, filters);
+        if (Array.isArray(categories) && categories.length > 0) {
+          // Limit to first 3 matching categories to avoid over-requesting
+          const categoryIds = categories.slice(0, 3).map(c => c._id || c.id).filter(Boolean);
+          // fetch products for each category in parallel
+          const catProdPromises = categoryIds.map(id =>
+            fetch(`${API_BASE_URL}/api/buyer/products?category=${encodeURIComponent(id)}`)
+              .then(res => res.json())
+              .catch(() => ({}))
+          );
+          const catProdResults = await Promise.all(catProdPromises);
+          for (const cp of catProdResults) {
+            if (Array.isArray(cp)) {
+              categoryProducts = categoryProducts.concat(cp);
+            } else if (cp && Array.isArray(cp.data)) {
+              categoryProducts = categoryProducts.concat(cp.data);
+            } else if (cp && Array.isArray(cp.products)) {
+              categoryProducts = categoryProducts.concat(cp.products);
+            }
+          }
+        }
+
+        // Merge and dedupe products (by id/_id)
+        const merged = [];
+        const seen = new Set();
+        const pushUnique = (p) => {
+          const id = p._id || p.id || p._id?.toString?.() || p.id?.toString?.() || JSON.stringify(p);
+          if (!seen.has(id)) {
+            seen.add(id);
+            merged.push(p);
+          }
+        };
+        products.forEach(pushUnique);
+        categoryProducts.forEach(pushUnique);
+
+        // Use merged results
+        setSuggestions(merged);
+        applyFiltersToSuggestions(merged, filters);
       } catch (error) {
         console.error('Search Error:', error);
         setSuggestions([]);
@@ -633,7 +685,8 @@ export default function HeaderDesign() {
                       </TouchableOpacity>
                       {expandedFilters.sortBy && (
                         <View style={styles.filterDetails}>
-                          {['Price - high to low', 'Newest Arrivals', 'Price - low to high', 'Freshness'].map((option) => (
+                          {/* NOTE: 'Freshness' removed as requested */}
+                          {['Price - high to low', 'Newest Arrivals', 'Price - low to high'].map((option) => (
                             <TouchableOpacity
                               key={option}
                               style={styles.filterOption2}
@@ -1194,7 +1247,6 @@ const styles = StyleSheet.create({
     borderBottomWidth:0,
     backgroundColor: '#fff',
     borderTopLeftRadius: moderateScale(20),
-    // borderBottomLeftRadius: moderateScale(20),
     borderWidth: moderateScale(2),
     borderColor: 'rgba(255, 202, 40, 1)',
     elevation: 10,
@@ -1490,6 +1542,7 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(14),
   },
 });
+
 
 
 // HeaderDesign_responsive_fonts.jsx

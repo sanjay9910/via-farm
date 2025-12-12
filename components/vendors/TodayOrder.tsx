@@ -1,9 +1,16 @@
+// OrdersScreen.jsx
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import OrderCard from "./OrderCard";
-
 
 const API_BASE = "https://viafarm-1.onrender.com";
 
@@ -74,7 +81,7 @@ export default function OrdersScreen() {
             deliveredAt,
             status: o.orderStatus || o.status || "Pending",
             raw: o,
-            __updating: false, 
+            __updating: false,
           };
         });
 
@@ -93,6 +100,7 @@ export default function OrdersScreen() {
   useEffect(() => {
     fetchOrders();
   }, []);
+
   const handleStatusChange = async (orderId, newStatus) => {
     if (!orderId) {
       console.warn("Missing orderId for status update");
@@ -152,7 +160,6 @@ export default function OrdersScreen() {
 
       if (!successfulResp) throw lastErr || new Error("All endpoint attempts failed");
 
-
       const updated = successfulResp.data?.data ?? successfulResp.data ?? {};
       const serverStatus = updated.orderStatus ?? updated.status ?? newStatus;
 
@@ -186,28 +193,28 @@ export default function OrdersScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff" }}>
+    <View style={styles.root}>
       {/* Header */}
       <View style={styles.headerRow}>
-        <Text style={styles.headerTitle}>Todays Orders</Text>
+        <Text style={styles.headerTitle} allowFontScaling={false}>Todays Orders</Text>
       </View>
 
       {loading ? (
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color="#0AA1FF" />
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator>
           {orders.length > 0 ? (
             orders.map((o) => (
               <OrderCard
                 key={o.id}
                 order={o}
-                onStatusChange={handleStatusChange} 
+                onStatusChange={handleStatusChange}
               />
             ))
           ) : (
-            <Text style={{ textAlign: "center", marginTop:moderateScale(10)  , color: "#666" }}>
+            <Text style={styles.noOrdersText} allowFontScaling={false}>
               No orders today
             </Text>
           )}
@@ -218,16 +225,21 @@ export default function OrdersScreen() {
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: scale(16),
-    paddingTop: moderateScale(14),
-    // marginBottom: moderateScale(10),
+    paddingTop: moderateScale(10),
+    paddingBottom: moderateScale(2),
+    backgroundColor: "#fff",
   },
   headerTitle: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(16),
     fontWeight: "700",
     color: "#333",
     flexShrink: 1,
@@ -236,16 +248,24 @@ const styles = StyleSheet.create({
     color: "rgba(1, 151, 218, 1)",
     fontSize: normalizeFont(12),
   },
-  seeIcon: {
-    width: scale(18),
-    height: scale(18),
-    resizeMode: "contain",
-    marginLeft: scale(6),
-  },
 
   container: {
     paddingHorizontal: scale(12),
+    paddingBottom: moderateScale(20),
   },
+  loadingWrap: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: moderateScale(20),
+  },
+  noOrdersText: {
+    textAlign: "center",
+    marginTop: moderateScale(10),
+    color: "#666",
+    fontSize: normalizeFont(13),
+  },
+
   smallText: {
     fontSize: normalizeFont(12),
   },

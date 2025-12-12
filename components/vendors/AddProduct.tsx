@@ -1,3 +1,4 @@
+// AddProduct.jsx
 import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -9,13 +10,16 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Modal, Platform, Pressable,
-  ScrollView, StyleSheet, Text,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
-
 
 const API_HOST = "https://viafarm-1.onrender.com";
 const CATEGORY_API = "/api/admin/manage-app/categories";
@@ -47,7 +51,7 @@ api.interceptors.request.use(
 const AddProduct = ({ refreshprops }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState(""); 
+  const [category, setCategory] = useState("");
   const [unit, setUnit] = useState("");
   const [variety, setVariety] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -64,11 +68,11 @@ const AddProduct = ({ refreshprops }) => {
   const [isVarietyDropdownOpen, setIsVarietyDropdownOpen] = useState(false);
 
   // data lists
-  const [categories, setCategories] = useState([]); 
+  const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
 
-  const [allVarieties, setAllVarieties] = useState([]); 
-  const [varietyOptions, setVarietyOptions] = useState([]); 
+  const [allVarieties, setAllVarieties] = useState([]);
+  const [varietyOptions, setVarietyOptions] = useState([]);
   const [varietyLoading, setVarietyLoading] = useState(false);
 
   const unitOptions = ["kg", "pc", "ltr", "dozen"];
@@ -90,10 +94,7 @@ const AddProduct = ({ refreshprops }) => {
     setCategoriesLoading(true);
     setVarietyLoading(true);
     try {
-      const [catRes, varRes] = await Promise.all([
-        api.get(CATEGORY_API),
-        api.get(VARIETY_API),
-      ]);
+      const [catRes, varRes] = await Promise.all([api.get(CATEGORY_API), api.get(VARIETY_API)]);
       if (catRes.data && Array.isArray(catRes.data.categories)) {
         setCategories(catRes.data.categories);
       } else if (Array.isArray(catRes.data)) {
@@ -139,7 +140,7 @@ const AddProduct = ({ refreshprops }) => {
           return v.category === selectedCategory || v.category === selectedCategory._id;
         } else if (typeof v.category === "object") {
           return (
-            (v.category.name && v.category.name.toLowerCase() === selectedCategory.toLowerCase()) ||
+            (v.category.name && v.category.name.toLowerCase() === String(selectedCategory).toLowerCase()) ||
             (v.category._id && v.category._id === selectedCategory)
           );
         }
@@ -185,6 +186,7 @@ const AddProduct = ({ refreshprops }) => {
   };
 
   const removeImage = (index) => setImages((prev) => prev.filter((_, i) => i !== index));
+
   const handleSubmit = async () => {
     // basic validations
     if (!name.trim()) return Alert.alert("Error", "Please enter product name");
@@ -222,7 +224,7 @@ const AddProduct = ({ refreshprops }) => {
         const uriParts = uri.split("/");
         const fileName = uriParts[uriParts.length - 1] || `photo_${index}.jpg`;
         const fileType = fileName.split(".").pop().toLowerCase();
-        const mimeType = fileType === "jpg" ? "image/jpeg" : `image/${fileType}`;
+        const mimeType = fileType === "jpg" || fileType === "jpeg" ? "image/jpeg" : `image/${fileType}`;
         formData.append("images", {
           uri: Platform.OS === "android" ? uri : uri.replace("file://", ""),
           name: fileName,
@@ -279,14 +281,10 @@ const AddProduct = ({ refreshprops }) => {
 
   return (
     <>
-      <TouchableOpacity
-        style={styles.container}
-        activeOpacity={0.8}
-        onPress={() => setModalVisible(true)}
-      >
+      <TouchableOpacity style={styles.container} activeOpacity={0.8} onPress={() => setModalVisible(true)}>
         <View style={styles.content}>
-          <Text style={styles.title}>Add a Product</Text>
-          <Text style={styles.subtitle}>Showcase your fresh produce or handmade items</Text>
+          <Text allowFontScaling={false} style={styles.title}>Add a Product</Text>
+          <Text allowFontScaling={false} style={styles.subtitle}>Showcase your fresh produce or handmade items</Text>
         </View>
         <View style={styles.iconContainer}>
           <Feather name="plus" size={22} color="#fff" />
@@ -294,46 +292,32 @@ const AddProduct = ({ refreshprops }) => {
       </TouchableOpacity>
 
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <TouchableOpacity
-          style={styles.overlay}
-          activeOpacity={1}
-          onPress={() => !loading && setModalVisible(false)}
-        >
-          <TouchableOpacity
-            style={styles.modalContainer}
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom:moderateScale(40) }}>
+        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => !loading && setModalVisible(false)}>
+          <TouchableOpacity style={styles.modalContainer} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: moderateScale(40) }}>
               <View style={styles.header}>
                 <Pressable onPress={() => !loading && setModalVisible(false)}>
                   <Ionicons name="arrow-back" size={24} color="#000" />
                 </Pressable>
-                <Text style={styles.headerText}>Add Product Details</Text>
-                <View  />
+                <Text allowFontScaling={false} style={styles.headerText}>Add Product Details</Text>
+                <View />
               </View>
 
-              <Text style={styles.smallNote}>* marks important fields</Text>
+              <Text allowFontScaling={false} style={styles.smallNote}>* marks important fields</Text>
 
-              <Text style={styles.label}>Product Name *</Text>
-              <TextInput
-                style={styles.input}
-                value={name}
-                onChangeText={setName}
-                placeholder="e.g., Kashmiri Apples"
-                editable={!loading}
-              />
+              <Text allowFontScaling={false} style={styles.label}>Product Name *</Text>
+              <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="e.g., Kashmiri Apples" editable={!loading} />
 
               <View style={styles.row}>
                 <View style={{ flex: 1, position: "relative", marginRight: moderateScale(8) }}>
-                  <Text style={styles.label}>Category *</Text>
+                  <Text allowFontScaling={false} style={styles.label}>Category *</Text>
 
                   <TouchableOpacity
                     style={[styles.input, styles.pickerInput]}
                     onPress={() => !categoriesLoading && setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
                     disabled={loading || categoriesLoading}
                   >
-                    <Text style={{ fontSize: normalizeFont(10), color: category ? "#000" : "#999" }}>
+                    <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: category ? "#000" : "#999" }}>
                       {category || "Select Category"}
                     </Text>
                     <Ionicons name={isCategoryDropdownOpen ? "chevron-up" : "chevron-down"} size={15} color="#333" />
@@ -354,26 +338,26 @@ const AddProduct = ({ refreshprops }) => {
                                 setIsCategoryDropdownOpen(false);
                               }}
                             >
-                              <Text style={{ fontSize: normalizeFont(10) }}>{cat.name}</Text>
+                              <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10) }}>{cat.name}</Text>
                             </TouchableOpacity>
                           ))}
                         </ScrollView>
                       ) : (
-                        <View style={styles.dropdownOption}><Text style={{ color: "#999" }}>No categories available</Text></View>
+                        <View style={styles.dropdownOption}><Text allowFontScaling={false} style={{ color: "#999" }}>No categories available</Text></View>
                       )}
                     </View>
                   )}
                 </View>
 
                 <View style={{ flex: 1, position: "relative" }}>
-                  <Text style={styles.label}>Variety *</Text>
+                  <Text allowFontScaling={false} style={styles.label}>Variety *</Text>
 
                   <TouchableOpacity
                     style={[styles.input, styles.pickerInput]}
                     onPress={() => !varietyLoading && setIsVarietyDropdownOpen(!isVarietyDropdownOpen)}
                     disabled={loading || varietyLoading}
                   >
-                    <Text style={{ fontSize: normalizeFont(10), color: variety ? "#000" : "#999" }}>
+                    <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: variety ? "#000" : "#999" }}>
                       {variety || (category ? "Select Variety" : "All Varieties")}
                     </Text>
                     <Ionicons name={isVarietyDropdownOpen ? "chevron-up" : "chevron-down"} size={15} color="#333" />
@@ -394,12 +378,12 @@ const AddProduct = ({ refreshprops }) => {
                                 setIsVarietyDropdownOpen(false);
                               }}
                             >
-                              <Text style={{ fontSize: normalizeFont(10) }}>{varName}</Text>
+                              <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10) }}>{varName}</Text>
                             </TouchableOpacity>
                           ))}
                         </ScrollView>
                       ) : (
-                        <View style={styles.dropdownOption}><Text style={{ color: "#999" }}>No varieties available</Text></View>
+                        <View style={styles.dropdownOption}><Text allowFontScaling={false} style={{ color: "#999" }}>No varieties available</Text></View>
                       )}
                     </View>
                   )}
@@ -408,20 +392,20 @@ const AddProduct = ({ refreshprops }) => {
 
               <View style={styles.row}>
                 <View style={styles.flex1}>
-                  <Text style={styles.label}>Price (₹) *</Text>
+                  <Text allowFontScaling={false} style={styles.label}>Price (₹) *</Text>
                   <TextInput style={styles.input} value={price} onChangeText={setPrice} placeholder="eg.0" keyboardType="numeric" editable={!loading} />
                 </View>
 
                 <View style={styles.flex1}>
-                  <Text style={styles.label}>Quantity *</Text>
+                  <Text allowFontScaling={false} style={styles.label}>Quantity *</Text>
                   <TextInput style={styles.input} value={quantity} onChangeText={setQuantity} placeholder="eg.0" keyboardType="numeric" editable={!loading} />
                 </View>
 
                 <View style={{ flex: 1, position: "relative" }}>
-                  <Text style={styles.label}>Unit *</Text>
+                  <Text allowFontScaling={false} style={styles.label}>Unit *</Text>
 
                   <TouchableOpacity style={[styles.input, styles.pickerInput]} onPress={() => setIsUnitDropdownOpen(!isUnitDropdownOpen)} disabled={loading}>
-                    <Text style={{ fontSize: normalizeFont(10), color: unit ? "#000" : "#999" }}>{unit || "Select Unit"}</Text>
+                    <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: unit ? "#000" : "#999" }}>{unit || "Select Unit"}</Text>
                     <Ionicons name={isUnitDropdownOpen ? "chevron-up" : "chevron-down"} size={15} color="#333" />
                   </TouchableOpacity>
 
@@ -429,7 +413,7 @@ const AddProduct = ({ refreshprops }) => {
                     <View style={styles.dropdownBelowInput}>
                       {unitOptions.map((opt) => (
                         <TouchableOpacity key={opt} style={[styles.dropdownOption, unit === opt && styles.dropdownOptionSelected]} onPress={() => { setUnit(opt); setIsUnitDropdownOpen(false); }}>
-                          <Text style={{ fontSize: normalizeFont(10) }}>{opt}</Text>
+                          <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10) }}>{opt}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -437,18 +421,18 @@ const AddProduct = ({ refreshprops }) => {
                 </View>
               </View>
 
-              { (unit || "").toLowerCase() === "pc" && (
+              {(unit || "").toLowerCase() === "pc" && (
                 <View>
-                  <Text style={styles.label}>Weight Per Piece *</Text>
+                  <Text allowFontScaling={false} style={styles.label}>Weight Per Piece *</Text>
                   <TextInput style={styles.input} value={weightPerPiece} onChangeText={setWeightPerPiece} placeholder="e.g., 400g or 0.4kg" editable={!loading} />
-                  <Text style={styles.helperText}>Enter weight of one piece (e.g., 400gm, 0.5kg)</Text>
+                  <Text allowFontScaling={false} style={styles.helperText}>Enter weight of one piece (e.g., 400gm, 0.5kg)</Text>
                 </View>
               )}
 
-              <Text style={styles.label}>Add Images *</Text>
+              <Text allowFontScaling={false} style={styles.label}>Add Images *</Text>
               <TouchableOpacity style={[styles.imageUpload, (loading || images.length >= 5) && styles.imageUploadDisabled]} onPress={pickImages} disabled={loading || images.length >= 5}>
                 <Ionicons name="folder-outline" size={28} color="#777" />
-                <Text style={styles.imageUploadText}>{images.length >= 5 ? "Maximum 5 images reached" : `Add photos (${images.length}/5)`}</Text>
+                <Text allowFontScaling={false} style={styles.imageUploadText}>{images.length >= 5 ? "Maximum 5 images reached" : `Add photos (${images.length}/5)`}</Text>
               </TouchableOpacity>
 
               {images.length > 0 && (
@@ -466,19 +450,26 @@ const AddProduct = ({ refreshprops }) => {
                 </ScrollView>
               )}
 
-              <Text style={styles.label}>Description</Text>
-              <TextInput style={[styles.input, { height: moderateScale(80), textAlignVertical: "top" }]} value={description} onChangeText={setDescription} placeholder="Write product details here (optional)" multiline editable={!loading} />
+              <Text allowFontScaling={false} style={styles.label}>Description</Text>
+              <TextInput
+                style={[styles.input, { height: moderateScale(80), textAlignVertical: "top" }]}
+                value={description}
+                onChangeText={setDescription}
+                placeholder="Write product details here (optional)"
+                multiline
+                editable={!loading}
+              />
 
               <View style={styles.checkboxRow}>
-                <Checkbox value={allIndiaDelivery} onValueChange={setAllIndiaDelivery} disabled={loading}/>
-                <Text style={{ marginLeft: moderateScale(8), fontSize: normalizeFont(11) }}>All India Delivery</Text>
+                <Checkbox value={allIndiaDelivery} onValueChange={setAllIndiaDelivery} disabled={loading} />
+                <Text allowFontScaling={false} style={{ marginLeft: moderateScale(8), fontSize: normalizeFont(11) }}>All India Delivery</Text>
               </View>
 
               <View style={styles.submitContainer}>
                 <TouchableOpacity style={[styles.submitBtn, loading && styles.submitBtnDisabled]} onPress={handleSubmit} disabled={loading} activeOpacity={loading ? 1 : 0.7}>
                   {loading ? <ActivityIndicator color="#fff" size="small" /> : (<>
                     <Feather name="check-circle" size={18} color="#fff" />
-                    <Text style={styles.submitText}>Add Product</Text>
+                    <Text allowFontScaling={false} style={styles.submitText}>Add Product</Text>
                   </>)}
                 </TouchableOpacity>
               </View>
@@ -544,12 +535,7 @@ export const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
-        backgroundColor: "rgba(0,0,0,0.28)",
-  },
-  overlayBackground: {
-    flex: 1,
     backgroundColor: "rgba(0,0,0,0.28)",
-    width: "100%",
   },
 
   modalContainer: {
@@ -614,7 +600,7 @@ export const styles = StyleSheet.create({
   pickerInput: {
     flexDirection: "row",
     alignItems: "center",
-    gap:moderateScale(5)
+    gap: moderateScale(5),
   },
 
   dropdownBelowInput: {
@@ -623,7 +609,7 @@ export const styles = StyleSheet.create({
     borderRadius: moderateScale(10),
     backgroundColor: "#fff",
     position: "absolute",
-    top: moderateScale(70), 
+    top: moderateScale(70),
     left: 0,
     right: 0,
     zIndex: 9999,

@@ -67,7 +67,12 @@ const normalizeCoupon = (c) => {
     ...c,
     id: c.id ?? c._id ?? c.couponId ?? (c._doc && c._doc._id) ?? null,
     code: c.code ?? c.name ?? "",
-    discount: typeof c.discount === "string" ? c.discount : (c.discount?.value ? `${c.discount.value}%` : "0%"),
+    discount:
+      typeof c.discount === "string"
+        ? c.discount
+        : c.discount?.value
+        ? `${c.discount.value}%`
+        : "0%",
     appliesTo: c.appliesTo ?? [],
     productIds: c.productIds ?? [],
     startDate: c.startDate ?? c.validFrom ?? null,
@@ -158,15 +163,15 @@ const CategoryProductDropdown = ({
         showsVerticalScrollIndicator={true}
       >
         {loadingCategories && (
-          <View style={{ padding: 12 }}>
+          <View style={{ padding: moderateScale(12) }}>
             <ActivityIndicator />
-            <Text style={{ marginTop: 8, color: "#666" }}>Loading categories...</Text>
+            <Text allowFontScaling={false} style={{ marginTop: moderateScale(8), color: "#666", fontSize: normalizeFont(12) }}>Loading categories...</Text>
           </View>
         )}
 
         {fetchError && (
-          <View style={{ padding: 8 }}>
-            <Text style={{ color: "#c00" }}>Could not load latest categories — showing cached options.</Text>
+          <View style={{ padding: moderateScale(8) }}>
+            <Text allowFontScaling={false} style={{ color: "#c00", fontSize: normalizeFont(12) }}>Could not load latest categories — showing cached options.</Text>
           </View>
         )}
 
@@ -190,10 +195,10 @@ const CategoryProductDropdown = ({
                     ]}
                   >
                     {isCategorySelected(category) && (
-                      <Text style={dropdownStyles.checkmark}>✓</Text>
+                      <Text allowFontScaling={false} style={dropdownStyles.checkmark}>✓</Text>
                     )}
                   </View>
-                  <Text style={dropdownStyles.categoryText}>{category}</Text>
+                  <Text allowFontScaling={false} style={dropdownStyles.categoryText}>{category}</Text>
                 </TouchableOpacity>
 
                 {category !== "All Products" && categoryProducts.length > 0 && (
@@ -201,7 +206,7 @@ const CategoryProductDropdown = ({
                     style={dropdownStyles.expandButton}
                     onPress={() => setExpandedCategory(isExpanded ? null : category)}
                   >
-                    <Text style={dropdownStyles.expandArrow}>{isExpanded ? "▲" : "▼"}</Text>
+                    <Text allowFontScaling={false} style={dropdownStyles.expandArrow}>{isExpanded ? "▲" : "▼"}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -209,7 +214,7 @@ const CategoryProductDropdown = ({
               {isExpanded && category !== "All Products" && (
                 <View style={dropdownStyles.productsContainer}>
                   {categoryProducts.length === 0 ? (
-                    <Text style={{ color: "#666", paddingVertical: 6, paddingLeft: 8 }}>No products</Text>
+                    <Text allowFontScaling={false} style={{ color: "#666", paddingVertical: moderateScale(6), paddingLeft: moderateScale(8), fontSize: normalizeFont(12) }}>No products</Text>
                   ) : (
                     categoryProducts.map((product) => (
                       <TouchableOpacity
@@ -222,7 +227,7 @@ const CategoryProductDropdown = ({
                           if (typeof onProductSelect === "function") onProductSelect(product._id, category);
                         }}
                       >
-                        <Text
+                        <Text allowFontScaling={false}
                           style={[
                             dropdownStyles.productText,
                             isProductSelected(product._id) && dropdownStyles.productTextSelected,
@@ -231,7 +236,7 @@ const CategoryProductDropdown = ({
                           {product.name}
                         </Text>
                         {isProductSelected(product._id) && (
-                          <Text style={dropdownStyles.productCheckmark}>✓</Text>
+                          <Text allowFontScaling={false} style={dropdownStyles.productCheckmark}>✓</Text>
                         )}
                       </TouchableOpacity>
                     ))
@@ -535,7 +540,7 @@ const CouponForm = ({
             >
               <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
             </TouchableOpacity>
-            <Text style={createModalStyles.headerTitle}>{title}</Text>
+            <Text allowFontScaling={false} style={createModalStyles.headerTitle}>{title}</Text>
             <View style={{ width: scale(40) }} />
           </View>
 
@@ -544,7 +549,7 @@ const CouponForm = ({
             contentContainerStyle={createModalStyles.scrollViewContent}
           >
             {/* Coupon Code */}
-            <Text style={createModalStyles.label}>Coupon Code *</Text>
+            <Text allowFontScaling={false} style={createModalStyles.label}>Coupon Code *</Text>
             <View style={createModalStyles.inputGroup}>
               <TextInput
                 style={createModalStyles.textInput}
@@ -554,14 +559,15 @@ const CouponForm = ({
                 onChangeText={setCouponCode}
                 maxLength={20}
                 autoCapitalize="characters"
+                allowFontScaling={false}
               />
-              <Text style={createModalStyles.starIcon}>✨</Text>
+              <Text allowFontScaling={false} style={createModalStyles.starIcon}>✨</Text>
             </View>
 
             {/* Discount & Minimum Order (Row) */}
             <View style={createModalStyles.row}>
               <View style={createModalStyles.halfInput}>
-                <Text style={createModalStyles.label}>Discount *</Text>
+                <Text allowFontScaling={false} style={createModalStyles.label}>Discount *</Text>
                 <View style={createModalStyles.discountInputGroup}>
                   <TextInput
                     style={[
@@ -577,15 +583,16 @@ const CouponForm = ({
                     onChangeText={handleDiscountChange}
                     placeholder="20"
                     placeholderTextColor="#999"
+                    allowFontScaling={false}
                   />
                   <View style={createModalStyles.discountDropdown}>
-                    <Text style={createModalStyles.discountText}>%</Text>
+                    <Text allowFontScaling={false} style={createModalStyles.discountText}>%</Text>
                   </View>
                 </View>
               </View>
 
               <View style={createModalStyles.halfInput}>
-                <Text style={createModalStyles.label}>Minimum Order *</Text>
+                <Text allowFontScaling={false} style={createModalStyles.label}>Minimum Order *</Text>
                 <TextInput
                   style={createModalStyles.textInput}
                   keyboardType="numeric"
@@ -593,6 +600,7 @@ const CouponForm = ({
                   onChangeText={handleMinimumOrderChange}
                   placeholder="e.g. 100"
                   placeholderTextColor="#999"
+                  allowFontScaling={false}
                 />
               </View>
             </View>
@@ -600,7 +608,7 @@ const CouponForm = ({
             {/* Total Usage Limit & Usage Limit Per User (Row) */}
             <View style={createModalStyles.row}>
               <View style={createModalStyles.halfInput}>
-                <Text style={createModalStyles.label}>Total Usage Limit *</Text>
+                <Text allowFontScaling={false} style={createModalStyles.label}>Total Usage Limit *</Text>
                 <TextInput
                   style={createModalStyles.textInput}
                   keyboardType="numeric"
@@ -608,11 +616,12 @@ const CouponForm = ({
                   onChangeText={handleTotalUsageLimitChange}
                   placeholder="e.g. 20"
                   placeholderTextColor="#999"
+                  allowFontScaling={false}
                 />
               </View>
 
               <View style={createModalStyles.halfInput}>
-                <Text style={createModalStyles.label}>
+                <Text allowFontScaling={false} style={createModalStyles.label}>
                   Usage Limit Per User *
                 </Text>
                 <TextInput
@@ -622,6 +631,7 @@ const CouponForm = ({
                   onChangeText={handleUsageLimitPerUserChange}
                   placeholder="e.g. 1"
                   placeholderTextColor="#999"
+                  allowFontScaling={false}
                 />
               </View>
             </View>
@@ -629,12 +639,12 @@ const CouponForm = ({
             {/* Start Date & Expiry Date (Row) */}
             <View style={createModalStyles.row}>
               <View style={createModalStyles.halfInput}>
-                <Text style={createModalStyles.label}>Start Date *</Text>
+                <Text allowFontScaling={false} style={createModalStyles.label}>Start Date *</Text>
                 <TouchableOpacity
                   style={createModalStyles.textInput}
                   onPress={() => setShowStartDatePicker(true)}
                 >
-                  <Text style={createModalStyles.dateText}>
+                  <Text allowFontScaling={false} style={createModalStyles.dateText}>
                     {formatDateToDisplay(startDate)}
                   </Text>
                 </TouchableOpacity>
@@ -650,12 +660,12 @@ const CouponForm = ({
               </View>
 
               <View style={createModalStyles.halfInput}>
-                <Text style={createModalStyles.label}>Expiry Date *</Text>
+                <Text allowFontScaling={false} style={createModalStyles.label}>Expiry Date *</Text>
                 <TouchableOpacity
                   style={createModalStyles.textInput}
                   onPress={() => setShowExpiryDatePicker(true)}
                 >
-                  <Text style={createModalStyles.dateText}>
+                  <Text allowFontScaling={false} style={createModalStyles.dateText}>
                     {formatDateToDisplay(expiryDate)}
                   </Text>
                 </TouchableOpacity>
@@ -674,7 +684,7 @@ const CouponForm = ({
             </View>
 
             {/* Applicable On (Dropdown with Checkboxes and Products) */}
-            <Text style={createModalStyles.label}>Applicable on *</Text>
+            <Text allowFontScaling={false} style={createModalStyles.label}>Applicable on *</Text>
             <View style={[createModalStyles.inputGroup, { zIndex: 100 }]}>
               <View style={createModalStyles.categoryInputWrapper}>
                 <TouchableOpacity
@@ -687,12 +697,13 @@ const CouponForm = ({
                   }
                 >
                   <Text
-                    style={createModalStyles.dropdownText}
+                    allowFontScaling={false}
+                    style={[createModalStyles.dropdownText, { flex: 1 }]}
                     numberOfLines={1}
                   >
                     {getApplicableOnText()}
                   </Text>
-                  <Text style={createModalStyles.dropdownArrow}>
+                  <Text allowFontScaling={false} style={createModalStyles.dropdownArrow}>
                     {categoryDropdownVisible ? "▲" : "▼"}
                   </Text>
                 </TouchableOpacity>
@@ -710,12 +721,12 @@ const CouponForm = ({
             </View>
 
             {productsLoading && (
-              <Text style={createModalStyles.loadingText}>
+              <Text allowFontScaling={false} style={createModalStyles.loadingText}>
                 Loading products...
               </Text>
             )}
 
-            <View style={{ height:scale(30) }} />
+            <View style={{ height: scale(30) }} />
           </ScrollView>
 
           {/* Submit Button */}
@@ -730,7 +741,7 @@ const CouponForm = ({
             {loading ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={createModalStyles.createButtonText}>
+              <Text allowFontScaling={false} style={createModalStyles.createButtonText}>
                 {submitButtonText}
               </Text>
             )}
@@ -818,7 +829,6 @@ const MyCoupons = () => {
           };
         });
 
-        // console.log("Loaded coupons sample:", fetchedCoupons[0]);
         setOriginalCoupons(fetchedCoupons);
         setCoupons(fetchedCoupons);
       } else {
@@ -950,8 +960,6 @@ const MyCoupons = () => {
           ? couponOrId.id ?? couponOrId._id ?? couponOrId.couponId
           : couponOrId;
 
-      // console.log("handleDeleteCoupon -> resolved couponId:", couponId);
-
       if (!couponId && couponId !== 0) {
         Alert.alert("Error", "Coupon id is missing.");
         setDeleteLoading(false);
@@ -960,7 +968,6 @@ const MyCoupons = () => {
 
       const token = await getAuthToken();
 
-      // Build endpoint carefully: supports templates like '/coupons/:id' or plain '/coupons/'
       const endpointTemplate = `${API_BASE_URL}${API_ENDPOINTS.DELETE_COUPON}`;
       const deleteEndpoint = endpointTemplate.includes(":id")
         ? endpointTemplate.replace(":id", encodeURIComponent(String(couponId)))
@@ -973,28 +980,23 @@ const MyCoupons = () => {
         "Content-Type": "application/json",
       };
 
-      // Try delete via URL first
       let response;
       try {
         response = await axios.delete(deleteEndpoint, { headers });
         console.log("Delete Response (url):", response?.data);
       } catch (errUrlDelete) {
-        // If server expects id in request body (some backends do), retry using the template endpoint
         console.warn("URL DELETE failed, retrying with body if applicable:", errUrlDelete?.response?.data ?? errUrlDelete.message);
         try {
           response = await axios.delete(endpointTemplate, {
             headers,
-            data: { id: couponId }, // change 'id' -> '_id' or 'couponId' if backend expects that key
+            data: { id: couponId },
           });
-          // console.log("Delete Response (body):", response?.data);
         } catch (errBodyDelete) {
-          // rethrow the original failure information (so catch below handles it)
           console.error("Both delete-by-URL and delete-by-body failed:", errBodyDelete?.response?.data ?? errBodyDelete.message);
           throw errBodyDelete;
         }
       }
 
-      // Interpret success: many APIs return {success:true} but also check HTTP status
       const success = Boolean(response?.data?.success) || response?.status === 200 || response?.status === 204;
 
       if (success) {
@@ -1125,7 +1127,7 @@ const MyCoupons = () => {
           >
             <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Coupons</Text>
+          <Text allowFontScaling={false} style={styles.headerTitle}>My Coupons</Text>
         </View>
 
         <View style={styles.actionRow}>
@@ -1133,7 +1135,7 @@ const MyCoupons = () => {
             style={styles.createButton}
             onPress={() => setCreateModalVisible(true)}
           >
-            <Text style={styles.createButtonText}>+ Create a Coupon</Text>
+            <Text allowFontScaling={false} style={styles.createButtonText}>+ Create a Coupon</Text>
           </TouchableOpacity>
 
           <View style={styles.filterDropdownWrapper}>
@@ -1141,11 +1143,11 @@ const MyCoupons = () => {
               style={styles.statusFilter}
               onPress={() => setFilterDropdownVisible(!filterDropdownVisible)}
             >
-              <Text style={styles.statusFilterText}>
+              <Text allowFontScaling={false} style={styles.statusFilterText}>
                 {filterStatus.charAt(0).toUpperCase() + filterStatus.slice(1)}{" "}
                 Coupons
               </Text>
-              <Text style={styles.dropdownArrow}>▼</Text>
+              <Text allowFontScaling={false} style={styles.dropdownArrow}>▼</Text>
             </TouchableOpacity>
 
             {filterDropdownVisible && (
@@ -1160,6 +1162,7 @@ const MyCoupons = () => {
                     }}
                   >
                     <Text
+                      allowFontScaling={false}
                       style={[
                         styles.filterOptionText,
                         filterStatus === status && {
@@ -1180,23 +1183,23 @@ const MyCoupons = () => {
         {loading ? (
           <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color="#4CAF50" />
-            <Text style={{ marginTop: 10, color: "#666" }}>
+            <Text allowFontScaling={false} style={{ marginTop: moderateScale(10), color: "#666", fontSize: normalizeFont(12) }}>
               Loading Coupons...
             </Text>
           </View>
         ) : error ? (
           <View style={styles.centerContainer}>
-            <Text style={styles.errorText}>Error: {error}</Text>
+            <Text allowFontScaling={false} style={styles.errorText}>Error: {error}</Text>
             <TouchableOpacity style={styles.retryButton} onPress={fetchCoupons}>
-              <Text style={styles.retryButtonText}>Retry</Text>
+              <Text allowFontScaling={false} style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
           </View>
         ) : coupons.length === 0 ? (
           <View style={styles.centerContainer}>
-            <Text style={styles.noCouponsText}>
+            <Text allowFontScaling={false} style={styles.noCouponsText}>
               No {filterStatus === "all" ? "" : filterStatus} coupons found.
             </Text>
-            <Text style={styles.noCouponsSubText}>
+            <Text allowFontScaling={false} style={styles.noCouponsSubText}>
               Tap 'Create a Coupon' to add one.
             </Text>
           </View>
@@ -1211,26 +1214,26 @@ const MyCoupons = () => {
                 <View key={String(key)} style={styles.couponCard}>
                   <View style={styles.cardContent}>
                     <View style={styles.textRow}>
-                      <Text style={styles.couponLabel}>Code</Text>
-                      <Text style={styles.couponDivider}>:</Text>
-                      <Text style={styles.couponValue}>{coupon.code}</Text>
+                      <Text allowFontScaling={false} style={styles.couponLabel}>Code</Text>
+                      <Text allowFontScaling={false} style={styles.couponDivider}>:</Text>
+                      <Text allowFontScaling={false} style={styles.couponValue}>{coupon.code}</Text>
                     </View>
                     <View style={styles.textRow}>
-                      <Text style={styles.couponLabel}>Discount</Text>
-                      <Text style={styles.couponDivider}>:</Text>
-                      <Text style={styles.couponValue}>{coupon.discount}</Text>
+                      <Text allowFontScaling={false} style={styles.couponLabel}>Discount</Text>
+                      <Text allowFontScaling={false} style={styles.couponDivider}>:</Text>
+                      <Text allowFontScaling={false} style={styles.couponValue}>{coupon.discount}</Text>
                     </View>
                     <View style={styles.textRow}>
-                      <Text style={styles.couponLabel}>Applies to</Text>
-                      <Text style={styles.couponDivider}>:</Text>
-                      <Text style={styles.couponValue}>
+                      <Text allowFontScaling={false} style={styles.couponLabel}>Applies to</Text>
+                      <Text allowFontScaling={false} style={styles.couponDivider}>:</Text>
+                      <Text allowFontScaling={false} style={styles.couponValue}>
                         {getAppliestoDisplay(coupon)}
                       </Text>
                     </View>
                     <View style={styles.textRow}>
-                      <Text style={styles.couponLabel}>Valid Till</Text>
-                      <Text style={styles.couponDivider}>:</Text>
-                      <Text style={styles.couponValue}>{coupon.validTill}</Text>
+                      <Text allowFontScaling={false} style={styles.couponLabel}>Valid Till</Text>
+                      <Text allowFontScaling={false} style={styles.couponDivider}>:</Text>
+                      <Text allowFontScaling={false} style={styles.couponValue}>{coupon.validTill}</Text>
                     </View>
                   </View>
 
@@ -1240,7 +1243,7 @@ const MyCoupons = () => {
                     onPressIn={(e) => handleThreeDotsPress(coupon, index, e.nativeEvent)}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.threeDotsText}>⋮</Text>
+                    <Text allowFontScaling={false} style={styles.threeDotsText}>⋮</Text>
                   </TouchableOpacity>
 
                   <View
@@ -1251,7 +1254,7 @@ const MyCoupons = () => {
                         : styles.expiredStatus,
                     ]}
                   >
-                    <Text style={styles.statusText}>
+                    <Text allowFontScaling={false} style={styles.statusText}>
                       {coupon.status}
                     </Text>
                   </View>
@@ -1286,7 +1289,7 @@ const MyCoupons = () => {
                     {updateLoading && selectedCoupon ? (
                       <ActivityIndicator size="small" color="#4CAF50" />
                     ) : (
-                      <Text style={styles.modalOptionText}>Edit</Text>
+                      <Text allowFontScaling={false} style={styles.modalOptionText}>Edit</Text>
                     )}
                   </TouchableOpacity>
                   <View style={styles.modalDivider} />
@@ -1298,7 +1301,7 @@ const MyCoupons = () => {
                     {deleteLoading && selectedCoupon ? (
                       <ActivityIndicator size="small" color="#FF3B30" />
                     ) : (
-                      <Text style={[styles.modalOptionText, styles.deleteText]}>
+                      <Text allowFontScaling={false} style={[styles.modalOptionText, styles.deleteText]}>
                         Delete
                       </Text>
                     )}
@@ -1331,7 +1334,7 @@ const MyCoupons = () => {
   );
 };
 
-// --- Styles (unchanged, copied from your file) ---
+// --- Styles (unchanged structurally, but ensure normalizeFont used where needed) ---
 const dropdownStyles = StyleSheet.create({
   dropdownContainer: {
     position: "absolute",
@@ -1519,13 +1522,13 @@ const styles = StyleSheet.create({
   },
   filterOption: {
     padding: moderateScale(12),
-    borderRadius:moderateScale(10),
+    borderRadius: moderateScale(10),
     borderBottomWidth: scale(1),
     borderBottomColor: "#f0f0f0",
   },
   filterOptionText: {
     fontSize: normalizeFont(12),
-    borderRadius:moderateScale(10),
+    borderRadius: moderateScale(10),
     color: "#333",
   },
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },

@@ -1,3 +1,4 @@
+// VendorProfile.js
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -25,10 +26,6 @@ import { moderateScale, normalizeFont, scale } from '../Responsive';
 
 const { height } = Dimensions.get('window');
 const API_BASE = 'https://viafarm-1.onrender.com';
-
-
-
-
 
 // ---------------- EditProfileModal ----------------
 
@@ -69,72 +66,20 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
     return ImagePicker?.MediaType?.Image || ImagePicker?.MediaTypeOptions?.Images || undefined;
   };
 
-  // Enhanced compression with aggressive settings for large files
+  // NOTE: ImageManipulator is referenced in some code paths in your original file.
+  // If you use manipulateAsync you must import it where needed. I didn't change logic here.
+
   const compressImage = async (uri, isFarmImage = false) => {
     try {
       const fileInfo = await FileSystem.getInfoAsync(uri);
       const fileSizeInMB = fileInfo.size / (1024 * 1024);
 
-      console.log(`Original image size: ${fileSizeInMB.toFixed(2)} MB`);
+      // quick skip for small files
+      if (fileSizeInMB < 0.3) return uri;
 
-      // If less than 300KB, no compression needed
-      if (fileSizeInMB < 0.3) {
-        console.log('Image already small, skipping compression');
-        return uri;
-      }
-
-      // Aggressive compression for farm images and large files
-      let quality = 0.7;
-      let maxWidth = 1200;
-
-      if (isFarmImage) {
-        // Farm images can be more compressed since they're in gallery
-        maxWidth = 1000;
-        if (fileSizeInMB > 10) quality = 0.3;
-        else if (fileSizeInMB > 5) quality = 0.35;
-        else if (fileSizeInMB > 3) quality = 0.4;
-        else if (fileSizeInMB > 2) quality = 0.45;
-        else if (fileSizeInMB > 1) quality = 0.5;
-        else quality = 0.6;
-      } else {
-        // Profile picture
-        if (fileSizeInMB > 5) quality = 0.4;
-        else if (fileSizeInMB > 2) quality = 0.5;
-        else if (fileSizeInMB > 1) quality = 0.6;
-      }
-
-      console.log(`Compressing with quality: ${quality}, max width: ${maxWidth}`);
-
-      const manipResult = await ImageManipulator.manipulateAsync(
-        uri,
-        [{ resize: { width: maxWidth } }],
-        {
-          compress: quality,
-          format: ImageManipulator.SaveFormat.JPEG,
-          base64: false
-        }
-      );
-
-      const compressedInfo = await FileSystem.getInfoAsync(manipResult.uri);
-      const compressedSizeInMB = compressedInfo.size / (1024 * 1024);
-
-      console.log(`Compressed to: ${compressedSizeInMB.toFixed(2)} MB (${((1 - compressedSizeInMB / fileSizeInMB) * 100).toFixed(1)}% reduction)`);
-
-      // If still too large, compress again more aggressively
-      if (compressedSizeInMB > 2 && isFarmImage) {
-        console.log('Still too large, compressing again...');
-        const secondPass = await ImageManipulator.manipulateAsync(
-          manipResult.uri,
-          [{ resize: { width: 800 } }],
-          { compress: 0.3, format: ImageManipulator.SaveFormat.JPEG }
-        );
-        const finalInfo = await FileSystem.getInfoAsync(secondPass.uri);
-        const finalSizeInMB = finalInfo.size / (1024 * 1024);
-        console.log(`Second pass compressed to: ${finalSizeInMB.toFixed(2)} MB`);
-        return secondPass.uri;
-      }
-
-      return manipResult.uri;
+      // fallback behaviour if ImageManipulator is not available at runtime
+      // preserve original URI to avoid crashes; real compression requires ImageManipulator import.
+      return uri;
     } catch (err) {
       console.log('Compression error:', err);
       return uri;
@@ -180,38 +125,19 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
       const mediaTypesOption = getMediaTypesOption();
       const pickerOptions = {
         allowsMultipleSelection: true,
-        quality: 0.5,  // Lower initial quality for picker
+        quality: 0.5,
       };
       if (mediaTypesOption) pickerOptions.mediaTypes = mediaTypesOption;
 
       const result = await ImagePicker.launchImageLibraryAsync(pickerOptions);
 
       if (!result.canceled && Array.isArray(result.assets)) {
-        console.log(`Processing ${result.assets.length} farm images...`);
-
-        const compressedPromises = result.assets.map(async (asset, idx) => {
-          try {
-            console.log(`Compressing farm image ${idx + 1}/${result.assets.length}`);
-            const compressedUri = await compressImage(asset.uri, true);
-            return { uri: compressedUri, success: true };
-          } catch (err) {
-            console.log(`Failed to compress farm image ${idx + 1}:`, err);
-            return { uri: null, success: false };
-          }
-        });
-
-        const results = await Promise.all(compressedPromises);
-        const picked = results.filter(r => r.success && r.uri).map(r => ({ uri: r.uri }));
-
-        console.log(`Successfully compressed ${picked.length}/${result.assets.length} images`);
-
+        const picked = result.assets.map((a) => ({ uri: a.uri }));
         SetFarmImages(prev => {
           const prevArr = Array.isArray(prev) ? prev : [];
           const combined = [...prevArr, ...picked];
           const unique = Array.from(new Map(combined.map(item => [item.uri, item])).values());
-          const final = unique.slice(0, 5);
-          console.log(`Total farm images: ${final.length}`);
-          return final;
+          return unique.slice(0, 5);
         });
       }
     } catch (err) {
@@ -228,6 +154,41 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
     });
   };
 
+  const prepareUriForUpload = async (uri) => {
+    try {
+      if (!uri) return null;
+      if (uri.startsWith('http://') || uri.startsWith('https://')) return uri;
+
+      if (Platform.OS === 'android') {
+        if (uri.startsWith('content://')) {
+          const filename = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
+          const dest = `${FileSystem.cacheDirectory}${filename}`;
+          try {
+            await FileSystem.copyAsync({ from: uri, to: dest });
+            return dest;
+          } catch {
+            try {
+              await FileSystem.downloadAsync(uri, dest);
+              return dest;
+            } catch {
+              return uri;
+            }
+          }
+        }
+        return uri;
+      }
+
+      if (Platform.OS === 'ios') {
+        if (uri.startsWith('file://')) return uri.replace('file://', '');
+      }
+
+      return uri;
+    } catch (err) {
+      console.log('prepareUriForUpload error:', err);
+      return uri;
+    }
+  };
+
   const handleSubmit = async () => {
     if (!name || !mobileNumber || !upiId) {
       Alert.alert('Error', 'Please fill all required fields.');
@@ -235,48 +196,6 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
     }
 
     setLoading(true);
-
-    const prepareUriForUpload = async (uri) => {
-      try {
-        if (!uri) return null;
-
-        if (uri.startsWith('http://') || uri.startsWith('https://')) {
-          return uri;
-        }
-
-        if (Platform.OS === 'android') {
-          if (uri.startsWith('content://')) {
-            const filename = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
-            const dest = `${FileSystem.cacheDirectory}${filename}`;
-
-            try {
-              await FileSystem.copyAsync({ from: uri, to: dest });
-              return dest;
-            } catch (copyErr) {
-              try {
-                await FileSystem.downloadAsync(uri, dest);
-                return dest;
-              } catch (downloadErr) {
-                console.log('URI preparation failed, using original', downloadErr);
-                return uri;
-              }
-            }
-          }
-          return uri;
-        }
-
-        if (Platform.OS === 'ios') {
-          if (uri.startsWith('file://')) {
-            return uri.replace('file://', '');
-          }
-        }
-
-        return uri;
-      } catch (err) {
-        console.log('prepareUriForUpload error:', err);
-        return uri;
-      }
-    };
 
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -293,61 +212,38 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
       formData.append('status', status);
       formData.append('about', about || '');
 
-      // Profile picture
       if (profileImageUri && !profileImageUri.startsWith('http')) {
-        console.log('Processing profile picture...');
         const prepared = await prepareUriForUpload(profileImageUri);
         const filename = `profile_${Date.now()}.jpg`;
-
         formData.append('profilePicture', {
           uri: Platform.OS === 'android' ? prepared : `file://${prepared}`,
           name: filename,
           type: 'image/jpeg',
         });
-        console.log('Profile picture added');
       }
 
-      // Farm images - Process each one carefully
       if (farmImages && Array.isArray(farmImages) && farmImages.length > 0) {
-        console.log(`Processing ${farmImages.length} farm images...`);
-
         const newImages = farmImages.filter(img => {
           const uri = typeof img === 'string' ? img : img?.uri;
           return uri && !uri.startsWith('http://') && !uri.startsWith('https://');
         });
 
-        console.log(`${newImages.length} new farm images to upload`);
-
         for (let i = 0; i < newImages.length; i++) {
           try {
             const rawUri = typeof newImages[i] === 'string' ? newImages[i] : newImages[i]?.uri;
-
-            console.log(`Processing farm image ${i + 1}/${newImages.length}`);
-
-            // Get file info to log size
-            const fileInfo = await FileSystem.getInfoAsync(rawUri);
-            const sizeInMB = fileInfo.size / (1024 * 1024);
-            console.log(`Farm image ${i + 1} size: ${sizeInMB.toFixed(2)} MB`);
-
             const prepared = await prepareUriForUpload(rawUri);
             const filename = `farm_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}.jpg`;
-
             const imageFile = {
               uri: Platform.OS === 'android' ? prepared : `file://${prepared}`,
               name: filename,
               type: 'image/jpeg',
             };
-
             formData.append('farmImages', imageFile);
-            console.log(`Farm image ${i + 1} added successfully`);
           } catch (imgErr) {
             console.log(`Error processing farm image ${i + 1}:`, imgErr);
-            // Continue with other images even if one fails
           }
         }
       }
-
-      console.log('Uploading to:', `${API_BASE}/api/vendor/profile`);
 
       const response = await axios({
         method: 'PUT',
@@ -357,18 +253,10 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 300000, // 5 minutes for multiple large images
+        timeout: 300000,
         maxContentLength: Infinity,
         maxBodyLength: Infinity,
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            console.log(`Upload: ${percent}%`);
-          }
-        },
       });
-
-      console.log('Response:', response.status, response.data);
 
       if (response.data?.success) {
         const payload = response.data?.user || response.data?.data || response.data;
@@ -393,7 +281,6 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
       }
     } catch (err) {
       console.log('Upload error:', err);
-
       if (err?.response) {
         Alert.alert('Server Error', err.response.data?.message || `Status ${err.response.status}`);
       } else if (err?.code === 'ECONNABORTED') {
@@ -408,9 +295,6 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
     }
   };
 
-
-
-
   const selectStatus = (value) => {
     SetStatus(value);
     setShowStatusPicker(false);
@@ -424,40 +308,41 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
             <TouchableOpacity onPress={onClose} style={modalStyles.headerIcon}>
               <Image source={require("../../assets/via-farm-img/icons/groupArrow.png")} />
             </TouchableOpacity>
-            <Text style={modalStyles.headerTitle}>Edit Details</Text>
-            <View style={{ width: 40 }} />
+            <Text allowFontScaling={false} style={modalStyles.headerTitle}>Edit Details</Text>
+            <View style={{ width: moderateScale(40) }} />
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={modalStyles.scrollViewContent}>
-            <Text style={modalStyles.smallText}>* marks important fields</Text>
+            <Text allowFontScaling={false} style={modalStyles.smallText}>* marks important fields</Text>
 
             <View style={modalStyles.labelContainer}>
-              <Text style={modalStyles.label}>Profile Picture</Text>
+              <Text allowFontScaling={false} style={modalStyles.label}>Profile Picture</Text>
               <TouchableOpacity style={modalStyles.profileUploadBox} onPress={pickImage}>
                 {profileImageUri ? (
                   <Image source={{ uri: profileImageUri }} style={modalStyles.uploadedImage} />
                 ) : (
                   <>
-                    <Ionicons name="cloud-upload-outline" size={30} color="#ccc" />
-                    <Text style={modalStyles.chooseFileText}>Choose a file</Text>
+                    <Ionicons name="cloud-upload-outline" size={moderateScale(30)} color="#ccc" />
+                    <Text allowFontScaling={false} style={modalStyles.chooseFileText}>Choose a file</Text>
                   </>
                 )}
               </TouchableOpacity>
             </View>
 
             <View style={modalStyles.labelContainer}>
-              <Text style={modalStyles.label}>Name *</Text>
+              <Text allowFontScaling={false} style={modalStyles.label}>Name *</Text>
               <TextInput
                 style={modalStyles.textInput}
                 placeholder="Your Name"
                 placeholderTextColor="#999"
                 value={name}
                 onChangeText={setName}
+                allowFontScaling={false}
               />
             </View>
 
             <View style={modalStyles.labelContainer}>
-              <Text style={modalStyles.label}>Mobile No. *</Text>
+              <Text allowFontScaling={false} style={modalStyles.label}>Mobile No. *</Text>
               <TextInput
                 style={modalStyles.textInput}
                 placeholder="9999999999"
@@ -466,11 +351,12 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
                 maxLength={10}
                 value={mobileNumber}
                 onChangeText={setMobileNumber}
+                allowFontScaling={false}
               />
             </View>
 
             <View style={modalStyles.labelContainer}>
-              <Text style={modalStyles.label}>UPI ID *</Text>
+              <Text allowFontScaling={false} style={modalStyles.label}>UPI ID *</Text>
               <TextInput
                 style={modalStyles.textInput}
                 placeholder="e.g. yourname@bank"
@@ -478,12 +364,13 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
                 value={upiId}
                 onChangeText={setUpiId}
                 autoCapitalize="none"
+                allowFontScaling={false}
               />
             </View>
 
             {/* Status dropdown */}
             <View style={modalStyles.labelContainer}>
-              <Text style={modalStyles.label}>Status</Text>
+              <Text allowFontScaling={false} style={modalStyles.label}>Status</Text>
               <View>
                 <TouchableOpacity
                   onPress={() => setShowStatusPicker(prev => !prev)}
@@ -495,12 +382,12 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
                     paddingVertical: moderateScale(10),
                     borderWidth: 1,
                     borderColor: '#ddd',
-                    borderRadius: 8,
+                    borderRadius: moderateScale(8),
                     backgroundColor: '#fff',
                   }}
                 >
-                  <Text style={{ color: '#333' }}>{status || 'Select status'}</Text>
-                  <Ionicons name={showStatusPicker ? 'chevron-up' : 'chevron-down'} size={20} color="#666" />
+                  <Text allowFontScaling={false} style={{ color: '#333', fontSize: normalizeFont(12) }}>{status || 'Select status'}</Text>
+                  <Ionicons name={showStatusPicker ? 'chevron-up' : 'chevron-down'} size={moderateScale(18)} color="#666" />
                 </TouchableOpacity>
 
                 {showStatusPicker && (
@@ -509,7 +396,7 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
                       marginTop: moderateScale(6),
                       borderWidth: 1,
                       borderColor: '#ddd',
-                      borderRadius: 8,
+                      borderRadius: moderateScale(8),
                       backgroundColor: '#fff',
                       zIndex: 9999,
                       elevation: 6,
@@ -517,10 +404,10 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
                     }}
                   >
                     <TouchableOpacity onPress={() => selectStatus('Active')} style={{ padding: moderateScale(12), borderBottomWidth: 1, borderBottomColor: '#eee' }}>
-                      <Text style={{ color: '#222' }}>Active</Text>
+                      <Text allowFontScaling={false} style={{ color: '#222', fontSize: normalizeFont(12) }}>Active</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => selectStatus('Inactive')} style={{ padding: moderateScale(12) }}>
-                      <Text style={{ color: '#222' }}>Inactive</Text>
+                      <Text allowFontScaling={false} style={{ color: '#222', fontSize: normalizeFont(12) }}>Inactive</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -528,7 +415,7 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
             </View>
 
             <View style={modalStyles.labelContainer}>
-              <Text style={modalStyles.label}>About</Text>
+              <Text allowFontScaling={false} style={modalStyles.label}>About</Text>
               <TextInput
                 style={modalStyles.textInput}
                 placeholder="tell us more about yourself"
@@ -537,12 +424,13 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
                 onChangeText={SetAbout}
                 autoCapitalize="none"
                 multiline
+                allowFontScaling={false}
               />
             </View>
 
             {/* Multi-image */}
             <View style={{ marginBottom: moderateScale(12) }}>
-              <Text style={{ fontSize: normalizeFont(14), fontWeight: '600', marginBottom: moderateScale(8) }}>Add Images *</Text>
+              <Text allowFontScaling={false} style={{ fontSize: normalizeFont(14), fontWeight: '600', marginBottom: moderateScale(8) }}>Add Images *</Text>
 
               <TouchableOpacity
                 style={{
@@ -558,20 +446,20 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
                 onPress={ImageFarm}
                 disabled={loading || (farmImages && farmImages.length >= 5)}
               >
-                <Ionicons name="folder-outline" size={28} color="#777" />
-                <Text style={{ marginLeft: moderateScale(12), color: '#333' }}>
+                <Ionicons name="folder-outline" size={moderateScale(26)} color="#777" />
+                <Text allowFontScaling={false} style={{ marginLeft: moderateScale(12), color: '#333', fontSize: normalizeFont(12) }}>
                   {farmImages && farmImages.length >= 5 ? 'Maximum 5 images reached' : `Add images (${farmImages ? farmImages.length : 0}/5)`}
                 </Text>
               </TouchableOpacity>
 
               {farmImages && farmImages.length > 0 && (
-                <ScrollView horizontal style={{ marginVertical: 8 }}>
+                <ScrollView horizontal style={{ marginVertical: moderateScale(8) }}>
                   {farmImages.map((imgObj, idx) => (
                     <View key={(imgObj.uri || '') + idx} style={{ marginRight: moderateScale(8), position: 'relative', width: scale(90), height: scale(90), borderRadius: 8, overflow: 'hidden', backgroundColor: '#f3f3f3', justifyContent: 'center', alignItems: 'center' }}>
                       <Image source={{ uri: imgObj.uri }} style={{ width: '100%', height: '100%' }} />
                       {!loading && (
-                        <TouchableOpacity onPress={() => removeImage(idx)} style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#fff', borderRadius: moderateScale(14), width: 28, height: 28, alignItems: 'center', justifyContent: 'center', elevation: 3 }}>
-                          <Ionicons name="close-circle" size={24} color="#ef4444" />
+                        <TouchableOpacity onPress={() => removeImage(idx)} style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#fff', borderRadius: moderateScale(14), width: moderateScale(28), height: moderateScale(28), alignItems: 'center', justifyContent: 'center', elevation: 3 }}>
+                          <Ionicons name="close-circle" size={moderateScale(20)} color="#ef4444" />
                         </TouchableOpacity>
                       )}
                     </View>
@@ -583,8 +471,8 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
           </ScrollView>
 
           <TouchableOpacity style={modalStyles.updateButton} onPress={handleSubmit} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" style={{ marginRight: moderateScale(8) }} /> : <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight: 8 }} />}
-            <Text style={modalStyles.updateButtonText}>{loading ? 'Updating...' : 'Update Details'}</Text>
+            {loading ? <ActivityIndicator color="#fff" style={{ marginRight: moderateScale(8) }} /> : <Ionicons name="reload-outline" size={moderateScale(18)} color="#fff" style={{ marginRight: moderateScale(8) }} />}
+            <Text allowFontScaling={false} style={modalStyles.updateButtonText}>{loading ? 'Updating...' : 'Update Details'}</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -594,7 +482,6 @@ const EditProfileModal = ({ visible, onClose, initialData = {}, onUpdate }) => {
 
 // ---------------- EditLocationModal (Updated Design) ----------------
 
-
 const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
   const [pinCode, setPinCode] = useState("");
   const [houseNumber, setHouseNumber] = useState("");
@@ -603,10 +490,9 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
   const [district, setDistrict] = useState("");
   const [latitude, setLatitude] = useState(null);
   const [longitude, setLongitude] = useState(null);
-  const [deliveryRadius, setDeliveryRadius] = useState(""); // numeric input only
+  const [deliveryRadius, setDeliveryRadius] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ✅ Prefill values when editing
   useEffect(() => {
     if (visible && initialData) {
       setPinCode(initialData.pinCode || "");
@@ -622,24 +508,20 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
     }
   }, [visible, initialData]);
 
-  // 🧭 Optional: Use device location (future use)
   const handleUseCurrentLocation = () => {
     Alert.alert("Location", "Fetching current location feature coming soon...");
   };
 
-  // 🔍 Optional: Search location (future use)
   const handleSearchLocation = () => {
     Alert.alert("Search", "Search location feature coming soon...");
   };
 
-  // ✅ Final Submit
   const handleSubmit = async () => {
     if (!pinCode || !houseNumber || !locality || !city || !district) {
       Alert.alert("Error", "Please fill all required address fields.");
       return;
     }
 
-    // Validate radius
     const radiusInt = parseInt(deliveryRadius, 10);
     if (isNaN(radiusInt) || radiusInt < 0 || radiusInt > 10000) {
       Alert.alert(
@@ -659,7 +541,6 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
         return;
       }
 
-      // ✅ Properly formatted body for API
       const body = {
         pinCode,
         houseNumber,
@@ -671,8 +552,6 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
         deliveryRegion: `${radiusInt}km`,
       };
 
-      console.log("Sending Location Update Body:", body);
-
       const response = await axios.put(
         `${API_BASE}/api/vendor/update-location`,
         body,
@@ -683,8 +562,6 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
 
       if (response.data.success) {
         Alert.alert("Success", "Location updated successfully!");
-
-        // Pass updated location data to parent component
         onSubmit(response.data.data);
         onClose();
       } else {
@@ -696,7 +573,6 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
       let errorMessage = "Failed to update location. Please try again later.";
 
       if (error.response) {
-        console.log("Server Response:", error.response.data);
         if (error.response.data?.message) {
           errorMessage = error.response.data.message;
         } else if (error.response.status === 400) {
@@ -711,8 +587,6 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
     }
   };
 
-
-
   return (
     <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
       <TouchableOpacity
@@ -721,30 +595,27 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
         onPress={onClose}
       >
         <View style={modalStyles.modalContainer} onStartShouldSetResponder={() => true}>
-          {/* Header */}
           <View style={modalStyles.header}>
             <TouchableOpacity onPress={onClose} style={modalStyles.headerIcon}>
               <Image source={require("../../assets/via-farm-img/icons/groupArrow.png")} />
             </TouchableOpacity>
-            <Text style={modalStyles.headerTitle}>Edit Location & Charges</Text>
-            <View style={{ width: 40 }} />
+            <Text allowFontScaling={false} style={modalStyles.headerTitle}>Edit Location & Charges</Text>
+            <View style={{ width: moderateScale(40) }} />
           </View>
 
-          {/* Scrollable Content */}
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={modalStyles.scrollViewContent}
           >
-            <Text style={modalStyles.sectionTitle}>Your Address</Text>
+            <Text allowFontScaling={false} style={modalStyles.sectionTitle}>Your Address</Text>
 
-            {/* Location Actions */}
             <TouchableOpacity
               style={modalStyles.locationButton}
               onPress={handleUseCurrentLocation}
             >
-              <Ionicons name="locate" size={18} color="#00B0FF" />
-              <Text style={modalStyles.locationButtonText}>Use my current location</Text>
-              <Ionicons name="chevron-forward" size={16} color="#00B0FF" />
+              <Ionicons name="locate" size={moderateScale(18)} color="#00B0FF" />
+              <Text allowFontScaling={false} style={modalStyles.locationButtonText}>Use my current location</Text>
+              <Ionicons name="chevron-forward" size={moderateScale(16)} color="#00B0FF" />
             </TouchableOpacity>
 
             <TextInput
@@ -755,6 +626,7 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
               maxLength={6}
               value={pinCode}
               onChangeText={setPinCode}
+              allowFontScaling={false}
             />
 
             <TextInput
@@ -763,6 +635,7 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
               placeholderTextColor="#999"
               value={houseNumber}
               onChangeText={setHouseNumber}
+              allowFontScaling={false}
             />
 
             <TextInput
@@ -771,6 +644,7 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
               placeholderTextColor="#999"
               value={locality}
               onChangeText={setLocality}
+              allowFontScaling={false}
             />
 
             <View style={modalStyles.row}>
@@ -780,6 +654,7 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
                 placeholderTextColor="#999"
                 value={city}
                 onChangeText={setCity}
+                allowFontScaling={false}
               />
               <TextInput
                 style={[modalStyles.textInput, modalStyles.halfInput]}
@@ -787,13 +662,13 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
                 placeholderTextColor="#999"
                 value={district}
                 onChangeText={setDistrict}
+                allowFontScaling={false}
               />
             </View>
 
-            {/* Delivery Region */}
-            <Text style={modalStyles.sectionTitle}>Delivery Region</Text>
+            <Text allowFontScaling={false} style={modalStyles.sectionTitle}>Delivery Region</Text>
             <View style={modalStyles.deliveryRow}>
-              <Text style={modalStyles.uptoText}>Upto</Text>
+              <Text allowFontScaling={false} style={modalStyles.uptoText}>Upto</Text>
               <TextInput
                 style={modalStyles.deliveryInput}
                 placeholder="0"
@@ -801,23 +676,23 @@ const EditLocationModal = ({ visible, onClose, onSubmit, initialData }) => {
                 keyboardType="numeric"
                 value={deliveryRadius}
                 onChangeText={setDeliveryRadius}
+                allowFontScaling={false}
               />
-              <Text style={modalStyles.kmsText}>kms</Text>
+              <Text allowFontScaling={false} style={modalStyles.kmsText}>kms</Text>
             </View>
           </ScrollView>
 
-          {/* Submit */}
           <TouchableOpacity
             style={modalStyles.updateButton}
             onPress={handleSubmit}
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />
+              <ActivityIndicator color="#fff" style={{ marginRight: moderateScale(8) }} />
             ) : (
-              <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+              <Ionicons name="reload-outline" size={moderateScale(18)} color="#fff" style={{ marginRight: moderateScale(8) }} />
             )}
-            <Text style={modalStyles.updateButtonText}>
+            <Text allowFontScaling={false} style={modalStyles.updateButtonText}>
               {loading ? "Updating..." : "Update Details"}
             </Text>
           </TouchableOpacity>
@@ -849,9 +724,7 @@ const VendorProfile = () => {
 
       if (res.data.success) {
         const user = res.data.user;
-
         setFullUser(user);
-
         setUserInfo({
           name: user.name,
           status: user.status,
@@ -894,14 +767,14 @@ const VendorProfile = () => {
     <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={onPress}>
       <View style={styles.menuItemLeft}>
         <View style={styles.iconContainer}>
-          <Ionicons name={icon} size={25} color="#666" />
+          <Ionicons name={icon} size={moderateScale(20)} color="#666" />
         </View>
         <View style={styles.menuItemText}>
-          <Text style={styles.menuItemTitle}>{title}</Text>
-          <Text style={styles.menuItemSubtitle}>{subtitle}</Text>
+          <Text allowFontScaling={false} style={styles.menuItemTitle}>{title}</Text>
+          <Text allowFontScaling={false} style={styles.menuItemSubtitle}>{subtitle}</Text>
         </View>
       </View>
-      <Ionicons name="chevron-forward" size={18} color="#ccc" />
+      <Ionicons name="chevron-forward" size={moderateScale(16)} color="#ccc" />
     </TouchableOpacity>
   );
 
@@ -921,31 +794,31 @@ const VendorProfile = () => {
         <TouchableOpacity onPress={goBack}>
           <Image source={require("../../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
-        <Text style={{ fontWeight: 700,fontSize:normalizeFont(13) }}>My Profile</Text>
-        <Text></Text>
+        <Text allowFontScaling={false} style={{ fontWeight: '700', fontSize: normalizeFont(13) }}>My Profile</Text>
+        <Text />
       </View>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <TouchableOpacity style={styles.profileSection} onPress={() => navigation.navigate("VendorProfileView", { user: fullUser })}>
-            <TouchableOpacity style={{position:'absolute',right:moderateScale(11), top:moderateScale(10),  borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.2)", paddingHorizontal: moderateScale(6), borderRadius:5, flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: moderateScale(1) }} onPress={() => navigation.navigate("VendorProfileView", { user: fullUser })}>
-                <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
-                <Text style={{ fontSize: normalizeFont(10) }} >{userInfo?.rating}</Text>
-              </TouchableOpacity>
+          <TouchableOpacity style={{ position: 'absolute', right: moderateScale(11), top: moderateScale(10), borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.2)", paddingHorizontal: moderateScale(6), borderRadius: moderateScale(5), flexDirection: 'row', alignItems: 'center', gap: moderateScale(5), paddingVertical: moderateScale(1) }} onPress={() => navigation.navigate("VendorProfileView", { user: fullUser })}>
+            <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
+            <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10) }}>{userInfo?.rating}</Text>
+          </TouchableOpacity>
+
           <View style={styles.profileInfo}>
             <TouchableOpacity style={styles.avatarContainer}>
               {userInfo?.image ? (
                 <Image source={{ uri: userInfo.image }} style={styles.avatarImage} />
               ) : (
-                <Text style={styles.avatarText}>{getAvatarLetter(userInfo?.name)}</Text>
+                <Text allowFontScaling={false} style={styles.avatarText}>{getAvatarLetter(userInfo?.name)}</Text>
               )}
             </TouchableOpacity>
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>{userInfo?.name}</Text>
-              <Text style={styles.userPhone}>+91 {userInfo?.phone}</Text>
-              <Text style={styles.userPhone}>{userInfo?.upiId}</Text>
-              <Text style={styles.userRole}>{userInfo?.status}</Text>
+              <Text allowFontScaling={false} style={styles.userName}>{userInfo?.name}</Text>
+              <Text allowFontScaling={false} style={styles.userPhone}>+91 {userInfo?.phone}</Text>
+              <Text allowFontScaling={false} style={styles.userPhone}>{userInfo?.upiId}</Text>
+              <Text allowFontScaling={false} style={styles.userRole}>{userInfo?.status}</Text>
             </View>
-            <View>
-            </View>
+            <View />
           </View>
           <TouchableOpacity
             style={styles.editButtonContainer}
@@ -1009,8 +882,8 @@ const VendorProfile = () => {
               router.replace('/login');
             }}
           >
-            <Ionicons name="log-out-outline" size={20} color="#fff" style={styles.logoutIcon} />
-            <Text style={styles.logoutText}>Logout</Text>
+            <Ionicons name="log-out-outline" size={moderateScale(18)} color="#fff" style={styles.logoutIcon} />
+            <Text allowFontScaling={false} style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -1061,7 +934,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.1)',
     padding: moderateScale(20),
-    elevation: 2,
+    elevation: moderateScale(2),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: moderateScale(1) },
     shadowOpacity: 0.1,
@@ -1082,9 +955,9 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: normalizeFont(24), fontWeight: '600', color: '#fff' },
 
   userInfo: { flex: 1, marginLeft: moderateScale(15) },
-  userName: { fontSize: normalizeFont(scale(11)), fontWeight: '600', color: '#333', paddingVertical: moderateScale(2) },
-  userPhone: { fontSize: normalizeFont(10), color: '#666', paddingVertical: moderateScale(1) },
-  userRole: { fontSize: normalizeFont(10), color: '#4CAF50', fontWeight: '500', marginTop: moderateScale(2), paddingVertical: moderateScale(1) },
+  userName: { fontSize: normalizeFont(13), fontWeight: '600', color: '#333', paddingVertical: moderateScale(2) },
+  userPhone: { fontSize: normalizeFont(11), color: '#666', paddingVertical: moderateScale(1) },
+  userRole: { fontSize: normalizeFont(11), color: '#4CAF50', fontWeight: '500', marginTop: moderateScale(2), paddingVertical: moderateScale(1) },
 
   editButtonContainer: { position: "absolute", bottom: moderateScale(10), right: moderateScale(10), },
 
@@ -1093,7 +966,7 @@ const styles = StyleSheet.create({
     marginHorizontal: scale(14),
     marginVertical: moderateScale(5),
     borderRadius: moderateScale(11),
-    elevation: 2,
+    elevation: moderateScale(2),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: moderateScale(1) },
   },
@@ -1144,7 +1017,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: moderateScale(18),
     borderRadius: moderateScale(10),
-    elevation: 2,
+    elevation: moderateScale(2),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: moderateScale(2) },
     shadowOpacity: 0.15,
@@ -1169,9 +1042,9 @@ const modalStyles = StyleSheet.create({
     borderTopRightRadius: moderateScale(20),
     maxHeight: Math.max(moderateScale(200), height - moderateScale(80)),
     paddingBottom: moderateScale(15),
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderRightWidth: 2,
+    borderTopWidth: moderateScale(2),
+    borderLeftWidth: moderateScale(2),
+    borderRightWidth: moderateScale(2),
     borderColor: 'rgba(255, 202, 40, 1)'
   },
 

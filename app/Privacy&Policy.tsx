@@ -67,6 +67,7 @@ const TermsAndConditions = ({ navigation }) => {
       setLoading(false);
     }
   };
+
   const parseApiContent = (content) => {
     if (!content || typeof content !== 'string') return null;
     const text = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
@@ -75,7 +76,7 @@ const TermsAndConditions = ({ navigation }) => {
     const sections = [];
     let current = null;
 
-    const headingRegex = /^\s*(\d+)\.\s+(.+?)\s*$/; 
+    const headingRegex = /^\s*(\d+)\.\s+(.+?)\s*$/;
     const bulletRegex = /^\s*[-*+]\s+(.+)$/;
     const numberedPointRegex = /^\s*\d+\.\s+(.+)$/;
 
@@ -85,7 +86,7 @@ const TermsAndConditions = ({ navigation }) => {
 
       if (!line) {
         if (current && current._accumParagraph && current._accumParagraph.length) {
-          current._accumParagraph.push(''); 
+          current._accumParagraph.push('');
         }
         continue;
       }
@@ -122,7 +123,7 @@ const TermsAndConditions = ({ navigation }) => {
 
       if (bulletMatch) {
         if (current._accumParagraph && current._accumParagraph.length) {
-          current._accumParagraph.push(''); 
+          current._accumParagraph.push('');
         }
         current.points.push(bulletMatch[1].trim());
       } else if (numPointMatch) {
@@ -145,6 +146,7 @@ const TermsAndConditions = ({ navigation }) => {
 
     return sections;
   };
+
   const finalizeParagraphs = (arr) => {
     if (!arr || !arr.length) return '';
     const paragraphs = [];
@@ -160,7 +162,7 @@ const TermsAndConditions = ({ navigation }) => {
       }
     }
     if (current.length) paragraphs.push(current.join(' '));
-    return paragraphs.join('\n\n'); 
+    return paragraphs.join('\n\n');
   };
 
   const renderContent = () => {
@@ -168,7 +170,9 @@ const TermsAndConditions = ({ navigation }) => {
       return (
         <View style={{ padding: moderateScale(20), alignItems: 'center' }}>
           <ActivityIndicator size="large" color="#ff6b35" />
-          <Text style={{ marginTop: moderateScale(8), color: '#64748b' }}>Loading Privacy & Policy...</Text>
+          <Text allowFontScaling={false} style={{ marginTop: moderateScale(8), color: '#64748b', fontSize: normalizeFont(12) }}>
+            Loading Privacy & Policy...
+          </Text>
         </View>
       );
     }
@@ -177,9 +181,9 @@ const TermsAndConditions = ({ navigation }) => {
       <>
         {error ? (
           <View style={[styles.footerNote, { marginBottom: moderateScale(12) }]}>
-            <Text style={styles.footerText}>{error}</Text>
+            <Text allowFontScaling={false} style={styles.footerText}>{error}</Text>
             <TouchableOpacity onPress={fetchTermsAndConditions}>
-              <Text style={{ color: '#1e40af', marginTop: moderateScale(6) }}>Retry</Text>
+              <Text allowFontScaling={false} style={{ color: '#1e40af', marginTop: moderateScale(6), fontSize: normalizeFont(12) }}>Retry</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -187,18 +191,18 @@ const TermsAndConditions = ({ navigation }) => {
         {/* If API returned no sections (e.g., empty), show a friendly message */}
         {(!sections || sections.length === 0) ? (
           <View style={styles.centerContainer}>
-            <Text style={styles.errorText}>No terms available</Text>
-            <Text style={styles.errorMessage}>The server returned no content. Please try again later.</Text>
+            <Text allowFontScaling={false} style={styles.errorText}>No terms available</Text>
+            <Text allowFontScaling={false} style={styles.errorMessage}>The server returned no content. Please try again later.</Text>
             <TouchableOpacity style={styles.retryButton} onPress={fetchTermsAndConditions}>
-              <Text style={styles.retryButtonText}>Retry</Text>
+              <Text allowFontScaling={false} style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <>
             {/* Intro Card */}
             <View style={styles.introCard}>
-              <Text style={styles.introTitle}>ViaFarm Privacy & Policy</Text>
-              <Text style={styles.introSubtitle}>
+              <Text allowFontScaling={false} style={styles.introTitle}>ViaFarm Privacy & Policy</Text>
+              <Text allowFontScaling={false} style={styles.introSubtitle}>
                 Please read these terms carefully. By using ViaFarm, you agree to all terms and conditions outlined below.
               </Text>
             </View>
@@ -209,15 +213,20 @@ const TermsAndConditions = ({ navigation }) => {
                 {/* Section Header */}
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionNumberBadge}>
-                    <Text style={styles.sectionNumber}>{section.number}</Text>
+                    <Text allowFontScaling={false} style={styles.sectionNumber}>{section.number}</Text>
                   </View>
-                  <Text style={styles.sectionTitle}>{section.title}</Text>
+                  <Text allowFontScaling={false} style={styles.sectionTitle}>{section.title}</Text>
                 </View>
 
                 {/* Section Content */}
                 <View style={styles.sectionContent}>
                   {section.content ? (
-                    <Text style={styles.sectionText}>{section.content}</Text>
+                    // Render paragraphs: split by double newline so spacing preserved
+                    section.content.split('\n\n').map((p, i) => (
+                      <Text allowFontScaling={false} key={i} style={[styles.sectionText, i > 0 && { marginTop: moderateScale(8) }]}>
+                        {p}
+                      </Text>
+                    ))
                   ) : null}
 
                   {section.points && section.points.length > 0 ? (
@@ -225,7 +234,7 @@ const TermsAndConditions = ({ navigation }) => {
                       {section.points.map((point, idx) => (
                         <View key={idx} style={styles.pointItem}>
                           <View style={styles.bulletPoint} />
-                          <Text style={styles.pointText}>{point}</Text>
+                          <Text allowFontScaling={false} style={styles.pointText}>{point}</Text>
                         </View>
                       ))}
                     </View>
@@ -252,7 +261,7 @@ const TermsAndConditions = ({ navigation }) => {
           <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
 
-        <Text numberOfLines={1} style={styles.headerTitle}>
+        <Text allowFontScaling={false} numberOfLines={1} style={styles.headerTitle}>
           Privacy & Policy
         </Text>
 
@@ -378,14 +387,14 @@ const styles = StyleSheet.create({
   },
 
   introTitle: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(13),
     fontWeight: '800',
     color: '#1e293b',
     marginBottom: moderateScale(8),
   },
 
   introSubtitle: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(12),
     color: '#64748b',
     lineHeight: moderateScale(20),
     fontWeight: '500',
@@ -476,5 +485,18 @@ const styles = StyleSheet.create({
     lineHeight: moderateScale(21),
     fontWeight: '500',
     textAlign: 'justify',
+  },
+
+  // small helpers used by renderContent
+  footerNote: {
+    padding: moderateScale(10),
+    backgroundColor: '#fff7ed',
+    borderRadius: moderateScale(8),
+    borderWidth: 1,
+    borderColor: '#ffedd5',
+  },
+  footerText: {
+    fontSize: normalizeFont(11),
+    color: '#78350f',
   },
 });

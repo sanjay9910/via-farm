@@ -1,4 +1,3 @@
-
 import { moderateScale, normalizeFont, scale } from "@/app/Responsive";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -19,9 +18,21 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ProductModal from "../components/vendors/ProductEditModel";
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
 const API_BASE = "https://viafarm-1.onrender.com";
+
+const clampPos = (x, y, w = width, h = height) => {
+  // ensure popup stays inside screen with small margin
+  const margin = moderateScale(8);
+  let nx = x;
+  let ny = y;
+  if (nx < margin) nx = margin;
+  if (ny < margin) ny = margin;
+  if (nx > w - margin) nx = w - margin;
+  if (ny > h - margin) ny = h - margin;
+  return { x: nx, y: ny };
+};
 
 const AllRecently = () => {
   const [listingsData, setListingsData] = useState([]);
@@ -38,7 +49,7 @@ const AllRecently = () => {
   const [currentProductId, setCurrentProductId] = useState(null);
   const [updatingStock, setUpdatingStock] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [categories, setAllCategory] = useState([]);
+  const [categories, setAllCategory] = useState(["All"]);
 
   const stockButtonRefs = useRef({});
   const actionMenuRefs = useRef({});
@@ -51,14 +62,18 @@ const AllRecently = () => {
         const token = await AsyncStorage.getItem("userToken");
         const catRes = await axios.get(`${API_BASE}/api/admin/manage-app/categories`, {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: token ? `Bearer ${token}` : undefined,
           },
+          timeout: 10000,
         });
 
-        const onlyNames = catRes.data?.categories?.map((item) => item.name) || [];
-        setAllCategory(onlyNames);
+        const onlyNames = (catRes.data?.categories || []).map((item) => item.name).filter(Boolean);
+        // ensure "All" at start and unique
+        const uniq = Array.from(new Set(["All", ...onlyNames]));
+        setAllCategory(uniq.length ? uniq : ["All"]);
       } catch (error) {
-        console.log("Error", error);
+        console.log("Error fetching categories:", error?.message || error);
+        setAllCategory(["All"]);
       }
     };
     getAllCategory();
@@ -70,37 +85,42 @@ const AllRecently = () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) {
-        Alert.alert("Error", "User not logged in!");
+        console.log("User not logged in - skipping fetchProducts");
+        setListingsData([]);
+        setFilteredData([]);
         setLoading(false);
         return;
       }
 
       const res = await axios.get(`${API_BASE}/api/vendor/recent-products`, {
         headers: { Authorization: `Bearer ${token}` },
+        timeout: 15000,
       });
 
-      if (res.data.success) {
-        const formattedData = (res.data.products || []).map((product) => ({
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          quantity: product.quantity,
-          unit: product.unit || "",
-          weightPerPiece: product.weightPerPiece || "",
-          uploadedOn: product.datePosted ? new Date(product.datePosted).toLocaleDateString() : "",
-          image: product.images && product.images.length ? product.images[0] : "",
-          status: product.status || "In Stock",
-          category: product.category || "Fruit",
-          _raw: product,
-        }));
-        setListingsData(formattedData);
-        setFilteredData(formattedData);
-      } else {
-        Alert.alert("Error", "Could not fetch recent products");
-      }
+      const products = res.data?.products || [];
+      const formattedData = products.map((product) => ({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: product.quantity,
+        unit: product.unit || "",
+        weightPerPiece: product.weightPerPiece || "",
+        uploadedOn: product.datePosted ? new Date(product.datePosted).toLocaleDateString() : "",
+        image: product.images && product.images.length ? product.images[0] : "",
+        status: product.status || "In Stock",
+        category: product.category || "Fruit",
+        _raw: product,
+      }));
+      setListingsData(formattedData);
+      setFilteredData(
+        selectedCategory === "All"
+          ? formattedData
+          : formattedData.filter((d) => d.category === selectedCategory)
+      );
     } catch (error) {
-      console.log("API Error:", error);
-      Alert.alert("Error", "Something went wrong while fetching products");
+      console.log("Error fetching products:", error?.message || error);
+      setListingsData([]);
+      setFilteredData([]);
     } finally {
       setLoading(false);
     }
@@ -114,10 +134,8 @@ const AllRecently = () => {
     if (!modalVisible) {
       fetchProducts();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modalVisible]);
 
-  // Filter products by category
   useEffect(() => {
     if (selectedCategory === "All") {
       setFilteredData(listingsData);
@@ -144,6 +162,8 @@ const AllRecently = () => {
       item.id === updatedProduct.id ? updatedProduct : item
     );
     setListingsData(updatedList);
+    // update filtered data too
+    setFilteredData((prev) => prev.map((i) => (i.id === updatedProduct.id ? updatedProduct : i)));
     closeModal();
   };
 
@@ -152,13 +172,15 @@ const AllRecently = () => {
     const ref = stockButtonRefs.current[productId];
     if (ref && ref.measureInWindow) {
       ref.measureInWindow((x, y, w, h) => {
-        setStockDropdownPosition({ x: x - 60, y: y + h + 5 });
+        const pos = clampPos(x - moderateScale(60), y + h + moderateScale(5));
+        setStockDropdownPosition({ x: pos.x, y: pos.y });
         setCurrentProductId(productId);
         setIsStockDropdownOpen(true);
       });
     } else {
       // fallback: just open in center
-      setStockDropdownPosition({ x: width / 2 - 80, y: 200 });
+      const pos = clampPos(width / 2 - moderateScale(80), height / 2 - moderateScale(40));
+      setStockDropdownPosition({ x: pos.x, y: pos.y });
       setCurrentProductId(productId);
       setIsStockDropdownOpen(true);
     }
@@ -168,17 +190,20 @@ const AllRecently = () => {
   const openCategoryDropdown = () => {
     if (categoryButtonRef.current && categoryButtonRef.current.measureInWindow) {
       categoryButtonRef.current.measureInWindow((x, y, w, h) => {
-        setCategoryDropdownPosition({ x: x, y: y + h + 5 });
+        const pos = clampPos(x, y + h + moderateScale(5));
+        setCategoryDropdownPosition({ x: pos.x, y: pos.y });
         setIsCategoryDropdownOpen(true);
       });
     } else {
-      setCategoryDropdownPosition({ x: 16, y: 80 });
+      const pos = clampPos(moderateScale(16), moderateScale(80));
+      setCategoryDropdownPosition({ x: pos.x, y: pos.y });
       setIsCategoryDropdownOpen(true);
     }
   };
 
   const handleCategorySelect = (category) => {
-    setSelectedCategory(category);
+    // allow selecting "All" or any category
+    setSelectedCategory(category || "All");
     setIsCategoryDropdownOpen(false);
   };
 
@@ -187,12 +212,14 @@ const AllRecently = () => {
     const ref = actionMenuRefs.current[productId];
     if (ref && ref.measureInWindow) {
       ref.measureInWindow((x, y, w, h) => {
-        setActionMenuPosition({ x: x - 100, y: y + h + 5 });
+        const pos = clampPos(x - moderateScale(100), y + h + moderateScale(5));
+        setActionMenuPosition({ x: pos.x, y: pos.y });
         setCurrentProductId(productId);
         setIsActionMenuOpen(true);
       });
     } else {
-      setActionMenuPosition({ x: width - 160, y: 200 });
+      const pos = clampPos(width - moderateScale(160), moderateScale(200));
+      setActionMenuPosition({ x: pos.x, y: pos.y });
       setCurrentProductId(productId);
       setIsActionMenuOpen(true);
     }
@@ -202,12 +229,16 @@ const AllRecently = () => {
     const product = listingsData.find((item) => item.id === currentProductId);
     if (product) {
       openModal(product);
+    } else {
+      console.log("Edit requested but product not found:", currentProductId);
+      setIsActionMenuOpen(false);
     }
   };
 
   const handleDelete = async () => {
     if (!currentProductId) {
-      Alert.alert("Error", "No product selected");
+      console.log("Delete attempted but no product selected");
+      setIsActionMenuOpen(false);
       return;
     }
 
@@ -218,7 +249,10 @@ const AllRecently = () => {
         {
           text: "Cancel",
           style: "cancel",
-          onPress: () => setIsActionMenuOpen(false),
+          onPress: () => {
+            setIsActionMenuOpen(false);
+            setCurrentProductId(null);
+          },
         },
         {
           text: "Delete",
@@ -227,28 +261,40 @@ const AllRecently = () => {
             try {
               const token = await AsyncStorage.getItem("userToken");
               if (!token) {
-                Alert.alert("Error", "User not logged in!");
+                console.log("Delete attempted but user not logged in");
+                setIsActionMenuOpen(false);
+                setCurrentProductId(null);
                 return;
               }
 
-              const response = await axios.delete(
-                `${API_BASE}/api/vendor/products/${currentProductId}`,
-                {
-                  headers: { Authorization: `Bearer ${token}` },
-                }
-              );
+              // optimistic UI remove
+              setListingsData((prev) => prev.filter((item) => item.id !== currentProductId));
+              setFilteredData((prev) => prev.filter((i) => i.id !== currentProductId));
 
-              if (response.data.success) {
-                Alert.alert("Success", "Product deleted successfully");
-                const updatedList = listingsData.filter((item) => item.id !== currentProductId);
-                setListingsData(updatedList);
-                setFilteredData((prev) => prev.filter((i) => i.id !== currentProductId));
-              } else {
-                Alert.alert("Error", "Failed to delete product");
+              try {
+                const response = await axios.delete(
+                  `${API_BASE}/api/vendor/products/${currentProductId}`,
+                  {
+                    headers: { Authorization: `Bearer ${token}` },
+                    timeout: 10000,
+                  }
+                );
+
+                const ok =
+                  (response && (response.status === 200 || response.status === 204)) ||
+                  response?.data?.success;
+                if (!ok) {
+                  console.log("Delete not acknowledged by server, refetching", response?.data);
+                  await fetchProducts();
+                } else {
+                  console.log("Deleted product on server:", currentProductId);
+                }
+              } catch (err) {
+                console.log("Delete request failed, refetching:", err?.message || err);
+                await fetchProducts();
               }
             } catch (error) {
-              console.log("Delete error:", error);
-              Alert.alert("Error", "Something went wrong while deleting product");
+              console.log("Unexpected delete error:", error);
             } finally {
               setIsActionMenuOpen(false);
               setCurrentProductId(null);
@@ -259,10 +305,11 @@ const AllRecently = () => {
     );
   };
 
-  // Stock change (tries multiple endpoints as before)
+  // Stock change (optimistic + try multiple endpoints; on full failure, resync)
   const handleStockChange = async (newStatus) => {
     if (!currentProductId) {
-      Alert.alert("Error", "No product selected");
+      console.log("Stock change attempted but no product selected");
+      setIsStockDropdownOpen(false);
       return;
     }
 
@@ -272,65 +319,49 @@ const AllRecently = () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) {
-        Alert.alert("Error", "User not logged in!");
+        console.log("Stock update attempted but user not logged in");
         setUpdatingStock(false);
         setCurrentProductId(null);
         return;
       }
 
-      let response = null;
-      let lastError = null;
+      // optimistic update in UI
+      setListingsData((prev) => prev.map((item) => (item.id === currentProductId ? { ...item, status: newStatus } : item)));
+      setFilteredData((prev) => prev.map((i) => (i.id === currentProductId ? { ...i, status: newStatus } : i)));
 
-      // Method 1
-      try {
-        response = await axios.patch(
-          `${API_BASE}/api/vendor/products/${currentProductId}/status`,
-          { status: newStatus },
-          { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
-        );
-      } catch (err) {
-        lastError = err;
-        // Method 2
+      const tryEndpoints = [
+        { method: "patch", url: `${API_BASE}/api/vendor/products/${currentProductId}/status`, data: { status: newStatus } },
+        { method: "patch", url: `${API_BASE}/api/vendor/products/${currentProductId}`, data: { status: newStatus } },
+        { method: "put", url: `${API_BASE}/api/vendor/products/${currentProductId}`, data: { status: newStatus } },
+      ];
+
+      let succeeded = false;
+      for (let ep of tryEndpoints) {
         try {
-          response = await axios.patch(
-            `${API_BASE}/api/vendor/products/${currentProductId}`,
-            { status: newStatus },
-            { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
-          );
-        } catch (err2) {
-          lastError = err2;
-          // Method 3
-          try {
-            response = await axios.put(
-              `${API_BASE}/api/vendor/products/${currentProductId}`,
-              { status: newStatus },
-              { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
-            );
-          } catch (err3) {
-            lastError = err3;
+          const resp = await axios({
+            method: ep.method,
+            url: ep.url,
+            data: ep.data,
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            timeout: 10000,
+          });
+          if (resp && (resp.status === 200 || resp.status === 204 || resp.data?.success)) {
+            succeeded = true;
+            console.log("Stock update succeeded at:", ep.url);
+            break;
           }
+        } catch (err) {
+          console.log("Stock endpoint failed:", ep.url, err?.response?.status || err?.message);
         }
       }
 
-      if (response?.data?.success) {
-        const updatedList = listingsData.map((item) =>
-          item.id === currentProductId ? { ...item, status: newStatus } : item
-        );
-        setListingsData(updatedList);
-        setFilteredData((prev) => prev.map((i) => (i.id === currentProductId ? { ...i, status: newStatus } : i)));
-        Alert.alert("Success", `Product marked as ${newStatus}`);
-      } else {
-        throw lastError || new Error("Failed to update status");
+      if (!succeeded) {
+        console.log("All stock endpoints failed, resyncing from server for product:", currentProductId);
+        await fetchProducts();
       }
     } catch (error) {
-      console.log("Stock update error:", error);
-      if (error.response?.status === 404) {
-        Alert.alert("Error", "API endpoint not found. Check server!");
-      } else if (error.response?.status === 401) {
-        Alert.alert("Error", "Authentication failed. Please login again.");
-      } else {
-        Alert.alert("Error", "Something went wrong while updating stock");
-      }
+      console.log("Stock update unexpected error:", error?.message || error);
+      await fetchProducts();
     } finally {
       setUpdatingStock(false);
       setCurrentProductId(null);
@@ -345,16 +376,13 @@ const AllRecently = () => {
         navigation.navigate("VendorViewProduct", { productId: item.id, product: item._raw ?? item });
       } else {
         console.warn("Navigation method not found");
-        Alert.alert("Navigation error", "Unable to open product view");
       }
     } catch (err) {
       console.log("Navigation error:", err);
-      // fallback
       try {
         navigation.navigate("VendorViewProduct", { productId: item.id, product: item._raw ?? item });
       } catch (e) {
         console.log("Fallback navigation failed:", e);
-        Alert.alert("Navigation error", "Unable to open product view");
       }
     }
   };
@@ -379,21 +407,21 @@ const AllRecently = () => {
               <Image source={{ uri: item.image }} style={styles.itemImage} resizeMode="stretch" />
             ) : (
               <View style={styles.noImage}>
-                <Text style={{ color: "#999" }}>No image</Text>
+                <Text allowFontScaling={false} style={{ color: "#999", fontSize: normalizeFont(12) }}>No image</Text>
               </View>
             )}
 
             {/* Rating badge bottom-left on image */}
             <View style={styles.ratingBadge}>
               <Image source={require("../assets/via-farm-img/icons/satar.png")} style={styles.starIcon} />
-              <Text style={styles.ratingText}>4.5</Text>
+              <Text allowFontScaling={false} style={styles.ratingText}>4.5</Text>
             </View>
           </View>
 
           {/* Right content */}
           <View style={styles.rightContent}>
             <View style={styles.titleRow}>
-              <Text style={styles.itemName} numberOfLines={1}>
+              <Text allowFontScaling={false} style={styles.itemName} numberOfLines={1}>
                 {item.name}
               </Text>
 
@@ -411,23 +439,21 @@ const AllRecently = () => {
               </TouchableOpacity>
             </View>
 
-
-
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Category</Text>
-              <Text style={styles.infoSeparator}>:</Text>
-              <Text style={styles.infoValue}>{item.category}</Text>
+              <Text allowFontScaling={false} style={styles.infoLabel}>Category</Text>
+              <Text allowFontScaling={false} style={styles.infoSeparator}>:</Text>
+              <Text allowFontScaling={false} style={styles.infoValue}>{item.category}</Text>
             </View>
 
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Price</Text>
-              <Text style={styles.infoSeparator}>:</Text>
-              <Text style={styles.infoValue}>₹{item.price}/{item.unit || "pc"}</Text>
+              <Text allowFontScaling={false} style={styles.infoLabel}>Price</Text>
+              <Text allowFontScaling={false} style={styles.infoSeparator}>:</Text>
+              <Text allowFontScaling={false} style={styles.infoValue}>₹{item.price}/{item.unit || "pc"}</Text>
             </View>
 
             <View style={styles.uploadRow}>
-              <Text style={styles.uploadLabel}>Uploaded on</Text>
-              <Text style={styles.uploadValue}>{item.uploadedOn}</Text>
+              <Text allowFontScaling={false} style={styles.uploadLabel}>Uploaded on</Text>
+              <Text allowFontScaling={false} style={styles.uploadValue}>{item.uploadedOn}</Text>
             </View>
 
             {/* Stock pill */}
@@ -444,7 +470,7 @@ const AllRecently = () => {
                 disabled={isCurrentlyUpdating}
               >
                 <View style={[styles.stockDot, { backgroundColor: circleColor }]} />
-                <Text style={styles.stockText}>{item.status}</Text>
+                <Text allowFontScaling={false} style={styles.stockText}>{item.status}</Text>
                 <Image source={require("../assets/via-farm-img/icons/downArrow.png")} style={styles.downIcon} />
               </TouchableOpacity>
             </View>
@@ -460,12 +486,12 @@ const AllRecently = () => {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Recent Listings</Text>
+        <Text allowFontScaling={false} style={styles.headerTitle}>Recent Listings</Text>
       </View>
 
       <TouchableOpacity ref={categoryButtonRef} style={styles.categoryDropdownButton} onPress={openCategoryDropdown}>
-        <Text style={styles.categoryDropdownText}>{selectedCategory}</Text>
-        <Text style={styles.dropdownArrow}>▼</Text>
+        <Text allowFontScaling={false} style={styles.categoryDropdownText}>{selectedCategory}</Text>
+        <Text allowFontScaling={false} style={styles.dropdownArrow}>▼</Text>
       </TouchableOpacity>
     </View>
   );
@@ -474,7 +500,7 @@ const AllRecently = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="rgba(255,202,40,1)" />
-        <Text style={styles.loadingText}>Loading products...</Text>
+        <Text allowFontScaling={false} style={styles.loadingText}>Loading products...</Text>
       </View>
     );
   }
@@ -486,8 +512,8 @@ const AllRecently = () => {
       <ScrollView contentContainerStyle={{ paddingHorizontal: moderateScale(16), paddingBottom: moderateScale(24) }}>
         {filteredData.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No products found</Text>
-            <Text style={styles.emptySubText}>
+            <Text allowFontScaling={false} style={styles.emptyText}>No products found</Text>
+            <Text allowFontScaling={false} style={styles.emptySubText}>
               {selectedCategory !== "All"
                 ? `No products in ${selectedCategory} category`
                 : "Start adding products to see them here"}
@@ -506,12 +532,12 @@ const AllRecently = () => {
               <View style={[styles.stockDropdown, { position: "absolute", top: stockDropdownPosition.y, left: stockDropdownPosition.x }]}>
                 <TouchableOpacity style={styles.stockOption} onPress={() => handleStockChange("In Stock")}>
                   <View style={[styles.stockDot, { backgroundColor: "#22c55e" }]} />
-                  <Text style={styles.stockOptionText}>In Stock</Text>
+                  <Text allowFontScaling={false} style={styles.stockOptionText}>In Stock</Text>
                 </TouchableOpacity>
                 <View style={styles.stockDivider} />
                 <TouchableOpacity style={styles.stockOption} onPress={() => handleStockChange("Out of Stock")}>
                   <View style={[styles.stockDot, { backgroundColor: "#ef4444" }]} />
-                  <Text style={styles.stockOptionText}>Out of Stock</Text>
+                  <Text allowFontScaling={false} style={styles.stockOptionText}>Out of Stock</Text>
                 </TouchableOpacity>
               </View>
             </TouchableWithoutFeedback>
@@ -526,12 +552,17 @@ const AllRecently = () => {
             <TouchableWithoutFeedback>
               <View style={[styles.categoryDropdown, { position: "absolute", top: categoryDropdownPosition.y, left: categoryDropdownPosition.x, maxHeight: scale(300) }]}>
                 <ScrollView showsVerticalScrollIndicator>
-                  {categories.map((category, index) => (
-                    <View key={category}>
-                      <TouchableOpacity style={[styles.categoryOption, category === selectedCategory && styles.categoryOptionSelected]} onPress={() => handleCategorySelect(category)}>
-                        <Text style={[styles.categoryOptionText, category === selectedCategory && styles.categoryOptionTextSelected]}>{category}</Text>
+                  {(categories.length ? categories : ["All"]).map((category, index) => (
+                    <View key={category + index}>
+                      <TouchableOpacity
+                        style={[styles.categoryOption, category === selectedCategory && styles.categoryOptionSelected]}
+                        onPress={() => handleCategorySelect(category)}
+                      >
+                        <Text allowFontScaling={false} style={[styles.categoryOptionText, category === selectedCategory && styles.categoryOptionTextSelected]}>
+                          {category}
+                        </Text>
                       </TouchableOpacity>
-                      {index < categories.length - 1 && <View style={styles.categoryDivider} />}
+                      {index < (categories.length ? categories.length : 1) - 1 && <View style={styles.categoryDivider} />}
                     </View>
                   ))}
                 </ScrollView>
@@ -548,11 +579,11 @@ const AllRecently = () => {
             <TouchableWithoutFeedback>
               <View style={[styles.actionMenu, { position: "absolute", top: actionMenuPosition.y, left: actionMenuPosition.x }]}>
                 <TouchableOpacity style={styles.actionOption} onPress={handleEdit}>
-                  <Text style={styles.actionOptionText}>Edit</Text>
+                  <Text allowFontScaling={false} style={styles.actionOptionText}>Edit</Text>
                 </TouchableOpacity>
                 <View style={styles.actionDivider} />
                 <TouchableOpacity style={styles.actionOption} onPress={handleDelete}>
-                  <Text style={[styles.actionOptionText, styles.deleteText]}>Delete</Text>
+                  <Text allowFontScaling={false} style={[styles.actionOptionText, styles.deleteText]}>Delete</Text>
                 </TouchableOpacity>
               </View>
             </TouchableWithoutFeedback>
@@ -568,6 +599,7 @@ const AllRecently = () => {
 
 export default AllRecently;
 
+/* styles (unchanged structurally, but uses moderateScale/normalizeFont for responsiveness) */
 export const styles = StyleSheet.create({
   container: {
     backgroundColor: "#fff",
@@ -628,9 +660,9 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#333",
   },
-  dotsBtn:{
-   paddingVertical:moderateScale(10),
-   paddingHorizontal:moderateScale(20)
+  dotsBtn: {
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(20),
   },
   categoryDropdownButton: {
     flexDirection: "row",
@@ -661,9 +693,9 @@ export const styles = StyleSheet.create({
     borderRadius: moderateScale(12),
     marginBottom: moderateScale(14),
     borderWidth: 1.5,
-    borderColor: "rgba(255,202,40,1)", 
-    width: width * 0.95,
-       height:scale(150),
+    borderColor: "rgba(255,202,40,1)",
+    width: Math.min(width * 0.95, moderateScale(920)),
+    height: scale(150),
     alignSelf: "center",
     overflow: "hidden",
   },
@@ -674,8 +706,8 @@ export const styles = StyleSheet.create({
 
   // Left image block
   leftImageWrap: {
-    height:'100%',
-    width:scale(145),
+    height: "100%",
+    width: scale(145),
     borderTopLeftRadius: moderateScale(8),
     borderBottomLeftRadius: moderateScale(8),
     overflow: "hidden",
@@ -683,7 +715,7 @@ export const styles = StyleSheet.create({
   },
   itemImage: {
     width: "100%",
-    height:scale(155),
+    height: scale(155),
   },
   noImage: {
     flex: 1,
@@ -703,12 +735,11 @@ export const styles = StyleSheet.create({
     alignItems: "center",
   },
   starIcon: {
-    width: moderateScale(14),
-    height: moderateScale(14),
+    width: moderateScale(12),
+    height: moderateScale(12),
   },
   ratingText: {
     color: "#fff",
-    marginLeft: moderateScale(6),
     fontSize: normalizeFont(10),
     fontWeight: "600",
   },
@@ -725,7 +756,7 @@ export const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   itemName: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(13),
     fontWeight: "700",
     color: "#222",
     flex: 1,
@@ -744,18 +775,18 @@ export const styles = StyleSheet.create({
   },
   infoLabel: {
     width: moderateScale(60),
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     color: "#666",
     fontWeight: "500",
   },
   infoSeparator: {
     width: moderateScale(8),
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     color: "#666",
   },
   infoValue: {
     flex: 1,
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     color: "#666",
     fontWeight: "600",
   },
@@ -763,21 +794,20 @@ export const styles = StyleSheet.create({
   uploadRow: {
     flexDirection: "row",
     alignItems: "center",
-    // marginTop: moderateScale(8),
   },
   uploadLabel: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     color: "#666",
     marginRight: moderateScale(8),
   },
   uploadValue: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     color: "#666",
     fontWeight: "500",
   },
 
   stockRow: {
-    marginTop: moderateScale(4),
+    marginTop: moderateScale(7),
   },
   stockPill: {
     flexDirection: "row",
@@ -789,7 +819,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(0, 0, 0, 0.3)",
     backgroundColor: "#fff",
-    marginBottom:moderateScale(20)
+    marginBottom: moderateScale(20),
   },
   stockDot: {
     width: moderateScale(8),
@@ -798,7 +828,7 @@ export const styles = StyleSheet.create({
     marginRight: moderateScale(8),
   },
   stockText: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     fontWeight: "600",
     marginRight: moderateScale(8),
     color: "#444",
@@ -819,7 +849,7 @@ export const styles = StyleSheet.create({
     minWidth: moderateScale(140),
     paddingVertical: moderateScale(8),
     borderWidth: 1,
-    marginLeft:moderateScale(10),
+    marginLeft: moderateScale(10),
     borderColor: "rgba(255,202,40,1)",
     elevation: 6,
   },
@@ -830,7 +860,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(12),
   },
   stockOptionText: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     fontWeight: "500",
     color: "#374151",
     marginLeft: moderateScale(8),

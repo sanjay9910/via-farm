@@ -277,8 +277,8 @@ import { saveToken } from "../utility/Storage";
 
 export default function LoginScreen() {
   const navigation = useNavigation();
-  const [mobile, setMobile] = useState("7777777777");
-  const [password, setPassword] = useState("12345678");
+  const [mobile, setMobile] = useState("9999988888");
+  const [password, setPassword] = useState("123456");
   const { login } = useContext(AuthContext);
 
   const handleLogin = async () => {
@@ -345,15 +345,13 @@ export default function LoginScreen() {
             keyboardShouldPersistTaps="handled"
             bounces={false}
           >
-            {/* LOGO - made slightly larger & responsive */}
+
             <Image
               style={styles.logoImage}
               source={require("../../assets/via-farm-img/icons/logo.png")}
             />
 
-            {/* Card */}
             <View style={styles.card}>
-              {/* Heading */}
               <Text style={styles.heading}>Welcome to Viafarm!</Text>
 
               {/* Mobile Number Field */}
@@ -385,7 +383,6 @@ export default function LoginScreen() {
                 />
               </View>
 
-              {/* Forgot Password - moved to LEFT */}
               <TouchableOpacity style={styles.forgotWrapper} onPress={ForgetPassword}>
                 <Text style={styles.forgotText}>Forgot password?</Text>
               </TouchableOpacity>
@@ -442,7 +439,7 @@ const styles = StyleSheet.create({
     paddingTop: isIOS ? verticalScale(36) : verticalScale(24),
     paddingBottom: moderateScale(20),
   },
-  // Increased logo size but capped relative to card width for responsiveness
+
   logoImage: {
     width: Math.min(scale(400), CARD_WIDTH * 0.75),
     height: Math.min(verticalScale(350), CARD_WIDTH * 0.75),
@@ -461,7 +458,6 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderTopWidth: 3,
     borderColor: "rgba(255, 202, 40, 1)",
-    // changed to stretch so left-aligned child elements (100% width) behave consistently
     alignItems: "stretch",
   },
   heading: {
@@ -493,7 +489,8 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(13),
     color: "#222",
   },
-  // moved to left by aligning start
+
+  
   forgotWrapper: {
     width: "100%",
     alignItems: "flex-start",
