@@ -183,7 +183,7 @@ const ProductCard = ({
             >
               <Ionicons
                 name={isFavorite ? "heart" : "heart-outline"}
-                size={moderateScale(20)}
+                size={moderateScale(24)}
                 color={isFavorite ? "#ff4757" : "#fff"}
               />
             </TouchableOpacity>
@@ -201,37 +201,36 @@ const ProductCard = ({
               ]}
             >
               <Ionicons name="star" size={moderateScale(12)} color="#FFD700" />
-              <Text style={[styles.ratingText, { fontSize: normalizeFont(10) }]}>{rating ?? 0}</Text>
+              <Text allowFontScaling={false} style={[styles.ratingText, { fontSize: normalizeFont(10) }]}>{rating ?? 0}</Text>
             </View>
           )}
         </View>
 
         {/* Product Info */}
         <View style={[styles.cardContent, { padding: moderateScale(8) }]}>
-          <Text style={styles.productTitle} numberOfLines={1} allowFontScaling>
+          <Text allowFontScaling={false} style={styles.productTitle} numberOfLines={1} >
             {title}
           </Text>
 
-          <Text style={styles.productSubtitle} numberOfLines={1} allowFontScaling>
+          <Text allowFontScaling={false} style={styles.productSubtitle} numberOfLines={1}>
             {subtitle ? `By ${subtitle}` : ""}
           </Text>
 
           {/* UNIT + PRICE */}
           <View style={styles.unitPriceRow}>
-            <Text
+            <Text allowFontScaling={false}
               style={[styles.productPrice, { fontSize: normalizeFont(11) }]}
               numberOfLines={1}
-              allowFontScaling
             >
               {`₹${price}`}
-            </Text>
+            </Text> allowFontScaling={false}
             {unit ? (
-              <Text style={[styles.unitText, { fontSize: normalizeFont(11) }]} numberOfLines={1} allowFontScaling>
+              <Text allowFontScaling={false} style={[styles.unitText, { fontSize: normalizeFont(11) }]} numberOfLines={1}>
                 /{unit}
               </Text>
             ) : null}
             {weightPerPiece ? (
-              <Text style={[styles.unitText, { fontSize: normalizeFont(11) }]} numberOfLines={1} allowFontScaling>
+              <Text allowFontScaling={false} style={[styles.unitText, { fontSize: normalizeFont(11) }]} numberOfLines={1}>
                 /{weightPerPiece}
               </Text>
             ) : null}
@@ -259,10 +258,9 @@ const ProductCard = ({
                 {isProcessing ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text
+                  <Text allowFontScaling={false}
                     style={[styles.addToCartText, { fontSize: normalizeFont(12) }]}
                     numberOfLines={1}
-                    allowFontScaling
                   >
                     Add to Cart
                   </Text>
@@ -297,11 +295,11 @@ const ProductCard = ({
                     ]}
                     disabled={isProcessing}
                   >
-                    <Text style={[styles.qtyBtnText, { fontSize: normalizeFont(18) }]}>−</Text>
+                    <Text allowFontScaling={false} style={[styles.qtyBtnText, { fontSize: normalizeFont(18) }]}>−</Text>
                   </TouchableOpacity>
 
                   <View style={{ minWidth: QUANTITY_NUM_MIN_WIDTH, alignItems: "center", justifyContent: "center" }}>
-                    <Text style={[styles.qtyText, { fontSize: normalizeFont(14) }]}>{String(qty).padStart(2, "0")}</Text>
+                    <Text allowFontScaling={false} style={[styles.qtyText, { fontSize: normalizeFont(14) }]}>{String(qty).padStart(2, "0")}</Text>
                   </View>
 
                   <TouchableOpacity
@@ -318,7 +316,7 @@ const ProductCard = ({
                     ]}
                     disabled={isProcessing}
                   >
-                    <Text style={[styles.qtyBtnText, { fontSize: normalizeFont(18) }]}>+</Text>
+                    <Text allowFontScaling={false} style={[styles.qtyBtnText, { fontSize: normalizeFont(18) }]}>+</Text>
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>
@@ -338,7 +336,7 @@ const ProductCard = ({
       <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Add Quantity</Text>
+            <Text allowFontScaling={false} style={styles.modalTitle}>Add Quantity</Text>
 
             <View style={styles.modalControlsRow}>
               <TouchableOpacity
@@ -349,7 +347,7 @@ const ProductCard = ({
                 }}
                 activeOpacity={0.8}
               >
-                <Text style={styles.modalSideBtnText}>−</Text>
+                <Text allowFontScaling={false} style={styles.modalSideBtnText}>−</Text>
               </TouchableOpacity>
 
               <TextInput
@@ -359,6 +357,7 @@ const ProductCard = ({
                 style={styles.modalInput}
                 placeholder="0"
                 placeholderTextColor="#999"
+                allowFontScaling={false}
               />
 
               <TouchableOpacity
@@ -369,17 +368,17 @@ const ProductCard = ({
                 }}
                 activeOpacity={0.8}
               >
-                <Text style={styles.modalSideBtnText}>+</Text>
+                <Text allowFontScaling={false} style={styles.modalSideBtnText}>+</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.modalActionsRow}>
               <TouchableOpacity style={[styles.modalActionBtn, { backgroundColor: "#e0e0e0" }]} onPress={() => setModalVisible(false)} activeOpacity={0.8} disabled={isProcessing}>
-                <Text style={[styles.modalActionText, { color: "#333" }]}>Cancel</Text>
+                <Text allowFontScaling={false} style={[styles.modalActionText, { color: "#333" }]}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={[styles.modalActionBtn, { backgroundColor: "rgba(76,175,80,1)" }]} onPress={handleModalConfirm} activeOpacity={0.8} disabled={isProcessing}>
-                {isProcessing ? <ActivityIndicator size="small" color="#fff" /> : <Text style={[styles.modalActionText, { color: "#fff" }]}>OK</Text>}
+                {isProcessing ? <ActivityIndicator size="small" color="#fff" /> : <Text allowFontScaling={false} style={[styles.modalActionText, { color: "#fff" }]}>OK</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -419,8 +418,8 @@ const styles = StyleSheet.create({
   },
   favoriteButton: {
     position: "absolute",
-    right: moderateScale(6),
-    top: moderateScale(6),
+    right: moderateScale(2),
+    top: moderateScale(2),
     justifyContent: "center",
     alignItems: "center",
   },

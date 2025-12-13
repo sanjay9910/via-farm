@@ -792,11 +792,11 @@ const MyCart = () => {
       </TouchableOpacity>
       <View style={styles.productDetails}>
         <View style={styles.productInfo}>
-          <Text style={styles.productTitle}>{item.title}</Text>
+          <Text allowFontScaling={false} style={styles.productTitle}>{item.title}</Text>
           <View style={styles.priceContainer}>
-            <Text style={styles.priceText}><Text style={{ color: 'rgba(66, 66, 66, 1)', fontWeight: '500' }}>MRP </Text>₹{Number(item.price).toFixed(2)}</Text>
+            <Text allowFontScaling={false} style={styles.priceText}><Text style={{ color: 'rgba(66, 66, 66, 1)', fontWeight: '500' }}>MRP </Text>₹{Number(item.price).toFixed(2)}</Text>
           </View>
-          <Text style={styles.deliveryText}>{item.deliveryDate}</Text>
+          <Text allowFontScaling={false} style={styles.deliveryText}>{item.deliveryDate}</Text>
         </View>
 
         <TouchableOpacity
@@ -811,7 +811,7 @@ const MyCart = () => {
             onPress={() => updateQuantity(item.id, (item.quantity || 1) - 1)}
             activeOpacity={0.7}
           >
-            <Text style={styles.quantityButtonText} allowFontScaling={false}>−</Text>
+            <Text allowFontScaling={false} style={styles.quantityButtonText}>−</Text>
           </TouchableOpacity>
 
           {/* MAKE quantity display pressable to open modal (exactly like ProductDetailScreen) */}
@@ -851,13 +851,13 @@ const MyCart = () => {
             style={styles.vendorAvatar}
           />
           <View style={styles.vendorInfoHeader}>
-            <Text style={styles.vendorName}>{vendor.name}</Text>
-            <Text style={styles.vendorItemCount}>{vendor.items?.length || 0} items</Text>
+            <Text allowFontScaling={false} style={styles.vendorName}>{vendor.name}</Text>
+            <Text allowFontScaling={false} style={styles.vendorItemCount}>{vendor.items?.length || 0} items</Text>
           </View>
 
           {isSelected ? (
             <View style={styles.selectedIndicator}>
-              <Text style={styles.selectedText}>✓</Text>
+              <Text allowFontScaling={false} style={styles.selectedText}>✓</Text>
             </View>
           ) : (
             <View style={styles.unselectedIndicator} />
@@ -879,13 +879,13 @@ const MyCart = () => {
         source={require("../../assets/via-farm-img/icons/AddToCard.png")}
         style={styles.emptyCartImage}
       />
-      <Text style={styles.emptyCartTitle}>Your Cart is Empty</Text>
-      <Text style={styles.emptyCartSubtitle}>Looks like you haven't added anything to your cart yet</Text>
+      <Text allowFontScaling={false} style={styles.emptyCartTitle}>Your Cart is Empty</Text>
+      <Text allowFontScaling={false} style={styles.emptyCartSubtitle}>Looks like you haven't added anything to your cart yet</Text>
       <TouchableOpacity
         style={styles.shopNowButton}
         onPress={() => navigation.navigate('index')}
       >
-        <Text style={styles.shopNowText}>Shop Now</Text>
+        <Text allowFontScaling={false} style={styles.shopNowText}>Shop Now</Text>
       </TouchableOpacity>
     </View>
   );
@@ -897,7 +897,7 @@ const MyCart = () => {
         <TouchableOpacity onPress={goBack}>
           <Image source={require("../../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Cart {loading && vendors.length > 0 && '(Updating...)'}</Text>
+        <Text allowFontScaling={false} style={styles.headerTitle}>My Cart {loading && vendors.length > 0 && '(Updating...)'}</Text>
         <View />
       </View>
 
@@ -921,13 +921,13 @@ const MyCart = () => {
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <Image source={require("../../assets/via-farm-img/icons/promo-code.png")} />
                   <View style={{ marginLeft: moderateScale(8) }}>
-                    <Text style={styles.couponTitle}>Offers & Coupons</Text>
-                    <Text style={styles.couponSubtitle}>Tap a coupon to apply quickly</Text>
+                    <Text allowFontScaling={false} style={styles.couponTitle}>Offers & Coupons</Text>
+                    <Text allowFontScaling={false} style={styles.couponSubtitle}>Tap a coupon to apply quickly</Text>
                   </View>
                 </View>
 
                 <TouchableOpacity onPress={() => setShowCouponsDropdown(prev => !prev)}>
-                  <Text style={{ fontSize: normalizeFont(10), color: '#0077ff' }}>{showCouponsDropdown ? 'Hide' : 'View Coupons'}</Text>
+                  <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: '#0077ff' }}>{showCouponsDropdown ? 'Hide' : 'View Coupons'}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -937,7 +937,7 @@ const MyCart = () => {
                   <Pressable style={styles.modalBackground} onPress={() => setShowCouponsDropdown(false)} />
                   <View style={styles.centeredCouponModal}>
                     <View style={styles.modalHeader}>
-                      <Text style={{ fontWeight: '600' }}>Choose a Coupon</Text>
+                      <Text allowFontScaling={false} style={{ fontWeight: '600' }}>Choose a Coupon</Text>
                       <TouchableOpacity onPress={() => setShowCouponsDropdown(false)} style={styles.closeButton}>
                         <Ionicons name="close" size={22} color="#666" />
                       </TouchableOpacity>
@@ -947,9 +947,9 @@ const MyCart = () => {
                   <ScrollView>
                     <View style={{ paddingHorizontal: moderateScale(12), paddingBottom: moderateScale(12), paddingTop: moderateScale(8) }}>
                       {fetchingCoupons ? (
-                        <Text style={{ textAlign: 'center' }}> <ActivityIndicator size="large" color="#6B46C1" /></Text>
+                        <Text allowFontScaling={false} style={{ textAlign: 'center' }}> <ActivityIndicator size="large" color="#6B46C1" /></Text>
                       ) : highlightedCoupons.length === 0 ? (
-                        <Text style={{ textAlign: 'center', color: '#666' }}>No offers available</Text>
+                        <Text allowFontScaling={false} style={{ textAlign: 'center', color: '#666' }}>No offers available</Text>
                       ) : (
                         highlightedCoupons.map(c => {
                           const isPercentage = (c.discount?.type || '').toLowerCase() === 'percentage';
@@ -969,13 +969,13 @@ const MyCart = () => {
                               }}
                             >
                               <View>
-                                <Text style={{ fontSize: normalizeFont(11), fontWeight: '600' }}>{c.code}</Text>
-                                <Text style={{ color: '#666' }}>{c.appliesTo?.join?.(', ') || 'All Products'}</Text>
-                                <Text style={{ fontSize: normalizeFont(10), color: '#666' }}>{label} • Min ₹{c.minimumOrder ?? 0}</Text>
+                                <Text allowFontScaling={false} style={{ fontSize: normalizeFont(11), fontWeight: '600' }}>{c.code}</Text>
+                                <Text allowFontScaling={false} style={{ color: '#666' }}>{c.appliesTo?.join?.(', ') || 'All Products'}</Text>
+                                <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: '#666' }}>{label} • Min ₹{c.minimumOrder ?? 0}</Text>
                               </View>
                               <View style={{alignItems:"flex-end"}}>
-                                <Text style={{color:'#000',fontSize:normalizeFont(13),fontWeight:'bold',marginBottom:moderateScale(6)}}>Save </Text>
-                                <Text style={{color:'grey',fontSize:normalizeFont(10)}}>₹{previewDiscount.toFixed(2)}</Text>
+                                <Text allowFontScaling={false} style={{color:'#000',fontSize:normalizeFont(13),fontWeight:'bold',marginBottom:moderateScale(6)}}>Save </Text>
+                                <Text allowFontScaling={false} style={{color:'grey',fontSize:normalizeFont(10)}}>₹{previewDiscount.toFixed(2)}</Text>
                               </View>
                             </TouchableOpacity>
                           );
@@ -989,6 +989,7 @@ const MyCart = () => {
 
               <View style={styles.couponInputContainer}>
                 <TextInput
+                allowFontScaling={false}
                   style={styles.couponInput}
                   placeholder="Enter your coupon code"
                   value={couponCode}
@@ -997,19 +998,19 @@ const MyCart = () => {
                 />
                 {appliedCoupon && appliedCoupon.vendorId === selectedVendor?.id ? (
                   <TouchableOpacity style={styles.removeCouponButton} onPress={removeCoupon}>
-                    <Text style={styles.removeCouponText}>Remove</Text>
+                    <Text allowFontScaling={false} style={styles.removeCouponText}>Remove</Text>
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity style={styles.applyCouponButton} onPress={() => applyCoupon()}>
-                    <Text style={styles.applyCouponText}>Apply</Text>
+                    <Text allowFontScaling={false} style={styles.applyCouponText}>Apply</Text>
                   </TouchableOpacity>
                 )}
               </View>
 
               {couponError ? (
-                <Text style={styles.couponError}>{couponError}</Text>
+                <Text allowFontScaling={false} style={styles.couponError}>{couponError}</Text>
               ) : (appliedCoupon && appliedCoupon.vendorId === selectedVendor?.id) ? (
-                <Text style={styles.couponSuccess}>
+                <Text allowFontScaling={false} style={styles.couponSuccess}>
                   Coupon applied! ₹{Number(effectiveCouponDiscount).toFixed(2)} discount
                 </Text>
               ) : null}
@@ -1019,21 +1020,21 @@ const MyCart = () => {
           {/* Price Section - show price details for selected vendor */}
           {selectedVendor && (
             <View style={styles.priceSection}>
-              <Text style={styles.priceSectionTitle}>Price Details for {selectedVendor?.name}</Text>
+              <Text allowFontScaling={false} style={styles.priceSectionTitle}>Price Details for {selectedVendor?.name}</Text>
 
               <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Total MRP</Text>
-                <Text style={styles.priceValue}>₹{Number(baseSubtotal).toFixed(2)}</Text>
+                <Text allowFontScaling={false} style={styles.priceLabel}>Total MRP</Text>
+                <Text allowFontScaling={false} style={styles.priceValue}>₹{Number(baseSubtotal).toFixed(2)}</Text>
               </View>
 
               <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Coupon Discount</Text>
-                <Text style={styles.discountValue}>-₹{Number(effectiveCouponDiscount).toFixed(2)}</Text>
+                <Text allowFontScaling={false} style={styles.priceLabel}>Coupon Discount</Text>
+                <Text allowFontScaling={false} style={styles.discountValue}>-₹{Number(effectiveCouponDiscount).toFixed(2)}</Text>
               </View>
 
               <View style={[styles.priceRow, styles.totalRow]}>
-                <Text style={styles.totalLabel}>Total Amount</Text>
-                <Text style={styles.totalValue}>₹{Number(finalAmount).toFixed(2)}</Text>
+                <Text allowFontScaling={false} style={styles.totalLabel}>Total Amount</Text>
+                <Text allowFontScaling={false} style={styles.totalValue}>₹{Number(finalAmount).toFixed(2)}</Text>
               </View>
             </View>
           )}
@@ -1047,7 +1048,7 @@ const MyCart = () => {
         <View style={styles.checkoutContainer}>
           <TouchableOpacity style={styles.checkoutButton} onPress={openModal}>
             <Image source={require("../../assets/via-farm-img/icons/UpArrow.png")} />
-            <Text style={styles.checkoutText}>Place Order for {selectedVendor?.name}</Text>
+            <Text allowFontScaling={false} style={styles.checkoutText}>Place Order for {selectedVendor?.name}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -1087,7 +1088,7 @@ const MyCart = () => {
                   <TouchableOpacity style={styles.backButton} onPress={closePickupModal}>
                     <Image source={require('../../assets/via-farm-img/icons/groupArrow.png')} />
                   </TouchableOpacity>
-                  <Text style={styles.modalHeaderTitle}>Pickup Location</Text>
+                  <Text allowFontScaling={false}>Pickup Location</Text>
                 </View>
 
                 <View style={styles.locationInfo}>
@@ -1095,10 +1096,10 @@ const MyCart = () => {
                     <Image source={require('../../assets/via-farm-img/icons/loca.png')} />
                   </View>
                   <View style={styles.locationDetails}>
-                    <Text style={styles.locationAddress}>
+                    <Text allowFontScaling={false} style={styles.locationAddress}>
                       {selectedVendorDetails?.pickupLocationText || 'Loading location...'}
                     </Text>
-                    <Text style={styles.locationDistance}>
+                    <Text allowFontScaling={false} style={styles.locationDistance}>
                       {selectedVendorDetails?.address?.locality || 'Location details'}
                     </Text>
                   </View>
@@ -1108,18 +1109,18 @@ const MyCart = () => {
                 </View>
 
                 <View style={styles.slotSection}>
-                  <Text style={styles.slotTitle}>Pick a slot</Text>
+                  <Text allowFontScaling={false} style={styles.slotTitle}>Pick a slot</Text>
 
                   <View style={styles.dateRow}>
-                    <Text style={styles.dateLabel}>Date</Text>
+                    <Text allowFontScaling={false} style={styles.dateLabel}>Date</Text>
                     <TouchableOpacity
                       style={styles.datePicker}
                       onPress={() => setShowDatePicker(true)}
                     >
-                      <Text style={styles.dateText}>
+                      <Text allowFontScaling={false} style={styles.dateText}>
                         {slot.date || 'Select Date'}
                       </Text>
-                      <Text style={styles.dateIcon}>📅</Text>
+                      <Text allowFontScaling={false} style={styles.dateIcon}>📅</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -1134,13 +1135,13 @@ const MyCart = () => {
                   )}
 
                   <View style={styles.timeRow}>
-                    <Text style={styles.timeLabel}>Between</Text>
+                    <Text allowFontScaling={false} style={styles.timeLabel}>Between</Text>
                     <View style={styles.timeContainer}>
                       <TouchableOpacity
                         style={styles.timeInput}
                         onPress={() => setShowStartTimePicker(true)}
                       >
-                        <Text style={styles.timeText}>
+                        <Text allowFontScaling={false} style={styles.timeText}>
                           {slot.startTime || '--:--'}
                         </Text>
                       </TouchableOpacity>
@@ -1148,14 +1149,14 @@ const MyCart = () => {
                         style={styles.ampmButton}
                         onPress={() => setStartAMPM(startAMPM === 'AM' ? 'PM' : 'AM')}
                       >
-                        <Text style={styles.ampmText}>{startAMPM}</Text>
+                        <Text allowFontScaling={false} style={styles.ampmText}>{startAMPM}</Text>
                       </TouchableOpacity>
-                      <Text style={styles.timeTo}>to</Text>
+                      <Text allowFontScaling={false} style={styles.timeTo}>to</Text>
                       <TouchableOpacity
                         style={styles.timeInput}
                         onPress={() => setShowEndTimePicker(true)}
                       >
-                        <Text style={styles.timeText}>
+                        <Text allowFontScaling={false} style={styles.timeText}>
                           {slot.endTime || '--:--'}
                         </Text>
                       </TouchableOpacity>
@@ -1163,7 +1164,7 @@ const MyCart = () => {
                         style={styles.ampmButton}
                         onPress={() => setEndAMPM(endAMPM === 'AM' ? 'PM' : 'AM')}
                       >
-                        <Text style={styles.ampmText}>{endAMPM}</Text>
+                        <Text allowFontScaling={false} style={styles.ampmText}>{endAMPM}</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1188,7 +1189,7 @@ const MyCart = () => {
                 </View>
 
                 <View style={{ paddingBottom: moderateScale(16), backgroundColor: '#fff', borderRadius: moderateScale(10) }}>
-                  <Text style={{ fontSize: normalizeFont(10), fontWeight: '600', marginBottom: moderateScale(15) }}>Payment Options</Text>
+                  <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), fontWeight: '600', marginBottom: moderateScale(15) }}>Payment Options</Text>
 
                   {/* Pay by Cash */}
                   <TouchableOpacity
@@ -1207,7 +1208,7 @@ const MyCart = () => {
                       backgroundColor: paymentMethod === 'cash' ? '#FFF8E1' : '#fff'
                     }}
                   >
-                    <Text style={{ fontSize: normalizeFont(9), color: '#333' }}>Pay by Cash</Text>
+                    <Text allowFontScaling={false} style={{ fontSize: normalizeFont(9), color: '#333' }}>Pay by Cash</Text>
                     <View
                       style={{
                         width: scale(22),
@@ -1248,7 +1249,7 @@ const MyCart = () => {
                       backgroundColor: paymentMethod === 'online' ? '#FFF8E1' : '#fff'
                     }}
                   >
-                    <Text style={{ fontSize: normalizeFont(9), color: '#333' }}>Pay Online</Text>
+                    <Text allowFontScaling={false} style={{ fontSize: normalizeFont(9), color: '#333' }}>Pay Online</Text>
                     <View
                       style={{
                         width: scale(22),
@@ -1274,7 +1275,7 @@ const MyCart = () => {
                   </TouchableOpacity>
                 </View>
 
-                <Text style={styles.vendorTitle}>Vendor's Details</Text>
+                <Text allowFontScaling={false} style={styles.vendorTitle}>Vendor's Details</Text>
 
                 <View style={styles.vendorInfo}>
                   <Image
@@ -1285,10 +1286,10 @@ const MyCart = () => {
                     }}
                   />
                   <View style={styles.vendorDetails}>
-                    <Text style={styles.vendorName}>
+                    <Text allowFontScaling={false} style={styles.vendorName}>
                       {selectedVendorDetails?.name || "Vendor Name"}
                     </Text>
-                    <Text style={styles.vendorPhone}>
+                    <Text allowFontScaling={false} style={styles.vendorPhone}>
                       Phone: {selectedVendorDetails?.phoneNo || "N/A"}
                     </Text>
                   </View>
@@ -1300,7 +1301,7 @@ const MyCart = () => {
                   style={styles.proceedButtonStyle}
                   onPress={handlePlaceOrderPickup}
                 >
-                  <Text style={styles.proceedButtonText}>Place Order for {selectedVendor?.name}</Text>
+                  <Text allowFontScaling={false} style={styles.proceedButtonText}>Place Order for {selectedVendor?.name}</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -1313,8 +1314,8 @@ const MyCart = () => {
         <View style={styles.successModalOverlay}>
           <View style={styles.successModalBox}>
             <Image source={require('../../assets/via-farm-img/icons/confirm.png')} style={{ width: scale(80), height: scale(70), marginBottom: moderateScale(12) }} />
-            <Text style={{ fontSize: normalizeFont(9), fontWeight: '600', marginBottom: moderateScale(6) }}>Order Placed</Text>
-            <Text style={{ color: '#555' }}>Your order was placed successfully!</Text>
+            <Text allowFontScaling={false} style={{ fontSize: normalizeFont(9), fontWeight: '600', marginBottom: moderateScale(6) }}>Order Placed</Text>
+            <Text allowFontScaling={false} style={{ color: '#555' }}>Your order was placed successfully!</Text>
           </View>
         </View>
       </Modal>
@@ -1328,7 +1329,7 @@ const MyCart = () => {
       >
         <TouchableOpacity style={modalStyles.backdrop} activeOpacity={1} onPress={closeQtyModal}>
           <View style={[modalStyles.modalWrap, { maxWidth: Math.min(420, Dimensions.get('window').width - moderateScale(40)) }]}>
-            <Text style={modalStyles.modalTitle}>Set quantity</Text>
+            <Text allowFontScaling={false} style={modalStyles.modalTitle}>Set quantity</Text>
 
             <View style={modalStyles.editRow}>
               <TouchableOpacity style={modalStyles.pickerBtn} onPress={decrementEdit}>
@@ -1336,6 +1337,7 @@ const MyCart = () => {
               </TouchableOpacity>
 
               <TextInput
+              allowFontScaling={false}
                 style={modalStyles.qtyInput}
                 keyboardType="number-pad"
                 value={String(editQuantity)}
@@ -1352,10 +1354,10 @@ const MyCart = () => {
 
             <View style={modalStyles.modalActions}>
               <TouchableOpacity style={modalStyles.cancelBtn} onPress={closeQtyModal}>
-                <Text style={modalStyles.cancelText}>Cancel</Text>
+                <Text allowFontScaling={false} style={modalStyles.cancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={modalStyles.okBtn} onPress={applyQtyChange}>
-                <Text style={modalStyles.okText}>OK</Text>
+                <Text allowFontScaling={false} style={modalStyles.okText}>OK</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1387,7 +1389,7 @@ const MyCart = () => {
             <View style={styles.dragHandle} />
 
             <View style={styles.deliveryModalHeader}>
-              <Text style={styles.modalTitle}>Select Delivery Option for {selectedVendor?.name}</Text>
+              <Text allowFontScaling={false} style={styles.modalTitle}>Select Delivery Option for {selectedVendor?.name}</Text>
             </View>
 
             <View style={styles.optionsContainer}>
@@ -1396,9 +1398,9 @@ const MyCart = () => {
                 onPress={() => handleOptionSelect('pickup')}
               >
                 <View style={styles.optionContent}>
-                  <Text style={styles.optionTitle}>Pickup your package from vendor's location</Text>
+                  <Text allowFontScaling={false} style={styles.optionTitle}>Pickup your package from vendor's location</Text>
                   <View style={styles.optionSubtitle}>
-                    <Text style={styles.text}>Pickup</Text>
+                    <Text allowFontScaling={false} style={styles.text}>Pickup</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -1408,9 +1410,9 @@ const MyCart = () => {
                 onPress={() => handleOptionSelect('delivery')}
               >
                 <View style={styles.optionContent}>
-                  <Text style={styles.optionTitle}>Get your package delivered to your doorstep</Text>
+                  <Text allowFontScaling={false} style={styles.optionTitle}>Get your package delivered to your doorstep</Text>
                   <View style={styles.optionSubtitle}>
-                    <Text style={styles.text}>Delivery</Text>
+                    <Text allowFontScaling={false} style={styles.text}>Delivery</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -1641,15 +1643,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   productTitle: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(14),
     fontWeight: '500',
+    paddingBottom:moderateScale(5),
     color: 'rgba(66, 66, 66, 1)',
     // marginBottom: moderateScale(10),
   },
   productSubtitle: {
     fontSize: normalizeFont(12),
     color: '#666',
-    marginBottom: moderateScale(8),
+    paddingBottom: moderateScale(5),
   },
   priceContainer: {
     flexDirection: 'row',
@@ -1661,11 +1664,13 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
     marginRight: moderateScale(8),
     fontWeight: '300',
+    paddingBottom:moderateScale(5),
   },
   priceText: {
     fontSize: normalizeFont(12),
     fontWeight: '700',
     color: '#333',
+     paddingBottom:moderateScale(5),
   },
   deliveryText: {
     fontSize: normalizeFont(12),

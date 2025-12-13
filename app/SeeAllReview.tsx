@@ -62,13 +62,13 @@ const SeeAllReview = () => {
           resizeMode='stretch'
         />
         <View style={{ flex: 1, marginLeft: 10 }}>
-          <Text style={styles.reviewerName}>{item?.user?.name || 'Anonymous'}</Text>
+          <Text allowFontScaling={false} style={styles.reviewerName}>{item?.user?.name || 'Anonymous'}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Ionicons name="star" color="#FFD700" size={14} />
-            <Text style={styles.ratingText}>{' '}{item?.rating != null ? String(item.rating) : 'N/A'}</Text>
+            <Text allowFontScaling={false} style={styles.ratingText}>{' '}{item?.rating != null ? String(item.rating) : 'N/A'}</Text>
           </View>
         </View>
-        <Text style={styles.reviewDate}>
+        <Text allowFontScaling={false} style={styles.reviewDate}>
           {item?.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB') : ''}
         </Text>
       </View>
@@ -87,7 +87,7 @@ const SeeAllReview = () => {
         />
       )}
 
-      <Text style={styles.reviewComment}>{item?.comment || 'No comment provided.'}</Text>
+      <Text allowFontScaling={false} style={styles.reviewComment}>{item?.comment || 'No comment provided.'}</Text>
     </View>
   );
 
@@ -105,22 +105,22 @@ const SeeAllReview = () => {
 
       {/* Vendor Info */}
       <View style={styles.vendorInfo}>
-        <Text style={styles.vendorName}>{v.name || 'Vendor'}</Text>
+        <Text allowFontScaling={false} style={styles.vendorName}>{v.name || 'Vendor'}</Text>
         <View style={styles.row}>
           <Image source={require("../assets/via-farm-img/icons/loca.png")} />
-          <Text style={styles.vendorLocation}>
+          <Text allowFontScaling={false} style={styles.vendorLocation}>
             {vendorLocation} {v.distance ? `(${v.distance})` : ''}
           </Text>
         </View>
-        <Text style={styles.aboutHeader}>About the vendor</Text>
-        <Text style={styles.aboutText}>
+        <Text allowFontScaling={false} style={styles.aboutHeader}>About the vendor</Text>
+        <Text allowFontScaling={false} style={styles.aboutText}>
           {v.about || 'No description available.'}
         </Text>
       </View>
 
       {/* Reviews */}
       <View style={styles.reviewsContainer}>
-        <Text style={styles.allReviewsTitle}>
+        <Text allowFontScaling={false} style={styles.allReviewsTitle}>
           All Reviews ({Array.isArray(reviews) ? reviews.length : 0} reviews)
         </Text>
 
@@ -140,7 +140,7 @@ const SeeAllReview = () => {
             <Image style={{width:scale(30),height:scale(30)}} source={require("../assets/via-farm-img/icons/satar.png")} />
             <Image style={{width:scale(30),height:scale(30)}} source={require("../assets/via-farm-img/icons/satar.png")} />
             </View>
-            <Text style={styles.noReviewText}>No reviews yet.</Text>
+            <Text allowFontScaling={false} style={styles.noReviewText}>No reviews yet.</Text>
           </View>
         )}
       </View>
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     marginVertical: moderateScale(4),
   },
   vendorLocation: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(11),
     color: '#757575',
     marginLeft: moderateScale(5),
   },

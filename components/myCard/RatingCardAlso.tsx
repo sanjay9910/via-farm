@@ -19,7 +19,7 @@ const NewSeason = () => {
       <View style={styles.headerRow}>
   <Text style={styles.heading}>Rating & Review</Text>
   <TouchableOpacity onPress={() => navigation.navigate("")}>
-    <Text style={styles.link}>View All  </Text>
+    <Text allowFontScaling={false} style={styles.link}>View All  </Text>
     {/* <Ionicons name="arrow-forward" size={18} color="#333" style={styles.icon} /> */}
   </TouchableOpacity>
 </View>

@@ -119,31 +119,31 @@ const ProductCard = ({
           <View style={cardStyles.ratingContainer}>
             <Ionicons name="star" size={moderateScale(10)} color="#FFD700" />
             {/* no extra spacing between star and rating */}
-            <Text style={cardStyles.ratingText}>{rating}</Text>
+            <Text allowFontScaling={false} style={cardStyles.ratingText}>{rating}</Text>
           </View>
         </View>
 
         <View style={cardStyles.cardContent}>
-          <Text style={cardStyles.productTitle} numberOfLines={1}>
+          <Text allowFontScaling={false} style={cardStyles.productTitle} numberOfLines={1}>
             {item?.name ?? "Unnamed product"}
           </Text>
 
-          <Text style={cardStyles.productVeriety} numberOfLines={1}>
+          <Text allowFontScaling={false} style={cardStyles.productVeriety} numberOfLines={1}>
             By {item?.vendor?.name ?? "N/A"}
           </Text>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: moderateScale(6) }}>
             <Image source={require("../assets/via-farm-img/icons/loca.png")} />
-            <Text style={cardStyles.distanceText}>
+            <Text allowFontScaling={false} style={cardStyles.distanceText}>
               {item?.distance ?? item?.vendor?.distance ?? "0.0 km"}
             </Text>
           </View>
 
           <View style={cardStyles.priceContainer}>
-            <Text style={cardStyles.productUnit}>₹{item?.price ?? "0"}</Text>
+            <Text allowFontScaling={false} style={cardStyles.productUnit}>₹{item?.price ?? "0"}</Text>
             {/* glued unit and weight without extra spaces */}
-            <Text style={cardStyles.productUnit}>/{unit}</Text>
-            {weight ? <Text style={cardStyles.productUnit}>/{weight}</Text> : null}
+            <Text allowFontScaling={false} style={cardStyles.productUnit}>/{unit}</Text>
+            {weight ? <Text allowFontScaling={false} style={{fontSize:normalizeFont(10),fontWeight:'bold'}}>/{weight}</Text> : null}
           </View>
 
           <View style={cardStyles.buttonContainer}>
@@ -160,7 +160,7 @@ const ProductCard = ({
                   onAddToCart && onAddToCart(item);
                 }}
               >
-                <Text style={cardStyles.addToCartText}>
+                <Text allowFontScaling={false} style={cardStyles.addToCartText}>
                   {(item?.status === 'Out of Stock' || item?.stock === 0) ? "Out of Stock" : "Add to Cart"}
                 </Text>
               </TouchableOpacity>
@@ -204,7 +204,7 @@ const ProductCard = ({
                 >
                   <TouchableOpacity style={modalStyles.backdrop} activeOpacity={1} onPress={closeQtyModal}>
                     <View style={[modalStyles.modalWrap, { maxWidth: Math.min(420, Dimensions.get('window').width - moderateScale(40)) }]}>
-                      <Text style={modalStyles.modalTitle}>Add Quantity</Text>
+                      <Text allowFontScaling={false} style={modalStyles.modalTitle}>Add Quantity</Text>
 
                       <View style={modalStyles.editRow}>
                         <TouchableOpacity style={modalStyles.pickerBtn} onPress={decrementEdit}>
@@ -213,6 +213,7 @@ const ProductCard = ({
 
                         <TextInput
                           style={modalStyles.qtyInput}
+                          allowFontScaling={false}
                           keyboardType="number-pad"
                           value={String(editQuantity)}
                           onChangeText={(t) => setEditQuantity(t.replace(/[^0-9]/g, ""))}
@@ -228,7 +229,7 @@ const ProductCard = ({
 
                       <View style={modalStyles.modalActions}>
                         <TouchableOpacity style={modalStyles.cancelBtn} onPress={closeQtyModal}>
-                          <Text style={modalStyles.cancelText}>Cancel</Text>
+                          <Text allowFontScaling={false} style={modalStyles.cancelText}>Cancel</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={modalStyles.okBtn} onPress={applyQuantityChange}>
                           <Text style={modalStyles.okText}>OK</Text>
@@ -658,15 +659,15 @@ const MyWishlist = () => {
   const renderLoading = () => (
     <View style={styles.centerContainer}>
       <ActivityIndicator size="large" color="#4CAF50" />
-      <Text style={styles.loadingText}>Loading wishlist...</Text>
+      <Text allowFontScaling={false} style={styles.loadingText}>Loading wishlist...</Text>
     </View>
   );
 
   const renderError = () => (
     <View style={styles.centerContainer}>
-      <Text style={styles.errorText}>Error: {error}</Text>
+      <Text allowFontScaling={false}  style={styles.errorText}>Error: {error}</Text>
       <TouchableOpacity style={styles.retryButton} onPress={() => { fetchWishlistData(); fetchMeta(); }}>
-        <Text style={styles.retryButtonText}>Retry</Text>
+        <Text allowFontScaling={false} style={styles.retryButtonText}>Retry</Text>
       </TouchableOpacity>
     </View>
   );
@@ -674,8 +675,8 @@ const MyWishlist = () => {
   const renderEmpty = () => (
     <View style={styles.centerContainer}>
       <Image source={{ uri: "https://cdn-icons-png.flaticon.com/512/4076/4076549.png" }} style={styles.emptyImage} />
-      <Text style={styles.emptyText}>Your wishlist is empty</Text>
-      <Text style={styles.emptySubText}>Add items to see them here</Text>
+      <Text allowFontScaling={false} style={styles.emptyText}>Your wishlist is empty</Text>
+      <Text allowFontScaling={false} style={styles.emptySubText}>Add items to see them here</Text>
     </View>
   );
 
@@ -688,12 +689,12 @@ const MyWishlist = () => {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.text}>My Wishlist</Text>
+        <Text allowFontScaling={false} style={styles.text}>My Wishlist</Text>
 
         <View style={styles.filterWrapper}>
           <TouchableOpacity style={styles.filterBtn} onPress={toggleDropdown}>
             <View style={styles.filterExpand}>
-              <Text style={styles.filterText}>{selectedOption}</Text>
+              <Text allowFontScaling={false} style={styles.filterText}>{selectedOption}</Text>
               <Image width={moderateScale(20)} source={require('../assets/via-farm-img/icons/expandArrow.png')} />
             </View>
           </TouchableOpacity>
@@ -702,7 +703,7 @@ const MyWishlist = () => {
             <ScrollView>
               {options.map(opt => (
                 <TouchableOpacity key={opt} style={styles.dropdownItem} onPress={() => handleSelect(opt)}>
-                  <Text style={styles.dropdownText}>{opt}</Text>
+                  <Text allowFontScaling={false} style={styles.dropdownText}>{opt}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -712,9 +713,9 @@ const MyWishlist = () => {
 
       {loading ? renderLoading() : error ? renderError() : filteredData.length === 0 ? (selectedOption === 'All' ? renderEmpty() : (
         <View style={styles.centerContainer}>
-          <Text style={styles.emptyText}>No items found for {selectedOption}</Text>
+          <Text allowFontScaling={false} style={styles.emptyText}>No items found for {selectedOption}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={() => handleSelect('All')}>
-            <Text style={styles.retryButtonText}>Show All</Text>
+            <Text allowFontScaling={false} style={styles.retryButtonText}>Show All</Text>
           </TouchableOpacity>
         </View>
       )) : (
@@ -786,7 +787,7 @@ const cardStyles = StyleSheet.create({
     padding: scale(10)
   },
   productTitle: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(13),
     fontWeight: '600',
     color: '#222'
   },

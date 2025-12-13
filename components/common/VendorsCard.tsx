@@ -50,29 +50,29 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
       {/* Content Section */}
       <View style={styles.contentSection}>
         {/* Name */}
-        <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+        <Text allowFontScaling={false} style={styles.name} numberOfLines={1} ellipsizeMode="tail">
           {name}
         </Text>
 
         <View style={styles.distanceContainer}>
           <Image source={require('../../assets/via-farm-img/icons/loca.png')} />
-          <Text style={styles.distance}>{distance}</Text>
+          <Text allowFontScaling={false} style={styles.distance}>{distance}</Text>
         </View>
 
         {/* Category */}
         <View style={styles.categoryContainer}>
           <Image source={require(".././../assets/via-farm-img/icons/catagory.png")} />
-          <Text style={styles.category} numberOfLines={1} ellipsizeMode="tail">
+          <Text allowFontScaling={false} style={styles.category} numberOfLines={1} ellipsizeMode="tail">
             {formatCategories(category)} 
           </Text>
         </View>
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.deliveryButton} activeOpacity={0.8}>
-            <Text style={styles.deliveryButtonText}>Delivery</Text>
+            <Text allowFontScaling={false} style={styles.deliveryButtonText}>Delivery</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.pickupButton} activeOpacity={0.8}>
-            <Text style={styles.pickupButtonText}>Pickup</Text>
+            <Text allowFontScaling={false} style={styles.pickupButtonText}>Pickup</Text>
           </TouchableOpacity>
         </View>
       </View>

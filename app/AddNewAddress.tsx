@@ -194,7 +194,7 @@ const AddNewAddress = () => {
         <TouchableOpacity onPress={handleCancel} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add New Address</Text>
+        <Text allowFontScaling={false} style={styles.headerTitle}>Add New Address</Text>
         <View style={{ width: scale(24) }} />
       </View>
 
@@ -207,7 +207,7 @@ const AddNewAddress = () => {
             disabled={locating}
           >
             <Ionicons name="location" size={20} color="#3b82f6" />
-            <Text style={styles.locationText}>
+            <Text allowFontScaling={false} style={styles.locationText}>
               {locating ? 'Fetching location...' : 'Use Current Location'}
             </Text>
             {locating && <ActivityIndicator size="small" color="#3b82f6" style={{ marginLeft: moderateScale(10) }} />}
@@ -216,7 +216,7 @@ const AddNewAddress = () => {
 
         {/* Address Form */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Address Details *</Text>
+          <Text allowFontScaling={false} style={styles.sectionTitle}>Address Details *</Text>
 
           <TextInput
             style={styles.textInput}
@@ -227,6 +227,7 @@ const AddNewAddress = () => {
             placeholderTextColor="#999"
             maxLength={6}
             editable={!loading}
+            allowFontScaling={false}
           />
 
           <TextInput
@@ -236,6 +237,7 @@ const AddNewAddress = () => {
             onChangeText={(value) => handleInputChange('houseNumber', value)}
             placeholderTextColor="#999"
             editable={!loading}
+            allowFontScaling={false}
           />
 
           <TextInput
@@ -245,6 +247,7 @@ const AddNewAddress = () => {
             onChangeText={(value) => handleInputChange('locality', value)}
             placeholderTextColor="#999"
             editable={!loading}
+            allowFontScaling={false}
           />
 
           <View style={styles.row}>
@@ -255,6 +258,7 @@ const AddNewAddress = () => {
               onChangeText={(value) => handleInputChange('city', value)}
               placeholderTextColor="#999"
               editable={!loading}
+              allowFontScaling={false}
             />
             <TextInput
               style={[styles.textInput, styles.halfInput]}
@@ -263,6 +267,7 @@ const AddNewAddress = () => {
               onChangeText={(value) => handleInputChange('district', value)}
               placeholderTextColor="#999"
               editable={!loading}
+              allowFontScaling={false}
             />
           </View>
 
@@ -273,6 +278,7 @@ const AddNewAddress = () => {
             onChangeText={(value) => handleInputChange('state', value)}
             placeholderTextColor="#999"
             editable={!loading}
+            allowFontScaling={false}
           />
 
           <View style={styles.switchContainer}>
@@ -283,7 +289,7 @@ const AddNewAddress = () => {
               thumbColor="#fff"
               disabled={loading}
             />
-            <Text style={styles.switchLabel}>Make this my default address</Text>
+            <Text allowFontScaling={false} style={styles.switchLabel}>Make this my default address</Text>
           </View>
         </View>
 
@@ -297,7 +303,7 @@ const AddNewAddress = () => {
           onPress={handleCancel}
           disabled={loading}
         >
-          <Text style={styles.cancelButtonText}>Cancel</Text>
+          <Text allowFontScaling={false} style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -308,7 +314,7 @@ const AddNewAddress = () => {
           {loading ? (
             <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
           ) : null}
-          <Text style={styles.saveButtonText}>
+          <Text allowFontScaling={false} style={styles.saveButtonText}>
             {loading ? 'Saving...' : 'Save Address'}
           </Text>
         </TouchableOpacity>

@@ -513,18 +513,18 @@ export default function HeaderDesign() {
       </View>
       <View style={styles.suggestionInfo}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: scale(5) }}>
-          <Text style={styles.suggestionName} numberOfLines={1}>{product.name || product.title}</Text>
+          <Text allowFontScaling={false} style={styles.suggestionName} numberOfLines={1}>{product.name || product.title}</Text>
           <View style={styles.suggestionRating}>
             <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
-            <Text style={styles.suggestionRatingText}>{product.rating || 0}</Text>
+            <Text allowFontScaling={false} style={styles.suggestionRatingText}>{product.rating || 0}</Text>
           </View>
         </View>
 
-        <Text style={styles.suggestionVendor} numberOfLines={1}>
+        <Text allowFontScaling={false} style={styles.suggestionVendor} numberOfLines={1}>
           by {product.vendor?.name || product.sellerName || 'Unknown'}
         </Text>
         <View style={styles.suggestionMeta}>
-          <Text style={styles.suggestionPrice}>₹{product.price ?? product.mrp ?? 0}</Text>
+          <Text allowFontScaling={false} style={styles.suggestionPrice}>₹{product.price ?? product.mrp ?? 0}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -540,7 +540,7 @@ export default function HeaderDesign() {
               style={styles.locationContainer}
               onPress={openAddressModal}
             >
-              <Text style={styles.locationText}>
+              <Text allowFontScaling={false} style={styles.locationText}>
                 {address?.city || 'Select City'}
               </Text>
               <Image source={require("../../assets/via-farm-img/icons/downArrow.png")} />
@@ -560,14 +560,14 @@ export default function HeaderDesign() {
                       style={styles.profileImage}
                     />
                   ) : (
-                    <Text style={styles.profileText}>{getInitial()}</Text>
+                    <Text allowFontScaling={false} style={styles.profileText}>{getInitial()}</Text>
                   )}
                 </View>
               </TouchableOpacity>
             </View>
           </View>
 
-          <Text style={styles.locationSubtitle}>
+          <Text allowFontScaling={false} style={styles.locationSubtitle}>
             {address?.locality || ''}{address?.district ? `, ${address.district}` : ''}
           </Text>
 
@@ -581,6 +581,7 @@ export default function HeaderDesign() {
               value={searchText}
               onChangeText={handleSearchChange}
               returnKeyType="search"
+              allowFontScaling={false}
             />
             {searchText.length > 0 && (
               <TouchableOpacity onPress={() => {
@@ -588,6 +589,7 @@ export default function HeaderDesign() {
                 setSuggestions([]);
                 setFilteredSuggestions([]);
                 setShowSuggestions(false);
+                
               }}>
                 <Ionicons name="close-circle" size={normalizeFont(18)} color="#999" />
               </TouchableOpacity>
@@ -624,7 +626,7 @@ export default function HeaderDesign() {
             ) : (
               <View style={styles.noSuggestionsContainer}>
                 <Ionicons name="search" size={40} color="#ccc" />
-                <Text style={styles.noSuggestionsText}>No products match your criteria</Text>
+                <Text allowFontScaling={false} style={styles.noSuggestionsText}>No products match your criteria</Text>
               </View>
             )}
           </View>
@@ -655,7 +657,7 @@ export default function HeaderDesign() {
             <View style={styles.filterHeader}>
               <View style={styles.filterTitleContainer}>
                 <Image source={require("../../assets/via-farm-img/icons/filter.png")} />
-                <Text style={styles.filterTitle}>Filters</Text>
+                <Text allowFontScaling={false} style={styles.filterTitle}>Filters</Text>
               </View>
               <TouchableOpacity onPress={closeFilterPopup} activeOpacity={0.7}>
                 <Ionicons name="close" size={normalizeFont(20)} color="#333" />
@@ -676,7 +678,7 @@ export default function HeaderDesign() {
                         })}
                         activeOpacity={0.7}
                       >
-                        <Text style={styles.filterOptionText}>Sort by</Text>
+                        <Text allowFontScaling={false} style={styles.filterOptionText}>Sort by</Text>
                         <Ionicons
                           name={expandedFilters.sortBy ? "chevron-up" : "chevron-down"}
                           size={normalizeFont(14)}
@@ -693,7 +695,7 @@ export default function HeaderDesign() {
                               onPress={() => setTempFilters({ ...tempFilters, sortBy: option })}
                               activeOpacity={0.7}
                             >
-                              <Text style={[
+                              <Text allowFontScaling={false} style={[
                                 styles.filterOptionText2,
                                 tempFilters.sortBy === option && styles.filterOptionText2Active
                               ]}>
@@ -716,7 +718,7 @@ export default function HeaderDesign() {
                         })}
                         activeOpacity={0.7}
                       >
-                        <Text style={styles.filterOptionText}>Price Range</Text>
+                        <Text allowFontScaling={false} style={styles.filterOptionText}>Price Range</Text>
                         <Ionicons
                           name={expandedFilters.price ? "chevron-up" : "chevron-down"}
                           size={normalizeFont(14)}
@@ -727,8 +729,8 @@ export default function HeaderDesign() {
                         <View style={styles.filterDetails}>
                           <View style={styles.sliderContainer}>
                             <View style={styles.sliderLabelRow}>
-                              <Text style={styles.sliderLabel}>₹{tempFilters.priceMin}</Text>
-                              <Text style={styles.sliderLabel}>₹{tempFilters.priceMax}</Text>
+                              <Text allowFontScaling={false} style={styles.sliderLabel}>₹{tempFilters.priceMin}</Text>
+                              <Text allowFontScaling={false} style={styles.sliderLabel}>₹{tempFilters.priceMax}</Text>
                             </View>
                             <View style={styles.sliderBar}>
                               <View style={[
@@ -769,7 +771,7 @@ export default function HeaderDesign() {
                         })}
                         activeOpacity={0.7}
                       >
-                        <Text style={styles.filterOptionText}>Distance</Text>
+                        <Text allowFontScaling={false} style={styles.filterOptionText}>Distance</Text>
                         <Ionicons
                           name={expandedFilters.distance ? "chevron-up" : "chevron-down"}
                           size={normalizeFont(14)}
@@ -780,8 +782,8 @@ export default function HeaderDesign() {
                         <View style={styles.filterDetails}>
                           <View style={styles.sliderContainer}>
                             <View style={styles.sliderLabelRow}>
-                              <Text style={styles.sliderLabel}>{tempFilters.distanceMin}km</Text>
-                              <Text style={styles.sliderLabel}>{tempFilters.distanceMax}km</Text>
+                              <Text allowFontScaling={false} style={styles.sliderLabel}>{tempFilters.distanceMin}km</Text>
+                              <Text allowFontScaling={false} style={styles.sliderLabel}>{tempFilters.distanceMax}km</Text>
                             </View>
                             <View style={styles.sliderBar}>
                               <View style={[
@@ -822,7 +824,7 @@ export default function HeaderDesign() {
                         })}
                         activeOpacity={0.7}
                       >
-                        <Text style={styles.filterOptionText}>Rating</Text>
+                        <Text allowFontScaling={false} style={styles.filterOptionText}>Rating</Text>
                         <Ionicons
                           name={expandedFilters.rating ? "chevron-up" : "chevron-down"}
                           size={normalizeFont(14)}
@@ -846,7 +848,7 @@ export default function HeaderDesign() {
                                   <Ionicons name="checkmark" size={12} color="#fff" />
                                 )}
                               </View>
-                              <Text style={styles.checkboxLabel}>{rating} and above</Text>
+                              <Text allowFontScaling={false} style={styles.checkboxLabel}>{rating} and above</Text>
                             </TouchableOpacity>
                           ))}
                         </View>
@@ -866,7 +868,7 @@ export default function HeaderDesign() {
                 onPress={applyFilters}
                 activeOpacity={0.8}
               >
-                <Text style={styles.applyButtonText}>Apply Filters</Text>
+                <Text allowFontScaling={false} style={styles.applyButtonText}>Apply Filters</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -874,7 +876,7 @@ export default function HeaderDesign() {
                 onPress={() => { clearFilters(); }}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.applyButtonText, { color: '#333' }]}>Clear Filters</Text>
+                <Text allowFontScaling={false} style={[styles.applyButtonText, { color: '#333' }]}>Clear Filters</Text>
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -907,7 +909,7 @@ export default function HeaderDesign() {
               <TouchableOpacity  onPress={closeAddressModal} >
                 <Image source={require("../../assets/via-farm-img/icons/groupArrow.png")} />
               </TouchableOpacity>
-              <Text style={styles.addressModalTitle}>Add New Address</Text>
+              <Text allowFontScaling={false} style={styles.addressModalTitle}>Add New Address</Text>
               <Text></Text>
             </View>
 
@@ -925,7 +927,7 @@ export default function HeaderDesign() {
                   disabled={locating}
                 >
                   <Ionicons name="location" size={20} color="#3b82f6" />
-                  <Text style={styles.locationTextModal}>
+                  <Text allowFontScaling={false} style={styles.locationTextModal}>
                     {locating ? 'Fetching location...' : 'Use Current Location'}
                   </Text>
                   {locating && <ActivityIndicator size="small" color="#3b82f6" style={{ marginLeft:moderateScale(10) }} />}
@@ -934,7 +936,7 @@ export default function HeaderDesign() {
 
               {/* Address Form */}
               <View style={styles.addressSection}>
-                <Text style={styles.addressSectionTitle}>Address Details *</Text>
+                <Text allowFontScaling={false} style={styles.addressSectionTitle}>Address Details *</Text>
 
                 <TextInput
                   style={styles.addressTextInput}
@@ -945,6 +947,7 @@ export default function HeaderDesign() {
                   placeholderTextColor="#999"
                   maxLength={6}
                   editable={!addressLoading}
+                  allowFontScaling={false}
                 />
 
                 <TextInput
@@ -954,6 +957,7 @@ export default function HeaderDesign() {
                   onChangeText={(value) => handleAddressInputChange('houseNumber', value)}
                   placeholderTextColor="#999"
                   editable={!addressLoading}
+                  allowFontScaling={false}
                 />
 
                 <TextInput
@@ -963,6 +967,7 @@ export default function HeaderDesign() {
                   onChangeText={(value) => handleAddressInputChange('locality', value)}
                   placeholderTextColor="#999"
                   editable={!addressLoading}
+                  allowFontScaling={false}
                 />
 
                 <View style={styles.addressRow}>
@@ -973,6 +978,7 @@ export default function HeaderDesign() {
                     onChangeText={(value) => handleAddressInputChange('city', value)}
                     placeholderTextColor="#999"
                     editable={!addressLoading}
+                    allowFontScaling={false}
                   />
                   <TextInput
                     style={[styles.addressTextInput, styles.addressHalfInput]}
@@ -981,6 +987,7 @@ export default function HeaderDesign() {
                     onChangeText={(value) => handleAddressInputChange('district', value)}
                     placeholderTextColor="#999"
                     editable={!addressLoading}
+                    allowFontScaling={false}
                   />
                 </View>
 
@@ -991,6 +998,7 @@ export default function HeaderDesign() {
                   onChangeText={(value) => handleAddressInputChange('state', value)}
                   placeholderTextColor="#999"
                   editable={!addressLoading}
+                  allowFontScaling={false}
                 />
 
                 <View style={styles.addressSwitchContainer}>
@@ -1001,7 +1009,7 @@ export default function HeaderDesign() {
                     thumbColor="#fff"
                     disabled={addressLoading}
                   />
-                  <Text style={styles.addressSwitchLabel}>Make this my default address</Text>
+                  <Text allowFontScaling={false} style={styles.addressSwitchLabel}>Make this my default address</Text>
                 </View>
               </View>
 
@@ -1014,7 +1022,7 @@ export default function HeaderDesign() {
                 onPress={closeAddressModal}
                 disabled={addressLoading}
               >
-                <Text style={styles.addressCancelButtonText}>Cancel</Text>
+                <Text allowFontScaling={false} style={styles.addressCancelButtonText}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1025,7 +1033,7 @@ export default function HeaderDesign() {
                 {addressLoading ? (
                   <ActivityIndicator color="#fff" size="small" style={{ marginRight:moderateScale(8) }} />
                 ) : null}
-                <Text style={styles.addressSaveButtonText}>
+                <Text allowFontScaling={false} style={styles.addressSaveButtonText}>
                   {addressLoading ? 'Saving...' : 'Save Address'}
                 </Text>
               </TouchableOpacity>

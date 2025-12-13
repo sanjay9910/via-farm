@@ -277,8 +277,8 @@ import { saveToken } from "../utility/Storage";
 
 export default function LoginScreen() {
   const navigation = useNavigation();
-  const [mobile, setMobile] = useState("9999988888");
-  const [password, setPassword] = useState("123456");
+  const [mobile, setMobile] = useState("7777777777");
+  const [password, setPassword] = useState("12345678");
   const { login } = useContext(AuthContext);
 
   const handleLogin = async () => {
@@ -352,11 +352,11 @@ export default function LoginScreen() {
             />
 
             <View style={styles.card}>
-              <Text style={styles.heading}>Welcome to Viafarm!</Text>
+              <Text allowFontScaling={false} style={styles.heading}>Welcome to Viafarm!</Text>
 
               {/* Mobile Number Field */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Mobile Number</Text>
+                <Text allowFontScaling={false} style={styles.label}>Mobile Number</Text>
                 <TextInput
                   keyboardType="numeric"
                   value={mobile}
@@ -366,12 +366,13 @@ export default function LoginScreen() {
                   returnKeyType="next"
                   placeholder="Enter 10-digit mobile"
                   placeholderTextColor="#9e9e9e"
+                  allowFontScaling={false}
                 />
               </View>
 
               {/* Password Field */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Password</Text>
+                <Text allowFontScaling={false} style={styles.label}>Password</Text>
                 <TextInput
                   secureTextEntry
                   value={password}
@@ -380,11 +381,12 @@ export default function LoginScreen() {
                   returnKeyType="done"
                   placeholder="Your password"
                   placeholderTextColor="#9e9e9e"
+                  allowFontScaling={false}
                 />
               </View>
 
               <TouchableOpacity style={styles.forgotWrapper} onPress={ForgetPassword}>
-                <Text style={styles.forgotText}>Forgot password?</Text>
+                <Text allowFontScaling={false} style={styles.forgotText}>Forgot password ?</Text>
               </TouchableOpacity>
 
               {/* Login Button */}
@@ -394,20 +396,20 @@ export default function LoginScreen() {
                 activeOpacity={0.85}
               >
                 <Ionicons name="log-in-outline" size={moderateScale(18)} color="#fff" />
-                <Text style={styles.loginText}>Login</Text>
+                <Text allowFontScaling={false} style={styles.loginText}>Login</Text>
               </TouchableOpacity>
 
               {/* Login with OTP */}
               <TouchableOpacity style={styles.otpBtn} onPress={handleOtpLogin} activeOpacity={0.85}>
-                <Ionicons name="key-outline" size={moderateScale(16)} color="rgba(76,175,80,1)" />
-                <Text style={styles.otpText}>Login with OTP</Text>
+                {/* <Ionicons name="key-outline" size={moderateScale(16)} color="rgba(76,175,80,1)" /> */}
+                <Text allowFontScaling={false} style={styles.otpText}>Login with OTP</Text>
               </TouchableOpacity>
 
               {/* SignUp */}
               <View style={styles.signupWrapper}>
-                <Text style={styles.signupText}>Don't have an account? </Text>
+                <Text allowFontScaling={false} style={styles.signupText}>Don't have an account? </Text>
                 <TouchableOpacity onPress={registerNew}>
-                  <Text style={styles.signupLink}>Sign Up</Text>
+                  <Text allowFontScaling={false} style={styles.signupLink}>Sign Up</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -444,7 +446,7 @@ const styles = StyleSheet.create({
     width: Math.min(scale(400), CARD_WIDTH * 0.75),
     height: Math.min(verticalScale(350), CARD_WIDTH * 0.75),
     resizeMode: "contain",
-    marginBottom: verticalScale(-30),
+    marginBottom: verticalScale(-10),
   },
   card: {
     width: '100%',
@@ -461,9 +463,9 @@ const styles = StyleSheet.create({
     alignItems: "stretch",
   },
   heading: {
-    fontSize: normalizeFont(15),
+    fontSize: normalizeFont(20),
     fontWeight: "600",
-    marginBottom: moderateScale(14),
+    marginBottom: moderateScale(20),
     color: "#222",
     textAlign: "center",
   },
@@ -472,7 +474,7 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(12),
   },
   label: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(14),
     fontWeight: "600",
     color: "#333",
     marginBottom: moderateScale(6),
@@ -480,7 +482,7 @@ const styles = StyleSheet.create({
   },
   input: {
     width: "100%",
-    paddingVertical: moderateScale(12),
+    paddingVertical: moderateScale(14),
     borderWidth: 1,
     borderColor: "#e0e0e0",
     borderRadius: moderateScale(10),
@@ -499,15 +501,15 @@ const styles = StyleSheet.create({
   },
   forgotText: {
     color: "#007AFF",
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(13),
   },
   loginBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    width: "78%",
+    width: "68%",
     alignSelf: "center",
-    paddingVertical: moderateScale(12),
+    paddingVertical: moderateScale(17),
     borderRadius: moderateScale(10),
     backgroundColor: "rgba(76, 175, 80, 1)",
     marginBottom: moderateScale(14),
@@ -523,9 +525,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    width: "78%",
+    width: "68%",
+    marginTop:moderateScale(6),
     alignSelf: "center",
-    paddingVertical: moderateScale(10),
+    paddingVertical: moderateScale(15),
     borderRadius: moderateScale(10),
     borderWidth: 1.6,
     borderColor: "rgba(76, 175, 80, 1)",

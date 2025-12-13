@@ -58,16 +58,16 @@ const ReviewCard = ({ item }: any) => (
         style={styles.avatar}
       />
       <View style={{ flex: 1, marginLeft: moderateScale(10) }}>
-        <Text style={styles.name}>{item?.user?.name || 'Anonymous'}</Text>
-        <Text style={styles.rating}>
+        <Text allowFontScaling={false} style={styles.name}>{item?.user?.name || 'Anonymous'}</Text>
+        <Text allowFontScaling={false} style={styles.rating}>
           ⭐ {item?.rating != null ? Number(item.rating).toFixed(1) : 'N/A'}
         </Text>
       </View>
-      <Text style={styles.date}>
+      <Text allowFontScaling={false} style={styles.date}>
         {item?.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB') : ''}
       </Text>
     </View>
-    {item?.comment && <Text style={styles.comment}>{item.comment}</Text>}
+    {item?.comment && <Text allowFontScaling={false} style={styles.comment}>{item.comment}</Text>}
   </View>
 );
 
@@ -157,27 +157,27 @@ const ProductCardLocal = ({
 
           <View style={cardStyles.ratingContainer}>
             <Ionicons name="star" size={scale(12)} color="#FFD700" />
-            <Text style={cardStyles.ratingText}>{rating ? Number(rating).toFixed(1) : '0.0'}</Text>
+            <Text allowFontScaling={false} style={cardStyles.ratingText}>{rating ? Number(rating).toFixed(1) : '0.0'}</Text>
           </View>
         </View>
 
         <View style={cardStyles.cardContent}>
-          <Text style={cardStyles.productTitle} numberOfLines={1}>
+          <Text allowFontScaling={false} style={cardStyles.productTitle} numberOfLines={1}>
             {item?.name ?? 'Unnamed product'}
           </Text>
 
-          <Text style={cardStyles.productVeriety} numberOfLines={1}>
+          <Text allowFontScaling={false} style={cardStyles.productVeriety} numberOfLines={1}>
             Variety: {item?.variety ?? 'Unnamed product'}
           </Text>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: moderateScale(6) }}>
             <Image source={require('../assets/via-farm-img/icons/loca.png')} />
-            <Text style={{ fontSize: normalizeFont(11), color: '#444' }}>{distance ?? '0.0 km'}</Text>
+            <Text allowFontScaling={false} style={{ fontSize: normalizeFont(11), color: '#444' }}>{distance ?? '0.0 km'}</Text>
           </View>
 
           <View style={cardStyles.priceContainer}>
-            <Text style={cardStyles.productUnit}>₹{item?.price ?? '0'}</Text>
-            <Text style={cardStyles.productUnit}>/{item?.unit ?? 'unit'}</Text>
+            <Text allowFontScaling={false} style={cardStyles.productUnit}>₹{item?.price ?? '0'}</Text>
+            <Text allowFontScaling={false} style={cardStyles.productUnit}>/{item?.unit ?? 'unit'}</Text>
             {item?.weightPerPiece ? <Text style={cardStyles.productUnit}>{item.weightPerPiece}</Text> : null}
           </View>
 
@@ -192,7 +192,7 @@ const ProductCardLocal = ({
                   onAddToCart && onAddToCart(item);
                 }}
               >
-                <Text style={cardStyles.addToCartText}>{status === 'In Stock' ? 'Add to Cart' : status}</Text>
+                <Text allowFontScaling={false} style={cardStyles.addToCartText}>{status === 'In Stock' ? 'Add to Cart' : status}</Text>
               </TouchableOpacity>
             ) : (
               <>
@@ -216,7 +216,7 @@ const ProductCardLocal = ({
                     </TouchableOpacity>
 
                     <View style={cardStyles.quantityValueContainer}>
-                      <Text style={cardStyles.quantityText}>{qty}</Text>
+                      <Text allowFontScaling={false} style={cardStyles.quantityText}>{qty}</Text>
                     </View>
 
                     <TouchableOpacity
@@ -235,7 +235,7 @@ const ProductCardLocal = ({
                 <Modal visible={qtyModalVisible} animationType="fade" transparent onRequestClose={closeQtyModal}>
                   <TouchableOpacity style={modalStyles.backdrop} activeOpacity={1} onPress={closeQtyModal}>
                     <View style={[modalStyles.modalWrap, { maxWidth: Math.min(420, Dimensions.get('window').width - moderateScale(40)) }]}>
-                      <Text style={modalStyles.modalTitle}>Add quantity</Text>
+                      <Text allowFontScaling={false} style={modalStyles.modalTitle}>Add quantity</Text>
 
                       <View style={modalStyles.editRow}>
                         <TouchableOpacity style={modalStyles.pickerBtn} onPress={decrementEdit}>
@@ -243,6 +243,7 @@ const ProductCardLocal = ({
                         </TouchableOpacity>
 
                         <TextInput
+                        allowFontScaling={false}
                           style={modalStyles.qtyInput}
                           keyboardType="number-pad"
                           value={String(editQuantity)}
@@ -259,10 +260,10 @@ const ProductCardLocal = ({
 
                       <View style={modalStyles.modalActions}>
                         <TouchableOpacity style={modalStyles.cancelBtn} onPress={closeQtyModal}>
-                          <Text style={modalStyles.cancelText}>Cancel</Text>
+                          <Text allowFontScaling={false} style={modalStyles.cancelText}>Cancel</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={modalStyles.okBtn} onPress={applyQuantityChange}>
-                          <Text style={modalStyles.okText}>OK</Text>
+                          <Text allowFontScaling={false} style={modalStyles.okText}>OK</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -623,7 +624,7 @@ const VendorsDetails = () => {
       <View style={styles.containerRoot}>
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#4CAF50" />
-          <Text style={{ marginTop: 8 }}>Loading...</Text>
+          <Text allowFontScaling={false} style={{ marginTop: 8 }}>Loading...</Text>
         </View>
       </View>
     );
@@ -632,8 +633,8 @@ const VendorsDetails = () => {
     return (
       <View style={styles.containerRoot}>
         <View style={styles.center}>
-          <Text style={styles.errorHeader}>Error</Text>
-          <Text>{error}</Text>
+          <Text allowFontScaling={false} style={styles.errorHeader}>Error</Text>
+          <Text allowFontScaling={false}>{error}</Text>
         </View>
       </View>
     );
@@ -671,20 +672,20 @@ const VendorsDetails = () => {
 
       <View style={[styles.cardContainer]}>
         <View style={styles.rowBetween}>
-          <Text style={styles.vendorName}>{v?.name}</Text>
+          <Text allowFontScaling={false} style={styles.vendorName}>{v?.name}</Text>
           <View style={styles.ratingBox}>
             <Image source={require('../assets/via-farm-img/icons/satar.png')} />
-            <Text style={styles.ratingText}>{getVendorRating(v?.rating).toFixed(1)}</Text>
+            <Text allowFontScaling={false} style={styles.ratingText}>{getVendorRating(v?.rating).toFixed(1)}</Text>
           </View>
         </View>
 
         <View style={styles.row}>
           <Image source={require('../assets/via-farm-img/icons/loca.png')} />
-          <Text style={styles.location}>{v?.locationText ?? 'Unknown'}</Text>
+          <Text allowFontScaling={false} style={styles.location}>{v?.locationText ?? 'Unknown'}</Text>
         </View>
 
-        <Text style={styles.aboutHeader}>About the vendor</Text>
-        <Text style={styles.about}>{v?.about ?? 'No information available.'}</Text>
+        <Text allowFontScaling={false} style={styles.aboutHeader}>About the vendor</Text>
+        <Text allowFontScaling={false} style={styles.about}>{v?.about ?? 'No information available.'}</Text>
       </View>
 
       {/* farm images */}
@@ -704,12 +705,12 @@ const VendorsDetails = () => {
       {allReviewImages.length > 0 && (
         <View style={{ backgroundColor: '#fff', paddingVertical: moderateScale(10), paddingLeft: moderateScale(10) }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={styles.sectionHeader}>
-              Reviews <Text style={{ fontSize: normalizeFont(12), fontWeight: '400' }}>({reviews.length} reviews)</Text>
+            <Text allowFontScaling={false} style={styles.sectionHeader}>
+              Reviews <Text  allowFontScaling={false} style={{ fontSize: normalizeFont(12), fontWeight: '400' }}>({reviews.length} reviews)</Text>
             </Text>
             <TouchableOpacity onPress={() => (navigation as any).navigate('SeeAllReview', { vendor: v, reviews })}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingRight: moderateScale(5) }}>
-                <Text style={{ color: 'rgba(1,151,218,1)', fontWeight: '600', fontSize: normalizeFont(12) }}>See All</Text>
+                <Text allowFontScaling={false} style={{ color: 'rgba(1,151,218,1)', fontWeight: '600', fontSize: normalizeFont(13) }}>See All</Text>
                 <Image source={require('../assets/via-farm-img/icons/see.png')} />
               </View>
             </TouchableOpacity>
@@ -738,7 +739,7 @@ const VendorsDetails = () => {
             keyExtractor={(item: any, idx: number) => item?._id ? item._id.toString() : String(idx)}
             renderItem={({ item }) => <ReviewCard item={item} />}
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: moderateScale(10), marginLeft: moderateScale(10) }}
+            // contentContainerStyle={{ paddingHorizontal: moderateScale(10) }}
           />
         ) : (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -753,12 +754,12 @@ const VendorsDetails = () => {
       </View>
 
       <View style={[styles.productsHeaderContainer]}>
-        <Text style={[styles.sectionHeader, { marginLeft: 0, marginVertical: 0 }]}>Listing Product</Text>
+        <Text allowFontScaling={false} style={[styles.sectionHeader, { marginLeft: 0, marginVertical: 0 }]}>Listing Product</Text>
 
         <View style={styles.filterWrapper}>
           <TouchableOpacity style={styles.filterBtn} onPress={toggleDropdown} activeOpacity={0.8}>
             <View style={styles.filterExpand}>
-              <Text numberOfLines={1} ellipsizeMode="tail" style={styles.filterText}>{selectedCategory}</Text>
+              <Text allowFontScaling={false} numberOfLines={1} ellipsizeMode="tail" style={styles.filterText}>{selectedCategory}</Text>
               <Ionicons name={showDropdown ? 'chevron-up' : 'chevron-down'} size={normalizeFont(14)} color="#666" />
             </View>
           </TouchableOpacity>
@@ -784,12 +785,12 @@ const VendorsDetails = () => {
                   const isSelected = String(cat).toLowerCase() === String(selectedCategory).toLowerCase();
                   return (
                     <TouchableOpacity key={String(cat)} style={[styles.dropdownItem, isSelected && styles.selectedDropdownItem]} activeOpacity={0.7} onPress={() => { setSelectedCategory(cat); closeDropdown(); }}>
-                      <Text style={[styles.dropdownText, isSelected && styles.selectedDropdownText]}>{cat}</Text>
+                      <Text allowFontScaling={false} style={[styles.dropdownText, isSelected && styles.selectedDropdownText]}>{cat}</Text>
                     </TouchableOpacity>
                   );
                 })
               ) : (
-                <Text style={{ padding: moderateScale(12) }}>No categories</Text>
+                <Text allowFontScaling={false} style={{ padding: moderateScale(12) }}>No categories</Text>
               )}
             </ScrollView>
           </Animated.View>
@@ -830,7 +831,7 @@ const VendorsDetails = () => {
         ListEmptyComponent={() =>
           !loading && (
             <View style={{ padding: moderateScale(20), alignItems: 'center' }}>
-              <Text style={{ color: '#444' }}>No products available.</Text>
+              <Text allowFontScaling={false} style={{ color: '#444' }}>No products available.</Text>
             </View>
           )
         }
@@ -899,7 +900,7 @@ const styles = StyleSheet.create({
   location: { marginLeft: moderateScale(6), color: '#666', fontSize: moderateScale(11) },
   aboutHeader: { marginTop: moderateScale(8), fontWeight: '600' },
   about: { marginTop: moderateScale(6), color: '#444', fontSize: moderateScale(11) },
-  sectionHeader: { fontSize: normalizeFont(14), marginTop: moderateScale(10), marginBottom: moderateScale(10), fontWeight: '600', marginLeft: moderateScale(10) },
+  sectionHeader: { fontSize: normalizeFont(14), marginTop: moderateScale(10), marginBottom: moderateScale(10), fontWeight: '600' },
   productsHeaderContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: moderateScale(10), paddingTop: moderateScale(12), paddingBottom: moderateScale(6) },
   filterWrapper: { position: 'relative', minWidth: moderateScale(120) },
   filterBtn: { paddingHorizontal: moderateScale(12), paddingVertical: moderateScale(8), borderRadius: moderateScale(6), borderWidth: 1, borderColor: 'rgba(66,66,66,0.7)' },
@@ -911,7 +912,7 @@ const styles = StyleSheet.create({
   selectedDropdownItem: { backgroundColor: 'rgba(76,175,80,0.08)' },
   dropdownText: { color: 'rgba(66,66,66,0.9)', fontSize: normalizeFont(11) },
   selectedDropdownText: { color: '#4CAF50', fontWeight: '600' },
-  reviewCard: { padding: moderateScale(10), marginLeft: 10, backgroundColor: 'rgba(255,253,246,1)', borderRadius: moderateScale(8), borderWidth: 1, borderColor: '#f0f0f0' },
+  reviewCard: { padding: moderateScale(10), marginLeft:moderateScale(10), backgroundColor: 'rgba(255,253,246,1)', borderRadius: moderateScale(8), borderWidth: 1, borderColor: '#f0f0f0' },
   avatar: { width: scale(42), height: scale(42), borderRadius: moderateScale(22) },
   name: { fontWeight: '600', fontSize: normalizeFont(12) },
   rating: { color: '#444', fontSize: 12 },
@@ -942,7 +943,7 @@ const cardStyles = StyleSheet.create({
   productSubtitle: { fontSize: normalizeFont(12), color: '#666', marginBottom: moderateScale(8), height: scale(20) },
   priceContainer: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: moderateScale(5) },
   productPrice: { fontSize: normalizeFont(13), fontWeight: '800', color: '#666' },
-  productUnit: { fontSize: normalizeFont(12), color: '#666', marginLeft: moderateScale(6), marginBottom: moderateScale(2) },
+  productUnit: { fontSize: normalizeFont(12), color: '#666', marginBottom: moderateScale(2) },
   buttonContainer: { marginTop: moderateScale(6), alignItems: 'stretch' },
   addToCartButton: { backgroundColor: 'rgba(76,175,80,1)', borderRadius: 8, paddingVertical: moderateScale(10), alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   disabledButton: { backgroundColor: '#cccccc' },

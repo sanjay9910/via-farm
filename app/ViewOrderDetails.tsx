@@ -48,7 +48,7 @@ const StarRow = ({ value = 0, size = 16 }) => {
 // Small card wrapper
 const DetailCard = ({ children, title }) => (
   <View style={styles.card}>
-    {title ? <Text style={styles.cardTitle}>{title}</Text> : null}
+    {title ? <Text allowFontScaling={false} style={styles.cardTitle}>{title}</Text> : null}
     {children}
   </View>
 );
@@ -346,12 +346,12 @@ const ViewOrderDetails = () => {
           <TouchableOpacity style={styles.back} onPress={goBack}>
             <Ionicons name="arrow-back" size={Math.round(moderateScale(20))} color="#333" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Order Details</Text>
+          <Text allowFontScaling={false} style={styles.headerTitle}>Order Details</Text>
           <View style={{ width: Math.round(scale(40)) }} />
         </View>
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#4CAF50" />
-          <Text style={{ marginTop: moderateScale(12), color: '#666', fontSize: normalizeFont(12) }}>Loading order...</Text>
+          <Text allowFontScaling={false} style={{ marginTop: moderateScale(12), color: '#666', fontSize: normalizeFont(12) }}>Loading order...</Text>
         </View>
       </SafeAreaView>
     );
@@ -363,14 +363,14 @@ const ViewOrderDetails = () => {
           <TouchableOpacity style={styles.back} onPress={goBack}>
             <Ionicons name="arrow-back" size={Math.round(moderateScale(20))} color="#333" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Order Details</Text>
+          <Text allowFontScaling={false} style={styles.headerTitle}>Order Details</Text>
           <View style={{ width: Math.round(scale(40)) }} />
         </View>
         <View style={styles.center}>
           <Ionicons name="alert-circle-outline" size={Math.round(moderateScale(48))} color="#F44336" />
-          <Text style={{ color: '#F44336', marginTop: moderateScale(12), marginBottom: moderateScale(12), textAlign: 'center', fontSize: normalizeFont(12) }}>{error}</Text>
+          <Text allowFontScaling={false} style={{ color: '#F44336', marginTop: moderateScale(12), marginBottom: moderateScale(12), textAlign: 'center', fontSize: normalizeFont(12) }}>{error}</Text>
           <TouchableOpacity onPress={() => { setError(null); if (paramOrderId) fetchOrderById(paramOrderId); }} style={styles.retryButton}>
-            <Text style={{ color: '#fff', fontWeight: '600', fontSize: normalizeFont(12) }}>Try Again</Text>
+            <Text allowFontScaling={false} style={{ color: '#fff', fontWeight: '600', fontSize: normalizeFont(12) }}>Try Again</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -383,11 +383,11 @@ const ViewOrderDetails = () => {
           <TouchableOpacity style={styles.back} onPress={goBack}>
             <Ionicons name="arrow-back" size={Math.round(moderateScale(20))} color="#333" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Order Details</Text>
+          <Text allowFontScaling={false} style={styles.headerTitle}>Order Details</Text>
           <View style={{ width: Math.round(scale(40)) }} />
         </View>
         <View style={styles.center}>
-          <Text style={{ color: '#666', fontSize: normalizeFont(12) }}>Order not found</Text>
+          <Text allowFontScaling={false} style={{ color: '#666', fontSize: normalizeFont(12) }}>Order not found</Text>
         </View>
       </SafeAreaView>
     );
@@ -400,7 +400,7 @@ const ViewOrderDetails = () => {
       const itemVendor = items?.[0]?.raw?.vendor ?? null;
       if (!itemVendor) {
         return (
-          <Text style={styles.detailText}>Vendor information not available</Text>
+          <Text allowFontScaling={false} style={styles.detailText}>Vendor information not available</Text>
         );
       }
       const v = {
@@ -412,9 +412,9 @@ const ViewOrderDetails = () => {
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Image source={{ uri: itemVendor.profilePicture || placeholderImage }} style={styles.vendorAvatar} />
           <View style={{ marginLeft: moderateScale(12), flex: 1 }}>
-            <Text style={styles.detailText}>Name: {v.name || 'N/A'}</Text>
-            <Text style={styles.detailText}>Location: {v.address?.locality || v.address?.city || v.address || 'N/A'}</Text>
-            <Text style={styles.detailText}>Phone: {v.phone || 'N/A'}</Text>
+            <Text allowFontScaling={false} style={styles.detailText}>Name: {v.name || 'N/A'}</Text>
+            <Text allowFontScaling={false} style={styles.detailText}>Location: {v.address?.locality || v.address?.city || v.address || 'N/A'}</Text>
+            <Text allowFontScaling={false} style={styles.detailText}>Phone: {v.phone || 'N/A'}</Text>
           </View>
         </View>
       );
@@ -425,10 +425,10 @@ const ViewOrderDetails = () => {
         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
           <Image source={{ uri: v.avatar || placeholderImage }} style={styles.vendorAvatar} />
           <View style={{ marginLeft: moderateScale(12), flex: 1 }}>
-            <Text style={styles.detailText}>Name: {v.name || 'N/A'}</Text>
-            <Text style={styles.detailText}>Location: {v.address?.locality || v.address?.city || ''}</Text>
-            <Text style={styles.detailText}>Phone: {v.phone || 'N/A'}</Text>
-            <Text style={styles.detailSubText}>Delivery charge: {formatCurrency(v.deliveryCharge || 0)}</Text>
+            <Text allowFontScaling={false} style={styles.detailText}>Name: {v.name || 'N/A'}</Text>
+            <Text allowFontScaling={false} style={styles.detailText}>Location: {v.address?.locality || v.address?.city || ''}</Text>
+            <Text allowFontScaling={false} style={styles.detailText}>Phone: {v.phone || 'N/A'}</Text>
+            <Text allowFontScaling={false} style={styles.detailSubText}>Delivery charge: {formatCurrency(v.deliveryCharge || 0)}</Text>
           </View>
         </View>
       </View>
@@ -447,7 +447,7 @@ const ViewOrderDetails = () => {
         <TouchableOpacity style={styles.back} onPress={goBack}>
           <Ionicons name="arrow-back" size={Math.round(moderateScale(20))} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order Details</Text>
+        <Text allowFontScaling={false} style={styles.headerTitle}>Order Details</Text>
         <View style={{ width: Math.round(scale(40)) }} />
       </View>
 
@@ -455,16 +455,16 @@ const ViewOrderDetails = () => {
         {/* Order Status Header */}
         <View style={{ marginBottom: moderateScale(10) }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={[styles.detailName, { fontSize: normalizeFont(13) }]}>{orderStatus}</Text>
-            <Text style={{ color: '#666', fontSize: normalizeFont(12) }}>{orderNumber}</Text>
+            <Text allowFontScaling={false} style={[styles.detailName, { fontSize: normalizeFont(13) }]}>{orderStatus}</Text>
+            <Text allowFontScaling={false} style={{ color: '#666', fontSize: normalizeFont(12) }}>{orderNumber}</Text>
           </View>
         </View>
 
         {/* Delivery Info */}
         <View style={styles.topRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.deliveryLabel}>Delivery by</Text>
-            <Text style={styles.deliveryDate}>{formatDateSafe(deliveryBy)}</Text>
+            <Text allowFontScaling={false} style={styles.deliveryLabel}>Delivery by</Text>
+            <Text allowFontScaling={false} style={styles.deliveryDate}>{formatDateSafe(deliveryBy)}</Text>
           </View>
         </View>
 
@@ -473,7 +473,7 @@ const ViewOrderDetails = () => {
           <DetailCard title="Items">
             {items.length === 0 ? (
               <View style={{ padding: moderateScale(12) }}>
-                <Text style={{ color: '#666', fontSize: normalizeFont(12) }}>No items found in this order.</Text>
+                <Text allowFontScaling={false} style={{ color: '#666', fontSize: normalizeFont(12) }}>No items found in this order.</Text>
               </View>
             ) : (
               items.map((it, index) => (
@@ -485,19 +485,19 @@ const ViewOrderDetails = () => {
                   >
                     <Image source={{ uri: it.productImage || placeholderImage }} style={styles.itemImage} />
                     <View style={{ flex: 1, marginLeft: moderateScale(12) }}>
-                      <Text style={styles.itemName}>{it.productName}</Text>
-                      <Text style={styles.itemMeta}>Qty: {it.quantity} {it.raw?.unit ?? ''}</Text>
-                      <Text style={styles.itemMeta}>Price: {formatCurrency(it.price)}</Text>
-                      {it.vendorName ? <Text style={{ fontSize: normalizeFont(11), color: '#999', marginTop: moderateScale(4) }}>By: {it.vendorName}</Text> : null}
+                      <Text allowFontScaling={false} style={styles.itemName}>{it.productName}</Text>
+                      <Text allowFontScaling={false} style={styles.itemMeta}>Qty: {it.quantity} {it.raw?.unit ?? ''}</Text>
+                      <Text allowFontScaling={false} style={styles.itemMeta}>Price: {formatCurrency(it.price)}</Text>
+                      {it.vendorName ? <Text allowFontScaling={false} style={{ fontSize: normalizeFont(11), color: '#999', marginTop: moderateScale(4) }}>By: {it.vendorName}</Text> : null}
                     </View>
                     <Ionicons name="chevron-forward" size={Math.round(moderateScale(18))} color="#ccc" />
                   </TouchableOpacity>
 
                   {it.canReview && (
                     <View style={styles.ratingRow}>
-                      <Text style={styles.rateText}>Rate this item</Text>
+                      <Text allowFontScaling={false} style={styles.rateText}>Rate this item</Text>
                       <TouchableOpacity  style={styles.revieww} onPress={() => openReviewModal(it.productId)}>
-                          <Text style={styles.reviewText}>Write a review</Text>
+                          <Text allowFontScaling={false} style={styles.reviewText}>Write a review</Text>
                           <Image source={require("../assets/via-farm-img/icons/see.png")} />
                       </TouchableOpacity>
                     </View>
@@ -521,25 +521,25 @@ const ViewOrderDetails = () => {
         <View style={{ marginTop: moderateScale(14), marginBottom: moderateScale(30) }}>
           <DetailCard title="Order Summary">
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Item(s) Subtotal</Text>
-              <Text style={styles.summaryValue}>{formatCurrency(computedSubtotal)}</Text>
+              <Text allowFontScaling={false} style={styles.summaryLabel}>Item(s) Subtotal</Text>
+              <Text allowFontScaling={false} style={styles.summaryValue}>{formatCurrency(computedSubtotal)}</Text>
             </View>
 
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Coupon / Discount</Text>
-              <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>
+              <Text allowFontScaling={false} style={styles.summaryLabel}>Coupon / Discount</Text>
+              <Text allowFontScaling={false} style={[styles.summaryValue, { color: '#4CAF50' }]}>
                 -{formatCurrency(computedCoupon)}
               </Text>
             </View>
 
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Delivery Charge</Text>
-              <Text style={styles.summaryValue}>{formatCurrency(computedDelivery)}</Text>
+              <Text allowFontScaling={false} style={styles.summaryLabel}>Delivery Charge</Text>
+              <Text allowFontScaling={false} style={styles.summaryValue}>{formatCurrency(computedDelivery)}</Text>
             </View>
 
             <View style={[styles.summaryRow, { marginTop: moderateScale(8) }]}>
-              <Text style={[styles.summaryLabel, { fontWeight: '700', fontSize: normalizeFont(12) }]}>Total Amount</Text>
-              <Text style={[styles.summaryValue, { fontWeight: '700', fontSize: normalizeFont(12), color: '#4CAF50' }]}>
+              <Text allowFontScaling={false} style={[styles.summaryLabel, { fontWeight: '700', fontSize: normalizeFont(12) }]}>Total Amount</Text>
+              <Text allowFontScaling={false} style={[styles.summaryValue, { fontWeight: '700', fontSize: normalizeFont(12), color: '#4CAF50' }]}>
                 {formatCurrency(computedTotal)}
               </Text>
             </View>
@@ -560,7 +560,7 @@ const ViewOrderDetails = () => {
                 </View>
               </View>
 
-              <Text style={styles.modalRateText}>Rate this item <Text style={styles.modalRequired}>*</Text></Text>
+              <Text allowFontScaling={false} style={styles.modalRateText}>Rate this item <Text style={styles.modalRequired}>*</Text></Text>
               <View style={styles.modalStarsContainer}>
                 {[1, 2, 3, 4, 5].map(star => (
                   <TouchableOpacity key={star} onPress={() => handleReviewRating(star)} style={styles.modalStarButton}>
@@ -569,7 +569,7 @@ const ViewOrderDetails = () => {
                 ))}
               </View>
 
-              <Text style={styles.modalImageText}>Add images of the product</Text>
+              <Text allowFontScaling={false} style={styles.modalImageText}>Add images of the product</Text>
 
               {uploadedImages.length > 0 && (
                 <View style={styles.uploadedImagesContainer}>
@@ -589,16 +589,16 @@ const ViewOrderDetails = () => {
               <TouchableOpacity style={styles.modalImageUpload} onPress={selectImage}>
                 <View style={styles.modalImageUploadContent}>
                   <Ionicons name="camera-outline" size={Math.round(moderateScale(28))} color="#999" />
-                  <Text style={styles.modalImageUploadText}>Add other photos of your product (max 5)</Text>
+                  <Text allowFontScaling={false} style={styles.modalImageUploadText}>Add other photos of your product (max 5)</Text>
                   {/* <Text style={styles.modalImageCount}>{uploadedImages.length}/5 images uploaded</Text> */}
                 </View>
               </TouchableOpacity>
 
-              <Text style={styles.modalReviewText}>Write a review</Text>
-              <TextInput style={styles.modalReviewInput} placeholder="Share your experience with this product..." placeholderTextColor="#999" value={reviewText} onChangeText={setReviewText} multiline numberOfLines={6} textAlignVertical="top" />
+              <Text allowFontScaling={false} style={styles.modalReviewText}>Write a review</Text>
+              <TextInput allowFontScaling={false} style={styles.modalReviewInput} placeholder="Share your experience with this product..." placeholderTextColor="#999" value={reviewText} onChangeText={setReviewText} multiline numberOfLines={6} textAlignVertical="top" />
 
               <TouchableOpacity style={styles.modalSubmitButton} onPress={submitReview}>
-                <Text style={styles.modalSubmitButtonText}>{submitLoading ? 'Submitting...' : 'Submit'}</Text>
+                <Text allowFontScaling={false} style={styles.modalSubmitButtonText}>{submitLoading ? 'Submitting...' : 'Submit'}</Text>
               </TouchableOpacity>
             </ScrollView>
           </Animated.View>

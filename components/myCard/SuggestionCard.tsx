@@ -509,7 +509,7 @@ const SuggestionCard = ({ productId: propProductId }) => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>{title}</Text>
+        <Text allowFontScaling={false} style={styles.title}>{title}</Text>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#4CAF50" />
         </View>
@@ -520,7 +520,7 @@ const SuggestionCard = ({ productId: propProductId }) => {
   if (error) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>{title}</Text>
+        <Text allowFontScaling={false} style={styles.title}>{title}</Text>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
         </View>
@@ -531,9 +531,9 @@ const SuggestionCard = ({ productId: propProductId }) => {
   if (!products || products.length === 0) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>{title}</Text>
+        <Text allowFontScaling={false} style={styles.title}>{title}</Text>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>No products available</Text>
+          <Text allowFontScaling={false} style={styles.errorText}>No products available</Text>
         </View>
       </View>
     );
@@ -541,7 +541,7 @@ const SuggestionCard = ({ productId: propProductId }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+      <Text allowFontScaling={false} style={styles.title}>{title}</Text>
 
       <FlatList
         data={products}
@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
     marginBottom: Math.round(verticalScale(8)),
     paddingHorizontal: 0,
     alignSelf: 'flex-start',
-    marginLeft: Math.round(moderateScale(10)),
+    // marginLeft: Math.round(moderateScale(5)),
   },
   listContainer: {
     paddingHorizontal: 0,

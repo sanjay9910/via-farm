@@ -128,7 +128,7 @@ const ViewVendors = () => {
       <View style={styles.mainContainer}>
         <View style={styles.loader}>
           <ActivityIndicator size="large" color="#4CAF50" />
-          <Text style={styles.loadingText}>Loading all vendors...</Text>
+          <Text allowFontScaling={false} style={styles.loadingText}>Loading all vendors...</Text>
         </View>
       </View>
     );
@@ -147,6 +147,7 @@ const ViewVendors = () => {
                 <View style={styles.searchInputWrapper}>
                     <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
                     <TextInput
+                    allowFontScaling={false}
                         style={styles.searchInput}
                         placeholder="Filter vendors by name..."
                         value={filterText}
@@ -158,14 +159,14 @@ const ViewVendors = () => {
 
             {error && vendors.length === 0 && (
                 <View style={styles.errorContainer}>
-                    <Text style={styles.errorText}>{error}</Text>
+                    <Text allowFontScaling={false} style={styles.errorText}>{error}</Text>
                     <View style={styles.buttonContainer}>
                         <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-                            <Text style={styles.buttonText}>Try Again</Text>
+                            <Text allowFontScaling={false} style={styles.buttonText}>Try Again</Text>
                         </TouchableOpacity>
                         {error.includes('login') && (
                             <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-                                <Text style={styles.buttonText}>Go to Login</Text>
+                                <Text allowFontScaling={false} style={styles.buttonText}>Go to Login</Text>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -178,9 +179,9 @@ const ViewVendors = () => {
             >
                 {/* Main Heading/Count (Optional, as the list is below) */}
                 <View style={styles.header}>
-                    <Text style={styles.heading}>Vendors</Text>
+                    <Text allowFontScaling={false} style={styles.heading}>Vendors</Text>
                     {filteredVendors.length > 0 && (
-                        <Text style={styles.vendorCount}>{filteredVendors.length} vendors found</Text>
+                        <Text allowFontScaling={false} style={styles.vendorCount}>{filteredVendors.length} vendors found</Text>
                     )}
                 </View>
 
@@ -204,14 +205,14 @@ const ViewVendors = () => {
                 ) : (
                     !loading && (
                         <View style={styles.noVendorsContainer}>
-                            <Text style={styles.noVendorsText}>
+                            <Text allowFontScaling={false} style={styles.noVendorsText}>
                                 {filterText 
                                     ? `No vendors found matching "${filterText}"` 
                                     : 'No vendors found'
                                 }
                             </Text>
                             <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-                                <Text style={styles.buttonText}>Refresh</Text>
+                                <Text allowFontScaling={false} style={styles.buttonText}>Refresh</Text>
                             </TouchableOpacity>
                         </View>
                     )
@@ -293,7 +294,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
   },
   heading: {
-    fontSize: 20,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#333',
   },

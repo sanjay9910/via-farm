@@ -58,12 +58,9 @@ export default function ProductDetailScreen() {
 
   // NEW: track quantity for cart
   const [quantity, setQuantity] = useState(1);
-
-  // --- Modal states for quantity edit (new) ---
   const [qtyModalVisible, setQtyModalVisible] = useState(false);
   const [editQuantity, setEditQuantity] = useState(String(quantity || 1));
 
-  // non-blocking message (toast) state
   const [message, setMessage] = useState(null);
   const messageAnim = useRef(new Animated.Value(0)).current;
   const messageTimerRef = useRef<number | null>(null);
@@ -336,7 +333,7 @@ export default function ProductDetailScreen() {
   if (!product) {
     return (
       <SafeAreaView style={styles.center}>
-        <Text>Product not found</Text>
+        <Text allowFontScaling={false}>Product not found</Text>
       </SafeAreaView>
     );
   }
@@ -349,7 +346,7 @@ export default function ProductDetailScreen() {
       {/* non-blocking message banner */}
       {message ? (
         <Animated.View style={[toastStyles.container, { opacity: messageAnim, transform: [{ translateY: messageAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) }] }]}>
-          <Text numberOfLines={2} style={toastStyles.text}>{message}</Text>
+          <Text allowFontScaling={false} numberOfLines={2} style={toastStyles.text}>{message}</Text>
         </Animated.View>
       ) : null}
 
@@ -359,19 +356,19 @@ export default function ProductDetailScreen() {
           <Ionicons name="arrow-back" size={22} color="#333" />
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle} numberOfLines={1}>{product.name}</Text>
+        <Text allowFontScaling={false} style={styles.headerTitle} numberOfLines={1}>{product.name}</Text>
 
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={headerWishlistPress} style={{ marginRight: moderateScale(12) }}>
             <Image style={{ width: 20, height: 20 }} source={require("../assets/via-farm-img/icons/wishlist.png")} />
             <View style={styles.countWishlistA}>
-              <Text style={styles.countA}>{wishlist || "0"}</Text>
+              <Text allowFontScaling={false} style={styles.countA}>{wishlist || "0"}</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity onPress={headerWishlistPress} style={{ marginRight: moderateScale(12) }}>
             <Image width={160} source={require("../assets/via-farm-img/icons/bx_cart.png")} />
             <View style={styles.countWishlistA}>
-              <Text style={styles.countA}>{cardGet || "0"}</Text>
+              <Text allowFontScaling={false} style={styles.countA}>{cardGet || "0"}</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -388,27 +385,27 @@ export default function ProductDetailScreen() {
           <View style={styles.rowBetween}>
             <View style={{ flex: 1, paddingRight: moderateScale(8) }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={styles.title}>{product.name}</Text>
+                <Text allowFontScaling={false} style={styles.title}>{product.name}</Text>
                 <View style={styles.ratingPill}>
                   <Image source={require("../assets/via-farm-img/icons/satar.png")} />
-                  <Text style={{ fontWeight: '700', fontSize: scaleFont(12) }}>
+                  <Text allowFontScaling={false} style={{ fontWeight: '700', fontSize: scaleFont(12) }}>
                     {Number(product.rating || 0).toFixed(1)}
                   </Text>
                 </View>
               </View>
 
-              <Text style={styles.mrp}>MRP <Text style={{ fontWeight: 700, color: "#000", fontSize: scaleFont(13) }}>₹{product.price}/{product.unit ?? 'pc'}</Text></Text>
+              <Text allowFontScaling={false} style={styles.mrp}>MRP <Text style={{ fontWeight: 700, color: "#000", fontSize: scaleFont(13) }}>₹{product.price}/{product.unit ?? 'pc'}</Text></Text>
             </View>
           </View>
 
-          <Text style={[styles.sectionTitle, { marginTop: moderateScale(12) }]}>About the product</Text>
-          <Text style={{ fontSize: scaleFont(11), marginVertical: moderateScale(5) }}>Category: {product.category}</Text>
-          <Text style={{ fontSize: scaleFont(11) }}>Variety: {product.variety}</Text>
+          <Text allowFontScaling={false} style={[styles.sectionTitle, { marginTop: moderateScale(12) }]}>About the product</Text>
+          <Text allowFontScaling={false} style={{ fontSize: scaleFont(11), marginVertical: moderateScale(5) }}>Category: {product.category}</Text>
+          <Text allowFontScaling={false} style={{ fontSize: scaleFont(11) }}>Variety: {product.variety}</Text>
 
-          <Text style={[styles.description, { fontSize: scaleFont(12) }]}>Description: {product.description}</Text>
+          <Text allowFontScaling={false} style={[styles.description, { fontSize: scaleFont(12) }]}>Description: {product.description}</Text>
 
           <TouchableOpacity style={styles.vendorHeader} onPress={() => setVendorExpanded(v => !v)}>
-            <Text style={styles.sectionTitle}>About the vendor</Text>
+            <Text allowFontScaling={false} style={styles.sectionTitle}>About the vendor</Text>
             <Ionicons name={vendorExpanded ? "chevron-up" : "chevron-down"} size={20} color="#666" />
           </TouchableOpacity>
 
@@ -416,8 +413,8 @@ export default function ProductDetailScreen() {
             <TouchableOpacity onPress={openVendorDetails} activeOpacity={0.8} style={styles.vendorExpanded}>
               <Image source={{ uri: vendor?.profilePicture ?? product.vendor?.profilePicture }} style={styles.vendorImage} />
               <View style={{ flex: 1, marginLeft: moderateScale(12) }}>
-                <Text style={{ fontWeight: '600', fontSize: scaleFont(12), }}>{vendor?.name ?? product.vendor?.name}</Text>
-                <Text style={{ color: '#666', marginTop: moderateScale(6), fontSize: scaleFont(11) }}>{vendorAddr.houseNumber ? `${vendorAddr.houseNumber}, ` : ''}{vendorAddr.locality ?? vendorAddr.street ?? ''}{vendorAddr.city ? `, ${vendorAddr.city}` : ''}</Text>
+                <Text allowFontScaling={false} style={{ fontWeight: '600', fontSize: scaleFont(12), }}>{vendor?.name ?? product.vendor?.name}</Text>
+                <Text allowFontScaling={false} style={{ color: '#666', marginTop: moderateScale(6), fontSize: scaleFont(11) }}>{vendorAddr.houseNumber ? `${vendorAddr.houseNumber}, ` : ''}{vendorAddr.locality ?? vendorAddr.street ?? ''}{vendorAddr.city ? `, ${vendorAddr.city}` : ''}</Text>
               </View>
             </TouchableOpacity>
           )}
@@ -425,9 +422,9 @@ export default function ProductDetailScreen() {
           <View style={styles.pickupRow}>
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
               <Image source={require("../assets/via-farm-img/icons/loca.png")} />
-              <View style={{ marginLeft: moderateScale(10) }}>
-                <Text style={{ fontWeight: '500', fontSize: scaleFont(11) }}>Pickup Location</Text>
-                <Text style={{ color: '#666', fontSize: scaleFont(11), maxWidth: SCREEN_W - scale(120) }} numberOfLines={1}>{pickupAddress}</Text>
+              <View  style={{ marginLeft: moderateScale(10) }}>
+                <Text allowFontScaling={false} style={{ fontWeight: '500', fontSize: scaleFont(11) }}>Pickup Location</Text>
+                <Text allowFontScaling={false} style={{ color: '#666', fontSize: scaleFont(11), maxWidth: SCREEN_W - scale(120) }} numberOfLines={1}>{pickupAddress}</Text>
               </View>
             </View>
             <TouchableOpacity onPress={openVendorMap} style={{ padding: scale(8) }}>
@@ -435,14 +432,14 @@ export default function ProductDetailScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={{ marginTop: 6 }}>
+          <View style={{ marginTop:moderateScale(6) }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: moderateScale(4) }}>
-              <Text style={{ fontWeight: '600', fontSize: scaleFont(12) }}>Ratings & Reviews</Text>
+              <Text allowFontScaling={false} style={{ fontWeight: '600', fontSize: scaleFont(12) }}>Ratings & Reviews</Text>
               <TouchableOpacity onPress={() => navigation.navigate?.('SeeAllReview', {
                 vendor,
                 reviews,
-              })} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                <Text style={{ color: '#3b82f6', fontSize: scaleFont(11) }}>See All</Text>
+              })} style={{ flexDirection: 'row', alignItems: 'center', gap:moderateScale(5) }}>
+                <Text allowFontScaling={false} style={{ color: '#3b82f6', fontSize: scaleFont(11) }}>See All</Text>
                 <Image source={require('../assets/via-farm-img/icons/see.png')} />
               </TouchableOpacity>
             </View>
@@ -474,20 +471,20 @@ export default function ProductDetailScreen() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: moderateScale(8) }}>
                   <Image source={{ uri: item.user?.profilePicture ?? 'https://cdn-icons-png.flaticon.com/512/149/149071.png' }} style={{ width: scale(40), height: scale(40), borderRadius: moderateScale(20), marginRight: moderateScale(10) }} />
                   <View>
-                    <Text style={{ fontWeight: '700', fontSize: scaleFont(12) }}>{item.user?.name ?? 'Anonymous'}</Text>
-                    <Text style={{ color: '#777', fontSize: scaleFont(11) }}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+                    <Text allowFontScaling={false} style={{ fontWeight: '700', fontSize: scaleFont(12) }}>{item.user?.name ?? 'Anonymous'}</Text>
+                    <Text allowFontScaling={false} style={{ color: '#777', fontSize: scaleFont(11) }}>{new Date(item.createdAt).toLocaleDateString()}</Text>
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: moderateScale(8) }}>
                   <Ionicons name="star" size={14} color="#FFD700" />
-                  <Text style={{ marginLeft: 6, fontSize: scaleFont(11) }}>{item.rating}/5</Text>
+                  <Text allowFontScaling={false} style={{ marginLeft: 6, fontSize: scaleFont(11) }}>{item.rating}/5</Text>
                 </View>
                 {item.comment ? <Text style={{ color: '#444', fontSize: scaleFont(12) }}>{item.comment}</Text> : null}
               </View>
             )}
             ListEmptyComponent={() => (
               <View>
-                <Text style={{ color: '#777', fontSize: scaleFont(11) }}>No reviews yet</Text>
+                <Text allowFontScaling={false} style={{ color: '#777', fontSize: scaleFont(11) }}>No reviews yet</Text>
               </View>
             )}
           />
@@ -508,7 +505,7 @@ export default function ProductDetailScreen() {
       >
         <TouchableOpacity style={modalStyles.backdrop} activeOpacity={1} onPress={closeQtyModal}>
           <View style={[modalStyles.modalWrap, { maxWidth: Math.min(420, Dimensions.get('window').width - moderateScale(40)) }]}>
-            <Text style={modalStyles.modalTitle}>Set quantity</Text>
+            <Text allowFontScaling={false} style={modalStyles.modalTitle}>Set quantity</Text>
 
             <View style={modalStyles.editRow}>
               <TouchableOpacity style={modalStyles.pickerBtn} onPress={decrementEdit}>
@@ -523,6 +520,7 @@ export default function ProductDetailScreen() {
                 maxLength={5}
                 placeholder="0"
                 placeholderTextColor="#999"
+                allowFontScaling={false}
               />
 
               <TouchableOpacity style={modalStyles.pickerBtn} onPress={incrementEdit}>
@@ -532,10 +530,10 @@ export default function ProductDetailScreen() {
 
             <View style={modalStyles.modalActions}>
               <TouchableOpacity style={modalStyles.cancelBtn} onPress={closeQtyModal}>
-                <Text style={modalStyles.cancelText}>Cancel</Text>
+                <Text allowFontScaling={false} style={modalStyles.cancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={modalStyles.okBtn} onPress={applyQuantityChange}>
-                <Text style={modalStyles.okText}>OK</Text>
+                <Text allowFontScaling={false} style={modalStyles.okText}>OK</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -545,30 +543,30 @@ export default function ProductDetailScreen() {
       {/* Bottom bar */}
       <View style={styles.bottomBar}>
         <View style={{ flex: 1, }}>
-          <Text style={{ color: '#666', fontSize: scaleFont(12) }}>Price</Text>
-          <Text style={{ fontWeight: '600', fontSize: scaleFont(16) }}>₹{product.price}</Text>
+          <Text  allowFontScaling={false} style={{ color: '#666', fontSize: scaleFont(12) }}>Price</Text>
+          <Text allowFontScaling={false} style={{ fontWeight: '600', fontSize: scaleFont(16) }}>₹{product.price}</Text>
         </View>
 
         {inCart ? (
           // NEW: quantity selector like image (minus, qty, plus)
           <View style={styles.quantityControlContainer}>
             <TouchableOpacity style={styles.qtyBtn} onPress={decrementQuantity}>
-              <Text style={styles.qtyBtnText}>−</Text>
+              <Text allowFontScaling={false} style={styles.qtyBtnText}>−</Text>
             </TouchableOpacity>
 
             {/* Make qty display pressable to open modal */}
             <TouchableOpacity style={styles.qtyDisplay} onPress={openQtyModal}>
-              <Text style={styles.qtyText}>{String(quantity).padStart(2, '0')}</Text>
+              <Text allowFontScaling={false} style={styles.qtyText}>{String(quantity).padStart(2, '0')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.qtyBtn} onPress={incrementQuantity}>
-              <Text style={styles.qtyBtnText}>+</Text>
+              <Text allowFontScaling={false} style={styles.qtyBtnText}>+</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <TouchableOpacity style={styles.cartBtn} onPress={() => addToCart(1)}>
             <Ionicons name="cart" size={18} color="#fff" />
-            <Text style={styles.cartBtnText}>{inCart ? 'Move to Cart' : 'Add to Cart'}</Text>
+            <Text allowFontScaling={false} style={styles.cartBtnText}>{inCart ? 'Move to Cart' : 'Add to Cart'}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -643,7 +641,7 @@ const styles = StyleSheet.create({
   title: { fontSize: scaleFont(16), fontWeight: '700' },
   smallText: { color: '#666', fontSize: scaleFont(12) },
   mrp: { fontSize: scaleFont(12), marginTop: moderateScale(5) },
-  ratingPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: moderateScale(10), paddingVertical: moderateScale(1), borderRadius: 8, marginTop: moderateScale(8), borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.4)' },
+  ratingPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: moderateScale(5), paddingVertical: moderateScale(1), borderRadius:5, marginTop: moderateScale(8), borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.4)' },
 
   sectionTitle: { fontSize: scaleFont(13), fontWeight: '600' },
   description: { color: '#444', marginTop: moderateScale(6) },

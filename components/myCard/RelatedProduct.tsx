@@ -625,7 +625,7 @@ const RelatedProduct = ({ productId: propProductId, cardWidth }) => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>You may also like</Text>
+        <Text allowFontScaling={false} style={styles.title}>You may also like</Text>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" />
         </View>
@@ -637,7 +637,7 @@ const RelatedProduct = ({ productId: propProductId, cardWidth }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>You may also like</Text>
+      <Text allowFontScaling={false} style={styles.title}>You may also like</Text>
 
       <FlatList
         data={similar}

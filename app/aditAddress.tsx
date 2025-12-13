@@ -113,16 +113,17 @@ const EditAddress = () => {
         <TouchableOpacity onPress={handleCancel} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Address</Text>
+        <Text allowFontScaling={false} style={styles.headerTitle}>Edit Address</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Address Form */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Address Details</Text>
+          <Text allowFontScaling={false} style={styles.sectionTitle}>Address Details</Text>
 
           <TextInput
+          allowFontScaling={false}
             style={styles.textInput}
             placeholder="Pin Code"
             keyboardType="number-pad"
@@ -133,6 +134,7 @@ const EditAddress = () => {
           />
 
           <TextInput
+          allowFontScaling={false}
             style={styles.textInput}
             placeholder="House Number / Block / Street"
             value={formData.houseNumber}
@@ -141,6 +143,7 @@ const EditAddress = () => {
           />
 
           <TextInput
+          allowFontScaling={false}
             style={styles.textInput}
             placeholder="Locality / Town"
             value={formData.locality}
@@ -150,6 +153,7 @@ const EditAddress = () => {
 
           <View style={styles.row}>
             <TextInput
+            allowFontScaling={false}
               style={[styles.textInput, styles.halfInput]}
               placeholder="City"
               value={formData.city}
@@ -157,6 +161,7 @@ const EditAddress = () => {
               placeholderTextColor="#999"
             />
             <TextInput
+            allowFontScaling={false}
               style={[styles.textInput, styles.halfInput]}
               placeholder="District"
               value={formData.district}
@@ -172,7 +177,7 @@ const EditAddress = () => {
               trackColor={{ false: '#f0f0f0', true: '#3b82f6' }}
               thumbColor="#fff"
             />
-            <Text style={styles.switchLabel}>Make this my default address</Text>
+            <Text allowFontScaling={false} style={styles.switchLabel}>Make this my default address</Text>
           </View>
         </View>
 
@@ -182,7 +187,7 @@ const EditAddress = () => {
       {/* Footer */}
       <View style={styles.footer}>
         <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-          <Text style={styles.cancelButtonText}>Cancel</Text>
+          <Text allowFontScaling={false} style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -190,7 +195,7 @@ const EditAddress = () => {
           onPress={handleSave}
           disabled={loading}
         >
-          <Text style={styles.saveButtonText}>
+          <Text allowFontScaling={false} style={styles.saveButtonText}>
             {loading ? 'Saving...' : 'Update'}
           </Text>
         </TouchableOpacity>

@@ -451,8 +451,8 @@ const ProfileScreen = () => {
           <Ionicons name={icon} size={20} color="#666" />
         </View>
         <View style={styles.menuItemText}>
-          <Text style={styles.menuItemTitle}>{title}</Text>
-          <Text style={styles.menuItemSubtitle}>{subtitle}</Text>
+          <Text allowFontScaling={false} style={styles.menuItemTitle}>{title}</Text>
+          <Text allowFontScaling={false} style={styles.menuItemSubtitle}>{subtitle}</Text>
         </View>
       </View>
       {showArrow && <Ionicons name="chevron-forward" size={18} color="#ccc" />}
@@ -488,7 +488,7 @@ const ProfileScreen = () => {
         <TouchableOpacity onPress={goHome}>
           <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
-        <Text style={{ fontWeight: 700, fontSize: normalizeFont(14) }}>My Profile</Text>
+        <Text allowFontScaling={false} style={{ fontWeight: 700, fontSize: normalizeFont(14) }}>My Profile</Text>
         <Text></Text>
       </View>
       <ScrollView
@@ -504,16 +504,16 @@ const ProfileScreen = () => {
                   style={styles.avatarImage}
                 />
               ) : (
-                <Text style={styles.avatarText}>{getAvatarLetter()}</Text>
+                <Text allowFontScaling={false} style={styles.avatarText}>{getAvatarLetter()}</Text>
               )}
             </View>
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>{userInfo.name || "User"}</Text>
-              <Text style={styles.userPhone}>
+              <Text allowFontScaling={false} style={styles.userName}>{userInfo.name || "User"}</Text>
+              <Text allowFontScaling={false} style={styles.userPhone}>
                 +91 {userInfo.phone || "N/A"}
               </Text>
               {userInfo.role && (
-                <Text style={styles.userRole}>{userInfo.role}</Text>
+                <Text  allowFontScaling={false} style={styles.userRole}>{userInfo.role}</Text>
               )}
               <TouchableOpacity
                 onPress={handleEditProfile}
@@ -585,7 +585,7 @@ const ProfileScreen = () => {
               color="#fff"
               style={styles.logoutIcon}
             />
-            <Text style={styles.logoutText}>Logout</Text>
+            <Text allowFontScaling={false} style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -619,7 +619,7 @@ const ProfileScreen = () => {
                   {/* <Text style={styles.backButtonText}>←</Text> */}
                   <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
                 </TouchableOpacity>
-                <Text style={styles.modalTitle}>Edit Details</Text>
+                <Text allowFontScaling={false} style={styles.modalTitle}>Edit Details</Text>
                 <View style={styles.placeholder} />
               </View>
 
@@ -627,10 +627,10 @@ const ProfileScreen = () => {
                 style={styles.modalContent}
                 showsVerticalScrollIndicator={false}
               >
-                <Text style={{ fontSize: normalizeFont(12) }}>* marks important fields</Text>
+                <Text allowFontScaling={false} style={{ fontSize: normalizeFont(12) }}>* marks important fields</Text>
 
                 <View style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>Profile Picture</Text>
+                  <Text allowFontScaling={false}  style={styles.fieldLabel}>Profile Picture</Text>
                   <TouchableOpacity
                     style={styles.imagePickerContainer}
                     onPress={pickImage}
@@ -648,7 +648,7 @@ const ProfileScreen = () => {
                           size={40}
                           color="#ccc"
                         />
-                        <Text style={styles.imagePickerText}>
+                        <Text allowFontScaling={false} style={styles.imagePickerText}>
                           Choose a file
                         </Text>
                       </>
@@ -657,7 +657,7 @@ const ProfileScreen = () => {
                 </View>
 
                 <View style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>Name *</Text>
+                  <Text allowFontScaling={false} style={styles.fieldLabel}>Name *</Text>
                   <TextInput
                     style={styles.textInput}
                     value={editName}
@@ -665,11 +665,12 @@ const ProfileScreen = () => {
                     placeholder="Your Name"
                     placeholderTextColor="#999"
                     editable={!updating}
+                    allowFontScaling={false}
                   />
                 </View>
 
                 <View style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>Mobile No. *</Text>
+                  <Text allowFontScaling={false} style={styles.fieldLabel}>Mobile No. *</Text>
                   <TextInput
                     style={styles.textInput}
                     value={editPhone}
@@ -679,6 +680,7 @@ const ProfileScreen = () => {
                     keyboardType="phone-pad"
                     maxLength={10}
                     editable={!updating}
+                    allowFontScaling={false}
                   />
                 </View>
 
@@ -697,7 +699,7 @@ const ProfileScreen = () => {
                     ) : (
                       <Ionicons name="reload-outline" size={20} color="#fff" style={{ marginRight: moderateScale(8) }} />
                     )}
-                    <Text style={styles.updateButtonText}>
+                    <Text allowFontScaling={false} style={styles.updateButtonText}>
                       {updating ? 'Updating...' : 'Update Details'}
                     </Text>
                   </TouchableOpacity>
@@ -736,7 +738,7 @@ const ProfileScreen = () => {
                 >
                   <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
                 </TouchableOpacity>
-                <Text style={styles.modalTitle}>
+                <Text allowFontScaling={false} style={styles.modalTitle}>
                   {savedLocation ? "Edit Address" : "Add Address"}
                 </Text>
                 <View style={styles.placeholder} />
@@ -747,7 +749,7 @@ const ProfileScreen = () => {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.locationModalContent}
               >
-                <Text style={styles.addressHeading}>
+                <Text allowFontScaling={false} style={styles.addressHeading}>
                   {savedLocation ? "Edit your saved address" : "Enter your address details"}
                 </Text>
 
@@ -765,7 +767,7 @@ const ProfileScreen = () => {
                     ) : (
                       <Ionicons name="locate-outline" size={18} color="#007AFF" />
                     )}
-                    <Text style={styles.addressActionText}>
+                    <Text allowFontScaling={false} style={styles.addressActionText}>
                       {gettingLocation ? 'Getting Location...' : 'Use my current location'}
                     </Text>
                   </TouchableOpacity>
@@ -786,6 +788,7 @@ const ProfileScreen = () => {
                     keyboardType="numeric"
                     maxLength={6}
                     editable={!updatingLocation}
+                    allowFontScaling={false}
                   />
                 </View>
 
@@ -798,12 +801,14 @@ const ProfileScreen = () => {
                     placeholder="House number/Block/Street *"
                     placeholderTextColor="#999"
                     editable={!updatingLocation}
+                    allowFontScaling={false}
                   />
                 </View>
 
                 <View style={styles.fieldContainer}>
                   {/* <Text style={styles.fieldLabel}>Locality/Town *</Text> */}
                   <TextInput
+                  allowFontScaling={false}
                     style={styles.textInput}
                     value={locality}
                     onChangeText={setLocality}
@@ -817,6 +822,7 @@ const ProfileScreen = () => {
                   <View style={styles.fieldHalf}>
                     {/* <Text style={styles.fieldLabel}>City *</Text> */}
                     <TextInput
+                    allowFontScaling={false}
                       style={styles.textInput}
                       value={city}
                       onChangeText={setCity}
@@ -828,6 +834,7 @@ const ProfileScreen = () => {
                   <View style={styles.fieldHalf}>
                     {/* <Text style={styles.fieldLabel}>District *</Text> */}
                     <TextInput
+                    allowFontScaling={false}
                       style={styles.textInput}
                       value={district}
                       onChangeText={setDistrict}
@@ -841,6 +848,7 @@ const ProfileScreen = () => {
                 <View style={styles.fieldContainer}>
                   {/* <Text style={styles.fieldLabel}>State *</Text> */}
                   <TextInput
+                  allowFontScaling={false}
                     style={styles.textInput}
                     value={state}
                     onChangeText={setState}
@@ -865,7 +873,7 @@ const ProfileScreen = () => {
                     ) : (
                       <Ionicons name="save-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
                     )}
-                    <Text style={styles.updateButtonText}>
+                    <Text allowFontScaling={false} style={styles.updateButtonText}>
                       {updatingLocation ? 'Saving...' : 'Save Location'}
                     </Text>
                   </TouchableOpacity>
@@ -1014,8 +1022,8 @@ const styles = StyleSheet.create({
     width: "60%",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: moderateScale(20),
-    borderRadius: moderateScale(10),
+    paddingVertical: moderateScale(15),
+    borderRadius: moderateScale(12),
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },

@@ -761,9 +761,9 @@ const ReviewOrder = () => {
             <Image source={product.image} style={styles.productImage} resizeMode="stretch" />
           </TouchableOpacity>
           <View style={styles.productDetails}>
-            <Text style={styles.productName}>{product.name}</Text>
-            <Text style={styles.productDescription}>{product.description}</Text>
-            <Text style={styles.productPrice}>MRP ₹{Number(product.price).toFixed(2)}</Text>
+            <Text allowFontScaling={false} style={styles.productName}>{product.name}</Text>
+            <Text allowFontScaling={false} style={styles.productDescription}>{product.description}</Text>
+            <Text allowFontScaling={false} style={styles.productPrice}>MRP ₹{Number(product.price).toFixed(2)}</Text>
 
             <TouchableOpacity style={styles.deleteBtn} onPress={() => removeProduct(product.id)}>
               <Image source={require('../assets/via-farm-img/icons/deleteBtn.png')} />
@@ -775,7 +775,7 @@ const ReviewOrder = () => {
                 onPress={() => decreaseQuantity(product.id)}
                 disabled={updating}
               >
-                <Text style={styles.quantityText}>-</Text>
+                <Text allowFontScaling={false} style={styles.quantityText}>-</Text>
               </TouchableOpacity>
 
               <View style={{ justifyContent: 'center', alignItems: 'center', minWidth: 40 }}>
@@ -787,12 +787,12 @@ const ReviewOrder = () => {
                 onPress={() => increaseQuantity(product.id)}
                 disabled={updating}
               >
-                <Text style={styles.quantityText}>+</Text>
+                <Text allowFontScaling={false} style={styles.quantityText}>+</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.deliveryRow}>
-              <Text style={styles.deliveryText}>{product.deliveryDate}</Text>
+              <Text allowFontScaling={false} style={styles.deliveryText}>{product.deliveryDate}</Text>
             </View>
           </View>
         </View>
@@ -810,9 +810,9 @@ const ReviewOrder = () => {
   if (products.length === 0)
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>Your cart is empty</Text>
+        <Text allowFontScaling={false} style={styles.emptyText}>Your cart is empty</Text>
         <TouchableOpacity style={styles.shopButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.shopButtonText}>Continue Shopping</Text>
+          <Text allowFontScaling={false} style={styles.shopButtonText}>Continue Shopping</Text>
         </TouchableOpacity>
       </View>
     );
@@ -826,28 +826,28 @@ const ReviewOrder = () => {
         <TouchableOpacity onPress={goBack}>
           <Image source={require('../assets/via-farm-img/icons/groupArrow.png')} />
         </TouchableOpacity>
-        <Text style={styles.headerText}>Review Order</Text>
+        <Text allowFontScaling={false} style={styles.headerText}>Review Order</Text>
         <Text />
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Deliver to Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Deliver to</Text>
+          <Text allowFontScaling={false} style={styles.sectionTitle}>Deliver to</Text>
           <View style={styles.addressContainer}>
             <View style={styles.location}>
               <Image source={require('../assets/via-farm-img/icons/loca.png')} />
-              <Text style={styles.addressText}>
+              <Text allowFontScaling={false} style={styles.addressText}>
                 {selectedAddress ? `${selectedAddress.name}, ${selectedAddress.pincode || selectedAddress.pincode}` : 'Select delivery address'}
               </Text>
             </View>
             <TouchableOpacity onPress={openModal}>
-              <Text style={styles.changeText}>Change ?</Text>
+              <Text allowFontScaling={false} style={styles.changeText}>Change ?</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {products.length > 0 && <Text style={styles.deliveryDate}>{products[0].deliveryDate || 'Delivered soon'}</Text>}
+        {products.length > 0 && <Text allowFontScaling={false} style={styles.deliveryDate}>{products[0].deliveryDate || 'Delivered soon'}</Text>}
 
         {products.map((product) => (
           <ProductCard key={product.id} product={product} />
@@ -856,7 +856,7 @@ const ReviewOrder = () => {
         {/* Donation */}
         <View style={styles.donationContainer}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: normalizeFont(13), color: '#333', flex: 1 }}>Do you want to donate?</Text>
+            <Text allowFontScaling={false} style={{ fontSize: normalizeFont(13), color: '#333', flex: 1 }}>Do you want to donate?</Text>
 
             <TouchableOpacity
               onPress={() => setWantDonation(!wantDonation)}
@@ -876,12 +876,13 @@ const ReviewOrder = () => {
 
           {wantDonation && (
             <View style={{ marginTop: moderateScale(12) }}>
-              <Text style={{ fontSize: normalizeFont(12), color: '#555', marginBottom: moderateScale(4) }}>Enter donation amount</Text>
+              <Text allowFontScaling={false} style={{ fontSize: normalizeFont(12), color: '#555', marginBottom: moderateScale(4) }}>Enter donation amount</Text>
               <TextInput
                 placeholder="Enter amount (₹)"
                 value={amount}
                 onChangeText={setAmount}
                 keyboardType="numeric"
+                allowFontScaling={false}
                 style={{
                   borderWidth: 1,
                   borderColor: '#ccc',
@@ -901,16 +902,17 @@ const ReviewOrder = () => {
           <View style={styles.couponSection}>
             <Image source={require('../assets/via-farm-img/icons/promo-code.png')} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.couponTitle}>Have a Coupon?</Text>
-              <Text style={styles.couponSubtitle}>Apply now and Save Extra!</Text>
+              <Text allowFontScaling={false} style={styles.couponTitle}>Have a Coupon?</Text>
+              <Text allowFontScaling={false} style={styles.couponSubtitle}>Apply now and Save Extra!</Text>
             </View>
             <TouchableOpacity style={{ padding: 8 }} onPress={() => setCouponModalVisible(true)}>
-              <Text style={{ color: '#007AFF', fontWeight: '600' }}>View Coupons</Text>
+              <Text allowFontScaling={false} style={{ color: '#007AFF', fontWeight: '600' }}>View Coupons</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.couponInputContainer}>
             <TextInput
+            allowFontScaling={false}
               style={styles.couponInput}
               placeholder="Enter your coupon code"
               placeholderTextColor="#999"
@@ -941,7 +943,7 @@ const ReviewOrder = () => {
 
           {appliedCoupon && (
             <View style={styles.appliedCouponRow}>
-              <Text style={styles.appliedCouponText}>
+              <Text allowFontScaling={false} style={styles.appliedCouponText}>
                 Applied: {appliedCoupon.code} {appliedCoupon.previewDiscount ? `- ₹${Number(appliedCoupon.previewDiscount).toFixed(2)}` : ''}
               </Text>
             </View>
@@ -954,7 +956,7 @@ const ReviewOrder = () => {
             <Pressable style={styles.modalBackground} onPress={() => setCouponModalVisible(false)} />
             <View style={styles.centeredCouponModal}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Choose a Coupon</Text>
+                <Text allowFontScaling={false} style={styles.modalTitle}>Choose a Coupon</Text>
                 <TouchableOpacity onPress={() => setCouponModalVisible(false)} style={styles.closeButton}>
                   <Ionicons name="close" size={24} color="#666" />
                 </TouchableOpacity>
@@ -973,15 +975,15 @@ const ReviewOrder = () => {
                       return (
                         <TouchableOpacity style={styles.couponItem} onPress={() => onSelectCouponFromList(item)}>
                           <View style={{ flex: 1 }}>
-                            <Text style={{ fontWeight: '700' }}>{item.code}</Text>
-                            <Text style={{ color: '#666' }}>{item.appliesTo?.join?.(', ') || 'All Products'}</Text>
-                            <Text style={{ color: '#666', marginTop: 6 }}>
+                            <Text allowFontScaling={false} style={{ fontWeight: '700' }}>{item.code}</Text>
+                            <Text allowFontScaling={false} style={{ color: '#666' }}>{item.appliesTo?.join?.(', ') || 'All Products'}</Text>
+                            <Text allowFontScaling={false} style={{ color: '#666', marginTop: 6 }}>
                               {item.discount?.type === 'Percentage' ? `${item.discount.value}% off` : `₹${item.discount.value} off`} • Min ₹{item.minimumOrder || 0}
                             </Text>
                           </View>
                           <View style={{ alignItems: 'flex-end' }}>
-                            <Text style={{ fontWeight: '700' }}>Save</Text>
-                            <Text style={{ color: '#333', marginTop:moderateScale(6) }}>₹{discountValue.toFixed(2)}</Text>
+                            <Text allowFontScaling={false} style={{ fontWeight: '700' }}>Save</Text>
+                            <Text allowFontScaling={false} style={{ color: '#333', marginTop:moderateScale(6) }}>₹{discountValue.toFixed(2)}</Text>
                           </View>
                         </TouchableOpacity>
                       );
@@ -997,28 +999,28 @@ const ReviewOrder = () => {
 
         {/* Price details */}
         <View style={styles.priceSection}>
-          <Text style={styles.priceTitle}>Price Details</Text>
+          <Text allowFontScaling={false} style={styles.priceTitle}>Price Details</Text>
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Total MRP</Text>
-            <Text style={styles.priceValue}>₹{totalsForRender.subtotal.toFixed(2)}</Text>
+            <Text allowFontScaling={false} style={styles.priceLabel}>Total MRP</Text>
+            <Text allowFontScaling={false} style={styles.priceValue}>₹{totalsForRender.subtotal.toFixed(2)}</Text>
           </View>
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Coupon Discount</Text>
-            <Text style={styles.priceValue}>₹{(-totalsForRender.couponDiscount).toFixed(2)}</Text>
+            <Text allowFontScaling={false} style={styles.priceLabel}>Coupon Discount</Text>
+            <Text allowFontScaling={false} style={styles.priceValue}>₹{(-totalsForRender.couponDiscount).toFixed(2)}</Text>
           </View>
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Delivery Charge</Text>
-            <Text style={styles.priceValue}>₹{totalsForRender.deliveryCharge.toFixed(2)}</Text>
+            <Text allowFontScaling={false} style={styles.priceLabel}>Delivery Charge</Text>
+            <Text allowFontScaling={false} style={styles.priceValue}>₹{totalsForRender.deliveryCharge.toFixed(2)}</Text>
           </View>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>₹{totalsForRender.totalAmount.toFixed(2)}</Text>
+            <Text allowFontScaling={false} style={styles.totalLabel}>Total Amount</Text>
+            <Text allowFontScaling={false} style={styles.totalValue}>₹{totalsForRender.totalAmount.toFixed(2)}</Text>
           </View>
-          {totalsForRender.usedServer && <Text style={{ fontSize: normalizeFont(10), color: '#666', marginTop: moderateScale(6) }}>Using server-calculated charges</Text>}
+          {totalsForRender.usedServer && <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: '#666', marginTop: moderateScale(6) }}>Using server-calculated charges</Text>}
         </View>
 
         <View style={styles.commentsSection}>
-          <Text style={styles.commentsTitle}>Comments</Text>
+          <Text allowFontScaling={false} style={styles.commentsTitle}>Comments</Text>
           <TextInput
             style={styles.commentsInput}
             placeholder="Instructions / Comments for the vendor"
@@ -1026,6 +1028,7 @@ const ReviewOrder = () => {
             multiline
             value={comments}
             onChangeText={setComments}
+            allowFontScaling={false}
           />
         </View>
 
@@ -1036,11 +1039,11 @@ const ReviewOrder = () => {
       {/* Bottom Card */}
       <View style={styles.bottomPaymentCard}>
         <View style={styles.paymentLeft}>
-          <Text style={styles.totalPrice}>₹{totalsForRender.totalAmount.toFixed(2)}</Text>
+          <Text allowFontScaling={false} style={styles.totalPrice}>₹{totalsForRender.totalAmount.toFixed(2)}</Text>
         </View>
         <TouchableOpacity style={styles.proceedButton} onPress={handleProceedToPayment}>
           <Image source={require('../assets/via-farm-img/icons/UpArrow.png')} />
-          <Text style={styles.proceedButtonText}>Proceed to Payment</Text>
+          <Text allowFontScaling={false} style={styles.proceedButtonText}>Proceed to Payment</Text>
         </TouchableOpacity>
       </View>
 
@@ -1051,7 +1054,7 @@ const ReviewOrder = () => {
           <Animated.View style={[styles.modalContainer, { transform: [{ translateY: slideAnim }] }]} {...panResponder.panHandlers}>
             <View style={styles.dragHandle} />
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Delivery Location</Text>
+              <Text allowFontScaling={false} style={styles.modalTitle}>Select Delivery Location</Text>
               <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
                 <Ionicons name="close" size={24} color="#666" />
               </TouchableOpacity>
@@ -1070,10 +1073,10 @@ const ReviewOrder = () => {
                     </View>
                   </View>
                   <View style={styles.addressDetails}>
-                    <Text style={styles.addressName}>
+                    <Text allowFontScaling={false} style={styles.addressName}>
                       {address.name}, {address.pincode}
                     </Text>
-                    <Text style={styles.addressText}>{address.address}</Text>
+                    <Text allowFontScaling={false} style={styles.addressText}>{address.address}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(10) }}>
                     <TouchableOpacity
@@ -1113,7 +1116,7 @@ const ReviewOrder = () => {
             <TouchableOpacity style={styles.addAddressButton}>
               <TouchableOpacity style={styles.NewAddress} onPress={MoveToNewAddress}>
                 <Ionicons name="add" size={20} color="rgba(76, 175, 80, 1)" />
-                <Text style={styles.addAddressButtonText}>Add New Address</Text>
+                <Text allowFontScaling={false} style={styles.addAddressButtonText}>Add New Address</Text>
               </TouchableOpacity>
             </TouchableOpacity>
           </Animated.View>

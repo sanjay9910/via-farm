@@ -113,14 +113,14 @@ const ViewVendors = ({ title = 'Vendors Near You' }) => {
   // ✅ Header now takes "title" prop from parent
   const Header = ({ title }) => (
     <View style={[styles.headerRow, { paddingHorizontal: moderateScale(16) ,paddingVertical:5,}]}>
-      <Text style={styles.heading}>{title}</Text>
+      <Text allowFontScaling={false} style={styles.heading}>{title}</Text>
 
       <TouchableOpacity
         style={styles.seeButton}
         onPress={() => navigation.navigate('VendorsSeeAll')}
         activeOpacity={0.8}
       >
-        <Text style={styles.link}>See All</Text>
+        <Text allowFontScaling={false} style={styles.link}>See All</Text>
         <Image
           source={require('../../../assets/via-farm-img/icons/see.png')}
         />
@@ -130,9 +130,9 @@ const ViewVendors = ({ title = 'Vendors Near You' }) => {
 
   const EmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyText}>No vendors found nearby.</Text>
+      <Text allowFontScaling={false} style={styles.emptyText}>No vendors found nearby.</Text>
       <TouchableOpacity style={styles.retryButton} onPress={handleRetry} activeOpacity={0.8}>
-        <Text style={styles.retryButtonText}>Refresh</Text>
+        <Text allowFontScaling={false} style={styles.retryButtonText}>Refresh</Text>
       </TouchableOpacity>
     </View>
   );
@@ -143,7 +143,7 @@ const ViewVendors = ({ title = 'Vendors Near You' }) => {
         <Header title={title} />
         <View style={styles.loader}>
           <ActivityIndicator size="large" color="#4CAF50" />
-          <Text style={styles.loadingText}>Finding vendors near you...</Text>
+          <Text allowFontScaling={false} style={styles.loadingText}>Finding vendors near you...</Text>
         </View>
       </View>
     );
@@ -154,9 +154,9 @@ const ViewVendors = ({ title = 'Vendors Near You' }) => {
       <View style={{ flex: 1 }}>
         <Header title={title} />
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text allowFontScaling={false} style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={handleRetry} activeOpacity={0.8}>
-            <Text style={styles.retryButtonText}>Try Again</Text>
+            <Text allowFontScaling={false} style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -207,7 +207,7 @@ const ViewVendors = ({ title = 'Vendors Near You' }) => {
 
       {error && vendors.length > 0 && (
         <View style={styles.apiErrorNote}>
-          <Text style={styles.apiErrorText}>Note: Showing cached data - {error}</Text>
+          <Text allowFontScaling={false} style={styles.apiErrorText}>Note: Showing cached data - {error}</Text>
         </View>
       )}
     </View>
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(5),
   },
   heading: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(15),
     fontWeight: '700',
     color: '#333',
   },
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     gap: moderateScale(6),
   },
   link: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(13),
     color: 'rgba(1, 151, 218, 1)',
     fontWeight: '500',
   },

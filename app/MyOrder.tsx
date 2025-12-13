@@ -459,7 +459,7 @@ const MyOrdersScreen = () => {
 
         return (
             <View style={styles.ratingContainer}>
-                <Text style={styles.rateText}>Rate this Item</Text>
+                <Text allowFontScaling={false} style={styles.rateText}>Rate this Item</Text>
                 <View style={styles.ratingDiv}>
                     <View style={styles.starsContainer}>
                         {[0, 1, 2, 3, 4].map((starIndex) => (
@@ -482,7 +482,7 @@ const MyOrdersScreen = () => {
                         style={styles.reviewButton}
                         onPress={() => handleWriteReview(order.id, item.productId)}
                     >
-                        <Text style={styles.reviewButtonText}>Write a review</Text>
+                        <Text allowFontScaling={false} style={styles.reviewButtonText}>Write a review</Text>
                         <Ionicons name="chevron-forward" size={moderateScale(14)} color="#2196F3" />
                     </TouchableOpacity>
                 </View>
@@ -527,12 +527,12 @@ const MyOrdersScreen = () => {
                                 {productIndex === 0 && (
                                     <View style={styles.orderHeader}>
                                         <View style={styles.orderHeaderLeft}>
-                                            <Text style={[styles.statusText, { color: getStatusColor(order.status) }]} numberOfLines={1}>
+                                            <Text allowFontScaling={false} style={[styles.statusText, { color: getStatusColor(order.status) }]} numberOfLines={1}>
                                                 {order.status}
                                             </Text>
-                                            <Text style={styles.orderIdText} numberOfLines={1}>{order.orderId}</Text>
+                                            <Text allowFontScaling={false} style={styles.orderIdText} numberOfLines={1}>{order.orderId}</Text>
                                         </View>
-                                        <Text style={styles.dateText} numberOfLines={1}>{order.date}</Text>
+                                        <Text allowFontScaling={false} style={styles.dateText} numberOfLines={1}>{order.date}</Text>
                                     </View>
                                 )}
 
@@ -543,12 +543,12 @@ const MyOrdersScreen = () => {
                                 >
                                     <Image source={{ uri: product.productImage || 'https://via.placeholder.com/150' }} style={styles.productImage} />
                                     <View style={styles.productInfo}>
-                                        <Text style={styles.productName} numberOfLines={2}>
+                                        <Text allowFontScaling={false} style={styles.productName} numberOfLines={2}>
                                             {product.productName || product.name || 'Unnamed product'}
                                         </Text>
-                                        <Text style={styles.productDescription} numberOfLines={1}>Price: ₹{product.price ?? '0'}</Text>
-                                        <Text style={styles.productDescription} numberOfLines={1}>Qty: {product.quantity ?? product.qty ?? 1}</Text>
-                                        {product.vendorName ? <Text style={styles.vendorText} numberOfLines={1}>By: {product.vendorName}</Text> : null}
+                                        <Text allowFontScaling={false} style={styles.productDescription} numberOfLines={1}>Price: ₹{product.price ?? '0'}</Text>
+                                        <Text allowFontScaling={false} style={styles.productDescription} numberOfLines={1}>Qty: {product.quantity ?? product.qty ?? 1}</Text>
+                                        {product.vendorName ? <Text allowFontScaling={false} style={styles.vendorText} numberOfLines={1}>By: {product.vendorName}</Text> : null}
                                     </View>
                                     <Ionicons name="chevron-forward" size={moderateScale(18)} color="#666" style={styles.chevronIcon} />
                                 </TouchableOpacity>
@@ -560,14 +560,14 @@ const MyOrdersScreen = () => {
                         ))
                     ) : (
                         <View style={{ paddingVertical: moderateScale(8) }}>
-                            <Text style={{ color: '#666', fontSize: normalizeFont(11) }}>No products in this order</Text>
+                            <Text allowFontScaling={false} style={{ color: '#666', fontSize: normalizeFont(11) }}>No products in this order</Text>
                         </View>
                     )}
                 </View>
 
                 <View style={styles.priceContainer}>
-                    <Text style={styles.priceLabel}>Total Price:</Text>
-                    <Text style={styles.priceValue}>₹{order.totalPrice ?? 0}</Text>
+                    <Text allowFontScaling={false} style={styles.priceLabel}>Total Price:</Text>
+                    <Text allowFontScaling={false} style={styles.priceValue}>₹{order.totalPrice ?? 0}</Text>
                 </View>
             </View>
         </TouchableOpacity>
@@ -580,12 +580,12 @@ const MyOrdersScreen = () => {
                     <TouchableOpacity onPress={backOrder} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={moderateScale(24)} color="#333" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>My Orders</Text>
+                    <Text allowFontScaling={false} style={styles.headerTitle}>My Orders</Text>
                     <View style={styles.placeholder} />
                 </View>
                 <View style={styles.centerContainer}>
                     <ActivityIndicator size="large" color="#4CAF50" />
-                    <Text style={styles.loadingText}>Loading orders...</Text>
+                    <Text allowFontScaling={false} style={styles.loadingText}>Loading orders...</Text>
                 </View>
             </SafeAreaView>
         );
@@ -597,7 +597,7 @@ const MyOrdersScreen = () => {
                 <TouchableOpacity onPress={backOrder} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={moderateScale(24)} color="#333" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>My Orders</Text>
+                <Text allowFontScaling={false} style={styles.headerTitle}>My Orders</Text>
                 <View style={styles.placeholder} />
             </View>
 
@@ -605,6 +605,7 @@ const MyOrdersScreen = () => {
                 <View style={styles.searchInputContainer}>
                     <Ionicons name="search" size={moderateScale(18)} color="#999" style={styles.searchIcon} />
                     <TextInput
+                    allowFontScaling={false}
                         style={styles.searchInput}
                         placeholder="Search Product, Status, Order ID..."
                         placeholderTextColor="#999"
@@ -623,12 +624,12 @@ const MyOrdersScreen = () => {
 
             {searchQuery.length > 0 && (
                 <View style={styles.searchResultsContainer}>
-                    <Text style={styles.searchResultsText} numberOfLines={1}>
+                    <Text allowFontScaling={false} style={styles.searchResultsText} numberOfLines={1}>
                         {filteredOrders.length} result{filteredOrders.length !== 1 ? 's' : ''} found
                     </Text>
                     {filteredOrders.length > 0 && (
                         <TouchableOpacity onPress={clearSearch}>
-                            <Text style={styles.clearAllText}>Clear</Text>
+                            <Text allowFontScaling={false} style={styles.clearAllText}>Clear</Text>
                         </TouchableOpacity>
                     )}
                 </View>
@@ -637,7 +638,7 @@ const MyOrdersScreen = () => {
             {/* Inline error bar (non-blocking) */}
             {error ? (
                 <View style={{ paddingHorizontal: moderateScale(14), paddingVertical: moderateScale(8), backgroundColor: '#fff8f8' }}>
-                    <Text style={{ color: '#D32F2F', fontSize: normalizeFont(12) }}>{error}</Text>
+                    <Text allowFontScaling={false} style={{ color: '#D32F2F', fontSize: normalizeFont(12) }}>{error}</Text>
                 </View>
             ) : null}
 
@@ -649,10 +650,10 @@ const MyOrdersScreen = () => {
                         color="#ccc"
                         style={styles.emptyIcon}
                     />
-                    <Text style={styles.emptyText}>
+                    <Text allowFontScaling={false} style={styles.emptyText}>
                         {searchQuery ? 'No results found' : 'No orders found'}
                     </Text>
-                    <Text style={styles.emptySubText}>
+                    <Text allowFontScaling={false} style={styles.emptySubText}>
                         {searchQuery
                             ? 'Try different keywords'
                             : 'Your orders will appear here'
@@ -660,7 +661,7 @@ const MyOrdersScreen = () => {
                     </Text>
                     {searchQuery && (
                         <TouchableOpacity style={styles.clearSearchButton} onPress={clearSearch}>
-                            <Text style={styles.clearSearchButtonText}>Clear Search</Text>
+                            <Text allowFontScaling={false} style={styles.clearSearchButtonText}>Clear Search</Text>
                         </TouchableOpacity>
                     )}
                 </View>
@@ -714,12 +715,12 @@ const MyOrdersScreen = () => {
                                 </View>
                             </View>
 
-                            <Text style={styles.modalRateText}>
+                            <Text allowFontScaling={false} style={styles.modalRateText}>
                                 Rate this item <Text style={styles.modalRequired}>*</Text>
                             </Text>
                             {renderModalStars()}
 
-                            <Text style={styles.modalImageText}>Add images of the product</Text>
+                            <Text allowFontScaling={false} style={styles.modalImageText}>Add images of the product</Text>
 
                             {uploadedImages.length > 0 && (
                                 <View style={styles.uploadedImagesContainer}>
@@ -742,14 +743,15 @@ const MyOrdersScreen = () => {
                             <TouchableOpacity style={styles.modalImageUpload} onPress={selectImage}>
                                 <View style={styles.modalImageUploadContent}>
                                     <Ionicons name="camera-outline" size={moderateScale(28)} color="#999" />
-                                    <Text style={styles.modalImageUploadText}>
+                                    <Text allowFontScaling={false} style={styles.modalImageUploadText}>
                                         Add photos (max 5)
                                     </Text>
                                 </View>
                             </TouchableOpacity>
 
-                            <Text style={styles.modalReviewText}>Write a review</Text>
+                            <Text allowFontScaling={false}  style={styles.modalReviewText}>Write a review</Text>
                             <TextInput
+                            allowFontScaling={false}
                                 style={styles.modalReviewInput}
                                 placeholder="Share your experience..."
                                 placeholderTextColor="#999"
@@ -765,7 +767,7 @@ const MyOrdersScreen = () => {
                                 onPress={submitReview}
                                 disabled={submitLoading}
                             >
-                                <Text style={styles.modalSubmitButtonText}>
+                                <Text allowFontScaling={false} style={styles.modalSubmitButtonText}>
                                     {submitLoading ? 'Submitting...' : ' Submit'}
                                 </Text>
                             </TouchableOpacity>
