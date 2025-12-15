@@ -91,14 +91,15 @@ export default function SetPasswordScreen(): JSX.Element {
             <View style={styles.card}>
               <View style={styles.topBorder} />
               <View style={styles.cardContent}>
-                <Text style={styles.title}>Set Password</Text>
+                <Text allowFontScaling={false} style={styles.title}>Set Password</Text>
                 <Text style={styles.subtitle}>
                   Create a secure password for your account
                 </Text>
 
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Enter Password</Text>
+                  <Text allowFontScaling={false} style={styles.inputLabel}>Enter Password</Text>
                   <TextInput
+                  allowFontScaling={false}
                     style={styles.textInput}
                     placeholder="Minimum 6 characters"
                     value={password}
@@ -111,7 +112,7 @@ export default function SetPasswordScreen(): JSX.Element {
                 </View>
 
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Confirm Password</Text>
+                  <Text allowFontScaling={false} style={styles.inputLabel}>Confirm Password</Text>
                   <TextInput
                     style={styles.textInput}
                     placeholder="Re-enter password"
@@ -121,6 +122,7 @@ export default function SetPasswordScreen(): JSX.Element {
                     placeholderTextColor="#999"
                     editable={!loading}
                     returnKeyType="done"
+                    allowFontScaling={false}
                   />
                 </View>
 
@@ -129,7 +131,7 @@ export default function SetPasswordScreen(): JSX.Element {
                   onPress={() => setShowPassword((s) => !s)}
                   disabled={loading}
                 >
-                  <Text style={styles.showPasswordText}>
+                  <Text allowFontScaling={false} style={styles.showPasswordText}>
                     {showPassword ? '🙈 Hide Password' : '👁️ Show Password'}
                   </Text>
                 </TouchableOpacity>
@@ -139,7 +141,7 @@ export default function SetPasswordScreen(): JSX.Element {
                   onPress={handleSetPassword}
                   disabled={loading}
                 >
-                  <Text style={styles.continueButtonText}>
+                  <Text allowFontScaling={false} style={styles.continueButtonText}>
                     {loading ? 'Please wait...' : 'Continue'}
                   </Text>
                 </TouchableOpacity>
@@ -169,8 +171,8 @@ const styles = StyleSheet.create({
     paddingBottom: moderateScale(24),
   },
   logoImage: {
-    width: scale(160), 
-    height: scale(160),
+    width: scale(300), 
+    height: scale(300),
     resizeMode: 'contain',
     marginBottom: moderateScale(8),
     marginTop: moderateScale(8),

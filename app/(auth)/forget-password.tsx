@@ -8,7 +8,6 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,6 +16,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, normalizeFont, scale } from '../Responsive';
 
 const FORGET_API_BASE = 'https://viafarm-1.onrender.com';
@@ -105,14 +105,15 @@ const ForgetPassword = () => {
 
             {/* CARD */}
             <View style={styles.card}>
-              <Text style={styles.heading}>Forget Password</Text>
-              <Text style={styles.subtitle}>
+              <Text allowFontScaling={false} style={styles.heading}>Forget Password</Text>
+              <Text allowFontScaling={false} style={styles.subtitle}>
                 Enter your mobile number to receive OTP
               </Text>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Mobile Number</Text>
+                <Text allowFontScaling={false} style={styles.label}>Mobile Number</Text>
                 <TextInput
+                allowFontScaling={false}
                   style={styles.input}
                   placeholder="Enter your mobile number"
                   keyboardType="phone-pad"
@@ -131,7 +132,7 @@ const ForgetPassword = () => {
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.buttonText}>Get OTP</Text>
+                  <Text allowFontScaling={false}  style={styles.buttonText}>Get OTP</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -158,8 +159,8 @@ const styles = StyleSheet.create({
     paddingBottom: moderateScale(20),
   },
   logoImage: {
-    width: scale(200),
-    height: scale(200),
+    width: scale(300),
+    height: scale(300),
     resizeMode: 'contain',
     marginBottom: moderateScale(-60),
   },
@@ -183,12 +184,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   heading: {
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(15),
     fontWeight: '600',
     marginBottom: moderateScale(8),
   },
   subtitle: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     color: '#666',
     textAlign: 'center',
     marginBottom: moderateScale(18),
@@ -199,7 +200,7 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(18),
   },
   label: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     fontWeight: '600',
     color: '#333',
     marginBottom: moderateScale(8),
@@ -214,7 +215,7 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(10),
     paddingHorizontal: moderateScale(14),
     backgroundColor: '#fdfdfd',
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(12),
   },
   button: {
     backgroundColor: 'rgba(76, 175, 80, 1)',
@@ -228,7 +229,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     fontWeight: '600',
   },
 });

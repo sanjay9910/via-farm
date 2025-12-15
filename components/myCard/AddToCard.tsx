@@ -46,7 +46,7 @@ const MyCart = () => {
   const [cartItems, setCartItems] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [selectedVendor, setSelectedVendor] = useState(null);
-  const [selectedVendorId, setSelectedVendorId] = useState(null); 
+  const [selectedVendorId, setSelectedVendorId] = useState(null);
   const [selectedVendorItems, setSelectedVendorItems] = useState([]);
   const [selectedVendorDetails, setSelectedVendorDetails] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -78,7 +78,7 @@ const MyCart = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState(null); 
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState('');
 
   const [highlightedCoupons, setHighlightedCoupons] = useState([]);
@@ -471,7 +471,7 @@ const MyCart = () => {
           code: json.couponCode ?? codeToApply,
           discount: serverDiscount,
           type: 'fixed',
-          vendorId: selectedVendor.id, 
+          vendorId: selectedVendor.id,
         });
 
         setCouponCode(codeToApply);
@@ -857,7 +857,12 @@ const MyCart = () => {
 
           {isSelected ? (
             <View style={styles.selectedIndicator}>
-              <Text allowFontScaling={false} style={styles.selectedText}>✓</Text>
+              {/* <Text allowFontScaling={false} style={styles.selectedText}>✓</Text> */}
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={scale(25)}
+                color="#000"
+              />
             </View>
           ) : (
             <View style={styles.unselectedIndicator} />
@@ -944,44 +949,44 @@ const MyCart = () => {
                     </View>
 
 
-                  <ScrollView>
-                    <View style={{ paddingHorizontal: moderateScale(12), paddingBottom: moderateScale(12), paddingTop: moderateScale(8) }}>
-                      {fetchingCoupons ? (
-                        <Text allowFontScaling={false} style={{ textAlign: 'center' }}> <ActivityIndicator size="large" color="#6B46C1" /></Text>
-                      ) : highlightedCoupons.length === 0 ? (
-                        <Text allowFontScaling={false} style={{ textAlign: 'center', color: '#666' }}>No offers available</Text>
-                      ) : (
-                        highlightedCoupons.map(c => {
-                          const isPercentage = (c.discount?.type || '').toLowerCase() === 'percentage';
-                          const label = isPercentage ? `${c.discount.value}% off` : `₹${c.discount.value} off`;
-                          const subtotalLocal = priceDetails?.totalMRP ?? subtotal;
-                          const previewDiscount = isPercentage
-                            ? Number(((subtotalLocal * Number(c.discount.value || 0)) / 100).toFixed(2))
-                            : Number(Number(c.discount.value || 0).toFixed(2));
-                          return (
-                            <TouchableOpacity
-                              key={c._id}
-                              style={styles.highlightCouponRow}
-                              onPress={() => {
-                                setCouponCode(c.code || '');
-                                applyCoupon(c.code || '');
-                                setShowCouponsDropdown(false);
-                              }}
-                            >
-                              <View>
-                                <Text allowFontScaling={false} style={{ fontSize: normalizeFont(11), fontWeight: '600' }}>{c.code}</Text>
-                                <Text allowFontScaling={false} style={{ color: '#666' }}>{c.appliesTo?.join?.(', ') || 'All Products'}</Text>
-                                <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: '#666' }}>{label} • Min ₹{c.minimumOrder ?? 0}</Text>
-                              </View>
-                              <View style={{alignItems:"flex-end"}}>
-                                <Text allowFontScaling={false} style={{color:'#000',fontSize:normalizeFont(13),fontWeight:'bold',marginBottom:moderateScale(6)}}>Save </Text>
-                                <Text allowFontScaling={false} style={{color:'grey',fontSize:normalizeFont(10)}}>₹{previewDiscount.toFixed(2)}</Text>
-                              </View>
-                            </TouchableOpacity>
-                          );
-                        })
-                      )}
-                    </View>
+                    <ScrollView>
+                      <View style={{ paddingHorizontal: moderateScale(12), paddingBottom: moderateScale(12), paddingTop: moderateScale(8) }}>
+                        {fetchingCoupons ? (
+                          <Text allowFontScaling={false} style={{ textAlign: 'center' }}> <ActivityIndicator size="large" color="#6B46C1" /></Text>
+                        ) : highlightedCoupons.length === 0 ? (
+                          <Text allowFontScaling={false} style={{ textAlign: 'center', color: '#666' }}>No offers available</Text>
+                        ) : (
+                          highlightedCoupons.map(c => {
+                            const isPercentage = (c.discount?.type || '').toLowerCase() === 'percentage';
+                            const label = isPercentage ? `${c.discount.value}% off` : `₹${c.discount.value} off`;
+                            const subtotalLocal = priceDetails?.totalMRP ?? subtotal;
+                            const previewDiscount = isPercentage
+                              ? Number(((subtotalLocal * Number(c.discount.value || 0)) / 100).toFixed(2))
+                              : Number(Number(c.discount.value || 0).toFixed(2));
+                            return (
+                              <TouchableOpacity
+                                key={c._id}
+                                style={styles.highlightCouponRow}
+                                onPress={() => {
+                                  setCouponCode(c.code || '');
+                                  applyCoupon(c.code || '');
+                                  setShowCouponsDropdown(false);
+                                }}
+                              >
+                                <View>
+                                  <Text allowFontScaling={false} style={{ fontSize: normalizeFont(11), fontWeight: '600' }}>{c.code}</Text>
+                                  <Text allowFontScaling={false} style={{ color: '#666' }}>{c.appliesTo?.join?.(', ') || 'All Products'}</Text>
+                                  <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: '#666' }}>{label} • Min ₹{c.minimumOrder ?? 0}</Text>
+                                </View>
+                                <View style={{ alignItems: "flex-end" }}>
+                                  <Text allowFontScaling={false} style={{ color: '#000', fontSize: normalizeFont(13), fontWeight: 'bold', marginBottom: moderateScale(6) }}>Save </Text>
+                                  <Text allowFontScaling={false} style={{ color: 'grey', fontSize: normalizeFont(10) }}>₹{previewDiscount.toFixed(2)}</Text>
+                                </View>
+                              </TouchableOpacity>
+                            );
+                          })
+                        )}
+                      </View>
                     </ScrollView>
                   </View>
                 </View>
@@ -989,7 +994,7 @@ const MyCart = () => {
 
               <View style={styles.couponInputContainer}>
                 <TextInput
-                allowFontScaling={false}
+                  allowFontScaling={false}
                   style={styles.couponInput}
                   placeholder="Enter your coupon code"
                   value={couponCode}
@@ -1149,7 +1154,7 @@ const MyCart = () => {
                         style={styles.ampmButton}
                         onPress={() => setStartAMPM(startAMPM === 'AM' ? 'PM' : 'AM')}
                       >
-                        <Text allowFontScaling={false} style={styles.ampmText}>{startAMPM}</Text>
+                        <Text allowFontScaling={false} style={styles.ampmText}> {startAMPM}</Text>
                       </TouchableOpacity>
                       <Text allowFontScaling={false} style={styles.timeTo}>to</Text>
                       <TouchableOpacity
@@ -1164,7 +1169,7 @@ const MyCart = () => {
                         style={styles.ampmButton}
                         onPress={() => setEndAMPM(endAMPM === 'AM' ? 'PM' : 'AM')}
                       >
-                        <Text allowFontScaling={false} style={styles.ampmText}>{endAMPM}</Text>
+                        <Text allowFontScaling={false} style={styles.ampmText}> {endAMPM}</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1208,7 +1213,7 @@ const MyCart = () => {
                       backgroundColor: paymentMethod === 'cash' ? '#FFF8E1' : '#fff'
                     }}
                   >
-                    <Text allowFontScaling={false} style={{ fontSize: normalizeFont(9), color: '#333' }}>Pay by Cash</Text>
+                    <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: '#333' }}>Pay by Cash</Text>
                     <View
                       style={{
                         width: scale(22),
@@ -1249,7 +1254,7 @@ const MyCart = () => {
                       backgroundColor: paymentMethod === 'online' ? '#FFF8E1' : '#fff'
                     }}
                   >
-                    <Text allowFontScaling={false} style={{ fontSize: normalizeFont(9), color: '#333' }}>Pay Online</Text>
+                    <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: '#333' }}>Pay Online</Text>
                     <View
                       style={{
                         width: scale(22),
@@ -1313,7 +1318,7 @@ const MyCart = () => {
       <Modal visible={showSuccessModal} transparent animationType="fade">
         <View style={styles.successModalOverlay}>
           <View style={styles.successModalBox}>
-            <Image source={require('../../assets/via-farm-img/icons/confirm.png')} style={{ width: scale(80), height: scale(70), marginBottom: moderateScale(12) }} />
+            <Image source={require('../../assets/via-farm-img/icons/complete.png')} style={{ width: scale(80), height: scale(70), marginBottom: moderateScale(12) }} />
             <Text allowFontScaling={false} style={{ fontSize: normalizeFont(9), fontWeight: '600', marginBottom: moderateScale(6) }}>Order Placed</Text>
             <Text allowFontScaling={false} style={{ color: '#555' }}>Your order was placed successfully!</Text>
           </View>
@@ -1337,7 +1342,7 @@ const MyCart = () => {
               </TouchableOpacity>
 
               <TextInput
-              allowFontScaling={false}
+                allowFontScaling={false}
                 style={modalStyles.qtyInput}
                 keyboardType="number-pad"
                 value={String(editQuantity)}
@@ -1550,7 +1555,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     paddingHorizontal: moderateScale(16),
     // height:scale(30),
-    paddingVertical:moderateScale(15),
+    paddingVertical: moderateScale(15),
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
@@ -1560,8 +1565,8 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   vendorsContainer: {
-    paddingHorizontal:moderateScale(10),
-    padding:moderateScale(10),
+    paddingHorizontal: moderateScale(10),
+    padding: moderateScale(10),
   },
   vendorSection: {
     backgroundColor: '#fff',
@@ -1584,7 +1589,7 @@ const styles = StyleSheet.create({
   vendorAvatar: {
     width: scale(40),
     height: scale(40),
-    borderRadius:50,
+    borderRadius: 50,
     marginRight: moderateScale(12),
   },
   vendorInfoHeader: {
@@ -1603,8 +1608,8 @@ const styles = StyleSheet.create({
   selectedIndicator: {
     width: scale(24),
     height: scale(24),
-    borderRadius:50,
-    backgroundColor: 'rgba(76, 175, 80, 1)',
+    borderRadius: 50,
+    // backgroundColor: 'rgba(76, 175, 80, 1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1616,7 +1621,7 @@ const styles = StyleSheet.create({
   unselectedIndicator: {
     width: scale(24),
     height: scale(24),
-    borderRadius:50,
+    borderRadius: 50,
     borderWidth: 2,
     borderColor: '#ddd',
   },
@@ -1645,7 +1650,7 @@ const styles = StyleSheet.create({
   productTitle: {
     fontSize: normalizeFont(14),
     fontWeight: '500',
-    paddingBottom:moderateScale(5),
+    paddingBottom: moderateScale(5),
     color: 'rgba(66, 66, 66, 1)',
     // marginBottom: moderateScale(10),
   },
@@ -1664,13 +1669,13 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
     marginRight: moderateScale(8),
     fontWeight: '300',
-    paddingBottom:moderateScale(5),
+    paddingBottom: moderateScale(5),
   },
   priceText: {
     fontSize: normalizeFont(12),
     fontWeight: '700',
     color: '#333',
-     paddingBottom:moderateScale(5),
+    paddingBottom: moderateScale(5),
   },
   deliveryText: {
     fontSize: normalizeFont(12),
@@ -1690,11 +1695,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: "1%",
     bottom: 0,
-    width:"50%",
+    width: "50%",
     height: verticalScale(28),
     flexDirection: 'row',
-    alignItems: 'center',        
-    justifyContent: 'space-between', 
+    alignItems: 'center',
+    justifyContent: 'space-between',
     borderRadius: moderateScale(5),
     borderWidth: moderateScale(1),
     borderColor: 'rgba(76, 175, 80, 1)',
@@ -1729,7 +1734,7 @@ const styles = StyleSheet.create({
     color: 'rgba(76, 175, 80, 1)',
     textAlign: 'center',
     textAlignVertical: 'center',
-    lineHeight: verticalScale(28), 
+    lineHeight: verticalScale(28),
   },
 
   quantityButtonText: {
@@ -1826,7 +1831,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding:moderateScale(10),
+    padding: moderateScale(10),
   },
   centeredCouponModal: {
     width: '90%',
@@ -1844,7 +1849,7 @@ const styles = StyleSheet.create({
   },
   modalHeader: {
     padding: moderateScale(12),
-    paddingHorizontal:moderateScale(10),
+    paddingHorizontal: moderateScale(10),
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',

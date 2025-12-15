@@ -363,13 +363,22 @@ export default function ProductDetailScreen() {
 
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={headerWishlistPress} style={{ marginRight: moderateScale(12) }}>
-            <Image style={{ width: 20, height: 20 }} source={require("../assets/via-farm-img/icons/wishlist.png")} />
+            <Ionicons
+              name="heart-outline"
+              size={scale(27)}
+              color="#000"
+            />
+
             <View style={styles.countWishlistA}>
               <Text allowFontScaling={false} style={styles.countA}>{wishlist || "0"}</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity onPress={headerCartPress} style={{ marginRight: moderateScale(12) }}>
-            <Image width={160} source={require("../assets/via-farm-img/icons/bx_cart.png")} />
+            <Ionicons
+              name="cart-outline"
+              size={scale(27)}
+              color="#000"   // green / brand color
+            />
             <View style={styles.countWishlistA}>
               <Text allowFontScaling={false} style={styles.countA}>{cardGet || "0"}</Text>
             </View>
@@ -425,7 +434,7 @@ export default function ProductDetailScreen() {
           <View style={styles.pickupRow}>
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
               <Image source={require("../assets/via-farm-img/icons/loca.png")} />
-              <View  style={{ marginLeft: moderateScale(10) }}>
+              <View style={{ marginLeft: moderateScale(10) }}>
                 <Text allowFontScaling={false} style={{ fontWeight: '500', fontSize: scaleFont(11) }}>Pickup Location</Text>
                 <Text allowFontScaling={false} style={{ color: '#666', fontSize: scaleFont(11), maxWidth: SCREEN_W - scale(120) }} numberOfLines={1}>{pickupAddress}</Text>
               </View>
@@ -435,13 +444,13 @@ export default function ProductDetailScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={{ marginTop:moderateScale(6) }}>
+          <View style={{ marginTop: moderateScale(6) }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: moderateScale(4) }}>
               <Text allowFontScaling={false} style={{ fontWeight: '600', fontSize: scaleFont(12) }}>Ratings & Reviews</Text>
               <TouchableOpacity onPress={() => navigation.navigate?.('SeeAllReview', {
                 vendor,
                 reviews,
-              })} style={{ flexDirection: 'row', alignItems: 'center', gap:moderateScale(5) }}>
+              })} style={{ flexDirection: 'row', alignItems: 'center', gap: moderateScale(5) }}>
                 <Text allowFontScaling={false} style={{ color: '#3b82f6', fontSize: scaleFont(11) }}>See All</Text>
                 <Image source={require('../assets/via-farm-img/icons/see.png')} />
               </TouchableOpacity>
@@ -546,7 +555,7 @@ export default function ProductDetailScreen() {
       {/* Bottom bar */}
       <View style={styles.bottomBar}>
         <View style={{ flex: 1, }}>
-          <Text  allowFontScaling={false} style={{ color: '#666', fontSize: scaleFont(12) }}>Price</Text>
+          <Text allowFontScaling={false} style={{ color: '#666', fontSize: scaleFont(12) }}>Price</Text>
           <Text allowFontScaling={false} style={{ fontWeight: '600', fontSize: scaleFont(16) }}>₹{product.price}</Text>
         </View>
 
@@ -644,7 +653,7 @@ const styles = StyleSheet.create({
   title: { fontSize: scaleFont(16), fontWeight: '700' },
   smallText: { color: '#666', fontSize: scaleFont(12) },
   mrp: { fontSize: scaleFont(12), marginTop: moderateScale(5) },
-  ratingPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: moderateScale(5), paddingVertical: moderateScale(1), borderRadius:5, marginTop: moderateScale(8), borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.4)' },
+  ratingPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: moderateScale(5), paddingVertical: moderateScale(1), borderRadius: 5, marginTop: moderateScale(8), borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.4)' },
 
   sectionTitle: { fontSize: scaleFont(13), fontWeight: '600' },
   description: { color: '#444', marginTop: moderateScale(6) },

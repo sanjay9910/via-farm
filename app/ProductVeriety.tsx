@@ -702,7 +702,7 @@ const ProductVarieties = () => {
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={openFilterPopup} style={{ paddingHorizontal: moderateScale(8) }}>
-            <Image style={{ width:scale(30), height: scale(30) }} source={require("../assets/via-farm-img/icons/fltr.png")} />
+            <Image style={{ width:scale(30), height: scale(30) }} source={require("../assets/via-farm-img/icons/filterIcon.png")} />
           </TouchableOpacity>
         </View>
 
@@ -894,7 +894,7 @@ const styles = StyleSheet.create({
     marginHorizontal: moderateScale(8),
     flexDirection: 'row',
     backgroundColor: 'rgba(252, 252, 252, 1)',
-    paddingVertical: moderateScale(5),
+    paddingVertical: moderateScale(2),
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.1)',
     paddingHorizontal: moderateScale(5),

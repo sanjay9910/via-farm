@@ -144,14 +144,15 @@ const LoginOtp = () => {
 
             {/* Card */}
             <View style={styles.card}>
-              <Text style={styles.heading}>Login with OTP</Text>
-              <Text style={styles.subtitle}>
+              <Text allowFontScaling={false} style={styles.heading}>Login with OTP</Text>
+              <Text allowFontScaling={false} style={styles.subtitle}>
                 Enter your mobile number to receive OTP for login
               </Text>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Mobile Number</Text>
+                <Text allowFontScaling={false} style={styles.label}>Mobile Number</Text>
                 <TextInput
+                allowFontScaling={false}
                   style={styles.input}
                   placeholder="Enter your 10-digit mobile number"
                   placeholderTextColor="#999"
@@ -168,7 +169,7 @@ const LoginOtp = () => {
                 onPress={handleGetOtp}
                 disabled={loading}
               >
-                <Text style={styles.buttonText}>
+                <Text allowFontScaling={false} style={styles.buttonText}>
                   {loading ? "Sending OTP..." : "Get OTP"}
                 </Text>
               </TouchableOpacity>
@@ -177,7 +178,7 @@ const LoginOtp = () => {
                 style={styles.backButton}
                 onPress={() => navigation.goBack()}
               >
-                <Text style={styles.backButtonText}>Back to Login</Text>
+                <Text allowFontScaling={false} style={styles.backButtonText}>Back to Login</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -202,8 +203,8 @@ const styles = StyleSheet.create({
     paddingBottom: moderateScale(20),
   },
   logoImage: {
-    width: scale(200),
-    height: scale(200),
+    width: scale(300),
+    height: scale(300),
     resizeMode: "contain",
     marginBottom: moderateScale(-60),
   },
@@ -232,7 +233,7 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(8),
   },
   subtitle: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     textAlign: "center",
     marginBottom: moderateScale(8),
     color: "#666",
@@ -242,7 +243,7 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(15),
   },
   label: {
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
     fontWeight: "600",
     color: "#333",
     marginBottom: moderateScale(3),
@@ -256,7 +257,7 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(8),
     paddingHorizontal: moderateScale(10),
     backgroundColor: "#fdfdfd",
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
   },
   button: {
     width: "70%",
@@ -280,7 +281,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     color: "#007AFF",
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(12),
   },
 });
 

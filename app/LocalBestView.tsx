@@ -686,7 +686,7 @@ const ViewAllLocalBest = () => {
               slideAnim.setValue(Dimensions.get('window').width);
               Animated.timing(slideAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start();
             }} style={{ marginLeft: moderateScale(8) }}>
-              <Image style={{ width:scale(30), height:scale(30)  }} source={require("../assets/via-farm-img/icons/filter.png")} />
+              <Image style={{ width:scale(30), height:scale(30)  }} source={require("../assets/via-farm-img/icons/filterIcon.png")} />
             </TouchableOpacity>
             </View>
           </View>
@@ -913,7 +913,7 @@ const styles = StyleSheet.create({
     marginHorizontal: moderateScale(8),
     flexDirection: 'row',
     backgroundColor: 'rgba(252, 252, 252, 1)',
-    paddingVertical: moderateScale(5),
+    paddingVertical: moderateScale(1),
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.1)',
     paddingHorizontal: moderateScale(10),
@@ -1040,7 +1040,7 @@ const cardStyles = StyleSheet.create({
   ratingText: {
     color: '#fff',
     fontSize: normalizeFont(11),
-    marginLeft: moderateScale(6),
+    marginLeft: moderateScale(2),
     fontWeight: '600',
   },
 

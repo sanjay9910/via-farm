@@ -7,19 +7,19 @@ import { useRouter } from "expo-router";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  FlatList,
-  Image,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    FlatList,
+    Image,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 import ProductModal from "../vendors/ProductEditModel";
 
@@ -538,7 +538,7 @@ const ProductFilter = ({
           onPress={() => setIsFilterOpen(true)}
           activeOpacity={0.7}
         >
-          <Image source={require("../../assets/via-farm-img/icons/fltr.png")} style={{ width: 20, height: 20 }} />
+          <Image source={require("../../assets/via-farm-img/icons/filterIcon.png")} style={{ width: 20, height: 20 }} />
         </TouchableOpacity>
       </View>
 

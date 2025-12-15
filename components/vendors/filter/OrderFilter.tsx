@@ -59,7 +59,7 @@ const OrderFilter = ({ onSearchChange, onFilterApply, searchText = "" }) => {
     }
   }, [isModalVisible, slideAnim]);
 
-  const sortOptions = ["Price - high to low", "Newest Arrivals", "Price - low to high", "Freshness"];
+  const sortOptions = ["Price - high to low", "Newest Arrivals", "Price - low to high"];
   const dateOptions = ["Today", "Last 7 days", "Last 30 days", "Last 3 months", "Last 6 months", "All time"];
   const statusOptions = ["Complete", "Cancelled", "In-process"];
 
@@ -136,7 +136,7 @@ const OrderFilter = ({ onSearchChange, onFilterApply, searchText = "" }) => {
           >
             <Image
               style={styles.filterIcon}
-              source={require("../../../assets/via-farm-img/icons/fltr.png")}
+              source={require("../../../assets/via-farm-img/icons/filterIcon.png")}
             />
           </TouchableOpacity>
         </View>
@@ -163,7 +163,7 @@ const OrderFilter = ({ onSearchChange, onFilterApply, searchText = "" }) => {
                 <View style={styles.filterIconContainer}>
                   <Image
                     style={styles.filterIconModal}
-                    source={require("../../../assets/via-farm-img/icons/fltr.png")}
+                    source={require("../../../assets/via-farm-img/icons/filterIcon.png")}
                   />
                 </View>
                 <Text allowFontScaling={false} style={styles.modalTitle}>

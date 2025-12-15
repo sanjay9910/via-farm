@@ -109,13 +109,14 @@ const SetPasswordAfterForget = () => {
 
             {/* Card */}
             <View style={styles.card}>
-              <Text style={styles.heading}>Set New Password</Text>
-              <Text style={styles.subtitle}>Create a strong password for your account</Text>
+              <Text allowFontScaling={false} style={styles.heading}>Set New Password</Text>
+              <Text allowFontScaling={false} style={styles.subtitle}>Create a strong password for your account</Text>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>New Password</Text>
+                <Text allowFontScaling={false} style={styles.label}>New Password</Text>
                 <View style={styles.passwordContainer}>
                   <TextInput
+                  allowFontScaling={false}
                     style={styles.passwordInput}
                     placeholder="Enter new password"
                     secureTextEntry={!showNewPassword}
@@ -134,9 +135,10 @@ const SetPasswordAfterForget = () => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Confirm Password</Text>
+                <Text allowFontScaling={false} style={styles.label}>Confirm Password</Text>
                 <View style={styles.passwordContainer}>
                   <TextInput
+                  allowFontScaling={false}
                     style={styles.passwordInput}
                     placeholder="Confirm your password"
                     secureTextEntry={!showConfirmPassword}
@@ -190,8 +192,8 @@ const styles = StyleSheet.create({
     paddingBottom: moderateScale(20),
   },
   logoImage: {
-    width: scale(200),
-    height: scale(200),
+    width: scale(310),
+    height: scale(310),
     resizeMode: "contain",
     marginBottom: moderateScale(-60),
   },

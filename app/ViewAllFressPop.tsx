@@ -693,7 +693,7 @@ const ViewAllFressPop = () => {
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={openFilterPopup} style={{ paddingHorizontal: moderateScale(8) }}>
-            <Image style={{width:scale(30), height:scale(30)}}  source={require("../assets/via-farm-img/icons/fltr.png")} />
+            <Image style={{width:scale(30), height:scale(30)}}  source={require("../assets/via-farm-img/icons/filterIcon.png")} />
           </TouchableOpacity>
         </View>
 
@@ -881,7 +881,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     backgroundColor: 'rgba(252, 252, 252, 1)',
-    paddingVertical: moderateScale(2),
+    // paddingVertical: moderateScale(2),
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.1)',
     paddingHorizontal: moderateScale(4),
@@ -890,9 +890,9 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: normalizeFont(10),
+    fontSize: normalizeFont(13),
     color: '#222',
-    paddingVertical: 0
+    paddingVertical: 0,
   },
   clearButton: {
     marginLeft: moderateScale(6),

@@ -6,7 +6,6 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +14,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 import { moderateScale, normalizeFont, scale } from '../Responsive';
 
@@ -108,15 +108,16 @@ export default function RegisterOtpScreen(): JSX.Element {
             <View style={styles.card}>
               <View style={styles.topBorder} />
               <View style={styles.cardContent}>
-                <Text style={styles.title}>OTP Verification</Text>
+                <Text allowFontScaling={false} style={styles.title}>OTP Verification</Text>
 
-                <Text style={styles.subtitle}>
+                <Text allowFontScaling={false} style={styles.subtitle}>
                   Enter the 4-digit code sent to <Text style={styles.bold}>{mobile}</Text>
                 </Text>
 
                 <View style={styles.otpContainer}>
                   {otp.map((digit, index) => (
                     <TextInput
+                    allowFontScaling={false}
                       key={index}
                       ref={(ref) => (inputRefs.current[index] = ref)}
                       style={styles.otpInput}
@@ -133,14 +134,14 @@ export default function RegisterOtpScreen(): JSX.Element {
                 </View>
 
                 <View style={styles.resendContainer}>
-                  <Text style={styles.resendText}>Did not receive OTP? </Text>
+                  <Text allowFontScaling={false} style={styles.resendText}>Did not receive OTP? </Text>
                   <TouchableOpacity onPress={handleResendOTP}>
-                    <Text style={styles.resendLink}>Resend OTP</Text>
+                    <Text allowFontScaling={false} style={styles.resendLink}>Resend OTP</Text>
                   </TouchableOpacity>
                 </View>
 
                 <TouchableOpacity style={styles.verifyButton} onPress={handleVerify}>
-                  <Text style={styles.verifyButtonText}>✓ Verify & Proceed</Text>
+                  <Text allowFontScaling={false} style={styles.verifyButtonText}>✓ Verify & Proceed</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -166,8 +167,8 @@ const styles = StyleSheet.create({
     paddingBottom: moderateScale(20),
   },
   logoImage: {
-    width: scale(200),
-    height: scale(200),
+    width: scale(300),
+    height: scale(300),
     resizeMode: 'contain',
     marginBottom: moderateScale(-60),
   },

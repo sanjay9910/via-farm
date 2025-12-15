@@ -8,7 +8,6 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,6 +16,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, normalizeFont, scale } from '../Responsive';
 
 const FORGET_API_BASE = 'https://viafarm-1.onrender.com';
@@ -145,8 +145,8 @@ const ForgetOtpVerify = () => {
 
             {/* CARD */}
             <View style={styles.card}>
-              <Text style={styles.heading}>Verify OTP</Text>
-              <Text style={styles.subtitle}>
+              <Text allowFontScaling={false} style={styles.heading}>Verify OTP</Text>
+              <Text allowFontScaling={false} style={styles.subtitle}>
                 Enter the 4-digit OTP sent to your mobile number
               </Text>
 
@@ -154,6 +154,7 @@ const ForgetOtpVerify = () => {
               <View style={styles.otpContainer}>
                 {otp.map((digit, index) => (
                   <TextInput
+                  allowFontScaling={false}
                     key={index}
                     ref={inputRefs[index]}
                     style={[styles.otpInput, digit && styles.otpInputFilled]}
@@ -176,7 +177,7 @@ const ForgetOtpVerify = () => {
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.buttonText}>Verify OTP</Text>
+                  <Text allowFontScaling={false} style={styles.buttonText}>Verify OTP</Text>
                 )}
               </TouchableOpacity>
 
@@ -186,7 +187,7 @@ const ForgetOtpVerify = () => {
                 onPress={handleResendOTP}
                 disabled={loading}
               >
-                <Text style={styles.resendText}>
+                <Text allowFontScaling={false} style={styles.resendText}>
                   Didn’t receive code?{' '}
                   <Text style={styles.resendLink}>Resend</Text>
                 </Text>

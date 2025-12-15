@@ -6,7 +6,6 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +14,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "../context/AuthContext";
 import { moderateScale, normalizeFont, scale } from "../Responsive";
 
@@ -80,15 +80,16 @@ export default function RegisterScreen() {
             <View style={styles.card}>
               <Text style={styles.title}>Create an Account</Text>
 
-              <Text style={styles.subtitle}>
+              <Text allowFontScaling={false} style={styles.subtitle}>
                 We will send you an{" "}
-                <Text style={styles.boldText}>One Time Password</Text>
+                <Text allowFontScaling={false} style={styles.boldText}>One Time Password</Text>
               </Text>
-              <Text style={styles.subtitle}>on this mobile number</Text>
+              <Text allowFontScaling={false} style={styles.subtitle}>on this mobile number</Text>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Enter Mobile Number</Text>
+                <Text allowFontScaling={false} style={styles.inputLabel}>Enter Mobile Number</Text>
                 <TextInput
+                allowFontScaling={false}
                   style={styles.textInput}
                   placeholder="Enter 10 digit mobile number"
                   value={mobile}
@@ -100,13 +101,13 @@ export default function RegisterScreen() {
               </View>
 
               <TouchableOpacity style={styles.otpButton} onPress={handleSignup}>
-                <Text style={styles.otpButtonText}>Get OTP</Text>
+                <Text allowFontScaling={false} style={styles.otpButtonText}>Get OTP</Text>
               </TouchableOpacity>
 
               <View style={styles.signInContainer}>
-                <Text style={styles.signInText}>Already have an account? </Text>
+                <Text allowFontScaling={false} style={styles.signInText}>Already have an account? </Text>
                 <TouchableOpacity onPress={loginPage}>
-                  <Text style={styles.signInLink}>Sign In</Text>
+                  <Text allowFontScaling={false} style={styles.signInLink}>Sign In</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -132,8 +133,8 @@ const styles = StyleSheet.create({
     paddingBottom: moderateScale(20),
   },
   logoImage: {
-    width: scale(200),
-    height: scale(200),
+    width: scale(300),
+    height: scale(300),
     resizeMode: "contain",
     marginBottom: moderateScale(-60),
   },

@@ -87,13 +87,14 @@ export default function ProfileScreen() {
             {/* CARD */}
             <View style={styles.card}>
               <View style={styles.cardContent}>
-                <Text style={styles.title}>Complete Your Profile</Text>
-                <Text style={styles.subtitle}>Just one more step to get started</Text>
+                <Text allowFontScaling={false} style={styles.title}>Complete Your Profile</Text>
+                <Text allowFontScaling={false} style={styles.subtitle}>Just one more step to get started</Text>
 
                 <View style={styles.form}>
                   <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Full Name</Text>
+                    <Text allowFontScaling={false} style={styles.label}>Full Name</Text>
                     <TextInput
+                    allowFontScaling={false}
                       style={styles.input}
                       placeholder="Enter your full name"
                       value={name}
@@ -106,14 +107,14 @@ export default function ProfileScreen() {
                   </View>
 
                   <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Select Your Role</Text>
+                    <Text allowFontScaling={false} style={styles.label}>Select Your Role</Text>
                     <View style={styles.roleContainer}>
                       <TouchableOpacity
                         style={[styles.roleButton, role === 'Buyer' && styles.roleButtonActive]}
                         onPress={() => setRole('Buyer')}
                         disabled={loading}
                       >
-                        <Text style={[styles.roleText, role === 'Buyer' && styles.roleTextActive]}>
+                        <Text allowFontScaling={false} style={[styles.roleText, role === 'Buyer' && styles.roleTextActive]}>
                           Buyer
                         </Text>
                       </TouchableOpacity>
@@ -123,7 +124,7 @@ export default function ProfileScreen() {
                         onPress={() => setRole('Vendor')}
                         disabled={loading}
                       >
-                        <Text style={[styles.roleText, role === 'Vendor' && styles.roleTextActive]}>
+                        <Text allowFontScaling={false} style={[styles.roleText, role === 'Vendor' && styles.roleTextActive]}>
                           Vendor
                         </Text>
                       </TouchableOpacity>
@@ -131,9 +132,9 @@ export default function ProfileScreen() {
                   </View>
 
                   <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Mobile Number</Text>
+                    <Text allowFontScaling={false} style={styles.label}>Mobile Number</Text>
                     <View style={styles.mobileInfo}>
-                      <Text style={styles.mobileNumber}>{mobile}</Text>
+                      <Text allowFontScaling={false} style={styles.mobileNumber}>{mobile}</Text>
                     </View>
                   </View>
                 </View>
@@ -143,7 +144,7 @@ export default function ProfileScreen() {
                   onPress={saveProfile}
                   disabled={loading}
                 >
-                  <Text style={styles.completeButtonText}>
+                  <Text allowFontScaling={false} style={styles.completeButtonText}>
                     {loading ? 'Please wait...' : 'Complete Profile'}
                   </Text>
                 </TouchableOpacity>
@@ -171,8 +172,8 @@ const styles = StyleSheet.create({
     paddingBottom: moderateScale(20),
   },
   logoImage: {
-    width: scale(200),
-    height: scale(200),
+    width: scale(240),
+    height: scale(240),
     resizeMode: 'contain',
     marginBottom: moderateScale(-60),
   },

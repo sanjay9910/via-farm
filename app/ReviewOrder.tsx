@@ -854,6 +854,7 @@ const ReviewOrder = () => {
         ))}
 
         {/* Donation */}
+         <Text>We don't take any commission</Text>
         <View style={styles.donationContainer}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text allowFontScaling={false} style={{ fontSize: normalizeFont(13), color: '#333', flex: 1 }}>Do you want to donate?</Text>

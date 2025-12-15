@@ -2,16 +2,16 @@
 import { Feather } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Animated,
-  Dimensions,
-  Image,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View
+    Animated,
+    Dimensions,
+    Image,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View
 } from 'react-native';
 
 /**
@@ -133,7 +133,7 @@ const ProductFilter = () => {
         >
           {/* small filter icon - replace require path if needed */}
           <Image
-            source={require('../../../assets/via-farm-img/icons/filter.png')}
+            source={require('../../../assets/via-farm-img/icons/filterIcon.png')}
             style={styles.filterIcon}
             resizeMode="contain"
           />

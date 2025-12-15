@@ -7,7 +7,6 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,6 +15,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, normalizeFont, scale } from '../Responsive';
 
 const API_BASE = 'https://viafarm-1.onrender.com/api/auth';
@@ -252,14 +252,15 @@ const VerifyOtpWithLogin = () => {
 
             {/* Card */}
             <View style={styles.card}>
-              <Text style={styles.heading}>Verify OTP</Text>
-              <Text style={styles.subtitle}>
+              <Text allowFontScaling={false} style={styles.heading}>Verify OTP</Text>
+              <Text allowFontScaling={false} style={styles.subtitle}>
                 Enter the 4-digit OTP sent to your mobile number
               </Text>
 
               <View style={styles.otpContainer}>
                 {otp.map((digit, index) => (
                   <TextInput
+                  allowFontScaling={false}
                     key={index}
                     style={[styles.otpInput, digit && styles.otpInputFilled]}
                     value={digit}
@@ -278,18 +279,19 @@ const VerifyOtpWithLogin = () => {
                 onPress={handleVerifyOtp}
                 disabled={loading}
               >
-                <Text style={styles.buttonText}>
+                <Text allowFontScaling={false} style={styles.buttonText}>
                   {loading ? 'Verifying...' : 'Verify OTP'}
                 </Text>
               </TouchableOpacity>
 
               <View style={styles.resendContainer}>
-                <Text style={styles.resendText}>Didn't receive OTP? </Text>
+                <Text allowFontScaling={false} style={styles.resendText}>Didn't receive OTP? </Text>
                 <TouchableOpacity
                   onPress={handleResendOtp}
                   disabled={timer > 0 || resendLoading}
                 >
                   <Text
+                  allowFontScaling={false}
                     style={[
                       styles.resendButtonText,
                       (timer > 0 || resendLoading) && styles.resendButtonDisabled,
@@ -304,7 +306,7 @@ const VerifyOtpWithLogin = () => {
                 style={styles.backButton}
                 onPress={() => navigation.goBack()}
               >
-                <Text style={styles.backButtonText}>Change Mobile Number</Text>
+                <Text allowFontScaling={false} style={styles.backButtonText}>Change Mobile Number</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -329,8 +331,8 @@ const styles = StyleSheet.create({
     paddingBottom: moderateScale(20),
   },
   logoImage: {
-    width: scale(200),
-    height: scale(200),
+    width: scale(300),
+    height: scale(300),
     resizeMode: 'contain',
     marginBottom: moderateScale(-60),
   },

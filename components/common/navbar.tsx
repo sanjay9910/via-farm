@@ -599,7 +599,7 @@ export default function HeaderDesign() {
               onPress={openFilterPopup}
               activeOpacity={0.7}
             >
-              <Image source={require("../../assets/via-farm-img/icons/fltr.png")} style={{ width: scale(22), height: scale(22) }} />
+              <Image source={require("../../assets/via-farm-img/icons/filterIcon.png")} style={{ width: scale(22), height: scale(22) }} />
             </TouchableOpacity>
           </View>
         </View>
@@ -656,7 +656,7 @@ export default function HeaderDesign() {
           >
             <View style={styles.filterHeader}>
               <View style={styles.filterTitleContainer}>
-                <Image source={require("../../assets/via-farm-img/icons/filter.png")} />
+                <Image style={{width:scale(15),height:scale(15)}} source={require("../../assets/via-farm-img/icons/filterIcon.png")} />
                 <Text allowFontScaling={false} style={styles.filterTitle}>Filters</Text>
               </View>
               <TouchableOpacity onPress={closeFilterPopup} activeOpacity={0.7}>
