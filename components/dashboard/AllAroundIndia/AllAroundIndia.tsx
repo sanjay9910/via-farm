@@ -54,7 +54,7 @@ const ProductCard = ({ id, name, image, onPress }) => {
           resizeMode="cover"
         />
       </View>
-      <Text style={cardStyles.name} numberOfLines={1}>
+      <Text allowFontScaling={false} style={cardStyles.name} numberOfLines={1}>
         {name}
       </Text>
     </TouchableOpacity>
@@ -161,13 +161,13 @@ const AllAroundIndia = () => {
         <View style={styles.headerRow}>
           <Text style={styles.heading}>All Around India</Text>
           <TouchableOpacity onPress={() => navigation.navigate("ViewAllAroundIndia")}>
-            <Text style={styles.link}>View All</Text>
+            <Text allowFontScaling={false} style={styles.link}>View All</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFA500" />
-          <Text style={styles.loadingText}>Fetching products across India...</Text>
+          <Text allowFontScaling={false} style={styles.loadingText}>Fetching products across India...</Text>
         </View>
       </View>
     );
@@ -178,23 +178,23 @@ const AllAroundIndia = () => {
     return (
       <View style={{ marginVertical: moderateScale(20) }}>
         <View style={styles.headerRow}>
-          <Text style={styles.heading}>All Around India</Text>
+          <Text allowFontScaling={false}  style={styles.heading}>All Around India</Text>
           <TouchableOpacity onPress={() => navigation.navigate("ViewAllAroundIndia")}>
-            <Text style={styles.link}>View All</Text>
+            <Text allowFontScaling={false} style={styles.link}>View All</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text allowFontScaling={false} style={styles.errorText}>{error}</Text>
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-              <Text style={styles.buttonText}>Try Again</Text>
+              <Text allowFontScaling={false} style={styles.buttonText}>Try Again</Text>
             </TouchableOpacity>
 
             {error.toLowerCase().includes("login") && (
               <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-                <Text style={styles.buttonText}>Go to Login</Text>
+                <Text allowFontScaling={false} style={styles.buttonText}>Go to Login</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -207,9 +207,9 @@ const AllAroundIndia = () => {
   return (
     <View>
       <View style={styles.headerRow}>
-        <Text style={styles.heading}>All Around India</Text>
+        <Text allowFontScaling={false} style={styles.heading}>All Around India</Text>
         <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("ViewAllAroundIndia")}>
-          <Text style={styles.link}>See All</Text>
+          <Text allowFontScaling={false} style={styles.link}>See All</Text>
           <Image
             source={require("../../../assets/via-farm-img/icons/see.png")}
           />
@@ -229,9 +229,9 @@ const AllAroundIndia = () => {
         />
       ) : (
         <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>No products found</Text>
+          <Text allowFontScaling={false} style={styles.noDataText}>No products found</Text>
           <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-            <Text style={styles.buttonText}>Try Again</Text>
+            <Text allowFontScaling={false} style={styles.buttonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       )}

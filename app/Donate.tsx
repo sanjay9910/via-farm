@@ -298,9 +298,9 @@ export default function Donate({ onBack, onProceed }) {
             onPress={() => (onBack ? onBack() : router.back())} 
             style={styles.backBtn}
           >
-            <Text style={styles.backIcon}>✕</Text>
+            <Text allowFontScaling={false} style={styles.backIcon}>✕</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Support ViaFarm</Text>
+          <Text allowFontScaling={false} style={styles.headerTitle}>Support ViaFarm</Text>
           <View style={{ width: scale(36) }} />
         </View>
 
@@ -312,32 +312,32 @@ export default function Donate({ onBack, onProceed }) {
         >
           {/* Hero Section */}
           <View style={styles.heroSection}>
-            <Text style={styles.heroEmoji}>❤️</Text>
-            <Text style={styles.heroTitle}>Make a Difference</Text>
-            <Text style={styles.heroSubtitle}>
+            <Text allowFontScaling={false} style={styles.heroEmoji}>❤️</Text>
+            <Text allowFontScaling={false} style={styles.heroTitle}>Make a Difference</Text>
+            <Text allowFontScaling={false} style={styles.heroSubtitle}>
               Your donation helps us provide fresh, sustainable produce to communities in need
             </Text>
           </View>
 
           {/* Impact Section */}
           <View style={styles.impactSection}>
-            <Text style={styles.sectionTitle}>Your Impact</Text>
+            <Text allowFontScaling={false} style={styles.sectionTitle}>Your Impact</Text>
             <View style={styles.impactGrid}>
               <View style={styles.impactCard}>
-                <Text style={styles.impactNumber}>🌱</Text>
-                <Text style={styles.impactLabel}>Fresh Produce</Text>
+                <Text allowFontScaling={false} style={styles.impactNumber}>🌱</Text>
+                <Text allowFontScaling={false} style={styles.impactLabel}>Fresh Produce</Text>
               </View>
               <View style={styles.impactCard}>
-                <Text style={styles.impactNumber}>👨‍🌾</Text>
-                <Text style={styles.impactLabel}>Support Farmers</Text>
+                <Text allowFontScaling={false} style={styles.impactNumber}>👨‍🌾</Text>
+                <Text allowFontScaling={false} style={styles.impactLabel}>Support Farmers</Text>
               </View>
               <View style={styles.impactCard}>
-                <Text style={styles.impactNumber}>🌍</Text>
-                <Text style={styles.impactLabel}>Sustainability</Text>
+                <Text allowFontScaling={false} style={styles.impactNumber}>🌍</Text>
+                <Text allowFontScaling={false} style={styles.impactLabel}>Sustainability</Text>
               </View>
               <View style={styles.impactCard}>
-                <Text style={styles.impactNumber}>💚</Text>
-                <Text style={styles.impactLabel}>Community</Text>
+                <Text allowFontScaling={false} style={styles.impactNumber}>💚</Text>
+                <Text allowFontScaling={false} style={styles.impactLabel}>Community</Text>
               </View>
             </View>
           </View>
@@ -346,24 +346,24 @@ export default function Donate({ onBack, onProceed }) {
           <View style={styles.whyDonateSection}>
             <Text style={styles.sectionTitle}>Why Donate to ViaFarm?</Text>
             <View style={styles.reasonCard}>
-              <Text style={styles.reasonIcon}>✓</Text>
+              <Text allowFontScaling={false} style={styles.reasonIcon}>✓</Text>
               <View style={styles.reasonContent}>
-                <Text style={styles.reasonTitle}>Direct Impact</Text>
-                <Text style={styles.reasonDesc}>Your donation directly supports local farmers and communities</Text>
+                <Text allowFontScaling={false} style={styles.reasonTitle}>Direct Impact</Text>
+                <Text allowFontScaling={false} style={styles.reasonDesc}>Your donation directly supports local farmers and communities</Text>
               </View>
             </View>
             <View style={styles.reasonCard}>
               <Text style={styles.reasonIcon}>✓</Text>
               <View style={styles.reasonContent}>
-                <Text style={styles.reasonTitle}>Transparency</Text>
-                <Text style={styles.reasonDesc}>100% transparent - see exactly where your donation goes</Text>
+                <Text allowFontScaling={false} style={styles.reasonTitle}>Transparency</Text>
+                <Text allowFontScaling={false} style={styles.reasonDesc}>100% transparent - see exactly where your donation goes</Text>
               </View>
             </View>
             <View style={styles.reasonCard}>
               <Text style={styles.reasonIcon}>✓</Text>
               <View style={styles.reasonContent}>
-                <Text style={styles.reasonTitle}>Sustainable Future</Text>
-                <Text style={styles.reasonDesc}>Help us build a sustainable agricultural ecosystem</Text>
+                <Text allowFontScaling={false} style={styles.reasonTitle}>Sustainable Future</Text>
+                <Text allowFontScaling={false} style={styles.reasonDesc}>Help us build a sustainable agricultural ecosystem</Text>
               </View>
             </View>
           </View>
@@ -376,7 +376,7 @@ export default function Donate({ onBack, onProceed }) {
           style={styles.bottomWrapper}
         >
           <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>Choose Your Donation</Text>
+            <Text allowFontScaling={false} style={styles.sheetTitle}>Choose Your Donation</Text>
 
             {/* Quick Amounts */}
             <View style={styles.quickAmounts}>
@@ -387,7 +387,7 @@ export default function Donate({ onBack, onProceed }) {
                   onPress={() => setAmount(amt)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.quickBtnText, amount === amt && styles.quickBtnTextActive]}>
+                  <Text allowFontScaling={false} style={[styles.quickBtnText, amount === amt && styles.quickBtnTextActive]}>
                     ₹{amt}
                   </Text>
                 </TouchableOpacity>
@@ -397,9 +397,10 @@ export default function Donate({ onBack, onProceed }) {
             {/* Custom Amount Input */}
             <View style={styles.inputRow}>
               <View style={styles.rupeeBox}>
-                <Text style={styles.rupeeText}>₹</Text>
+                <Text allowFontScaling={false} style={styles.rupeeText}>₹</Text>
               </View>
               <TextInput
+              allowFontScaling={false}
                 value={amount}
                 onChangeText={(t) => {
                   const filtered = t.replace(/[^0-9.]/g, "");
@@ -413,7 +414,7 @@ export default function Donate({ onBack, onProceed }) {
             </View>
 
             {/* Info Text */}
-            <Text style={styles.infoText}>
+            <Text allowFontScaling={false} style={styles.infoText}>
               💡 Even small donations make a big difference in farmers' lives
             </Text>
 
@@ -427,14 +428,14 @@ export default function Donate({ onBack, onProceed }) {
               {loading ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
-                <Text style={styles.proceedBtnText}>
+                <Text allowFontScaling={false} style={styles.proceedBtnText}>
                   Donate ₹{amount || "0"} Now
                 </Text>
               )}
             </TouchableOpacity>
 
             {/* Footer */}
-            <Text style={styles.footerNote}>Secure UPI payment • Protected by encryption</Text>
+            <Text allowFontScaling={false} style={styles.footerNote}>Secure UPI payment • Protected by encryption</Text>
           </View>
         </KeyboardAvoidingView>
       </View>
@@ -454,8 +455,8 @@ export default function Donate({ onBack, onProceed }) {
               scrollEventThrottle={16}
             >
               {/* Header */}
-              <Text style={paymentModalStyles.title}>Complete Your Donation</Text>
-              <Text style={paymentModalStyles.subtitle}>₹{paymentData?.amount || amount}</Text>
+              <Text allowFontScaling={false} style={paymentModalStyles.title}>Complete Your Donation</Text>
+              <Text allowFontScaling={false} style={paymentModalStyles.subtitle}>₹{paymentData?.amount || amount}</Text>
 
               {/* QR Code */}
               <View style={paymentModalStyles.qrBox}>
@@ -470,14 +471,14 @@ export default function Donate({ onBack, onProceed }) {
                 )}
               </View>
               <View style={paymentModalStyles.manualSection}>
-                <Text style={paymentModalStyles.sectionLabel}>UPI ID (Manual Payment):</Text>
+                <Text allowFontScaling={false} style={paymentModalStyles.sectionLabel}>UPI ID (Manual Payment):</Text>
                 <View style={paymentModalStyles.upiBox}>
-                  <Text style={paymentModalStyles.upiText}>{paymentData?.upiId ?? "—"}</Text>
+                  <Text allowFontScaling={false} style={paymentModalStyles.upiText}>{paymentData?.upiId ?? "—"}</Text>
                   <TouchableOpacity
                     style={paymentModalStyles.upiCopyBtn}
                     onPress={() => handleCopyUPI(paymentData?.upiId)}
                   >
-                    <Text style={paymentModalStyles.upiCopyText}>
+                    <Text allowFontScaling={false} style={paymentModalStyles.upiCopyText}>
                       {copiedUPI ? "✓" : "Copy"}
                     </Text>
                   </TouchableOpacity>
@@ -490,14 +491,14 @@ export default function Donate({ onBack, onProceed }) {
                   style={[paymentModalStyles.actionButton, { backgroundColor: "rgba(76, 175, 80, 1)" }]}
                   onPress={handleFinishAfterDonation}
                 >
-                  <Text style={paymentModalStyles.actionText}>✓ I Have Paid</Text>
+                  <Text allowFontScaling={false} style={paymentModalStyles.actionText}>✓ I Have Paid</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[paymentModalStyles.actionButton, { backgroundColor: "#f0f0f0" }]}
                   onPress={() => setModalVisible(false)}
                 >
-                  <Text style={[paymentModalStyles.actionText, { color: "#333" }]}>← Back</Text>
+                  <Text allowFontScaling={false} style={[paymentModalStyles.actionText, { color: "#333" }]}>← Back</Text>
                 </TouchableOpacity>
               </View>
 
@@ -511,12 +512,12 @@ export default function Donate({ onBack, onProceed }) {
       <Modal visible={thankYouVisible} transparent animationType="fade">
         <View style={thankYouModalStyles.overlay}>
           <View style={thankYouModalStyles.card}>
-            <Text style={thankYouModalStyles.largeEmoji}>💚</Text>
+            <Text allowFontScaling={false} style={thankYouModalStyles.largeEmoji}>💚</Text>
             <Text style={thankYouModalStyles.thanksTitle}>Thank You!</Text>
-            <Text style={thankYouModalStyles.thanksSubtitle}>
+            <Text allowFontScaling={false} style={thankYouModalStyles.thanksSubtitle}>
               Your donation of ₹{paymentData?.amount || amount} will help us serve the community better
             </Text>
-            <Text style={thankYouModalStyles.thanksBig}>We Really Appreciate It 🙏</Text>
+            <Text allowFontScaling={false} style={thankYouModalStyles.thanksBig}>We Really Appreciate It 🙏</Text>
           </View>
         </View>
       </Modal>

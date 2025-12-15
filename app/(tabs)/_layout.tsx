@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   myCardIcon: {
   width: scale(25),
   height: scale(25),
-  tintColor: '#666', // default inactive color
+  tintColor: '#666', 
 },
   tabLabel: {
     fontSize: normalizeFont(11),

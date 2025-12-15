@@ -51,8 +51,8 @@ const CustomerSupport = ({ navigation }) => {
         >
           <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Customer Support</Text>
-        <Text style={{width:10}}></Text>
+        <Text  allowFontScaling={false} style={styles.headerTitle}>Customer Support</Text>
+        <Text  allowFontScaling={false} style={{width:10}}></Text>
       </View>
 
       <ScrollView
@@ -60,22 +60,22 @@ const CustomerSupport = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
-          <Text style={styles.title}>Our support team is available to assist you.</Text>
-          <Text style={styles.subtitle}>
+          <Text  allowFontScaling={false} style={styles.title}>Our support team is available to assist you.</Text>
+          <Text  allowFontScaling={false} style={styles.subtitle}>
             Use the contact details below to reach us
           </Text>
 
           <View style={styles.contactSection}>
             <View style={styles.contactItem}>
-              <Text style={styles.contactValue}>{SUPPORT_PHONE}</Text>
+              <Text  allowFontScaling={false} style={styles.contactValue}>{SUPPORT_PHONE}</Text>
             </View>
             
             <View style={styles.contactItem}>
-              <Text style={styles.contactValue}>{SUPPORT_EMAIL}</Text>
+              <Text  allowFontScaling={false} style={styles.contactValue}>{SUPPORT_EMAIL}</Text>
             </View>
             
             <View style={styles.contactItem}>
-              <Text style={styles.contactValue}>{SUPPORT_HOURS}</Text>
+              <Text  allowFontScaling={false} style={styles.contactValue}>{SUPPORT_HOURS}</Text>
             </View>
           </View>
 
@@ -85,7 +85,7 @@ const CustomerSupport = ({ navigation }) => {
               onPress={callSupport}
             >
               <Ionicons name="call-outline" size={18} color="#fff" style={styles.buttonIcon} />
-              <Text style={styles.buttonText}>Call Now</Text>
+              <Text  allowFontScaling={false} style={styles.buttonText}>Call Now</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -93,7 +93,7 @@ const CustomerSupport = ({ navigation }) => {
               onPress={openEmail}
             >
               <Ionicons name="mail-outline" size={18} color="#fff" style={styles.buttonIcon} />
-              <Text style={styles.buttonText}>Send Email</Text>
+              <Text  allowFontScaling={false} style={styles.buttonText}>Send Email</Text>
             </TouchableOpacity>
           </View>
         </View>

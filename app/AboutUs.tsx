@@ -39,29 +39,20 @@ const AboutUs = ({ navigation }) => {
       if (!json || !json.success || !json.data || !json.data.content) {
         throw new Error('Invalid response from server');
       }
-
-      // Parse content: treat first block as heading (if present), rest as paragraphs
-      // API content example: "🌱 About Viafarm\n\nViafarm connects you..."
       const raw = (json.data.content || '').replace(/\r\n/g, '\n').trim();
-
-      // Split by two newlines to get blocks
       const blocks = raw.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
 
       if (blocks.length === 0) {
         setTitle('About Us');
         setParagraphs([]);
       } else {
-        // If first block looks like a short heading (<= 8 words), use it
         const first = blocks[0];
         const isHeading = first.split(/\s+/).length <= 8;
         if (isHeading) {
-          // remove leading emoji if any
           const cleanedTitle = first.replace(/^[\u{1F300}-\u{1FAFF}\u{1F600}-\u{1F64F}\u{2700}-\u{27BF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\s]+/u, '').trim();
           setTitle(cleanedTitle || 'About Us');
-          // remaining blocks as paragraphs
           setParagraphs(blocks.slice(1));
         } else {
-          // no clear heading: use default title and everything as one paragraph
           setTitle('About Us');
           setParagraphs([raw]);
         }
@@ -135,7 +126,7 @@ const AboutUs = ({ navigation }) => {
                       </Text>
                     ))
                   ) : (
-                    <Text allowFontScaling={false} style={styles.contentText}>
+                    <Text  allowFontScaling={false} style={styles.contentText}>
                       ViaFarm connects consumers directly with local farmers and small producers — delivering fresh produce with transparency and fair pricing.
                     </Text>
                   )}

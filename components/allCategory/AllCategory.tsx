@@ -26,6 +26,7 @@ const ProductCard = ({ id, name, image, onPress }) => {
     >
       <View style={cardStyles.card}>
         <Image
+        
           source={{
             uri: image || "https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image",
           }}
@@ -33,7 +34,7 @@ const ProductCard = ({ id, name, image, onPress }) => {
           resizeMode="stretch"
         />
       </View>
-      <Text style={cardStyles.name} numberOfLines={1}>
+      <Text allowFontScaling={false} style={cardStyles.name} numberOfLines={1}>
         {name}
       </Text>
     </TouchableOpacity>
@@ -149,7 +150,7 @@ const AllCategory = () => {
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFA500" />
-          <Text style={styles.loadingText}>Loading all categories...</Text>
+          <Text allowFontScaling={false} style={styles.loadingText}>Loading all categories...</Text>
         </View>
       </View>
     );
@@ -160,7 +161,7 @@ const AllCategory = () => {
     return (
       <View style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text allowFontScaling={false} style={styles.errorText}>{error}</Text>
 
           <View style={styles.buttonContainer}>
             {error.toLowerCase().includes("login") ? (
@@ -168,14 +169,14 @@ const AllCategory = () => {
                 style={styles.loginButton}
                 onPress={handleLogin}
               >
-                <Text style={styles.buttonText}>Go to Login</Text>
+                <Text allowFontScaling={false} style={styles.buttonText}>Go to Login</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 style={styles.retryButton}
                 onPress={handleRetry}
               >
-                <Text style={styles.buttonText}>Retry</Text>
+                <Text allowFontScaling={false} style={styles.buttonText}>Retry</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -195,7 +196,7 @@ const AllCategory = () => {
           renderItem={({ item: category }) => (
             <View style={styles.categorySection}>
               <View style={styles.headerRow}>
-                <Text style={styles.heading}>{category.name}</Text>
+                <Text allowFontScaling={false} style={styles.heading}>{category.name}</Text>
                 <TouchableOpacity
                   style={{ flexDirection: "row", alignItems: "center", gap: 5 }}
                   onPress={() => {
@@ -209,7 +210,7 @@ const AllCategory = () => {
                     });
                   }}
                 >
-                  <Text style={styles.link}>See All</Text>
+                  <Text allowFontScaling={false} style={styles.link}>See All</Text>
                   <Image source={require("../../assets/via-farm-img/icons/see.png")} />
                 </TouchableOpacity>
               </View>
@@ -233,7 +234,7 @@ const AllCategory = () => {
                 />
               ) : (
                 <View style={styles.noDataContainer}>
-                  <Text style={styles.noDataText}>No products available</Text>
+                  <Text allowFontScaling={false} style={styles.noDataText}>No products available</Text>
                 </View>
               )}
             </View>
@@ -241,7 +242,7 @@ const AllCategory = () => {
         />
       ) : (
         <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>No categories available right now</Text>
+          <Text allowFontScaling={false} style={styles.noDataText}>No categories available right now</Text>
         </View>
       )}
     </View>
@@ -259,7 +260,7 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(25),
   },
   heading: {
-    fontSize: normalizeFont(16),
+    fontSize: normalizeFont(15),
     marginLeft: moderateScale(20),
     fontWeight: "600",
   },
@@ -273,7 +274,7 @@ const styles = StyleSheet.create({
   link: {
     color: "rgba(1, 151, 218, 1)",
     fontWeight: "600",
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(13),
   },
   loadingContainer: {
     alignItems: "center",

@@ -268,7 +268,7 @@ export default function MapScreen({ route, navigation }) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" />
-        <Text style={{ marginTop: moderateScale(10) }}>Getting your location...</Text>
+        <Text allowFontScaling={false} style={{ marginTop: moderateScale(10) }}>Getting your location...</Text>
       </View>
     );
   }
@@ -276,7 +276,7 @@ export default function MapScreen({ route, navigation }) {
   if (errorMsg) {
     return (
       <View style={styles.center}>
-        <Text style={{ color: 'red', textAlign: 'center' }}>{errorMsg}</Text>
+        <Text allowFontScaling={false} style={{ color: 'red', textAlign: 'center' }}>{errorMsg}</Text>
         <TouchableOpacity
           style={styles.btn}
           onPress={() => {
@@ -285,7 +285,7 @@ export default function MapScreen({ route, navigation }) {
             goToMyLocation();
           }}
         >
-          <Text style={styles.btnText}>Retry</Text>
+          <Text allowFontScaling={false} style={styles.btnText}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
@@ -298,6 +298,7 @@ export default function MapScreen({ route, navigation }) {
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color="#666" style={{ marginLeft: moderateScale(8) }} />
           <TextInput
+          allowFontScaling={false}
             placeholder="Search places or address..."
             value={searchQuery}
             onChangeText={onChangeSearch}
@@ -327,11 +328,11 @@ export default function MapScreen({ route, navigation }) {
               keyExtractor={(item) => item.place_id}
               renderItem={({ item }) => (
                 <TouchableOpacity style={styles.suggestionRow} onPress={() => onSelectSuggestion(item)}>
-                  <Text numberOfLines={1} style={styles.suggestionText}>
+                  <Text allowFontScaling={false} numberOfLines={1} style={styles.suggestionText}>
                     {item.description}
                   </Text>
                   {item.structured_formatting?.secondary_text ? (
-                    <Text numberOfLines={1} style={styles.suggestionSub}>
+                    <Text allowFontScaling={false} numberOfLines={1} style={styles.suggestionSub}>
                       {item.structured_formatting.secondary_text}
                     </Text>
                   ) : null}
@@ -359,8 +360,8 @@ export default function MapScreen({ route, navigation }) {
           <Marker coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}>
             <Callout tooltip>
               <View style={styles.callout}>
-                <Text style={styles.calloutTitle}>{marker.title}</Text>
-                <Text style={styles.calloutDesc}>{marker.description}</Text>
+                <Text allowFontScaling={false} style={styles.calloutTitle}>{marker.title}</Text>
+                <Text allowFontScaling={false} style={styles.calloutDesc}>{marker.description}</Text>
               </View>
             </Callout>
           </Marker>
@@ -375,8 +376,8 @@ export default function MapScreen({ route, navigation }) {
       {/* Bottom mini info */}
       {marker && (
         <View style={styles.bottomCard}>
-          <Text style={styles.bottomTitle}>{marker.title}</Text>
-          <Text style={styles.bottomText}>{marker.description}</Text>
+          <Text allowFontScaling={false} style={styles.bottomTitle}>{marker.title}</Text>
+          <Text allowFontScaling={false} style={styles.bottomText}>{marker.description}</Text>
         </View>
       )}
     </View>

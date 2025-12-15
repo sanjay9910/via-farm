@@ -131,19 +131,19 @@ const ProductCard = React.memo(({
 
           <View style={cardStyles.ratingContainer}>
             <Ionicons name="star" size={scale(12)} color="#FFD700" />
-            <Text style={cardStyles.ratingText}>
+            <Text  allowFontScaling={false} style={cardStyles.ratingText}>
               {rating ? Number(rating).toFixed(1) : "0.0"}
             </Text>
           </View>
         </View>
 
         <View style={cardStyles.cardContent}>
-          <Text style={cardStyles.productTitle} numberOfLines={1}>
+          <Text  allowFontScaling={false} style={cardStyles.productTitle} numberOfLines={1}>
             {item?.name ?? "Unnamed product"}
           </Text>
 
           <View style={{ marginVertical: moderateScale(3) }}>
-            <Text numberOfLines={1} style={{ color: '#444', fontSize: normalizeFont(10) }}>
+            <Text  allowFontScaling={false} numberOfLines={1} style={{ color: '#444', fontSize: normalizeFont(10) }}>
               By {item?.vendor?.name ?? item?.vendorName ?? "Local Vendor"}
             </Text>
           </View>
@@ -152,15 +152,15 @@ const ProductCard = React.memo(({
             <Image
               source={require("../assets/via-farm-img/icons/loca.png")}
             />
-            <Text style={{ fontSize: normalizeFont(10), color: '#444', paddingVertical: moderateScale(3) }}>
+            <Text  allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: '#444', paddingVertical: moderateScale(3) }}>
               {distance ?? "0.0 km"}
             </Text>
           </View>
 
           <View style={cardStyles.priceContainer}>
-            <Text style={cardStyles.productPrice}>₹{item?.price ?? "0"}</Text>
-            <Text style={cardStyles.productUnit}>/{item?.unit ?? "unit"}</Text>
-            {item?.weightPerPiece ? <Text style={cardStyles.productUnit}>/{item.weightPerPiece}</Text> : null}
+            <Text  allowFontScaling={false} style={cardStyles.productPrice}>₹{item?.price ?? "0"}</Text>
+            <Text  allowFontScaling={false} style={cardStyles.productUnit}>/{item?.unit ?? "unit"}</Text>
+            {item?.weightPerPiece ? <Text  allowFontScaling={false} style={cardStyles.productUnit}>/{item.weightPerPiece}</Text> : null}
           </View>
 
           <View style={cardStyles.buttonContainer}>
@@ -177,7 +177,7 @@ const ProductCard = React.memo(({
                   onAddToCart && onAddToCart(item);
                 }}
               >
-                <Text style={cardStyles.addToCartText}>
+                <Text  allowFontScaling={false} style={cardStyles.addToCartText}>
                   {status === "In Stock" ? "Add to Cart" : status}
                 </Text>
               </TouchableOpacity>
@@ -199,7 +199,7 @@ const ProductCard = React.memo(({
                       <Ionicons name="remove" size={scale(20)} color="rgba(76, 175, 80, 1)" />
                     </TouchableOpacity>
                     <View style={cardStyles.quantityValueContainer}>
-                      <Text style={cardStyles.quantityText}>{cartQuantity}</Text>
+                      <Text  allowFontScaling={false} style={cardStyles.quantityText}>{cartQuantity}</Text>
                     </View>
                     <TouchableOpacity
                       style={cardStyles.quantityButton}
@@ -226,7 +226,7 @@ const ProductCard = React.memo(({
                     onPress={closeQtyModal}
                   >
                     <View style={[modalStyles.modalWrap, { maxWidth: Math.min(420, Dimensions.get('window').width - moderateScale(40)) }]}>
-                      <Text style={modalStyles.modalTitle}>Add Quantity</Text>
+                      <Text  allowFontScaling={false} style={modalStyles.modalTitle}>Add Quantity</Text>
 
                       <View style={modalStyles.editRow}>
                         <TouchableOpacity style={modalStyles.pickerBtn} onPress={decrementEdit}>
@@ -234,6 +234,7 @@ const ProductCard = React.memo(({
                         </TouchableOpacity>
 
                         <TextInput
+                         allowFontScaling={false}
                           style={modalStyles.qtyInput}
                           keyboardType="number-pad"
                           value={String(editQuantity)}
@@ -250,10 +251,10 @@ const ProductCard = React.memo(({
 
                       <View style={modalStyles.modalActions}>
                         <TouchableOpacity style={modalStyles.cancelBtn} onPress={closeQtyModal}>
-                          <Text style={modalStyles.cancelText}>Cancel</Text>
+                          <Text  allowFontScaling={false} style={modalStyles.cancelText}>Cancel</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={modalStyles.okBtn} onPress={applyQuantityChange}>
-                          <Text style={modalStyles.okText}>OK</Text>
+                          <Text  allowFontScaling={false} style={modalStyles.okText}>OK</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -671,6 +672,7 @@ const ViewAllLocalBest = () => {
                 style={styles.searchInput}
                 returnKeyType="search"
                 autoCorrect={false}
+                 allowFontScaling={false}
               />
               {query.length > 0 && (
                 <TouchableOpacity onPress={() => setQuery("")} style={styles.clearButton}>
@@ -693,7 +695,7 @@ const ViewAllLocalBest = () => {
         <MemoLocalVendor />
 
         <View style={{ paddingHorizontal: moderateScale(10), paddingTop: moderateScale(8) }}>
-          <Text style={{ fontSize: normalizeFont(12), }}>Local Best Products</Text>
+          <Text  allowFontScaling={false} style={{ fontSize: normalizeFont(15), marginLeft:moderateScale(-6) }}>Local Best Products</Text>
         </View>
       </View>
     );
@@ -742,13 +744,13 @@ const ViewAllLocalBest = () => {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFA500" />
-          <Text style={styles.loadingText}>Fetching local best products...</Text>
+          <Text  allowFontScaling={false} style={styles.loadingText}>Fetching local best products...</Text>
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-            <Text style={styles.buttonText}>Try Again</Text>
+            <Text  allowFontScaling={false} style={styles.buttonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -783,7 +785,7 @@ const ViewAllLocalBest = () => {
           ListEmptyComponent={() =>
             !loading && (
               <View style={{ padding: moderateScale(20), alignItems: 'center' }}>
-                <Text style={{ color: '#444' }}>No items found</Text>
+                <Text  allowFontScaling={false} style={{ color: '#444' }}>No items found</Text>
               </View>
             )
           }
@@ -803,7 +805,7 @@ const ViewAllLocalBest = () => {
             <View style={filterStyles.filterHeader}>
               <View style={filterStyles.filterTitleContainer}>
                 <Ionicons name="options" size={normalizeFont(18)} color="#333" />
-                <Text style={filterStyles.filterTitle}>Filters</Text>
+                <Text  allowFontScaling={false} style={filterStyles.filterTitle}>Filters</Text>
               </View>
               <TouchableOpacity onPress={closeFilterPopup}>
                 <Ionicons name="close" size={normalizeFont(20)} color="#333" />
@@ -814,14 +816,14 @@ const ViewAllLocalBest = () => {
               <ScrollView contentContainerStyle={{ paddingBottom: moderateScale(20) }}>
                 {/* Sort */}
                 <TouchableOpacity style={filterStyles.filterOption} onPress={() => setExpanded(s => ({ ...s, sort: !s.sort }))}>
-                  <Text style={filterStyles.filterOptionText}>Sort by</Text>
+                  <Text  allowFontScaling={false} style={filterStyles.filterOptionText}>Sort by</Text>
                   <Ionicons name={expanded.sort ? "chevron-up" : "chevron-down"} size={normalizeFont(14)} color="#666" />
                 </TouchableOpacity>
                 {expanded.sort && (
                   <View style={filterStyles.filterDetails}>
                     {['relevance', 'Price - low to high', 'Price - high to low', 'Newest Arrivals'].map(opt => (
                       <TouchableOpacity key={opt} style={filterStyles.filterOption2} onPress={() => setTempFilters(tf => ({ ...tf, sortBy: opt }))}>
-                        <Text style={[
+                        <Text  allowFontScaling={false} style={[
                           filterStyles.filterOptionText2,
                           tempFilters.sortBy === opt && filterStyles.filterOptionText2Active
                         ]}>{opt}</Text>
@@ -832,13 +834,14 @@ const ViewAllLocalBest = () => {
 
                 {/* Price */}
                 <TouchableOpacity style={filterStyles.filterOption} onPress={() => setExpanded(s => ({ ...s, price: !s.price }))}>
-                  <Text style={filterStyles.filterOptionText}>Price Range</Text>
+                  <Text  allowFontScaling={false} style={filterStyles.filterOptionText}>Price Range</Text>
                   <Ionicons name={expanded.price ? "chevron-up" : "chevron-down"} size={normalizeFont(14)} color="#666" />
                 </TouchableOpacity>
                 {expanded.price && (
                   <View style={filterStyles.filterDetails}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: moderateScale(8) }}>
                       <TextInput
+                       allowFontScaling={false}
                         style={[filterStyles.simpleInput, { flex: 1 }]}
                         placeholder="Min"
                         keyboardType="numeric"
@@ -846,6 +849,7 @@ const ViewAllLocalBest = () => {
                         onChangeText={(t) => setTempFilters(tf => ({ ...tf, priceMin: t.replace(/[^0-9]/g, '') ? Number(t.replace(/[^0-9]/g, '')) : 0 })) }
                       />
                       <TextInput
+                       allowFontScaling={false}
                         style={[filterStyles.simpleInput, { flex: 1 }]}
                         placeholder="Max"
                         keyboardType="numeric"
@@ -853,13 +857,13 @@ const ViewAllLocalBest = () => {
                         onChangeText={(t) => setTempFilters(tf => ({ ...tf, priceMax: t.replace(/[^0-9]/g, '') ? Number(t.replace(/[^0-9]/g, '')) : Number.MAX_SAFE_INTEGER })) }
                       />
                     </View>
-                    <Text style={{ marginTop: moderateScale(8), color: '#666', fontSize:normalizeFont(13)}}>Leave Max empty for any</Text>
+                    <Text  allowFontScaling={false} style={{ marginTop: moderateScale(8), color: '#666', fontSize:normalizeFont(13)}}>Leave Max empty for any</Text>
                   </View>
                 )}
 
                 {/* Rating */}
                 <TouchableOpacity style={filterStyles.filterOption} onPress={() => setExpanded(s => ({ ...s, rating: !s.rating }))}>
-                  <Text style={filterStyles.filterOptionText}>Rating</Text>
+                  <Text  allowFontScaling={false} style={filterStyles.filterOptionText}>Rating</Text>
                   <Ionicons name={expanded.rating ? "chevron-up" : "chevron-down"} size={normalizeFont(14)} color="#666" />
                 </TouchableOpacity>
                 {expanded.rating && (
@@ -869,7 +873,7 @@ const ViewAllLocalBest = () => {
                         <View style={[filterStyles.checkbox, tempFilters.ratingMin === r && filterStyles.checkboxChecked]}>
                           {tempFilters.ratingMin === r && <Ionicons name="checkmark" size={12} color="#fff" />}
                         </View>
-                        <Text style={filterStyles.checkboxLabel}>{r === 0 ? 'Any' : `${r} and above`}</Text>
+                        <Text  allowFontScaling={false} style={filterStyles.checkboxLabel}>{r === 0 ? 'Any' : `${r} and above`}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -878,11 +882,11 @@ const ViewAllLocalBest = () => {
 
               <View style={filterStyles.filterFooter}>
                 <TouchableOpacity style={[filterStyles.applyButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ccc', marginBottom: moderateScale(8) }]} onPress={() => { clearTempFilters(); }}>
-                  <Text style={[filterStyles.applyButtonText, { color: '#333' }]}>Clear</Text>
+                  <Text  allowFontScaling={false} style={[filterStyles.applyButtonText, { color: '#333' }]}>Clear</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={filterStyles.applyButton} onPress={applyFilters}>
-                  <Text style={filterStyles.applyButtonText}>Apply Filters</Text>
+                  <Text  allowFontScaling={false} style={filterStyles.applyButtonText}>Apply Filters</Text>
                 </TouchableOpacity>
               </View>
             </KeyboardAvoidingView>

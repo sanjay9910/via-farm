@@ -7,10 +7,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Animated,
   DeviceEventEmitter,
   Dimensions,
   FlatList,
+  Modal,
   PixelRatio,
   Platform,
   RefreshControl,
@@ -18,6 +18,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import ProductCard from '../../../components/common/ProductCard';
@@ -68,6 +69,8 @@ const SmartPicks = () => {
   const [cartItems, setCartItems] = useState({});
   const [updatingMap, setUpdatingMap] = useState({});
   const cartItemsRef = useRef(cartItems);
+  const filterBtnRef = useRef(null);
+  const [filterBtnPosition, setFilterBtnPosition] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
   useEffect(() => {
     cartItemsRef.current = cartItems;
@@ -77,11 +80,6 @@ const SmartPicks = () => {
   useEffect(() => {
     favoritesRef.current = favorites;
   }, [favorites]);
-
-  // animate dropdown height (useNativeDriver: false ensures scroll works on Android)
-  const dropdownHeight = useRef(new Animated.Value(0)).current;
-  const isAnimatingRef = useRef(false);
-  const DROPDOWN_MAX = moderateScale(240);
 
   // normalize / mapping helpers
   const normalizeApiItem = (item = {}) => {
@@ -290,6 +288,7 @@ const SmartPicks = () => {
         }
       }
       setCategories(['All', ...names]);
+      // Set initial selected category to 'All' if it's not in the list
       if (selectedCategory && selectedCategory !== 'All') {
         const found = names.find((n) => n.toLowerCase() === selectedCategory.toLowerCase());
         if (!found) setSelectedCategory('All');
@@ -329,43 +328,40 @@ const SmartPicks = () => {
     setFilteredProducts(filtered);
   }, [products, selectedCategory]);
 
-  // dropdown open/close (animate height). useNativeDriver false so ScrollView receives touches on Android.
-  const openDropdown = useCallback(() => {
-    if (isAnimatingRef.current) return;
-    isAnimatingRef.current = true;
-    setShowDropdown(true);
-    Animated.timing(dropdownHeight, {
-      toValue: DROPDOWN_MAX,
-      duration: 200,
-      useNativeDriver: false,
-    }).start(() => {
-      isAnimatingRef.current = false;
-    });
-  }, [dropdownHeight]);
+  // Get filter button position for dropdown
+  const handleFilterBtnLayout = useCallback(() => {
+    if (filterBtnRef.current) {
+      filterBtnRef.current.measure((x, y, width, height, pageX, pageY) => {
+        setFilterBtnPosition({
+          x: pageX,
+          y: pageY,
+          width,
+          height,
+        });
+      });
+    }
+  }, []);
 
-  const closeDropdown = useCallback(() => {
-    if (isAnimatingRef.current) return;
-    isAnimatingRef.current = true;
-    Animated.timing(dropdownHeight, {
-      toValue: 0,
-      duration: 160,
-      useNativeDriver: false,
-    }).start(() => {
-      setShowDropdown(false);
-      isAnimatingRef.current = false;
-    });
-  }, [dropdownHeight]);
-
+  // Simple toggle for dropdown
   const toggleDropdown = useCallback(() => {
-    if (isAnimatingRef.current) return;
-    if (showDropdown) closeDropdown();
-    else openDropdown();
-  }, [showDropdown, openDropdown, closeDropdown]);
+    // First get the button position
+    handleFilterBtnLayout();
+    // Then toggle dropdown
+    setShowDropdown(prev => !prev);
+  }, [handleFilterBtnLayout]);
 
+  // Handle category selection
   const handleCategorySelect = useCallback((category) => {
     setSelectedCategory(category);
-    closeDropdown();
-  }, [closeDropdown]);
+    setShowDropdown(false);
+  }, []);
+
+  // Close dropdown
+  const handleCloseDropdown = useCallback(() => {
+    if (showDropdown) {
+      setShowDropdown(false);
+    }
+  }, [showDropdown]);
 
   // updating flags helpers
   const setUpdating = useCallback((id, v) => {
@@ -715,80 +711,107 @@ const SmartPicks = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading Smart Picks...</Text>
+        <Text allowFontScaling={false} style={styles.loadingText}>Loading Smart Picks...</Text>
       </View>
     );
   }
 
-  // dropdown height interpolation (direct height Animated.Value used)
-  const animatedDropdownStyle = {
-    height: dropdownHeight,
-    opacity: dropdownHeight.interpolate({
-      inputRange: [0, DROPDOWN_MAX * 0.5, DROPDOWN_MAX],
-      outputRange: [0, 0.6, 1],
-    }),
-  };
-
-  // main render
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title} numberOfLines={1} allowFontScaling>
+        <Text allowFontScaling={false} style={styles.title} numberOfLines={1}>
           Smart Picks
         </Text>
 
-        {/* FILTER */}
+        {/* FILTER BUTTON */}
         <View style={styles.filterWrapper}>
           <TouchableOpacity
             style={styles.filterBtn}
             onPress={toggleDropdown}
-            activeOpacity={0.8}
-            hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
-            disabled={isAnimatingRef.current}
+            onLayout={handleFilterBtnLayout}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 5, right: 5 }}
+            ref={filterBtnRef}
           >
             <Text
+              allowFontScaling={false}
               numberOfLines={1}
               ellipsizeMode="tail"
               style={styles.filterText}
-              allowFontScaling
             >
               {selectedCategory}
             </Text>
-            <Ionicons name={showDropdown ? 'chevron-up' : 'chevron-down'} size={normalizeFont(14)} color="#666" style={styles.filterIcon} />
+            <Ionicons 
+              name={showDropdown ? 'chevron-up' : 'chevron-down'} 
+              size={normalizeFont(14)} 
+              color="#666" 
+              style={styles.filterIcon} 
+            />
           </TouchableOpacity>
-
-          {/* Animated height dropdown (rendered when showDropdown true OR animation > 0) */}
-          <Animated.View
-            pointerEvents={showDropdown ? 'auto' : 'none'}
-            style={[styles.dropdown, animatedDropdownStyle]}
-          >
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={styles.dropdownScrollContent}
-              nestedScrollEnabled={true}
-              showsVerticalScrollIndicator={true}
-              keyboardShouldPersistTaps="handled"
-            >
-              {categories.map((category) => {
-                const isSelected = String(category).toLowerCase() === String(selectedCategory).toLowerCase();
-                return (
-                  <TouchableOpacity
-                    key={category}
-                    style={[styles.dropdownItem, isSelected && styles.selectedDropdownItem]}
-                    activeOpacity={0.7}
-                    onPress={() => handleCategorySelect(category)}
-                  >
-                    <Text style={[styles.dropdownText, isSelected && styles.selectedDropdownText]}>
-                      {category}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </Animated.View>
         </View>
       </View>
 
+      {/* DROPDOWN MODAL - EXACTLY BELOW FILTER BUTTON */}
+      <Modal
+        visible={showDropdown}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseDropdown}
+      >
+        <TouchableWithoutFeedback onPress={handleCloseDropdown}>
+          <View style={styles.modalOverlay}>
+            <View 
+              style={[
+                styles.dropdownContainer,
+                {
+                  top: filterBtnPosition.y + filterBtnPosition.height,
+                  left: filterBtnPosition.x,
+                  width: filterBtnPosition.width,
+                }
+              ]}
+            >
+              <ScrollView
+                style={styles.dropdownScroll}
+                contentContainerStyle={styles.dropdownScrollContent}
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={true}
+                keyboardShouldPersistTaps="handled"
+                bounces={false}
+              >
+                {categories.map((category) => {
+                  const isSelected = String(category).toLowerCase() === String(selectedCategory).toLowerCase();
+                  return (
+                    <TouchableOpacity
+                      key={category}
+                      style={[styles.dropdownItem, isSelected && styles.selectedDropdownItem]}
+                      activeOpacity={0.6}
+                      onPress={() => handleCategorySelect(category)}
+                    >
+                      <Text 
+                        allowFontScaling={false} 
+                        style={[styles.dropdownText, isSelected && styles.selectedDropdownText]}
+                        numberOfLines={1}
+                      >
+                        {category}
+                      </Text>
+                      {isSelected && (
+                        <Ionicons 
+                          name="checkmark" 
+                          size={normalizeFont(12)} 
+                          color="#4CAF50" 
+                          style={styles.checkIcon} 
+                        />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* PRODUCTS LIST */}
       <FlatList
         data={filteredProducts}
         renderItem={renderProductCard}
@@ -797,11 +820,23 @@ const SmartPicks = () => {
         contentContainerStyle={styles.listContainer}
         showsHorizontalScrollIndicator={false}
         style={styles.flatListStyle}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { fetchProducts(true); fetchCart(); }} />}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={() => { 
+              fetchProducts(true); 
+              fetchCart(); 
+            }} 
+          />
+        }
         ListEmptyComponent={
           !loading && (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No products available.</Text>
+              <Text allowFontScaling={false} style={styles.emptyText}>
+                {selectedCategory === 'All' 
+                  ? 'No products available.' 
+                  : `No products available in ${selectedCategory} category.`}
+              </Text>
             </View>
           )
         }
@@ -822,11 +857,23 @@ const SmartPicks = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#fff' 
+  },
 
   /* Loading */
-  loadingContainer: { paddingVertical: verticalScale(30), justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8f9fa' },
-  loadingText: { marginTop: verticalScale(10), fontSize: normalizeFont(12), color: '#666' },
+  loadingContainer: { 
+    paddingVertical: verticalScale(30), 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    backgroundColor: '#f8f9fa' 
+  },
+  loadingText: { 
+    marginTop: verticalScale(10), 
+    fontSize: normalizeFont(12), 
+    color: '#666' 
+  },
 
   /* Header */
   header: {
@@ -836,9 +883,11 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(6),
     paddingTop: verticalScale(10),
     paddingHorizontal: moderateScale(13),
+    position: 'relative',
+    zIndex: 100,
   },
   title: {
-    fontSize: normalizeFont(14),
+    fontSize: normalizeFont(15),
     fontWeight: '600',
     color: '#333',
     flex: 1,
@@ -848,67 +897,113 @@ const styles = StyleSheet.create({
   /* FILTER */
   filterWrapper: {
     position: 'relative',
-    minWidth: moderateScale(80),
-    maxWidth: Math.min(moderateScale(220), SCREEN_WIDTH * 0.62),
     alignSelf: 'flex-end',
-    zIndex: 3000,
+    zIndex: 200,
   },
   filterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: verticalScale(6),
-    paddingHorizontal: moderateScale(10),
+    justifyContent: 'space-between',
+    paddingVertical: verticalScale(8),
+    paddingHorizontal: moderateScale(12),
     borderRadius: moderateScale(8),
     borderWidth: 1,
     borderColor: 'rgba(66,66,66,0.7)',
     backgroundColor: '#fff',
     minWidth: moderateScale(120),
+    minHeight: verticalScale(36),
+    width: '100%',
   },
   filterText: {
     color: 'rgba(66, 66, 66, 0.9)',
     fontSize: normalizeFont(12),
     flexShrink: 1,
     marginRight: moderateScale(6),
+    fontWeight: '500',
+    flex: 1,
   },
   filterIcon: {
-    marginLeft: 2,
+    marginLeft: moderateScale(4),
   },
 
-  /* Dropdown */
-  dropdown: {
-    overflow: 'hidden',
+  /* Modal Overlay */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+
+  /* Dropdown Container - EXACTLY BELOW FILTER BUTTON */
+  dropdownContainer: {
+    position: 'absolute',
     backgroundColor: '#fff',
+    borderRadius: moderateScale(8),
     borderWidth: 1,
     borderColor: 'rgba(66, 66, 66, 0.7)',
-    borderRadius: moderateScale(6),
-    position: 'absolute',
-    top: moderateScale(46),
-    left: 0,
-    right: 0,
-    zIndex: 4000,
-    elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 4,
-    // no hard maxHeight here; animation controls height
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 10,
+    zIndex: 1000,
+    maxHeight: moderateScale(240),
+    overflow: 'hidden',
+    marginTop:moderateScale(-30),
   },
-  dropdownScrollContent: { paddingVertical: moderateScale(6) },
+  dropdownScroll: {
+    flex: 1,
+  },
+  dropdownScrollContent: { 
+    paddingVertical: moderateScale(2) 
+  },
   dropdownItem: {
-    padding: moderateScale(12),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    // paddingVertical: moderateScale(5),
+    paddingHorizontal: moderateScale(12),
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(66, 66, 66, 0.06)',
+    minHeight: verticalScale(35),
   },
-  selectedDropdownItem: { backgroundColor: 'rgba(76, 175, 80, 0.08)' },
-  dropdownText: { color: 'rgba(66, 66, 66, 0.9)', fontSize: normalizeFont(11) },
-  selectedDropdownText: { color: '#4CAF50', fontWeight: '600' },
+  selectedDropdownItem: { 
+    backgroundColor: 'rgba(76, 175, 80, 0.08)' 
+  },
+  dropdownText: { 
+    color: 'rgba(66, 66, 66, 0.9)', 
+    fontSize: normalizeFont(12),
+    flex: 1,
+  },
+  selectedDropdownText: { 
+    color: '#4CAF50', 
+    fontWeight: '600' 
+  },
+  checkIcon: {
+    marginLeft: moderateScale(8),
+  },
 
   /* List */
-  listContainer: { alignItems: 'flex-start', paddingHorizontal: moderateScale(5), paddingVertical: verticalScale(8) },
-  flatListStyle: { paddingBottom: moderateScale(10) },
-  cardWrapper: { marginHorizontal: ITEM_HORIZONTAL_MARGIN },
-  emptyContainer: { padding: moderateScale(20), alignItems: 'center' },
-  emptyText: { color: '#666', fontSize: normalizeFont(10), textAlign: 'center', marginBottom: verticalScale(10) },
+  listContainer: { 
+    alignItems: 'flex-start', 
+    paddingHorizontal: moderateScale(5), 
+    paddingVertical: verticalScale(8) 
+  },
+  flatListStyle: { 
+    paddingBottom: moderateScale(10),
+    zIndex: 1,
+  },
+  cardWrapper: { 
+    marginHorizontal: ITEM_HORIZONTAL_MARGIN 
+  },
+  emptyContainer: { 
+    padding: moderateScale(20), 
+    alignItems: 'center' 
+  },
+  emptyText: { 
+    color: '#666', 
+    fontSize: normalizeFont(10), 
+    textAlign: 'center', 
+    marginBottom: verticalScale(10) 
+  },
 });
 
 export default SmartPicks;

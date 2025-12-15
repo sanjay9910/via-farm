@@ -7,15 +7,15 @@ import * as Linking from "expo-linking";
 import { goBack } from "expo-router/build/global-state/routing";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    ScrollView,
-    Share,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -385,9 +385,9 @@ const handlePaymentDone = () => {
   if (!paymentInfo) {
     return (
       <View style={styles.center}>
-        <Text style={{ color: "#d32f2f" }}>No payment info. Please try again.</Text>
+        <Text  allowFontScaling={false} style={{ color: "#d32f2f" }}>No payment info. Please try again.</Text>
         <TouchableOpacity style={styles.button} onPress={() => navigation.goBack()}>
-          <Text style={styles.btnText}>Go back</Text>
+          <Text  allowFontScaling={false} style={styles.btnText}>Go back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -402,7 +402,7 @@ const handlePaymentDone = () => {
         <TouchableOpacity onPress={goBack}>
           <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Payment</Text>
+        <Text  allowFontScaling={false} style={styles.headerTitle}>Payment</Text>
         <View  />
       </View>
 
@@ -411,28 +411,28 @@ const handlePaymentDone = () => {
         {qrCode ? (
           <View style={styles.qrBox}>
             <Image source={{ uri: qrCode }} style={styles.qrImage} />
-            <Text style={styles.helper}>Scan this QR code with your UPI app to pay</Text>
+            <Text  allowFontScaling={false} style={styles.helper}>Scan this QR code with your UPI app to pay</Text>
           </View>
         ) : (
           <View style={styles.qrBox}>
-            <Text style={styles.helper}>QR Code not available</Text>
+            <Text  allowFontScaling={false} style={styles.helper}>QR Code not available</Text>
           </View>
         )}
 
         {/* Amount */}
         <View style={styles.amountBox}>
-          <Text style={{ color: "#6c757d", marginBottom:moderateScale(6) }}>Total Amount</Text>
-          <Text style={styles.amount}>₹{amount}</Text>
+          <Text  allowFontScaling={false} style={{ color: "#6c757d", marginBottom:moderateScale(6) }}>Total Amount</Text>
+          <Text  allowFontScaling={false} style={styles.amount}>₹{amount}</Text>
         </View>
 
         {/* UPI ID */}
         <View style={styles.upiBox}>
-          <Text style={{ color: "#6c757d", fontWeight: "600", marginBottom:moderateScale(8) }}>UPI ID (Manual)</Text>
-          <Text style={styles.upiId}>{upiId || "-"}</Text>
+          <Text  allowFontScaling={false} style={{ color: "#6c757d", fontWeight: "600", marginBottom:moderateScale(8) }}>UPI ID (Manual)</Text>
+          <Text  allowFontScaling={false} style={styles.upiId}>{upiId || "-"}</Text>
 
           <View style={{ flexDirection: "row", marginTop:moderateScale(12) }}>
             <TouchableOpacity style={styles.outlineBtn} onPress={() => copyText(upiId)}>
-              <Text style={{ fontWeight: "600" }}>Copy UPI ID</Text>
+              <Text  allowFontScaling={false} style={{ fontWeight: "600" }}>Copy UPI ID</Text>
             </TouchableOpacity>
 
             {/* {upiUrl ? (
@@ -445,17 +445,17 @@ const handlePaymentDone = () => {
 
         {/* Action buttons */}
         <TouchableOpacity style={[styles.btn, { marginTop:moderateScale(18), opacity: paid ? 0.6 : 1 }]} onPress={handlePaymentDone} disabled={paid}>
-          <Text style={styles.btnText}>{paid ? "✓ Payment Completed" : "I Have Paid"}</Text>
+          <Text  allowFontScaling={false} style={styles.btnText}>{paid ? "✓ Payment Completed" : "I Have Paid"}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={[styles.btn, { marginTop:moderateScale(12) }]} onPress={goToDonate}>
-          <Text style={styles.btnText}>Continue to Donate Page</Text>
+          <Text  allowFontScaling={false} style={styles.btnText}>Continue to Donate Page</Text>
         </TouchableOpacity>
 
         {polling && (
           <View style={{ marginTop:moderateScale(12), alignItems: "center" }}>
             <ActivityIndicator size="small" />
-            <Text style={{ marginTop:moderateScale(8) }}>Checking payment status...</Text>
+            <Text  allowFontScaling={false} style={{ marginTop:moderateScale(8) }}>Checking payment status...</Text>
           </View>
         )}
 

@@ -1,12 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Linking,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  Linking,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import PromoCard from "../../common/PromCard";
 
@@ -105,7 +105,7 @@ const ExploreNow = () => {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.errorText}>{error}</Text>
+        <Text  allowFontScaling={false} style={styles.errorText}>{error}</Text>
       </View>
     );
   }
@@ -113,7 +113,7 @@ const ExploreNow = () => {
   if (!banner) {
     return (
       <View style={styles.center}>
-        <Text style={styles.infoText}>No banner available.</Text>
+        <Text allowFontScaling={false} style={styles.infoText}>No banner available.</Text>
       </View>
     );
   }

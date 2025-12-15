@@ -124,10 +124,10 @@ const CategoryCard = () => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.heading}>Categories</Text>
+        <Text allowFontScaling={false} style={styles.heading}>Categories</Text>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Loading categories...</Text>
+          <Text allowFontScaling={false} style={styles.loadingText}>Loading categories...</Text>
         </View>
       </View>
     );
@@ -136,11 +136,11 @@ const CategoryCard = () => {
   if (error) {
     return (
       <View style={styles.container}>
-        <Text style={styles.heading}>Categories</Text>
+        <Text allowFontScaling={false} style={styles.heading}>Categories</Text>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Failed to load categories</Text>
+          <Text allowFontScaling={false} style={styles.errorText}>Failed to load categories</Text>
           <TouchableOpacity style={styles.retryButton} onPress={fetchCategories}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text allowFontScaling={false} style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -152,7 +152,7 @@ const CategoryCard = () => {
       <View style={styles.container}>
         <Text style={styles.heading}>Categories</Text>
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No categories found</Text>
+          <Text allowFontScaling={false} style={styles.emptyText}>No categories found</Text>
         </View>
       </View>
     );
@@ -161,7 +161,7 @@ const CategoryCard = () => {
   return (
     <View style={styles.container}>
       <View style={styles.Categoryheader}>
-        <Text style={styles.heading}>Categories</Text>
+        <Text allowFontScaling={false} style={styles.heading}>Categories</Text>
         <TouchableOpacity onPress={gotoAllCategory}>
           {/* See All button placeholder if you want */}
         </TouchableOpacity>
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     // marginVertical: moderateScale(10),
   },
   heading: {
-    fontSize:normalizeFont(13),
+    fontSize:normalizeFont(15),
     marginLeft: moderateScale(20),
     fontWeight: '500',
     // marginBottom: moderateScale(10),

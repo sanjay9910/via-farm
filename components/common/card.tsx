@@ -44,7 +44,7 @@ const Card: React.FC<CardProps> = ({ name, image, stylek, cardStyle, imageStyle 
   return (
     <View style={[styles.card, cardStyle]}>
       <Image source={{ uri: image }} style={[styles.image, imageStyle]} />
-      <Text style={[styles.name, stylek]} numberOfLines={2}>
+      <Text allowFontScaling={false} style={[styles.name, stylek]} numberOfLines={2}>
         {name}
       </Text>
     </View>
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: moderateScale(128),
-    height: verticalScale(94),
+    height: verticalScale(105),
     borderRadius: moderateScale(10),
   },
   name: {

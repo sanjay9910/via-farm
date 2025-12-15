@@ -135,28 +135,28 @@ const ProductCard = ({
           {/* Rating */}
           <View style={cardStyles.ratingContainer}>
             <Ionicons name="star" size={scale(12)} color="#FFD700" />
-            <Text style={cardStyles.ratingText}>
+            <Text  allowFontScaling={false} style={cardStyles.ratingText}>
               {rating ? rating.toFixed(1) : "0.0"}
             </Text>
           </View>
         </View>
 
         <View style={cardStyles.cardContent}>
-          <Text style={cardStyles.productTitle} numberOfLines={1}>
+          <Text  allowFontScaling={false} style={cardStyles.productTitle} numberOfLines={1}>
             {item?.name || "Unnamed product"}
           </Text>
-          <Text style={cardStyles.productSubtitle} numberOfLines={1}>
+          <Text  allowFontScaling={false} style={cardStyles.productSubtitle} numberOfLines={1}>
             By {item?.vendor?.name || "Unknown Vendor"}
           </Text>
 
           {item?.variety ? (
-            <Text style={cardStyles.productSubtitle}>Variety: {item.variety}</Text>
+            <Text  allowFontScaling={false} style={cardStyles.productSubtitle}>Variety: {item.variety}</Text>
           ) : null}
 
           <View style={cardStyles.priceContainer}>
-            <Text style={cardStyles.productPrice}>₹{item?.price ?? "0"}</Text>
-            <Text style={cardStyles.productUnit}>/{item?.unit ?? "unit"}</Text>
-            {item?.weightPerPiece ?<Text style={cardStyles.productUnitt}>{item.weightPerPiece}</Text> : null}
+            <Text  allowFontScaling={false} style={cardStyles.productPrice}>₹{item?.price ?? "0"}</Text>
+            <Text  allowFontScaling={false} style={cardStyles.productUnit}>/{item?.unit ?? "unit"}</Text>
+            {item?.weightPerPiece ?<Text  allowFontScaling={false} style={cardStyles.productUnitt}>/{item.weightPerPiece}</Text> : null}
           </View>
 
           <View style={cardStyles.buttonContainer}>
@@ -173,7 +173,7 @@ const ProductCard = ({
                   onAddToCart && onAddToCart(item);
                 }}
               >
-                <Text style={cardStyles.addToCartText}>
+                <Text  allowFontScaling={false} style={cardStyles.addToCartText}>
                   {status === "In Stock" ? "Add to Cart" : status}
                 </Text>
               </TouchableOpacity>
@@ -195,7 +195,7 @@ const ProductCard = ({
                       <Ionicons name="remove" size={scale(16)} color="rgba(76, 175, 80, 1)" />
                     </TouchableOpacity>
                     <View style={cardStyles.quantityValueContainer}>
-                      <Text style={cardStyles.quantityText}>{qty}</Text>
+                      <Text  allowFontScaling={false} style={cardStyles.quantityText}>{qty}</Text>
                     </View>
                     <TouchableOpacity
                       style={cardStyles.quantityButton}
@@ -222,7 +222,7 @@ const ProductCard = ({
                     onPress={closeQtyModal}
                   >
                     <View style={[modalStyles.modalWrap, { maxWidth: Math.min(420, Dimensions.get('window').width - moderateScale(40)) }]}>
-                      <Text style={modalStyles.modalTitle}>Add Quantity</Text>
+                      <Text  allowFontScaling={false} style={modalStyles.modalTitle}>Add Quantity</Text>
 
                       <View style={modalStyles.editRow}>
                         <TouchableOpacity style={modalStyles.pickerBtn} onPress={decrementEdit}>
@@ -237,6 +237,7 @@ const ProductCard = ({
                           maxLength={5}
                           placeholder="0"
                           placeholderTextColor="#999"
+                           allowFontScaling={false}
                         />
 
                         <TouchableOpacity style={modalStyles.pickerBtn} onPress={incrementEdit}>
@@ -246,10 +247,10 @@ const ProductCard = ({
 
                       <View style={modalStyles.modalActions}>
                         <TouchableOpacity style={modalStyles.cancelBtn} onPress={closeQtyModal}>
-                          <Text style={modalStyles.cancelText}>Cancel</Text>
+                          <Text  allowFontScaling={false} style={modalStyles.cancelText}>Cancel</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={modalStyles.okBtn} onPress={applyQuantityChange}>
-                          <Text style={modalStyles.okText}>OK</Text>
+                          <Text  allowFontScaling={false} style={modalStyles.okText}>OK</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -683,6 +684,7 @@ const ViewAllFressPop = () => {
             placeholderTextColor="#999"
             style={styles.searchInput}
             returnKeyType="search"
+             allowFontScaling={false}
             autoCorrect={false}
           />
           {query.length > 0 && (
@@ -701,21 +703,21 @@ const ViewAllFressPop = () => {
       <FreshVendor />
 
      <View>
-      <Text style={{fontSize:normalizeFont(13), paddingLeft:moderateScale(10),paddingBottom:moderateScale(5)}}>Products</Text>
+      <Text  allowFontScaling={false} style={{fontSize:normalizeFont(15), paddingLeft:moderateScale(15),paddingBottom:moderateScale(5)}}>Products</Text>
      </View>
 
       {/* Loading */}
       {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFA500" />
-          <Text style={styles.loadingText}>Fetching fresh & popular items...</Text>
+          <Text  allowFontScaling={false} style={styles.loadingText}>Fetching fresh & popular items...</Text>
         </View>
       )}
 
       {/* Error */}
       {error && !loading && (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text  allowFontScaling={false} style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
             <Text style={styles.buttonText}>Try Again</Text>
           </TouchableOpacity>
@@ -752,7 +754,7 @@ const ViewAllFressPop = () => {
           ListEmptyComponent={() =>
             !loading && (
               <View style={{ padding: moderateScale(20), alignItems: 'center' }}>
-                <Text style={{ color: '#444' }}>No items found</Text>
+                <Text   allowFontScaling={false} style={{ color: '#444' }}>No items found</Text>
               </View>
             )
           }
@@ -772,7 +774,7 @@ const ViewAllFressPop = () => {
             <View style={filterStyles.filterHeader}>
               <View style={filterStyles.filterTitleContainer}>
                 <Ionicons name="options" size={normalizeFont(18)} color="#333" />
-                <Text style={filterStyles.filterTitle}>Filters</Text>
+                <Text  allowFontScaling={false} style={filterStyles.filterTitle}>Filters</Text>
               </View>
               <TouchableOpacity onPress={closeFilterPopup}>
                 <Ionicons name="close" size={normalizeFont(20)} color="#333" />
@@ -783,14 +785,14 @@ const ViewAllFressPop = () => {
               <ScrollView contentContainerStyle={{ paddingBottom: moderateScale(20) }}>
                 {/* Sort */}
                 <TouchableOpacity style={filterStyles.filterOption} onPress={() => setExpanded(s => ({ ...s, sort: !s.sort }))}>
-                  <Text style={filterStyles.filterOptionText}>Sort by</Text>
+                  <Text  allowFontScaling={false} style={filterStyles.filterOptionText}>Sort by</Text>
                   <Ionicons name={expanded.sort ? "chevron-up" : "chevron-down"} size={normalizeFont(14)} color="#666" />
                 </TouchableOpacity>
                 {expanded.sort && (
                   <View style={filterStyles.filterDetails}>
                     {['relevance', 'Price - low to high', 'Price - high to low', 'Newest Arrivals'].map(opt => (
                       <TouchableOpacity key={opt} style={filterStyles.filterOption2} onPress={() => setTempFilters(tf => ({ ...tf, sortBy: opt }))}>
-                        <Text style={[
+                        <Text  allowFontScaling={false} style={[
                           filterStyles.filterOptionText2,
                           tempFilters.sortBy === opt && filterStyles.filterOptionText2Active
                         ]}>{opt}</Text>
@@ -801,13 +803,14 @@ const ViewAllFressPop = () => {
 
                 {/* Price */}
                 <TouchableOpacity style={filterStyles.filterOption} onPress={() => setExpanded(s => ({ ...s, price: !s.price }))}>
-                  <Text style={filterStyles.filterOptionText}>Price Range</Text>
+                  <Text  allowFontScaling={false} style={filterStyles.filterOptionText}>Price Range</Text>
                   <Ionicons name={expanded.price ? "chevron-up" : "chevron-down"} size={normalizeFont(14)} color="#666" />
                 </TouchableOpacity>
                 {expanded.price && (
                   <View style={filterStyles.filterDetails}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: moderateScale(8) }}>
                       <TextInput
+                       allowFontScaling={false}
                         style={[filterStyles.simpleInput, { flex: 1 }]}
                         placeholder="Min"
                         keyboardType="numeric"
@@ -815,6 +818,7 @@ const ViewAllFressPop = () => {
                         onChangeText={(t) => setTempFilters(tf => ({ ...tf, priceMin: t.replace(/[^0-9]/g, '') ? Number(t.replace(/[^0-9]/g, '')) : 0 })) }
                       />
                       <TextInput
+                       allowFontScaling={false}
                         style={[filterStyles.simpleInput, { flex: 1 }]}
                         placeholder="Max"
                         keyboardType="numeric"
@@ -822,13 +826,13 @@ const ViewAllFressPop = () => {
                         onChangeText={(t) => setTempFilters(tf => ({ ...tf, priceMax: t.replace(/[^0-9]/g, '') ? Number(t.replace(/[^0-9]/g, '')) : Number.MAX_SAFE_INTEGER })) }
                       />
                     </View>
-                    <Text style={{ marginTop: moderateScale(8), color: '#666' }}>Leave Max empty for any</Text>
+                    <Text  allowFontScaling={false} style={{ marginTop: moderateScale(8), color: '#666' }}>Leave Max empty for any</Text>
                   </View>
                 )}
 
                 {/* Rating */}
                 <TouchableOpacity style={filterStyles.filterOption} onPress={() => setExpanded(s => ({ ...s, rating: !s.rating }))}>
-                  <Text style={filterStyles.filterOptionText}>Rating</Text>
+                  <Text  allowFontScaling={false} style={filterStyles.filterOptionText}>Rating</Text>
                   <Ionicons name={expanded.rating ? "chevron-up" : "chevron-down"} size={normalizeFont(14)} color="#666" />
                 </TouchableOpacity>
                 {expanded.rating && (
@@ -838,7 +842,7 @@ const ViewAllFressPop = () => {
                         <View style={[filterStyles.checkbox, tempFilters.ratingMin === r && filterStyles.checkboxChecked]}>
                           {tempFilters.ratingMin === r && <Ionicons name="checkmark" size={12} color="#fff" />}
                         </View>
-                        <Text style={filterStyles.checkboxLabel}>{r === 0 ? 'Any' : `${r} and above`}</Text>
+                        <Text  allowFontScaling={false} style={filterStyles.checkboxLabel}>{r === 0 ? 'Any' : `${r} and above`}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -847,11 +851,11 @@ const ViewAllFressPop = () => {
 
               <View style={filterStyles.filterFooter}>
                 <TouchableOpacity style={[filterStyles.applyButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ccc', marginBottom: moderateScale(8) }]} onPress={() => { clearTempFilters(); }}>
-                  <Text style={[filterStyles.applyButtonText, { color: '#333' }]}>Clear</Text>
+                  <Text  allowFontScaling={false} style={[filterStyles.applyButtonText, { color: '#333' }]}>Clear</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={filterStyles.applyButton} onPress={applyFilters}>
-                  <Text style={filterStyles.applyButtonText}>Apply Filters</Text>
+                  <Text  allowFontScaling={false} style={filterStyles.applyButtonText}>Apply Filters</Text>
                 </TouchableOpacity>
               </View>
             </KeyboardAvoidingView>
@@ -906,7 +910,7 @@ const styles = StyleSheet.create({
     height: scale(20),
   },
   headerTitle: {
-    fontSize: normalizeFont(13),
+    fontSize: normalizeFont(15),
     fontWeight: "600",
     color: "#333",
   },
@@ -976,8 +980,6 @@ const cardStyles = StyleSheet.create({
   productImage: {
     width: '100%',
     height: '100%',
-    // borderTopLeftRadius: moderateScale(8),
-    // borderTopRightRadius: moderateScale(0),
     overflow:'hidden',
   },
 
@@ -995,7 +997,7 @@ const cardStyles = StyleSheet.create({
 
   ratingContainer: {
     position: 'absolute',
-    bottom: moderateScale(10),
+    bottom: moderateScale(6),
     left: moderateScale(8),
     backgroundColor: 'rgba(141, 141, 141, 0.6)',
     flexDirection: 'row',
@@ -1007,7 +1009,7 @@ const cardStyles = StyleSheet.create({
   ratingText: {
     color: '#fff',
     fontSize: normalizeFont(10),
-    marginLeft: moderateScale(6),
+    marginLeft: moderateScale(2),
     fontWeight: '600',
   },
 
@@ -1050,7 +1052,7 @@ const cardStyles = StyleSheet.create({
   productUnitt: {
     fontSize: normalizeFont(11),
     color: '#666',
-    marginLeft:moderateScale(4),
+    // marginLeft:moderateScale(4),
     marginBottom: moderateScale(2),
   },
 

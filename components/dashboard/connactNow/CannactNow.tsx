@@ -98,7 +98,7 @@ const ConnactNow = () => {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.errorText}>{error}</Text>
+        <Text allowFontScaling={false} style={styles.errorText}>{error}</Text>
       </View>
     );
   }
@@ -106,7 +106,7 @@ const ConnactNow = () => {
   if (!banner) {
     return (
       <View style={styles.center}>
-        <Text style={styles.infoText}>No banner available.</Text>
+        <Text allowFontScaling={false} style={styles.infoText}>No banner available.</Text>
       </View>
     );
   }

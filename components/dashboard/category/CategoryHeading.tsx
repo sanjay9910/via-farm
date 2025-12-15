@@ -5,7 +5,7 @@ import CategoryCard from './categoryCard'
 const CategoryHeading = () => {
   return (
     <View>
-      <Text>CategoryHeading</Text>
+      <Text allowFontScaling={false}>CategoryHeading</Text>
       <CategoryCard/>
     </View>
   )

@@ -322,6 +322,9 @@ export default function ProductDetailScreen() {
   const headerWishlistPress = () => {
     navigation.navigate('wishlist');
   };
+  const headerCartPress = () => {
+    navigation.navigate('OnlyRoutingCart');
+  };
 
   if (loading) {
     return (
@@ -365,7 +368,7 @@ export default function ProductDetailScreen() {
               <Text allowFontScaling={false} style={styles.countA}>{wishlist || "0"}</Text>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity onPress={headerWishlistPress} style={{ marginRight: moderateScale(12) }}>
+          <TouchableOpacity onPress={headerCartPress} style={{ marginRight: moderateScale(12) }}>
             <Image width={160} source={require("../assets/via-farm-img/icons/bx_cart.png")} />
             <View style={styles.countWishlistA}>
               <Text allowFontScaling={false} style={styles.countA}>{cardGet || "0"}</Text>

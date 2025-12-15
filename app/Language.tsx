@@ -30,7 +30,7 @@ const Language = () => {
         onPress={() => handleSelect(item.id)}
         activeOpacity={0.7}
       >
-        <Text style={[styles.langText, isSelected && styles.langTextSelected]}>
+        <Text  allowFontScaling={false} style={[styles.langText, isSelected && styles.langTextSelected]}>
           {item.name}
         </Text>
       </TouchableOpacity>
@@ -44,8 +44,8 @@ const Language = () => {
             <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
       
-        <Text style={styles.title}>Select Language</Text>
-        <Text style={{width:10}}></Text>
+        <Text  allowFontScaling={false} style={styles.title}>Select Language</Text>
+        <Text  allowFontScaling={false} style={{width:10}}></Text>
       </View>
       <View style={styles.container}>
         <FlatList

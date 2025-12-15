@@ -46,10 +46,10 @@ const cardStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: moderateScale(20), marginBottom: verticalScale(12) },
-  heading: { fontSize: normalizeFont(13), fontWeight: '600', color: '#333' },
+  heading: { fontSize: normalizeFont(15), fontWeight: '600', color: '#333' },
   seeButton: { flexDirection: 'row', alignItems: 'center', paddingVertical:moderateScale(6) ,gap:5},
   seeIcon: { width: moderateScale(16), height: moderateScale(16), marginRight:moderateScale(4) },
-  link: { fontSize: normalizeFont(12), color: 'rgba(1, 151, 218, 1)', fontWeight: '600' },
+  link: { fontSize: normalizeFont(13), color: 'rgba(1, 151, 218, 1)', fontWeight: '600' },
   errorContainer: { marginVertical: verticalScale(20), paddingHorizontal: moderateScale(20), alignItems: 'center' },
   errorText: { fontSize: normalizeFont(10), color: '#e74c3c', textAlign: 'center', marginBottom: verticalScale(12) },
   buttonContainer: { flexDirection: 'row', gap: 10 },
@@ -78,7 +78,7 @@ const ProductCard = ({ item, onPress }) => {
           resizeMode="cover"
         />
       </View>
-      <Text style={cardStyles.name} numberOfLines={1}>{variety}</Text>
+      <Text allowFontScaling={false} style={cardStyles.name} numberOfLines={1}>{variety}</Text>
     </TouchableOpacity>
   );
 };
@@ -158,17 +158,17 @@ const FressPopular = () => {
     return (
       <View style={{ marginVertical: verticalScale(20), alignItems: 'center' }}>
         <View style={styles.headerRow}>
-          <Text style={styles.heading}>Fresh & Popular</Text>
+          <Text allowFontScaling={false} style={styles.heading}>Fresh & Popular</Text>
           <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("AllCategory")}>
             <Image
               source={require("../../../assets/via-farm-img/icons/see.png")}
               style={styles.seeIcon}
             />
-            <Text style={styles.link}>View All</Text>
+            <Text allowFontScaling={false} style={styles.link}>View All</Text>
           </TouchableOpacity>
         </View>
         <ActivityIndicator size="large" color="#0000ff" />
-        <Text style={{ marginTop: verticalScale(10), color: '#666', fontSize: normalizeFont(12) }}>Loading fresh products...</Text>
+        <Text allowFontScaling={false} style={{ marginTop: verticalScale(10), color: '#666', fontSize: normalizeFont(12) }}>Loading fresh products...</Text>
       </View>
     );
   }
@@ -178,25 +178,25 @@ const FressPopular = () => {
     return (
       <View style={{ marginVertical: verticalScale(20), alignItems: 'center' }}>
         <View style={styles.headerRow}>
-          <Text style={styles.heading}>Fresh & Popular</Text>
+          <Text allowFontScaling={false} style={styles.heading}>Fresh & Popular</Text>
           <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("AllCategory")}>
             <Image
               source={require("../../../assets/via-farm-img/icons/see.png")}
               style={styles.seeIcon}
             />
-            <Text style={styles.link}>See All</Text>
+            <Text allowFontScaling={false} allowFontScaling={false} style={styles.link}>See All</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text allowFontScaling={false} style={styles.errorText}>{error}</Text>
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={styles.retryButton}
               onPress={handleRetry}
             >
-              <Text style={styles.buttonText}>Try Again</Text>
+              <Text allowFontScaling={false} style={styles.buttonText}>Try Again</Text>
             </TouchableOpacity>
 
             {error.toLowerCase().includes('login') && (
@@ -204,7 +204,7 @@ const FressPopular = () => {
                 style={styles.loginButton}
                 onPress={handleLogin}
               >
-                <Text style={styles.buttonText}>Go to Login</Text>
+                <Text allowFontScaling={false} style={styles.buttonText}>Go to Login</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -216,10 +216,10 @@ const FressPopular = () => {
   return (
     <View style={{ marginVertical: verticalScale(20) }}>
       <View style={styles.headerRow}>
-        <Text style={styles.heading}>Fresh & Popular</Text>
+        <Text allowFontScaling={false} style={styles.heading}>Fresh & Popular</Text>
 
         <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate('ViewAllFressPop')}>
-          <Text style={styles.link}>See All</Text>
+          <Text allowFontScaling={false} style={styles.link}>See All</Text>
           <Image
             source={require("../../../assets/via-farm-img/icons/see.png")}
         
@@ -243,7 +243,7 @@ const FressPopular = () => {
         />
       ) : (
         <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>No products available</Text>
+          <Text allowFontScaling={false} style={styles.noDataText}>No products available</Text>
         </View>
       )}
     </View>

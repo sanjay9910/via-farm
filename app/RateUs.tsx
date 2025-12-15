@@ -42,7 +42,7 @@ const RateUs = () => {
           <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
 
-        <Text numberOfLines={1} style={styles.headerTitle}>
+        <Text  allowFontScaling={false} numberOfLines={1} style={styles.headerTitle}>
           Rate Us
         </Text>
 
@@ -55,19 +55,19 @@ const RateUs = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
-          <Text style={styles.title}>Enjoying {COMPANY_NAME}?</Text>
+          <Text  allowFontScaling={false} style={styles.title}>Enjoying {COMPANY_NAME}?</Text>
 
-          <Text style={styles.subtitle}>
+          <Text  allowFontScaling={false} style={styles.subtitle}>
             Your feedback means a lot! Rate our app and help us improve our
             services. By sharing your experience, you help us deliver fresh
             fruits, seeds, vegetables, plants, and handicrafts even better.
           </Text>
 
           <TouchableOpacity style={styles.rateButton} onPress={openStore}>
-            <Text style={styles.rateButtonText}>Rate Now ⭐</Text>
+            <Text  allowFontScaling={false} style={styles.rateButtonText}>Rate Now ⭐</Text>
           </TouchableOpacity>
 
-          <Text style={styles.note}>
+          <Text  allowFontScaling={false} style={styles.note}>
             Thank you for supporting {COMPANY_NAME}! Your reviews help us grow
             and serve you better.
           </Text>

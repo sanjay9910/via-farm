@@ -1337,8 +1337,8 @@ const styles = StyleSheet.create({
   },
   Button: {
     backgroundColor: '#28a745',
-    padding: moderateScale(14),
-    borderRadius: 10,
+    padding: moderateScale(10),
+    borderRadius:8,
   },
   appliedCouponRow: {
     paddingHorizontal: moderateScale(6),

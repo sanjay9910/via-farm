@@ -56,7 +56,7 @@ const ProductCard = ({ item, onPress }) => {
       <View style={cardStyles.card}>
         <Image source={{ uri: image }} style={cardStyles.image} resizeMode="cover" />
       </View>
-      <Text style={cardStyles.name} numberOfLines={1}>
+      <Text allowFontScaling={false} style={cardStyles.name} numberOfLines={1}>
         {name}
       </Text>
     </TouchableOpacity>
@@ -138,15 +138,15 @@ const LocalBest = () => {
     return (
       <View style={{ marginVertical: verticalScale(20), alignItems: "center" }}>
         <View style={styles.headerRow}>
-          <Text style={styles.heading}>Local Best</Text>
+          <Text allowFontScaling={false} style={styles.heading}>Local Best</Text>
           <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("LocalBestView")}>
             <Image source={require("../../../assets/via-farm-img/icons/see.png")} style={styles.seeIcon} />
-            <Text style={styles.link}>See All</Text>
+            <Text allowFontScaling={false} style={styles.link}>See All</Text>
           </TouchableOpacity>
         </View>
 
         <ActivityIndicator size="large" color="#4CAF50" />
-        <Text style={{ marginTop: verticalScale(10), color: "#666", fontSize: normalizeFont(12) }}>Discovering local products...</Text>
+        <Text allowFontScaling={false}  style={{ marginTop: verticalScale(10), color: "#666", fontSize: normalizeFont(12) }}>Discovering local products...</Text>
       </View>
     );
   }
@@ -156,23 +156,23 @@ const LocalBest = () => {
     return (
       <View style={{ marginVertical: verticalScale(20), alignItems: "center" }}>
         <View style={styles.headerRow}>
-          <Text style={styles.heading}>Local Best</Text>
+          <Text allowFontScaling={false} style={styles.heading}>Local Best</Text>
           <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("LocalBestView")}>
             <Image source={require("../../../assets/via-farm-img/icons/see.png")} style={styles.seeIcon} />
-            <Text style={styles.link}>See All</Text>
+            <Text allowFontScaling={false} style={styles.link}>See All</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text allowFontScaling={false} style={styles.errorText}>{error}</Text>
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-              <Text style={styles.buttonText}>Try Again</Text>
+              <Text allowFontScaling={false} style={styles.buttonText}>Try Again</Text>
             </TouchableOpacity>
 
             {error.toLowerCase().includes("login") && (
               <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-                <Text style={styles.buttonText}>Go to Login</Text>
+                <Text allowFontScaling={false} style={styles.buttonText}>Go to Login</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -185,9 +185,9 @@ const LocalBest = () => {
   return (
     <View style={{ marginVertical: verticalScale(20) }}>
       <View style={styles.headerRow}>
-        <Text style={styles.heading}>Local Best</Text>
+        <Text allowFontScaling={false} style={styles.heading}>Local Best</Text>
         <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("LocalBestView")}>
-          <Text style={styles.link}>See All</Text>
+          <Text allowFontScaling={false} style={styles.link}>See All</Text>
           <Image source={require("../../../assets/via-farm-img/icons/see.png")}  />
         </TouchableOpacity>
       </View>
@@ -203,7 +203,7 @@ const LocalBest = () => {
         />
       ) : (
         <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>No local products found near you</Text>
+          <Text allowFontScaling={false} style={styles.noDataText}>No local products found near you</Text>
         </View>
       )}
     </View>
@@ -214,7 +214,7 @@ export default LocalBest;
 
 // ✅ Styles (responsive)
 const styles = StyleSheet.create({
-  heading: { fontSize: normalizeFont(13), marginLeft: moderateScale(20), fontWeight: "600" },
+  heading: { fontSize: normalizeFont(15), marginLeft: moderateScale(20), fontWeight: "600" },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: verticalScale(15), paddingRight: moderateScale(20) },
   link: { color: "rgba(1, 151, 218, 1)", fontWeight: "600", fontSize: normalizeFont(13) },
 

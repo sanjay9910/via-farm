@@ -381,6 +381,7 @@ export default function PaymentScreen({ route, navigation }) {
       >
         <ActivityIndicator size="large" color="#4CAF50" />
         <Text 
+        allowFontScaling={false}
           style={{ 
             marginTop: moderateScale(10), 
             fontSize: normalizeFont(16), 
@@ -405,6 +406,7 @@ export default function PaymentScreen({ route, navigation }) {
         }}
       >
         <Text 
+        allowFontScaling={false}
           style={{ 
             fontSize: normalizeFont(16), 
             color: "#d32f2f", 
@@ -423,7 +425,7 @@ export default function PaymentScreen({ route, navigation }) {
           }}
           onPress={() => navigation.goBack()}
         >
-          <Text style={{ color: "#fff", fontWeight: "600" }}>Go Back</Text>
+          <Text allowFontScaling={false} style={{ color: "#fff", fontWeight: "600" }}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -438,7 +440,7 @@ export default function PaymentScreen({ route, navigation }) {
         <TouchableOpacity onPress={goBack}>
           <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
-        <Text>Payment</Text>
+        <Text allowFontScaling={false}>Payment</Text>
         <Text></Text>
       </View>
       <ScrollView 
@@ -494,6 +496,7 @@ export default function PaymentScreen({ route, navigation }) {
               }}
             />
             <Text 
+            allowFontScaling={false}
               style={{ 
                 marginTop: moderateScale(12), 
                 fontSize: normalizeFont(12), 
@@ -515,7 +518,7 @@ export default function PaymentScreen({ route, navigation }) {
               borderRadius: moderateScale(12) 
             }}
           >
-            <Text style={{ color: "#6c757d", fontSize: normalizeFont(12) }}>
+            <Text allowFontScaling={false} style={{ color: "#6c757d", fontSize: normalizeFont(12) }}>
               QR Code not available
             </Text>
           </View>
@@ -523,10 +526,11 @@ export default function PaymentScreen({ route, navigation }) {
 
         {/* Amount Section */}
         <View style={{ alignItems: "center", marginBottom: moderateScale(24) }}>
-          <Text style={{ fontSize: normalizeFont(10), color: "#6c757d", marginBottom: moderateScale(4) }}>
+          <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: "#6c757d", marginBottom: moderateScale(4) }}>
             Total Amount
           </Text>
           <Text 
+          allowFontScaling={false}
             style={{ 
               fontSize: normalizeFont(26), 
               fontWeight: "800", 
@@ -549,6 +553,7 @@ export default function PaymentScreen({ route, navigation }) {
           }}
         >
           <Text 
+          allowFontScaling={false}
             style={{ 
               fontSize: normalizeFont(11), 
               color: "#6c757d", 
@@ -559,6 +564,7 @@ export default function PaymentScreen({ route, navigation }) {
             UPI ID (Manual Payment)
           </Text>
           <Text 
+          allowFontScaling={false}
             style={{ 
               fontSize: normalizeFont(13), 
               fontWeight: "600", 
@@ -587,6 +593,7 @@ export default function PaymentScreen({ route, navigation }) {
               onPress={() => copyToClipboard(upiId)}
             >
               <Text 
+              allowFontScaling={false}
                 style={{ 
                   color: "#000", 
                   fontSize: normalizeFont(12), 
@@ -610,6 +617,7 @@ export default function PaymentScreen({ route, navigation }) {
               onPress={downloadQRCode}
             >
               <Text 
+              allowFontScaling={false}
                 style={{ 
                   color: "#000", 
                   fontSize: normalizeFont(12), 
@@ -672,6 +680,7 @@ export default function PaymentScreen({ route, navigation }) {
           disabled={paid}
         >
           <Text 
+          allowFontScaling={false}
             style={{ 
               color: "#fff", 
               fontSize: normalizeFont(14), 
@@ -694,6 +703,7 @@ export default function PaymentScreen({ route, navigation }) {
           onPress={goToDonate}
         >
           <Text 
+          allowFontScaling={false}
             style={{ 
               color: "#fff", 
               fontSize: normalizeFont(14), 
@@ -709,6 +719,7 @@ export default function PaymentScreen({ route, navigation }) {
           <View style={{ alignItems: "center", paddingVertical: moderateScale(14) }}>
             <ActivityIndicator size="small" color="#2196F3" />
             <Text 
+            allowFontScaling={false}
               style={{ 
                 marginTop: moderateScale(8), 
                 fontSize: normalizeFont(11), 
@@ -731,6 +742,7 @@ export default function PaymentScreen({ route, navigation }) {
           }}
         >
           <Text 
+          allowFontScaling={false}
             style={{ 
               fontSize: normalizeFont(11), 
               color: "#6c757d", 

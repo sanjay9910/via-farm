@@ -1549,7 +1549,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#fff',
     paddingHorizontal: moderateScale(16),
-    height:scale(50),
+    // height:scale(30),
+    paddingVertical:moderateScale(15),
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
@@ -1559,17 +1560,16 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   vendorsContainer: {
-    marginTop: moderateScale(8),
-    padding:moderateScale(8),
+    paddingHorizontal:moderateScale(10),
+    padding:moderateScale(10),
   },
   vendorSection: {
     backgroundColor: '#fff',
-    marginBottom: moderateScale(5),
-    borderRadius: moderateScale(10),
+    marginBottom: moderateScale(16),
+    borderRadius: moderateScale(7),
     borderWidth: 1,
     borderColor: 'grey',
     overflow: 'hidden',
-    marginTop:moderateScale(15)
   },
   selectedVendorSection: {
     borderColor: 'grey',
@@ -1623,7 +1623,7 @@ const styles = StyleSheet.create({
   cartCard: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    padding: moderateScale(12),
+    padding: moderateScale(8),
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },

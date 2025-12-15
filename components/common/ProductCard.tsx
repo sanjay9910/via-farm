@@ -200,7 +200,7 @@ const ProductCard = ({
                 },
               ]}
             >
-              <Ionicons name="star" size={moderateScale(12)} color="#FFD700" />
+              <Ionicons name="star" size={moderateScale(10)} color="#FFD700" />
               <Text allowFontScaling={false} style={[styles.ratingText, { fontSize: normalizeFont(10) }]}>{rating ?? 0}</Text>
             </View>
           )}
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     color: "#fff",
-    marginLeft: moderateScale(6),
+    marginLeft: moderateScale(2),
     fontWeight: "600",
   },
   cardContent: {

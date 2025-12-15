@@ -24,8 +24,8 @@ export default function HomeScreen() {
     <View
       style={styles.container}
     >
-      <Text>Welcome, {user.name}</Text>
-      <Button title="Logout" onPress={logout} />
+      <Text  allowFontScaling={false}>Welcome, {user.name}</Text>
+      <Button  title="Logout" onPress={logout} />
     </View>
   );
 }

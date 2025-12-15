@@ -168,7 +168,7 @@ const TermsAndConditions = ({ navigation }) => {
       return (
         <View style={{ padding: moderateScale(20), alignItems: 'center' }}>
           <ActivityIndicator size="large" color="#ff6b35" />
-          <Text style={{ marginTop: moderateScale(8), color: '#64748b' }}>Loading Terms & Conditions...</Text>
+          <Text  allowFontScaling={false} style={{ marginTop: moderateScale(8), color: '#64748b' }}>Loading Terms & Conditions...</Text>
         </View>
       );
     }
@@ -177,9 +177,9 @@ const TermsAndConditions = ({ navigation }) => {
       <>
         {error ? (
           <View style={[styles.footerNote, { marginBottom: moderateScale(12) }]}>
-            <Text style={styles.footerText}>{error}</Text>
+            <Text  allowFontScaling={false} style={styles.footerText}>{error}</Text>
             <TouchableOpacity onPress={fetchTermsAndConditions}>
-              <Text style={{ color: '#1e40af', marginTop: moderateScale(6) }}>Retry</Text>
+              <Text  allowFontScaling={false} style={{ color: '#1e40af', marginTop: moderateScale(6) }}>Retry</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -187,18 +187,18 @@ const TermsAndConditions = ({ navigation }) => {
         {/* If API returned no sections (e.g., empty), show a friendly message */}
         {(!sections || sections.length === 0) ? (
           <View style={styles.centerContainer}>
-            <Text style={styles.errorText}>No terms available</Text>
-            <Text style={styles.errorMessage}>The server returned no content. Please try again later.</Text>
+            <Text  allowFontScaling={false} style={styles.errorText}>No terms available</Text>
+            <Text  allowFontScaling={false} style={styles.errorMessage}>The server returned no content. Please try again later.</Text>
             <TouchableOpacity style={styles.retryButton} onPress={fetchTermsAndConditions}>
-              <Text style={styles.retryButtonText}>Retry</Text>
+              <Text  allowFontScaling={false} style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <>
             {/* Intro Card */}
             <View style={styles.introCard}>
-              <Text style={styles.introTitle}>ViaFarm Terms & Conditions</Text>
-              <Text style={styles.introSubtitle}>
+              <Text  allowFontScaling={false} style={styles.introTitle}>ViaFarm Terms & Conditions</Text>
+              <Text  allowFontScaling={false} style={styles.introSubtitle}>
                 Please read these terms carefully. By using ViaFarm, you agree to all terms and conditions outlined below.
               </Text>
             </View>
@@ -209,15 +209,15 @@ const TermsAndConditions = ({ navigation }) => {
                 {/* Section Header */}
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionNumberBadge}>
-                    <Text style={styles.sectionNumber}>{section.number}</Text>
+                    <Text  allowFontScaling={false} style={styles.sectionNumber}>{section.number}</Text>
                   </View>
-                  <Text style={styles.sectionTitle}>{section.title}</Text>
+                  <Text  allowFontScaling={false} style={styles.sectionTitle}>{section.title}</Text>
                 </View>
 
                 {/* Section Content */}
                 <View style={styles.sectionContent}>
                   {section.content ? (
-                    <Text style={styles.sectionText}>{section.content}</Text>
+                    <Text  allowFontScaling={false} style={styles.sectionText}>{section.content}</Text>
                   ) : null}
 
                   {section.points && section.points.length > 0 ? (
@@ -225,7 +225,7 @@ const TermsAndConditions = ({ navigation }) => {
                       {section.points.map((point, idx) => (
                         <View key={idx} style={styles.pointItem}>
                           <View style={styles.bulletPoint} />
-                          <Text style={styles.pointText}>{point}</Text>
+                          <Text  allowFontScaling={false} style={styles.pointText}>{point}</Text>
                         </View>
                       ))}
                     </View>
@@ -252,7 +252,7 @@ const TermsAndConditions = ({ navigation }) => {
           <Image source={require("../assets/via-farm-img/icons/groupArrow.png")} />
         </TouchableOpacity>
 
-        <Text numberOfLines={1} style={styles.headerTitle}>
+        <Text  allowFontScaling={false} numberOfLines={1} style={styles.headerTitle}>
           Terms & Conditions
         </Text>
 

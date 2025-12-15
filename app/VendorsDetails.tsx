@@ -152,7 +152,7 @@ const ProductCardLocal = ({
               onToggleFavorite && onToggleFavorite(item);
             }}
           >
-            <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={scale(22)} color={isFavorite ? '#ff4444' : '#fff'} />
+            <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={scale(25)} color={isFavorite ? '#ff4444' : '#fff'} />
           </TouchableOpacity>
 
           <View style={cardStyles.ratingContainer}>
@@ -934,7 +934,7 @@ const cardStyles = StyleSheet.create({
   imageContainer: { width: '100%', height: scale(140), backgroundColor: '#f6f6f6' },
   imageHeight: scale(135),
   productImage: { width: '100%', height: '100%', borderTopLeftRadius: 5, borderTopRightRadius: 5 },
-  favoriteButton: { position: 'absolute', top: moderateScale(6), right: moderateScale(6), borderRadius: moderateScale(16), width: scale(30), height: scale(30), justifyContent: 'center', alignItems: 'center' },
+  favoriteButton: { position: 'absolute', top: moderateScale(2), right: moderateScale(2), borderRadius: moderateScale(16), width: scale(30), height: scale(30), justifyContent: 'center', alignItems: 'center' },
   ratingContainer: { position: 'absolute', bottom: moderateScale(10), left: moderateScale(8), backgroundColor: 'rgba(141,141,141,0.6)', flexDirection: 'row', alignItems: 'center', paddingHorizontal: moderateScale(8), paddingVertical: moderateScale(4), borderRadius: moderateScale(14) },
   ratingText: { color: '#fff', fontSize: normalizeFont(11), marginLeft: moderateScale(6), fontWeight: '600' },
   cardContent: { paddingHorizontal: moderateScale(10), paddingVertical: moderateScale(10) },
