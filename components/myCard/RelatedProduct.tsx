@@ -685,8 +685,8 @@ const styles = StyleSheet.create({
     paddingVertical: moderateScale(6),
   },
   title: {
-    fontSize: normalizeFont(10),
-    fontWeight: "700",
+    fontSize: normalizeFont(14),
+    fontWeight: "500",
     color: "#222",
     marginLeft: moderateScale(12),
     marginBottom: moderateScale(8),

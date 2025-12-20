@@ -861,7 +861,7 @@ const MyCart = () => {
               <Ionicons
                 name="checkmark-circle-outline"
                 size={scale(25)}
-                color="#000"
+                color="grey"
               />
             </View>
           ) : (
@@ -1041,6 +1041,21 @@ const MyCart = () => {
                 <Text allowFontScaling={false} style={styles.totalLabel}>Total Amount</Text>
                 <Text allowFontScaling={false} style={styles.totalValue}>₹{Number(finalAmount).toFixed(2)}</Text>
               </View>
+
+              <View style={{marginVertical:normalizeFont(5)}}>
+                <Text style={{fontSize:normalizeFont(10)}}>+Optional</Text>
+              </View>
+
+              <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
+                <Text  style={{fontSize:normalizeFont(9)}} allowFontScaling={false}>Delivery</Text>
+                <Text  style={{fontSize:normalizeFont(9)}} allowFontScaling={false}>50rs</Text>
+              </View>
+
+              <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
+                <Text style={{fontSize:normalizeFont(9)}} allowFontScaling={false}>Pickup</Text>
+                <Text  style={{fontSize:normalizeFont(9)}} allowFontScaling={false}>0rs</Text>
+              </View>
+
             </View>
           )}
 
@@ -1094,6 +1109,7 @@ const MyCart = () => {
                     <Image source={require('../../assets/via-farm-img/icons/groupArrow.png')} />
                   </TouchableOpacity>
                   <Text allowFontScaling={false}>Pickup Location</Text>
+                  <Text></Text>
                 </View>
 
                 <View style={styles.locationInfo}>
@@ -1197,7 +1213,7 @@ const MyCart = () => {
                   <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), fontWeight: '600', marginBottom: moderateScale(15) }}>Payment Options</Text>
 
                   {/* Pay by Cash */}
-                  <TouchableOpacity
+                  {/* <TouchableOpacity
                     onPress={() => setPaymentMethod('cash')}
                     activeOpacity={0.8}
                     style={{
@@ -1236,10 +1252,67 @@ const MyCart = () => {
                         />
                       )}
                     </View>
+                  </TouchableOpacity> */}
+
+                  <TouchableOpacity
+                    onPress={() => setPaymentMethod('cash')}
+                    activeOpacity={0.8}
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      paddingVertical: moderateScale(12),
+                      paddingHorizontal: moderateScale(10),
+                      borderWidth: 1,
+                      borderColor: paymentMethod === 'cash' ? '#FFA500' : '#ddd',
+                      borderRadius: moderateScale(8),
+                      marginBottom: moderateScale(10),
+                      backgroundColor: paymentMethod === 'cash' ? '#FFF8E1' : '#fff',
+                    }}
+                  >
+                    {/* ✅ TEXT FIX */}
+                    <Text
+                      allowFontScaling={false}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                      style={{
+                        fontSize: normalizeFont(12),
+                        color: '#333',
+                        flexShrink: 1,
+                        marginRight: moderateScale(8),
+                      }}
+                    >
+                      Pay by Cash
+                    </Text>
+
+                    {/* RADIO */}
+                    <View
+                      style={{
+                        width: scale(22),
+                        height: scale(22),
+                        borderRadius: scale(11),
+                        borderWidth: 2,
+                        borderColor: paymentMethod === 'cash' ? '#FFA500' : '#ccc',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0, 
+                      }}
+                    >
+                      {paymentMethod === 'cash' && (
+                        <View
+                          style={{
+                            width: scale(10),
+                            height: scale(10),
+                            borderRadius: scale(5),
+                            backgroundColor: '#FFA500',
+                          }}
+                        />
+                      )}
+                    </View>
                   </TouchableOpacity>
 
                   {/* Pay Online */}
-                  <TouchableOpacity
+                  {/* <TouchableOpacity
                     onPress={() => setPaymentMethod('online')}
                     activeOpacity={0.8}
                     style={{
@@ -1254,7 +1327,7 @@ const MyCart = () => {
                       backgroundColor: paymentMethod === 'online' ? '#FFF8E1' : '#fff'
                     }}
                   >
-                    <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: '#333' }}>Pay Online</Text>
+                    <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: '#333' }}>Pay by upi</Text>
                     <View
                       style={{
                         width: scale(22),
@@ -1277,10 +1350,66 @@ const MyCart = () => {
                         />
                       )}
                     </View>
+                  </TouchableOpacity> */}
+                  <TouchableOpacity
+                    onPress={() => setPaymentMethod('online')}
+                    activeOpacity={0.8}
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      paddingVertical: moderateScale(12),
+                      paddingHorizontal: moderateScale(10),
+                      borderWidth: 1,
+                      borderColor: paymentMethod === 'online' ? '#FFA500' : '#ddd',
+                      borderRadius: 8,
+                      backgroundColor: paymentMethod === 'online' ? '#FFF8E1' : '#fff',
+                    }}
+                  >
+                    {/* ✅ TEXT FIX */}
+                    <Text
+                      allowFontScaling={false}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                      style={{
+                        fontSize: normalizeFont(12),
+                        color: '#333',
+                        flexShrink: 1,
+                        marginRight: moderateScale(8),
+                      }}
+                    >
+                      Pay by UPI
+                    </Text>
+
+                    {/* RADIO */}
+                    <View
+                      style={{
+                        width: scale(22),
+                        height: scale(22),
+                        borderRadius: scale(11),
+                        borderWidth: 2,
+                        borderColor: paymentMethod === 'online' ? '#FFA500' : '#ccc',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {paymentMethod === 'online' && (
+                        <View
+                          style={{
+                            width: scale(10),
+                            height: scale(10),
+                            borderRadius: scale(5),
+                            backgroundColor: '#FFA500',
+                          }}
+                        />
+                      )}
+                    </View>
                   </TouchableOpacity>
+
                 </View>
 
-                <Text allowFontScaling={false} style={styles.vendorTitle}>Vendor's Details</Text>
+                <Text allowFontScaling={false} style={styles.vendorTitle}>Vendor Details</Text>
 
                 <View style={styles.vendorInfo}>
                   <Image
@@ -1306,7 +1435,7 @@ const MyCart = () => {
                   style={styles.proceedButtonStyle}
                   onPress={handlePlaceOrderPickup}
                 >
-                  <Text allowFontScaling={false} style={styles.proceedButtonText}>Place Order for {selectedVendor?.name}</Text>
+                  <Text allowFontScaling={false} style={styles.proceedButtonText}>Place Order </Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -1848,7 +1977,8 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   modalHeader: {
-    padding: moderateScale(12),
+    padding: moderateScale(8),
+    paddingBottom:moderateScale(20),
     paddingHorizontal: moderateScale(10),
     flexDirection: 'row',
     justifyContent: 'space-between',

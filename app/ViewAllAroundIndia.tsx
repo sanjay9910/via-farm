@@ -699,6 +699,8 @@ const ViewAllAroundIndia = () => {
         </View>
       </View>
 
+      <ScrollView>
+
       {/* Local Vendor card (same as other screen) */}
       <View>
         <LocalVendor />
@@ -763,6 +765,7 @@ const ViewAllAroundIndia = () => {
         </>
       )}
 
+   </ScrollView>
       {/* Filter Modal (slides from right) */}
       <Modal
         visible={showFilterPopup}

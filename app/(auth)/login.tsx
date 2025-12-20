@@ -277,8 +277,8 @@ import { saveToken } from "../utility/Storage";
 
 export default function LoginScreen() {
   const navigation = useNavigation();
-  const [mobile, setMobile] = useState("");
-  const [password, setPassword] = useState("");
+  const [mobile, setMobile] = useState("7777777777");
+  const [password, setPassword] = useState("123456789");
   const { login } = useContext(AuthContext);
 
   const handleLogin = async () => {

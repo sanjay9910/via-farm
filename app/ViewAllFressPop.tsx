@@ -700,6 +700,8 @@ const ViewAllFressPop = () => {
         <View  />
       </View>
 
+    <ScrollView>
+
       <FreshVendor />
 
      <View>
@@ -761,6 +763,7 @@ const ViewAllFressPop = () => {
         />
       )}
 
+      </ScrollView>
       {/* Filter Modal */}
       <Modal
         visible={showFilterPopup}

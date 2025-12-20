@@ -42,11 +42,7 @@ const CategoryCard = () => {
       if (!response.ok) {
         throw new Error(`Failed to fetch categories: ${response.status}`);
       }
-
       const json = await response.json();
-      // console.log('kya aa raha Hai (raw)', json);
-
-      // Normalize response to an array. Some APIs return { data: [...] } or { categories: [...] } etc.
       let items: any[] = [];
       if (Array.isArray(json)) {
         items = json;
@@ -57,12 +53,9 @@ const CategoryCard = () => {
       } else if (json.success && Array.isArray(json.payload)) {
         items = json.payload;
       } else {
-        // Try to find first array value in object (fallback)
         const firstArray = Object.values(json).find((v) => Array.isArray(v));
         if (Array.isArray(firstArray)) items = firstArray as any[];
       }
-
-      // If still empty, but API returned an object for a single category, wrap it
       if (items.length === 0 && typeof json === 'object' && (json._id || json.id)) {
         items = [json];
       }
@@ -97,22 +90,18 @@ const CategoryCard = () => {
 
   // Handle Category Card Press
   const handleCategoryPress = (categoryId: string, categoryName: string) => {
-    // console.log('📂 Category Card Pressed:', { categoryId, categoryName });
     try {
       navigation.navigate('CategoryVIewAllProduct', {
         categoryId: String(categoryId),
         categoryName: categoryName,
       });
-      // console.log('✅ Navigated to CategoryVIewAllProduct');
     } catch (err) {
       console.error('❌ Navigation error:', err);
       Alert.alert('Error', 'Unable to navigate to category products.');
     }
   };
 
-  // Go to All Categories
   const gotoAllCategory = () => {
-    // console.log('➡️ Go to All Categories');
     try {
       navigation.navigate('category');
     } catch (err) {
@@ -203,9 +192,9 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontSize:normalizeFont(15),
-    marginLeft: moderateScale(20),
-    fontWeight: '500',
-    // marginBottom: moderateScale(10),
+    marginLeft: moderateScale(18),
+    fontWeight: '600',
+    color: '#333',
   },
   Categoryheader:{
     flexDirection:'row',

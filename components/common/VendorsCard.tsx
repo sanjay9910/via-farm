@@ -55,13 +55,16 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
         </Text>
 
         <View style={styles.distanceContainer}>
-          <Image source={require('../../assets/via-farm-img/icons/loca.png')} />
+         <Image 
+  source={require('../../assets/via-farm-img/icons/loca.png')} 
+  style={{ tintColor: 'grey' }}
+/>
           <Text allowFontScaling={false} style={styles.distance}>{distance}</Text>
         </View>
 
         {/* Category */}
         <View style={styles.categoryContainer}>
-          <Image source={require(".././../assets/via-farm-img/icons/catagory.png")} />
+          <Image  source={require(".././../assets/via-farm-img/icons/catagory.png")} />
           <Text allowFontScaling={false} style={styles.category} numberOfLines={1} ellipsizeMode="tail">
             {formatCategories(category)} 
           </Text>
@@ -98,6 +101,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
   },
+
+
 
   profileImage: {
     width: scale(140),

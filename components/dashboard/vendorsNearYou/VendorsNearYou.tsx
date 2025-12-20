@@ -12,7 +12,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import ProfileCard from '../../common/VendorsCard';
 
@@ -22,30 +21,32 @@ const API_ENDPOINT = '/api/buyer/vendors-near-you?maxDistance=20000';
 // ---------- Responsive helpers ----------
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const guidelineBaseWidth = 375;
-const guidelineBaseHeight = 812;
+const guidelineBaseHeight = 912;
 
 const scale = (size) => (SCREEN_WIDTH / guidelineBaseWidth) * size;
 const verticalScale = (size) => (SCREEN_HEIGHT / guidelineBaseHeight) * size;
-const moderateScale = (size, factor = 0.5) => size + (scale(size) - size) * factor;
+const moderateScale = (size, factor = 0.5) =>
+  size + (scale(size) - size) * factor;
 
 const normalizeFont = (size) => {
   const newSize = moderateScale(size);
-  if (Platform.OS === 'ios') {
-    return Math.round(PixelRatio.roundToNearestPixel(newSize));
-  } else {
-    return Math.round(PixelRatio.roundToNearestPixel(newSize)) - 1;
-  }
+  return Platform.OS === 'ios'
+    ? Math.round(PixelRatio.roundToNearestPixel(newSize))
+    : Math.round(PixelRatio.roundToNearestPixel(newSize)) - 1;
 };
 // -----------------------------------------
 
-// ✅ Component now accepts "title" as prop
+// 🔑 Card sizing
+const CARD_HEIGHT = verticalScale(200);
+const CARD_GAP = verticalScale(12);
+const LIST_HEIGHT = CARD_HEIGHT * 2 + CARD_GAP;
+
 const ViewVendors = ({ title = 'Vendors Near You' }) => {
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const navigation = useNavigation();
-  const { width: windowWidth } = useWindowDimensions();
 
   const fetchVendorsNearYou = async () => {
     try {
@@ -55,12 +56,10 @@ const ViewVendors = ({ title = 'Vendors Near You' }) => {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
         setError('Please login to view vendors near you');
-        setLoading(false);
         return;
       }
 
       const response = await fetch(`${API_BASE}${API_ENDPOINT}`, {
-        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -68,27 +67,24 @@ const ViewVendors = ({ title = 'Vendors Near You' }) => {
       });
 
       const data = await response.json();
-
       if (!response.ok || !data.success) {
         throw new Error(data.message || 'Failed to fetch vendors');
       }
 
-      const mappedVendors = (data.vendors || []).map((vendor) => ({
-        id: vendor.id || vendor._id || vendor.vendorId,
+      const mapped = (data.vendors || []).map((v) => ({
+        id: v.id || v._id || v.vendorId,
         image:
-          vendor.profilePicture ||
+          v.profilePicture ||
           'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d',
-        name: vendor.name || 'Vendor',
-        rating: vendor.rating ?? 4.5,
-        distance: vendor.distance ?? '',
-        category: vendor.categories ?? [],
-        raw: vendor,
+        name: v.name || 'Vendor',
+        rating: v.rating ?? 4.5,
+        distance: v.distance ?? '',
+        category: v.categories ?? [],
       }));
 
-      setVendors(mappedVendors);
-    } catch (err) {
-      console.error('❌ Error fetching vendors:', err);
-      setError(err?.message || 'Failed to load vendors near you');
+      setVendors(mapped);
+    } catch (e) {
+      setError(e.message || 'Failed to load vendors');
     } finally {
       setLoading(false);
     }
@@ -98,52 +94,26 @@ const ViewVendors = ({ title = 'Vendors Near You' }) => {
     fetchVendorsNearYou();
   }, []);
 
-  const handleRetry = () => fetchVendorsNearYou();
-
-  const handleVendorPress = (vendorId) => {
-    navigation.navigate('VendorsDetails', { vendorId });
-  };
-
-  // Layout math for card width and spacing
-  const horizontalPadding = moderateScale(16);
-  const CARD_VISIBLE_WIDTH = Math.min(windowWidth - horizontalPadding * 2, 360); // clamp width
-  const CARD_SPACING = moderateScale(12);
-  const snapInterval = CARD_VISIBLE_WIDTH + CARD_SPACING;
-
-  // ✅ Header now takes "title" prop from parent
-  const Header = ({ title }) => (
-    <View style={[styles.headerRow, { paddingHorizontal: moderateScale(16) ,paddingVertical:5,}]}>
+  const Header = () => (
+    <View style={[styles.headerRow, { paddingHorizontal: moderateScale(16) }]}>
       <Text allowFontScaling={false} style={styles.heading}>{title}</Text>
 
       <TouchableOpacity
         style={styles.seeButton}
         onPress={() => navigation.navigate('VendorsSeeAll')}
-        activeOpacity={0.8}
       >
         <Text allowFontScaling={false} style={styles.link}>See All</Text>
-        <Image
-          source={require('../../../assets/via-farm-img/icons/see.png')}
-        />
-      </TouchableOpacity>
-    </View>
-  );
-
-  const EmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Text allowFontScaling={false} style={styles.emptyText}>No vendors found nearby.</Text>
-      <TouchableOpacity style={styles.retryButton} onPress={handleRetry} activeOpacity={0.8}>
-        <Text allowFontScaling={false} style={styles.retryButtonText}>Refresh</Text>
+        <Image source={require('../../../assets/via-farm-img/icons/see.png')} />
       </TouchableOpacity>
     </View>
   );
 
   if (loading) {
     return (
-      <View style={{ flex: 1 }}>
-        <Header title={title} />
-        <View style={styles.loader}>
+      <View>
+        <Header />
+        <View style={[styles.centerBox, { height: LIST_HEIGHT }]}>
           <ActivityIndicator size="large" color="#4CAF50" />
-          <Text allowFontScaling={false} style={styles.loadingText}>Finding vendors near you...</Text>
         </View>
       </View>
     );
@@ -151,47 +121,38 @@ const ViewVendors = ({ title = 'Vendors Near You' }) => {
 
   if (error && vendors.length === 0) {
     return (
-      <View style={{ flex: 1 }}>
-        <Header title={title} />
-        <View style={styles.errorContainer}>
+      <View>
+        <Header />
+        <View style={[styles.centerBox, { height: LIST_HEIGHT }]}>
           <Text allowFontScaling={false} style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={handleRetry} activeOpacity={0.8}>
-            <Text allowFontScaling={false} style={styles.retryButtonText}>Try Again</Text>
-          </TouchableOpacity>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      <Header title={title} />
+    <View>
+      <Header />
 
-      {vendors.length === 0 ? (
-        <EmptyState />
-      ) : (
+      {/* 🔑 FIXED HEIGHT + NESTED SCROLL */}
+      <View style={{ height: LIST_HEIGHT }}>
         <FlatList
           data={vendors}
-          horizontal
           keyExtractor={(item) => String(item.id)}
-          showsHorizontalScrollIndicator={false}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled={true}          
+          scrollEnabled={vendors.length > 2} 
           contentContainerStyle={{
-            paddingHorizontal: horizontalPadding,
-            flexDirection: 'row-reverse',
-            alignItems: 'flex-start',
+            paddingHorizontal: moderateScale(16),
+            paddingBottom: verticalScale(4),
           }}
-          snapToInterval={snapInterval}
-          decelerationRate="fast"
-          snapToAlignment="start"
-          pagingEnabled={false}
           renderItem={({ item }) => (
             <TouchableOpacity
-              key={String(item.id)}
-              onPress={() => handleVendorPress(item.id)}
+              onPress={() =>
+                navigation.navigate('VendorsDetails', { vendorId: item.id })
+              }
               activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel={`Open ${item.name} details`}
-              style={{ width: CARD_VISIBLE_WIDTH, marginRight: CARD_SPACING }}
+              style={{ marginBottom: CARD_GAP }}
             >
               <ProfileCard
                 image={item.image}
@@ -203,13 +164,7 @@ const ViewVendors = ({ title = 'Vendors Near You' }) => {
             </TouchableOpacity>
           )}
         />
-      )}
-
-      {error && vendors.length > 0 && (
-        <View style={styles.apiErrorNote}>
-          <Text allowFontScaling={false} style={styles.apiErrorText}>Note: Showing cached data - {error}</Text>
-        </View>
-      )}
+      </View>
     </View>
   );
 };
@@ -217,9 +172,9 @@ const ViewVendors = ({ title = 'Vendors Near You' }) => {
 const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: verticalScale(5),
+    alignItems: 'center',
+    marginBottom: verticalScale(6),
   },
   heading: {
     fontSize: normalizeFont(15),
@@ -236,57 +191,13 @@ const styles = StyleSheet.create({
     color: 'rgba(1, 151, 218, 1)',
     fontWeight: '500',
   },
-  container: {
-    paddingBottom: verticalScale(20),
-  },
-  loader: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: verticalScale(10),
-    fontSize: normalizeFont(14),
-    color: '#666',
-  },
-  errorContainer: {
-    flex: 1,
+  centerBox: {
     justifyContent: 'center',
     alignItems: 'center',
   },
   errorText: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(12),
     color: 'red',
-    marginBottom: verticalScale(10),
-  },
-  retryButton: {
-    backgroundColor: 'rgba(76, 175, 80, 1)',
-    paddingHorizontal: moderateScale(20),
-    paddingVertical: verticalScale(10),
-    borderRadius: moderateScale(8),
-  },
-  retryButtonText: {
-    color: '#fff',
-    fontSize: normalizeFont(11),
-    fontWeight: '600',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: verticalScale(40),
-  },
-  emptyText: {
-    fontSize: normalizeFont(11),
-    color: '#666',
-    marginBottom: verticalScale(10),
-  },
-  apiErrorNote: {
-    marginTop: verticalScale(10),
-    paddingHorizontal: moderateScale(16),
-  },
-  apiErrorText: {
-    fontSize: normalizeFont(11),
-    color: '#999',
   },
 });
 

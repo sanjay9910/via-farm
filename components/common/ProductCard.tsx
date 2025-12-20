@@ -142,7 +142,6 @@ const ProductCard = ({
 
   const qty = Number(localQty || 0);
 
-  // Control sizes used for buttons; these are computed per-render so we can set explicit heights
   const SIDE_BTN_WIDTH = Math.round(moderateScale(47));
   const QUANTITY_NUM_MIN_WIDTH = Math.round(moderateScale(36));
   const CONTROL_WIDTH = SIDE_BTN_WIDTH * 2 + QUANTITY_NUM_MIN_WIDTH;
@@ -151,9 +150,7 @@ const ProductCard = ({
   );
 
   const safeImage = image ? image : DEFAULT_IMAGE;
-
-  // Ensure card has minimum height so font scaling won't push the add button out of place.
-  const cardMinHeight = imageHeight + moderateScale(92); // tuned to keep content stable with scaling
+  const cardMinHeight = imageHeight + moderateScale(92);
 
   return (
     <View style={[{ width }, cardStyle]}>
@@ -182,10 +179,15 @@ const ProductCard = ({
               disabled={isProcessing}
             >
               <Ionicons
-                name={isFavorite ? "heart" : "heart-outline"}
-                size={moderateScale(24)}
-                color={isFavorite ? "#ff4757" : "#fff"}
-              />
+  name={isFavorite ? "heart" : "heart-outline"}
+  size={moderateScale(24)}
+  color={isFavorite ? "#ff4757" : "#fff"}
+  style={{
+    textShadowColor: "rgba(0,0,0,0.7)", // WORKS on Android
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 3,
+  }}
+/>
             </TouchableOpacity>
           )}
 
@@ -218,19 +220,30 @@ const ProductCard = ({
 
           {/* UNIT + PRICE */}
           <View style={styles.unitPriceRow}>
-            <Text allowFontScaling={false}
+            <Text
+              allowFontScaling={false}
               style={[styles.productPrice, { fontSize: normalizeFont(11) }]}
               numberOfLines={1}
             >
-              {`₹${price}`}
-            </Text> allowFontScaling={false}
+              ₹{price}
+            </Text>
+
             {unit ? (
-              <Text allowFontScaling={false} style={[styles.unitText, { fontSize: normalizeFont(11) }]} numberOfLines={1}>
+              <Text
+                allowFontScaling={false}
+                style={[styles.unitText, { fontSize: normalizeFont(11) }]}
+                numberOfLines={1}
+              >
                 /{unit}
               </Text>
             ) : null}
+
             {weightPerPiece ? (
-              <Text allowFontScaling={false} style={[styles.unitText, { fontSize: normalizeFont(11) }]} numberOfLines={1}>
+              <Text
+                allowFontScaling={false}
+                style={[styles.unitText, { fontSize: normalizeFont(11) }]}
+                numberOfLines={1}
+              >
                 /{weightPerPiece}
               </Text>
             ) : null}
@@ -388,7 +401,7 @@ const ProductCard = ({
   );
 };
 
-const COMMON_TEXT_SIZE = normalizeFont(12); // shared font size for title & subtitle
+const COMMON_TEXT_SIZE = normalizeFont(12);
 
 const styles = StyleSheet.create({
   card: {
