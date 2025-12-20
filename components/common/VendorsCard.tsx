@@ -55,18 +55,18 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
         </Text>
 
         <View style={styles.distanceContainer}>
-         <Image 
-  source={require('../../assets/via-farm-img/icons/loca.png')} 
-  style={{ tintColor: 'grey' }}
-/>
+          <Image
+            source={require('../../assets/via-farm-img/icons/loca.png')}
+            style={{ tintColor: 'grey' }}
+          />
           <Text allowFontScaling={false} style={styles.distance}>{distance}</Text>
         </View>
 
         {/* Category */}
         <View style={styles.categoryContainer}>
-          <Image  source={require(".././../assets/via-farm-img/icons/catagory.png")} />
+          <Image source={require(".././../assets/via-farm-img/icons/catagory.png")} />
           <Text allowFontScaling={false} style={styles.category} numberOfLines={1} ellipsizeMode="tail">
-            {formatCategories(category)} 
+            {formatCategories(category)}
           </Text>
         </View>
         {/* Action Buttons */}
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(14),
     overflow: "hidden",
     padding: 0,
-    elevation: 3, 
+    elevation: 3,
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   },
 
   name: {
-    fontSize: normalizeFont(13), 
+    fontSize: normalizeFont(13),
     fontWeight: "700",
     color: "#222",
     marginBottom: verticalScale(6),
