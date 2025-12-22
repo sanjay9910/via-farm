@@ -761,7 +761,7 @@ const CategoryViewAllProduct = () => {
           </TouchableOpacity>
         </View>
       </View>
-
+     <ScrollView>
      <View>
       <LocalVendor/>
      </View>
@@ -828,7 +828,7 @@ const CategoryViewAllProduct = () => {
           )}
         </>
       )}
-
+     </ScrollView>
       {/* Filter Modal (slides from right) */}
       <Modal
         visible={showFilterPopup}

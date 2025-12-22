@@ -179,15 +179,15 @@ const ProductCard = ({
               disabled={isProcessing}
             >
               <Ionicons
-  name={isFavorite ? "heart" : "heart-outline"}
-  size={moderateScale(24)}
-  color={isFavorite ? "#ff4757" : "#fff"}
-  style={{
-    textShadowColor: "rgba(0,0,0,0.7)", // WORKS on Android
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 3,
-  }}
-/>
+                name={isFavorite ? "heart" : "heart-outline"}
+                size={moderateScale(24)}
+                color={isFavorite ? "#ff4757" : "#fff"}
+                style={{
+                  textShadowColor: "rgba(0,0,0,0.7)", // WORKS on Android
+                  textShadowOffset: { width: 0, height: 2 },
+                  textShadowRadius: 3,
+                }}
+              />
             </TouchableOpacity>
           )}
 

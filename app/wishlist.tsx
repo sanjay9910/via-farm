@@ -143,7 +143,7 @@ const ProductCard = ({
             <Text allowFontScaling={false} style={cardStyles.productUnit}>₹{item?.price ?? "0"}</Text>
             {/* glued unit and weight without extra spaces */}
             <Text allowFontScaling={false} style={cardStyles.productUnit}>/{unit}</Text>
-            {weight ? <Text allowFontScaling={false} style={{fontSize:normalizeFont(10),fontWeight:'bold'}}>/{weight}</Text> : null}
+            {weight ? <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), fontWeight: 'bold' }}>/{weight}</Text> : null}
           </View>
 
           <View style={cardStyles.buttonContainer}>
@@ -665,7 +665,7 @@ const MyWishlist = () => {
 
   const renderError = () => (
     <View style={styles.centerContainer}>
-      <Text allowFontScaling={false}  style={styles.errorText}>Error: {error}</Text>
+      <Text allowFontScaling={false} style={styles.errorText}>Error: {error}</Text>
       <TouchableOpacity style={styles.retryButton} onPress={() => { fetchWishlistData(); fetchMeta(); }}>
         <Text allowFontScaling={false} style={styles.retryButtonText}>Retry</Text>
       </TouchableOpacity>
@@ -694,7 +694,14 @@ const MyWishlist = () => {
         <View style={styles.filterWrapper}>
           <TouchableOpacity style={styles.filterBtn} onPress={toggleDropdown}>
             <View style={styles.filterExpand}>
-              <Text allowFontScaling={false} style={styles.filterText}>{selectedOption}</Text>
+              <Text
+                allowFontScaling={false}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={styles.filterText}
+              >
+                {selectedOption}
+              </Text>
               <Image width={moderateScale(20)} source={require('../assets/via-farm-img/icons/expandArrow.png')} />
             </View>
           </TouchableOpacity>
@@ -810,7 +817,7 @@ const cardStyles = StyleSheet.create({
     fontSize: normalizeFont(11),
     fontWeight: '600',
     color: '#333',
-    marginLeft: moderateScale(1) 
+    marginLeft: moderateScale(1)
   },
   buttonContainer: {
     marginTop: moderateScale(10),
@@ -864,11 +871,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff'
   },
-  filterExpand: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around'
-  },
+filterExpand: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between', 
+  paddingHorizontal: 10,
+},
   backArrow: {
     flexDirection: 'row',
     alignItems: 'center',

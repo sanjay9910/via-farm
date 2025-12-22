@@ -1,4 +1,3 @@
-// FreshVendor.js
 import { moderateScale, normalizeFont } from "@/app/Responsive";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -6,6 +5,7 @@ import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Dimensions,
   FlatList,
   Image,
   StyleSheet,
@@ -16,6 +16,7 @@ import {
 import ProfileCard from '../common/VendorsCard';
 
 const API_BASE = "https://viafarm-1.onrender.com";
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const normalizeCategoryArray = (catField) => {
   if (!catField) return [];
@@ -42,7 +43,6 @@ const FreshVendor = () => {
         timeout: 10000,
       });
 
-      // Prefer explicit res.data.vendors (as per provided response), else fallback to other shapes
       let fetched = [];
       if (res?.data?.vendors && Array.isArray(res.data.vendors)) {
         fetched = res.data.vendors;
@@ -89,6 +89,10 @@ const FreshVendor = () => {
     navigation.navigate('VendorsDetails', { vendorId, vendor });
   };
 
+  const AllVendor = () => {
+    navigation.navigate('VendorsSeeAll');
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingWrap}>
@@ -100,31 +104,43 @@ const FreshVendor = () => {
   if (!vendors.length) {
     return (
       <View style={styles.emptyWrap}>
-        <Text  allowFontScaling={false} style={styles.emptyText}>No vendors found</Text>
+        <Text allowFontScaling={false} style={styles.emptyText}>
+          No vendors found
+        </Text>
       </View>
     );
   }
 
-  const AllVendor = ()=>{
-    navigation.navigate('VendorsSeeAll')
-  }
-
   return (
-    <View>
-    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between', paddingHorizontal:moderateScale(13),marginBottom:5,paddingVertical:moderateScale(4)}}>
-        <Text  allowFontScaling={false} style={{fontSize:normalizeFont(15),marginLeft:moderateScale(5)}}>Vendors</Text>
-        <TouchableOpacity style={{flexDirection:'row',alignItems:'center', gap:5}} onPress={AllVendor}>
-            <Text  allowFontScaling={false} style={{color:'rgba(1, 151, 218, 1)',fontSize:normalizeFont(13)}}>See All</Text>
-            <Image  source={require("../../assets/via-farm-img/icons/see.png")}/>
+    <View style={styles.container}>
+      {/* Header Section */}
+      <View style={styles.headerContainer}>
+        <Text allowFontScaling={false} style={styles.vendorsTitle}>
+          Vendors
+        </Text>
+        <TouchableOpacity
+          style={styles.seeAllButton}
+          onPress={AllVendor}
+          activeOpacity={0.7}
+        >
+          <Text allowFontScaling={false} style={styles.seeAllText}>
+            See All
+          </Text>
+          <Image
+            source={require("../../assets/via-farm-img/icons/see.png")}
+            
+          />
         </TouchableOpacity>
-    </View>
+      </View>
 
+      {/* Vendors List */}
       <FlatList
         data={vendors}
         keyExtractor={(v) => v.id || v._id || v.raw?.id || String(v.name)}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
+        scrollEnabled={true}
         snapToAlignment="start"
         decelerationRate="fast"
         renderItem={({ item }) => (
@@ -150,22 +166,61 @@ const FreshVendor = () => {
 export default FreshVendor;
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    width: '100%',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(5),
+    // marginBottom: moderateScale(8),
+  },
+  vendorsTitle:{
+    fontSize: normalizeFont(15),
+    fontWeight: '500',
+    color: '#333',
+    flex: 1,
+  },
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: moderateScale(6),
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateScale(4),
+  },
+  seeAllText: {
+    color: 'rgba(1, 151, 218, 1)',
+    fontSize: normalizeFont(12),
+    fontWeight: '500',
+  },
+  seeAllIcon: {
+    width: moderateScale(16),
+    height: moderateScale(16),
+    resizeMode: 'contain',
+  },
   listContent: {
-    paddingLeft: moderateScale(12),
-    paddingRight: moderateScale(18),
+    paddingLeft: moderateScale(5),
+    paddingRight: moderateScale(12),
+    // paddingVertical: moderateScale(4),
   },
   touchWrap: {
-    marginRight: moderateScale(10),
+    marginRight: moderateScale(12),
   },
   loadingWrap: {
-    paddingVertical: moderateScale(12),
+    paddingVertical: moderateScale(16),
     alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyWrap: {
-    paddingVertical: moderateScale(12),
+    paddingVertical: moderateScale(16),
     alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyText: {
     color: '#666',
+    fontSize: normalizeFont(14),
   },
 });

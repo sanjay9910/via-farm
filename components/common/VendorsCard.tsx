@@ -12,7 +12,7 @@ interface ProfileCardProps {
   name: string;
   rating?: number;
   distance: string;
-  category: string;
+  category: string[];
 }
 
 const ProfileCard: React.FC<ProfileCardProps> = ({
@@ -22,7 +22,6 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
   distance,
   category,
 }) => {
-
 
   const formatCategories = (categories = []) => {
     if (!Array.isArray(categories)) return "Not Listing";
@@ -37,7 +36,6 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
     return `${firstTwo} (+${remaining})`;
   };
 
-
   return (
     <View style={styles.card}>
       {/* Profile Image */}
@@ -50,39 +48,59 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
       {/* Content Section */}
       <View style={styles.contentSection}>
         {/* Name */}
-        <Text allowFontScaling={false} style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+        <Text
+          allowFontScaling={false}
+          style={styles.name}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
           {name}
         </Text>
 
-        <View style={styles.distanceContainer}>
+        {/* Distance */}
+        <View style={styles.row}>
           <Image
-            source={require('../../assets/via-farm-img/icons/loca.png')}
-            style={{ tintColor: 'grey' }}
+            source={require("../../assets/via-farm-img/icons/loca.png")}
+            style={styles.smallGreyIcon}
           />
-          <Text allowFontScaling={false} style={styles.distance}>{distance}</Text>
+          <Text allowFontScaling={false} style={styles.distance}>
+            {distance}
+          </Text>
         </View>
 
         {/* Category */}
-        <View style={styles.categoryContainer}>
-          <Image source={require(".././../assets/via-farm-img/icons/catagory.png")} />
-          <Text allowFontScaling={false} style={styles.category} numberOfLines={1} ellipsizeMode="tail">
+        <View style={styles.row}>
+          <Image
+            source={require("../../assets/via-farm-img/icons/catagory.png")}
+            style={styles.smallGreyIcon}
+          />
+          <Text
+            allowFontScaling={false}
+            style={styles.category}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
             {formatCategories(category)}
           </Text>
         </View>
+
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.deliveryButton} activeOpacity={0.8}>
-            <Text allowFontScaling={false} style={styles.deliveryButtonText}>Delivery</Text>
+            <Text allowFontScaling={false} style={styles.deliveryButtonText}>
+              Delivery
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.pickupButton} activeOpacity={0.8}>
-            <Text allowFontScaling={false} style={styles.pickupButtonText}>Pickup</Text>
+            <Text allowFontScaling={false} style={styles.pickupButtonText}>
+              Pickup
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   card: {
@@ -94,7 +112,6 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 202, 40, 1)",
     marginBottom: verticalScale(14),
     overflow: "hidden",
-    padding: 0,
     elevation: 3,
     shadowColor: "#000",
     shadowOpacity: 0.08,
@@ -102,13 +119,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
 
-
-
   profileImage: {
     width: scale(140),
     height: verticalScale(160),
-    borderTopLeftRadius: moderateScale(14),
-    borderBottomLeftRadius: moderateScale(14),
+    borderTopLeftRadius: moderateScale(12),
+    borderBottomLeftRadius: moderateScale(12),
     backgroundColor: "#f5f5f5",
   },
 
@@ -127,10 +142,17 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(6),
   },
 
-  distanceContainer: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: verticalScale(6),
+  },
+
+  smallGreyIcon: {
+    width: moderateScale(13),
+    height: moderateScale(13),
+    resizeMode: "contain",
+    tintColor: "grey",
   },
 
   distance: {
@@ -138,12 +160,6 @@ const styles = StyleSheet.create({
     color: "rgba(66, 66, 66, 0.9)",
     marginLeft: moderateScale(6),
     fontWeight: "500",
-  },
-
-  categoryContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: verticalScale(8),
   },
 
   category: {
@@ -168,8 +184,6 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(10),
     paddingVertical: verticalScale(5),
     paddingHorizontal: moderateScale(12),
-    alignItems: "center",
-    justifyContent: "center",
   },
 
   pickupButton: {
@@ -179,8 +193,6 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(10),
     paddingVertical: verticalScale(5),
     paddingHorizontal: moderateScale(12),
-    alignItems: "center",
-    justifyContent: "center",
   },
 
   deliveryButtonText: {
@@ -195,4 +207,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
 export default ProfileCard;

@@ -482,7 +482,14 @@ const MyOrdersScreen = () => {
                         style={styles.reviewButton}
                         onPress={() => handleWriteReview(order.id, item.productId)}
                     >
-                        <Text allowFontScaling={false} style={styles.reviewButtonText}>Write a review</Text>
+                        <Text
+                            allowFontScaling={false}
+                            style={styles.reviewButtonText}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                        >
+                            Write a review
+                        </Text>
                         <Ionicons name="chevron-forward" size={moderateScale(14)} color="#2196F3" />
                     </TouchableOpacity>
                 </View>
@@ -605,7 +612,7 @@ const MyOrdersScreen = () => {
                 <View style={styles.searchInputContainer}>
                     <Ionicons name="search" size={moderateScale(18)} color="#999" style={styles.searchIcon} />
                     <TextInput
-                    allowFontScaling={false}
+                        allowFontScaling={false}
                         style={styles.searchInput}
                         placeholder="Search Product, Status, Order ID..."
                         placeholderTextColor="#999"
@@ -749,9 +756,16 @@ const MyOrdersScreen = () => {
                                 </View>
                             </TouchableOpacity>
 
-                            <Text allowFontScaling={false}  style={styles.modalReviewText}>Write a review</Text>
+                            <Text
+                                allowFontScaling={false}
+                                style={styles.reviewButtonText}
+                                numberOfLines={1}
+                                ellipsizeMode="tail"
+                            >
+                                Write a review
+                            </Text>
                             <TextInput
-                            allowFontScaling={false}
+                                allowFontScaling={false}
                                 style={styles.modalReviewInput}
                                 placeholder="Share your experience..."
                                 placeholderTextColor="#999"
@@ -962,13 +976,13 @@ const styles = StyleSheet.create({
     // Rating Section
     ratingContainer: {
         marginTop: moderateScale(8),
-        width:'100%',
+        width: '100%',
     },
     ratingDiv: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        width:'100%',
+        width: '100%',
     },
     rateText: {
         fontSize: normalizeFont(12),
@@ -992,12 +1006,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: moderateScale(6),
         // width:'50%'
     },
+
     reviewButtonText: {
-        fontSize: normalizeFont(11),
+        fontSize: normalizeFont(12),
         color: '#2196F3',
         marginRight: moderateScale(3),
+        flexShrink: 1,
+        flexWrap: 'nowrap',
     },
-
     // Product Separator
     productSeparator: {
         height: 1,
@@ -1062,7 +1078,7 @@ const styles = StyleSheet.create({
         padding: moderateScale(14),
         paddingBottom: moderateScale(30),
         flex: 1,
-        width:'100%'
+        width: '100%'
     },
     modalProductSection: {
         alignItems: 'center',

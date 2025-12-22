@@ -1042,19 +1042,20 @@ const MyCart = () => {
                 <Text allowFontScaling={false} style={styles.totalValue}>₹{Number(finalAmount).toFixed(2)}</Text>
               </View>
 
-              <View style={{marginVertical:normalizeFont(5)}}>
-                <Text style={{fontSize:normalizeFont(10)}}>+Optional</Text>
+              <View style={{ marginVertical: normalizeFont(10) }}>
+                <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10) }}>Delivery – Charges apply based on distance</Text>
+                <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10) }}>Pickup – Free pickup</Text>
               </View>
 
-              <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
-                <Text  style={{fontSize:normalizeFont(9)}} allowFontScaling={false}>Delivery</Text>
-                <Text  style={{fontSize:normalizeFont(9)}} allowFontScaling={false}>50rs</Text>
+              {/* <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: normalizeFont(9) }} allowFontScaling={false}>Delivery</Text>
+                <Text style={{ fontSize: normalizeFont(9) }} allowFontScaling={false}>50rs</Text>
               </View>
 
-              <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
-                <Text style={{fontSize:normalizeFont(9)}} allowFontScaling={false}>Pickup</Text>
-                <Text  style={{fontSize:normalizeFont(9)}} allowFontScaling={false}>0rs</Text>
-              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: normalizeFont(9) }} allowFontScaling={false}>Pickup</Text>
+                <Text style={{ fontSize: normalizeFont(9) }} allowFontScaling={false}>0rs</Text>
+              </View> */}
 
             </View>
           )}
@@ -1295,7 +1296,7 @@ const MyCart = () => {
                         borderColor: paymentMethod === 'cash' ? '#FFA500' : '#ccc',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        flexShrink: 0, 
+                        flexShrink: 0,
                       }}
                     >
                       {paymentMethod === 'cash' && (
@@ -1978,7 +1979,7 @@ const styles = StyleSheet.create({
   },
   modalHeader: {
     padding: moderateScale(8),
-    paddingBottom:moderateScale(20),
+    paddingBottom: moderateScale(20),
     paddingHorizontal: moderateScale(10),
     flexDirection: 'row',
     justifyContent: 'space-between',

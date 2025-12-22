@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ProfileCard from './../components/common/VendorsCard';
-import { moderateScale } from './Responsive';
+import { moderateScale, normalizeFont } from './Responsive';
 
 const API_BASE = 'https://viafarm-1.onrender.com';
 const API_ENDPOINT = '/api/buyer/allvendors';
@@ -234,8 +234,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
+    marginTop:moderateScale(10),
+    fontSize:16,
     color: '#666',
   },
   safeArea: {
@@ -299,61 +299,61 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   vendorCount: {
-    fontSize: 14,
+    fontSize:normalizeFont(14),
     color: '#666',
     backgroundColor: '#f0f0f0',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal:moderateScale(10),
+    paddingVertical:moderateScale(4),
+    borderRadius:moderateScale(12),
   },
   errorContainer: {
     backgroundColor: '#FFEBEE',
-    padding: 16,
-    margin: 16,
-    borderRadius: 8,
+    padding:moderateScale(16),
+    margin:moderateScale(16),
+    borderRadius:moderateScale(8),
     borderWidth: 1,
     borderColor: '#FFCDD2',
   },
   errorText: {
-    fontSize: 14,
+    fontSize:normalizeFont(14),
     color: '#D32F2F',
     textAlign: 'center',
-    marginBottom: 15,
+    marginBottom:moderateScale(15),
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 10,
+    gap:moderateScale(10),
   },
   retryButton: {
     backgroundColor: '#4CAF50',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 6,
+    paddingHorizontal:moderateScale(20),
+    paddingVertical:moderateScale(10),
+    borderRadius:moderateScale(6),
     minWidth: 100,
     alignItems: 'center',
   },
   loginButton: {
     backgroundColor: '#2196F3',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 6,
-    minWidth: 100,
+    paddingHorizontal:moderateScale(20),
+    paddingVertical:moderateScale(10),
+    borderRadius:moderateScale(6),
+    minWidth:moderateScale(100),
     alignItems: 'center',
   },
   buttonText: {
     color: 'white',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize:normalizeFont(14),
   },
   noVendorsContainer: {
     alignItems: 'center',
-    padding: 40,
+    padding:moderateScale(40),
   },
   noVendorsText: {
-    fontSize: 16,
+    fontSize:normalizeFont(16),
     color: '#666',
-    marginBottom: 20,
+    marginBottom:moderateScale(20),
     textAlign: 'center',
   },
 });

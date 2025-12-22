@@ -1,4 +1,3 @@
-// HeaderDesign.jsx
 import { AuthContext } from '@/app/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -45,7 +44,6 @@ const normalizeFont = (size) => {
 
 const { width } = Dimensions.get('window');
 const API_BASE_URL = 'https://viafarm-1.onrender.com';
-const API_BASE = 'https://viafarm-1.onrender.com';
 
 export default function HeaderDesign() {
   const [searchText, setSearchText] = useState('');
@@ -76,7 +74,7 @@ export default function HeaderDesign() {
   const [addressLoading, setAddressLoading] = useState(false);
   const [locating, setLocating] = useState(false);
 
-  // Filter states (persistent defaults)
+  // Filter states
   const [filters, setFilters] = useState({
     sortBy: 'relevance',
     priceMin: 50,
@@ -139,7 +137,7 @@ export default function HeaderDesign() {
     })
   ).current;
 
-  const placeholders = ["Search by Products", "Search by Name"];
+  const placeholders = ["Search by Products", "Search by Name", "Search by Category"];
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -149,9 +147,11 @@ export default function HeaderDesign() {
     return () => clearInterval(interval);
   }, []);
 
+  // Apply filters to suggestions
   const applyFiltersToSuggestions = (products = [], activeFilters = null) => {
     const f = activeFilters || filters || {};
-    if (!Array.isArray(products)) {
+    
+    if (!Array.isArray(products) || products.length === 0) {
       setFilteredSuggestions([]);
       return;
     }
@@ -166,16 +166,17 @@ export default function HeaderDesign() {
       return okPrice && okRating;
     });
 
-    // apply simple sort if required
-    let sorted = filtered;
+    // Apply sort
+    let sorted = [...filtered];
     const sortBy = f.sortBy;
+    
     if (sortBy && sortBy !== 'relevance') {
       if (sortBy === 'Price - low to high') {
-        sorted = filtered.slice().sort((a, b) => (Number(a.price ?? a.mrp ?? 0) - Number(b.price ?? b.mrp ?? 0)));
+        sorted.sort((a, b) => (Number(a.price ?? a.mrp ?? 0) - Number(b.price ?? b.mrp ?? 0)));
       } else if (sortBy === 'Price - high to low') {
-        sorted = filtered.slice().sort((a, b) => (Number(b.price ?? b.mrp ?? 0) - Number(a.price ?? a.mrp ?? 0)));
+        sorted.sort((a, b) => (Number(b.price ?? b.mrp ?? 0) - Number(a.price ?? a.mrp ?? 0)));
       } else if (sortBy === 'Newest Arrivals') {
-        sorted = filtered.slice().sort((a, b) => {
+        sorted.sort((a, b) => {
           const da = new Date(a.createdAt || a.createdDate || 0).getTime();
           const db = new Date(b.createdAt || b.createdDate || 0).getTime();
           return db - da;
@@ -186,7 +187,7 @@ export default function HeaderDesign() {
     setFilteredSuggestions(sorted);
   };
 
-  // --- Search handler with API call (now also searches categories and fetches category products) ---
+  // Search handler - FIXED with AUTH
   const handleSearchChange = async (text) => {
     setSearchText(text);
 
@@ -196,76 +197,78 @@ export default function HeaderDesign() {
 
       try {
         const q = encodeURIComponent(text.trim());
-
-        // 1) Product search request
-        const prodPromise = fetch(`${API_BASE_URL}/api/buyer/products/search?q=${q}`).then(res => res.json()).catch(() => ({}));
-
-        // 2) Category search request (to support searching by category name)
-        //    Assumes: GET /api/buyer/categories/search?q=<q>
-        const catPromise = fetch(`${API_BASE_URL}/api/buyer/categories/search?q=${q}`).then(res => res.json()).catch(() => ({}));
-
-        const [prodRes, catRes] = await Promise.all([prodPromise, catPromise]);
-
-        // Normalize product list from prodRes
-        let products = [];
-        if (Array.isArray(prodRes)) {
-          products = prodRes;
-        } else if (prodRes && Array.isArray(prodRes.data)) {
-          products = prodRes.data;
-        } else if (prodRes && Array.isArray(prodRes.products)) {
-          products = prodRes.products;
-        }
-
-        // If categories found, fetch products for those categories and merge
-        let categoryProducts = [];
-        let categories = [];
-        if (Array.isArray(catRes)) {
-          categories = catRes;
-        } else if (catRes && Array.isArray(catRes.data)) {
-          categories = catRes.data;
-        }
-
-        if (Array.isArray(categories) && categories.length > 0) {
-          // Limit to first 3 matching categories to avoid over-requesting
-          const categoryIds = categories.slice(0, 3).map(c => c._id || c.id).filter(Boolean);
-          // fetch products for each category in parallel
-          const catProdPromises = categoryIds.map(id =>
-            fetch(`${API_BASE_URL}/api/buyer/products?category=${encodeURIComponent(id)}`)
-              .then(res => res.json())
-              .catch(() => ({}))
-          );
-          const catProdResults = await Promise.all(catProdPromises);
-          for (const cp of catProdResults) {
-            if (Array.isArray(cp)) {
-              categoryProducts = categoryProducts.concat(cp);
-            } else if (cp && Array.isArray(cp.data)) {
-              categoryProducts = categoryProducts.concat(cp.data);
-            } else if (cp && Array.isArray(cp.products)) {
-              categoryProducts = categoryProducts.concat(cp.products);
-            }
-          }
-        }
-
-        // Merge and dedupe products (by id/_id)
-        const merged = [];
-        const seen = new Set();
-        const pushUnique = (p) => {
-          const id = p._id || p.id || p._id?.toString?.() || p.id?.toString?.() || JSON.stringify(p);
-          if (!seen.has(id)) {
-            seen.add(id);
-            merged.push(p);
-          }
+        
+        // Get token from AsyncStorage
+        const token = await AsyncStorage.getItem('userToken');
+        
+        // Build headers
+        const headers = {
+          'Content-Type': 'application/json',
         };
-        products.forEach(pushUnique);
-        categoryProducts.forEach(pushUnique);
+        
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        // Single API call
+        const response = await fetch(
+          `${API_BASE_URL}/api/buyer/products/search?q=${q}`,
+          {
+            method: 'GET',
+            headers: headers,
+          }
+        );
 
-        // Use merged results
-        setSuggestions(merged);
-        applyFiltersToSuggestions(merged, filters);
+        if (!response.ok) {
+          console.warn(`API Status: ${response.status}`);
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        let products = [];
+
+        // Handle different response formats
+        if (Array.isArray(data)) {
+          products = data;
+        } else if (data && Array.isArray(data.data)) {
+          products = data.data;
+        } else if (data && Array.isArray(data.products)) {
+          products = data.products;
+        } else if (data && data.success && Array.isArray(data.data)) {
+          products = data.data;
+        }
+
+        // Remove duplicates by ID
+        const uniqueProducts = [];
+        const seen = new Set();
+        
+        products.forEach((p) => {
+          const id = p._id || p.id;
+          if (id && !seen.has(id)) {
+            seen.add(id);
+            uniqueProducts.push(p);
+          }
+        });
+
+        setSuggestions(uniqueProducts);
+        applyFiltersToSuggestions(uniqueProducts, filters);
+        
       } catch (error) {
         console.error('Search Error:', error);
         setSuggestions([]);
         setFilteredSuggestions([]);
+        
+        let errorMsg = 'Failed to fetch products. Please try again.';
+        if (error instanceof Error) {
+          if (error.message.includes('401')) {
+            errorMsg = 'Session expired. Please login again.';
+            await AsyncStorage.removeItem('userToken');
+          } else if (error.message.includes('400')) {
+            errorMsg = 'Invalid search query.';
+          }
+        }
+        Alert.alert('Error', errorMsg);
       } finally {
         setLoading(false);
       }
@@ -280,7 +283,6 @@ export default function HeaderDesign() {
   const openFilterPopup = () => {
     setTempFilters({ ...filters });
     setShowFilterPopup(true);
-    // animate popup
     Animated.timing(slideAnim, {
       toValue: 0,
       duration: 300,
@@ -303,10 +305,8 @@ export default function HeaderDesign() {
     setFilters({ ...tempFilters });
     applyFiltersToSuggestions(suggestions, tempFilters);
     closeFilterPopup();
-    if (suggestions.length > 0) setShowSuggestions(true);
   };
 
-  // Clear filters
   const clearFilters = () => {
     const defaults = {
       sortBy: 'relevance',
@@ -456,7 +456,7 @@ export default function HeaderDesign() {
       };
 
       const res = await axios.post(
-        `${API_BASE}/api/buyer/addresses`,
+        `${API_BASE_URL}/api/buyer/addresses`,
         payload,
         {
           headers: {
@@ -513,10 +513,14 @@ export default function HeaderDesign() {
       </View>
       <View style={styles.suggestionInfo}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: scale(5) }}>
-          <Text allowFontScaling={false} style={styles.suggestionName} numberOfLines={1}>{product.name || product.title}</Text>
+          <Text allowFontScaling={false} style={styles.suggestionName} numberOfLines={1}>
+            {product.name || product.title || 'Product'}
+          </Text>
           <View style={styles.suggestionRating}>
             <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
-            <Text allowFontScaling={false} style={styles.suggestionRatingText}>{product.rating || 0}</Text>
+            <Text allowFontScaling={false} style={styles.suggestionRatingText}>
+              {product.rating || '0'}
+            </Text>
           </View>
         </View>
 
@@ -524,7 +528,9 @@ export default function HeaderDesign() {
           by {product.vendor?.name || product.sellerName || 'Unknown'}
         </Text>
         <View style={styles.suggestionMeta}>
-          <Text allowFontScaling={false} style={styles.suggestionPrice}>₹{product.price ?? product.mrp ?? 0}</Text>
+          <Text allowFontScaling={false} style={styles.suggestionPrice}>
+            ₹{product.price ?? product.mrp ?? '0'}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -568,10 +574,11 @@ export default function HeaderDesign() {
           </View>
 
           <Text allowFontScaling={false} style={styles.locationSubtitle}>
-            {address?.locality || ''}{address?.district ? `, ${address.district}` : ''}
+            {address?.locality || ''}
           </Text>
 
-          {/* Search container: FILTER BUTTON always visible */}
+
+          {/* Search Container */}
           <View style={styles.searchContainer}>
             <Ionicons name="search" size={normalizeFont(22)} color="#999" style={styles.searchIcon} />
             <TextInput
@@ -589,7 +596,6 @@ export default function HeaderDesign() {
                 setSuggestions([]);
                 setFilteredSuggestions([]);
                 setShowSuggestions(false);
-                
               }}>
                 <Ionicons name="close-circle" size={normalizeFont(18)} color="#999" />
               </TouchableOpacity>
@@ -604,7 +610,7 @@ export default function HeaderDesign() {
           </View>
         </View>
 
-        {/* Suggestions dropdown */}
+        {/* Suggestions Dropdown */}
         {showSuggestions && (
           <View style={styles.suggestionsDropdown}>
             {loading ? (
@@ -615,18 +621,17 @@ export default function HeaderDesign() {
               <FlatList
                 data={filteredSuggestions}
                 renderItem={({ item }) => <SuggestionCard product={item} />}
-                keyExtractor={(item, index) => `${item._id || item.id || index}-${index}`}
+                keyExtractor={(item, index) => `${item._id || item.id || index}`}
                 scrollEnabled={true}
                 nestedScrollEnabled={true}
                 style={styles.suggestionsList}
-                scrollEventThrottle={16}
-                removeClippedSubviews={true}
+                removeClippedSubviews={false}
                 keyboardShouldPersistTaps="handled"
               />
             ) : (
               <View style={styles.noSuggestionsContainer}>
                 <Ionicons name="search" size={40} color="#ccc" />
-                <Text allowFontScaling={false} style={styles.noSuggestionsText}>No products match your criteria</Text>
+                <Text allowFontScaling={false} style={styles.noSuggestionsText}>No products found</Text>
               </View>
             )}
           </View>
@@ -687,7 +692,6 @@ export default function HeaderDesign() {
                       </TouchableOpacity>
                       {expandedFilters.sortBy && (
                         <View style={styles.filterDetails}>
-                          {/* NOTE: 'Freshness' removed as requested */}
                           {['Price - high to low', 'Newest Arrivals', 'Price - low to high'].map((option) => (
                             <TouchableOpacity
                               key={option}
@@ -859,7 +863,6 @@ export default function HeaderDesign() {
               }}
               keyExtractor={(item) => item}
               scrollEnabled={false}
-              nestedScrollEnabled={false}
             />
 
             <View style={styles.filterFooter}>
@@ -873,7 +876,7 @@ export default function HeaderDesign() {
 
               <TouchableOpacity
                 style={[styles.applyButton, { backgroundColor: '#ddd' }]}
-                onPress={() => { clearFilters(); }}
+                onPress={clearFilters}
                 activeOpacity={0.8}
               >
                 <Text allowFontScaling={false} style={[styles.applyButtonText, { color: '#333' }]}>Clear Filters</Text>
@@ -904,9 +907,8 @@ export default function HeaderDesign() {
               }
             ]}
           >
-            {/* Header */}
             <View style={styles.addressModalHeader}>
-              <TouchableOpacity  onPress={closeAddressModal} >
+              <TouchableOpacity onPress={closeAddressModal}>
                 <Image source={require("../../assets/via-farm-img/icons/groupArrow.png")} />
               </TouchableOpacity>
               <Text allowFontScaling={false} style={styles.addressModalTitle}>Add New Address</Text>
@@ -919,7 +921,6 @@ export default function HeaderDesign() {
               scrollEnabled={true}
               nestedScrollEnabled={true}
             >
-              {/* Current Location Button */}
               <View style={styles.locationBoxModal}>
                 <TouchableOpacity
                   style={[styles.locationButtonModal, locating && styles.locationButtonDisabledModal]}
@@ -934,7 +935,6 @@ export default function HeaderDesign() {
                 </TouchableOpacity>
               </View>
 
-              {/* Address Form */}
               <View style={styles.addressSection}>
                 <Text allowFontScaling={false} style={styles.addressSectionTitle}>Address Details *</Text>
 
@@ -1012,10 +1012,8 @@ export default function HeaderDesign() {
                   <Text allowFontScaling={false} style={styles.addressSwitchLabel}>Make this my default address</Text>
                 </View>
               </View>
-
             </ScrollView>
 
-            {/* Footer Buttons */}
             <View style={styles.addressModalFooter}>
               <TouchableOpacity
                 style={styles.addressCancelButton}
@@ -1044,6 +1042,8 @@ export default function HeaderDesign() {
     </SafeAreaView>
   );
 }
+
+
 
 const styles = StyleSheet.create({
   container: {

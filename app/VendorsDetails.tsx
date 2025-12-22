@@ -60,7 +60,7 @@ const ReviewCard = ({ item }: any) => (
       <View style={{ flex: 1, marginLeft: moderateScale(10) }}>
         <Text allowFontScaling={false} style={styles.name}>{item?.user?.name || 'Anonymous'}</Text>
         <Text allowFontScaling={false} style={styles.rating}>
-          ⭐ {item?.rating != null ? Number(item.rating).toFixed(1) : 'N/A'}
+          ⭐{item?.rating != null ? Number(item.rating).toFixed(1) : 'N/A'}
         </Text>
       </View>
       <Text allowFontScaling={false} style={styles.date}>
@@ -152,7 +152,16 @@ const ProductCardLocal = ({
               onToggleFavorite && onToggleFavorite(item);
             }}
           >
-            <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={scale(25)} color={isFavorite ? '#ff4444' : '#fff'} />
+               <Ionicons
+              name={isFavorite ? "heart" : "heart-outline"}
+              size={moderateScale(24)}
+              color={isFavorite ? "#ff4757" : "#fff"}
+              style={{
+                textShadowColor: "rgba(0,0,0,0.7)",
+                textShadowOffset: { width: 0, height: 2 },
+                textShadowRadius: 3,
+              }}
+            />
           </TouchableOpacity>
 
           <View style={cardStyles.ratingContainer}>
@@ -170,7 +179,7 @@ const ProductCardLocal = ({
             Variety: {item?.variety ?? 'Unnamed product'}
           </Text>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: moderateScale(6) }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap:moderateScale(6), marginTop: moderateScale(6) }}>
             <Image source={require('../assets/via-farm-img/icons/loca.png')} />
             <Text allowFontScaling={false} style={{ fontSize: normalizeFont(11), color: '#444' }}>{distance ?? '0.0 km'}</Text>
           </View>
@@ -894,8 +903,8 @@ const styles = StyleSheet.create({
   cardContainer: { padding: moderateScale(12), backgroundColor: '#fff' },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   vendorName: { fontSize: normalizeFont(15), fontWeight: '700', color: '#222' },
-  ratingBox: { flexDirection: 'row', alignItems: 'center', gap: 3, borderWidth: 1, borderColor: 'grey', borderRadius: 10, padding: 5 },
-  ratingText: { marginLeft: moderateScale(6), fontWeight: '700' },
+  ratingBox: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'grey',gap:3, borderRadius:moderateScale(10), padding:moderateScale(5) },
+  ratingText: { fontWeight: '700' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: moderateScale(8) },
   location: { marginLeft: moderateScale(6), color: '#666', fontSize: moderateScale(11) },
   aboutHeader: { marginTop: moderateScale(8), fontWeight: '600' },
@@ -935,8 +944,8 @@ const cardStyles = StyleSheet.create({
   imageHeight: scale(135),
   productImage: { width: '100%', height: '100%', borderTopLeftRadius: 5, borderTopRightRadius: 5 },
   favoriteButton: { position: 'absolute', top: moderateScale(2), right: moderateScale(2), borderRadius: moderateScale(16), width: scale(30), height: scale(30), justifyContent: 'center', alignItems: 'center' },
-  ratingContainer: { position: 'absolute', bottom: moderateScale(10), left: moderateScale(8), backgroundColor: 'rgba(141,141,141,0.6)', flexDirection: 'row', alignItems: 'center', paddingHorizontal: moderateScale(8), paddingVertical: moderateScale(4), borderRadius: moderateScale(14) },
-  ratingText: { color: '#fff', fontSize: normalizeFont(11), marginLeft: moderateScale(6), fontWeight: '600' },
+  ratingContainer: { position: 'absolute', bottom: moderateScale(10), backgroundColor: 'rgba(141,141,141,0.6)', flexDirection: 'row', alignItems: 'center', paddingHorizontal: moderateScale(8), paddingVertical: moderateScale(4), borderRadius: moderateScale(14) },
+  ratingText: { color: '#fff', fontSize: normalizeFont(11),  fontWeight: '600' },
   cardContent: { paddingHorizontal: moderateScale(10), paddingVertical: moderateScale(10) },
   productTitle: { fontSize: normalizeFont(13), fontWeight: '600', color: '#2b2b2b' },
   productVeriety: { color: 'rgba(66,66,66,0.7)', fontSize: normalizeFont(12) },
