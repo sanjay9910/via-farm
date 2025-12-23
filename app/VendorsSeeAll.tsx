@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ProfileCard from './../components/common/VendorsCard';
-import { moderateScale, normalizeFont } from './Responsive';
+import { moderateScale, normalizeFont, scale } from './Responsive';
 
 const API_BASE = 'https://viafarm-1.onrender.com';
 const API_ENDPOINT = '/api/buyer/allvendors';
@@ -128,7 +128,7 @@ const ViewVendors = () => {
       <View style={styles.mainContainer}>
         <View style={styles.loader}>
           <ActivityIndicator size="large" color="#4CAF50" />
-          <Text allowFontScaling={false} style={styles.loadingText}>Loading all vendors...</Text>
+          <Text allowFontScaling={false} style={styles.loadingText}>Fetching...</Text>
         </View>
       </View>
     );
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop:moderateScale(10),
-    fontSize:16,
+    fontSize:normalizeFont(13),
     color: '#666',
   },
   safeArea: {
@@ -246,34 +246,34 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
   },
-  // 🎯 New Integrated Header Style
+
   integratedHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingHorizontal:moderateScale(10),
+    paddingVertical:moderateScale(10),
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
     backgroundColor: 'white',
   },
   backButton: {
-    padding: 6, // Increase touchable area
+    padding:moderateScale(6), 
   },
-  // 🔍 Search Input Wrapper (Takes up remaining space)
+
   searchInputWrapper: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 10, // Space between arrow and search
+    marginLeft:moderateScale(10), 
     backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    height: 40,
+    borderRadius:moderateScale(8),
+    paddingHorizontal:moderateScale(10),
+    height:scale(40),
     borderWidth: 1,
     borderColor: '#eee',
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight:moderateScale(8),
   },
   searchInput: {
     flex: 1,
@@ -282,24 +282,24 @@ const styles = StyleSheet.create({
     paddingVertical: 0, 
   },
   container: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 20,
+    paddingHorizontal:moderateScale(16),
+    paddingTop:moderateScale(10),
+    paddingBottom:moderateScale(20),
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
-    paddingHorizontal: 5,
+    marginBottom:moderateScale(15),
+    paddingHorizontal:moderateScale(5),
   },
   heading: {
-    fontSize: 15,
+    fontSize:moderateScale(15),
     fontWeight: 'bold',
     color: '#333',
   },
   vendorCount: {
-    fontSize:normalizeFont(14),
+    fontSize:normalizeFont(12),
     color: '#666',
     backgroundColor: '#f0f0f0',
     paddingHorizontal:moderateScale(10),
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFCDD2',
   },
   errorText: {
-    fontSize:normalizeFont(14),
+    fontSize:normalizeFont(12),
     color: '#D32F2F',
     textAlign: 'center',
     marginBottom:moderateScale(15),
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     padding:moderateScale(40),
   },
   noVendorsText: {
-    fontSize:normalizeFont(16),
+    fontSize:normalizeFont(12),
     color: '#666',
     marginBottom:moderateScale(20),
     textAlign: 'center',

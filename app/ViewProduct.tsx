@@ -433,7 +433,7 @@ export default function ProductDetailScreen() {
 
           <View style={styles.pickupRow}>
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-              <Image source={require("../assets/via-farm-img/icons/loca.png")} />
+             <Image style={{width:moderateScale(14), height:moderateScale(18),resizeMode:'stretch'}} source={require("../assets/via-farm-img/icons/iconlocation.png")} />
               <View style={{ marginLeft: moderateScale(10) }}>
                 <Text allowFontScaling={false} style={{ fontWeight: '500', fontSize: scaleFont(11) }}>Pickup Location</Text>
                 <Text allowFontScaling={false} style={{ color: '#666', fontSize: scaleFont(11), maxWidth: SCREEN_W - scale(120) }} numberOfLines={1}>{pickupAddress}</Text>

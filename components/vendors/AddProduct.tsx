@@ -317,7 +317,7 @@ const AddProduct = ({ refreshprops }) => {
                     onPress={() => !categoriesLoading && setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
                     disabled={loading || categoriesLoading}
                   >
-                    <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: category ? "#000" : "#999" }}>
+                    <Text allowFontScaling={false} style={{ fontSize: normalizeFont(12), color: category ? "#000" : "#999" }}>
                       {category || "Select Category"}
                     </Text>
                     <Ionicons name={isCategoryDropdownOpen ? "chevron-up" : "chevron-down"} size={15} color="#333" />
@@ -338,7 +338,7 @@ const AddProduct = ({ refreshprops }) => {
                                 setIsCategoryDropdownOpen(false);
                               }}
                             >
-                              <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10) }}>{cat.name}</Text>
+                              <Text allowFontScaling={false} style={{ fontSize: normalizeFont(12) }}>{cat.name}</Text>
                             </TouchableOpacity>
                           ))}
                         </ScrollView>
@@ -357,7 +357,7 @@ const AddProduct = ({ refreshprops }) => {
                     onPress={() => !varietyLoading && setIsVarietyDropdownOpen(!isVarietyDropdownOpen)}
                     disabled={loading || varietyLoading}
                   >
-                    <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: variety ? "#000" : "#999" }}>
+                    <Text allowFontScaling={false} style={{ fontSize: normalizeFont(12), color: variety ? "#000" : "#999" }}>
                       {variety || (category ? "Select Variety" : "All Varieties")}
                     </Text>
                     <Ionicons name={isVarietyDropdownOpen ? "chevron-up" : "chevron-down"} size={15} color="#333" />
@@ -378,7 +378,7 @@ const AddProduct = ({ refreshprops }) => {
                                 setIsVarietyDropdownOpen(false);
                               }}
                             >
-                              <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10) }}>{varName}</Text>
+                              <Text allowFontScaling={false} style={{ fontSize: normalizeFont(12) }}>{varName}</Text>
                             </TouchableOpacity>
                           ))}
                         </ScrollView>
@@ -405,7 +405,7 @@ const AddProduct = ({ refreshprops }) => {
                   <Text allowFontScaling={false} style={styles.label}>Unit *</Text>
 
                   <TouchableOpacity style={[styles.input, styles.pickerInput]} onPress={() => setIsUnitDropdownOpen(!isUnitDropdownOpen)} disabled={loading}>
-                    <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: unit ? "#000" : "#999" }}>{unit || "Select Unit"}</Text>
+                    <Text allowFontScaling={false} style={{ fontSize: normalizeFont(12), color: unit ? "#000" : "#999" }}>{unit || "Select Unit"}</Text>
                     <Ionicons name={isUnitDropdownOpen ? "chevron-up" : "chevron-down"} size={15} color="#333" />
                   </TouchableOpacity>
 
@@ -413,7 +413,7 @@ const AddProduct = ({ refreshprops }) => {
                     <View style={styles.dropdownBelowInput}>
                       {unitOptions.map((opt) => (
                         <TouchableOpacity key={opt} style={[styles.dropdownOption, unit === opt && styles.dropdownOptionSelected]} onPress={() => { setUnit(opt); setIsUnitDropdownOpen(false); }}>
-                          <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10) }}>{opt}</Text>
+                          <Text allowFontScaling={false} style={{ fontSize: normalizeFont(12) }}>{opt}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -570,7 +570,7 @@ export const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: normalizeFont(11),
+    fontSize: normalizeFont(14),
     fontWeight: "500",
     marginTop: moderateScale(10),
     marginBottom: moderateScale(6),
@@ -585,7 +585,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(12),
     backgroundColor: "#fff",
     marginBottom: moderateScale(8),
-    fontSize: normalizeFont(12),
+    fontSize: normalizeFont(14),
   },
 
   row: {
@@ -599,8 +599,9 @@ export const styles = StyleSheet.create({
 
   pickerInput: {
     flexDirection: "row",
+    justifyContent:'space-between',
     alignItems: "center",
-    gap: moderateScale(5),
+    // gap: moderateScale(5),
   },
 
   dropdownBelowInput: {

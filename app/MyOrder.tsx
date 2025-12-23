@@ -987,14 +987,12 @@ const styles = StyleSheet.create({
     rateText: {
         fontSize: normalizeFont(12),
         color: '#333',
-        // marginBottom: moderateScale(6),
         fontWeight: '500',
     },
     starsContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: moderateScale(2),
-        // width:'50%',
     },
     starButton: {
         padding: moderateScale(2),
@@ -1003,16 +1001,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: moderateScale(4),
-        paddingHorizontal: moderateScale(6),
-        // width:'50%'
     },
 
     reviewButtonText: {
-        fontSize: normalizeFont(12),
+        fontSize: normalizeFont(13),
         color: '#2196F3',
         marginRight: moderateScale(3),
-        flexShrink: 1,
-        flexWrap: 'nowrap',
     },
     // Product Separator
     productSeparator: {

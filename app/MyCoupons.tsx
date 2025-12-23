@@ -1184,7 +1184,7 @@ const MyCoupons = () => {
           <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color="#4CAF50" />
             <Text allowFontScaling={false} style={{ marginTop: moderateScale(10), color: "#666", fontSize: normalizeFont(12) }}>
-              Loading Coupons...
+            
             </Text>
           </View>
         ) : error ? (
@@ -1492,7 +1492,7 @@ const styles = StyleSheet.create({
     paddingVertical: moderateScale(10),
     borderRadius: moderateScale(8),
     borderWidth: scale(1),
-    borderColor: "#e0e0e0",
+    borderColor: "grey",
     backgroundColor: "#fff",
   },
   statusFilterText: {
@@ -1510,7 +1510,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: "#fff",
-    borderRadius: moderateScale(15),
+    borderRadius: moderateScale(12),
     borderWidth: scale(1),
     borderColor: "#4CAF50",
     marginBottom: moderateScale(100),
@@ -1524,7 +1524,7 @@ const styles = StyleSheet.create({
     padding: moderateScale(12),
     borderRadius: moderateScale(10),
     borderBottomWidth: scale(1),
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: "#4CAF50",
   },
   filterOptionText: {
     fontSize: normalizeFont(12),
@@ -1559,12 +1559,7 @@ const styles = StyleSheet.create({
     padding: moderateScale(16),
     marginBottom: moderateScale(15),
     borderWidth: scale(1),
-    borderColor: "#e8e8e8",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: moderateScale(2) },
-    shadowOpacity: 0.08,
-    shadowRadius: moderateScale(4),
-    elevation: 3,
+    borderColor: "grey",
     position: "relative",
     minHeight: moderateScale(135),
   },
@@ -1584,10 +1579,10 @@ const styles = StyleSheet.create({
   statusContainer: {
     position: "absolute",
     bottom: moderateScale(16),
-    right: moderateScale(1),
+    right: moderateScale(5),
     paddingHorizontal: moderateScale(12),
     paddingVertical: moderateScale(4),
-    borderRadius: moderateScale(6),
+    borderRadius: moderateScale(5),
   },
   activeStatus: { backgroundColor: "#4CAF50" },
   expiredStatus: { backgroundColor: "#777777" },

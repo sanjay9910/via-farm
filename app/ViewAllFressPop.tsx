@@ -156,7 +156,7 @@ const ProductCard = ({
 
           {item?.variety ? (
             <View allowFontScaling={false} style={cardStyles.productSubtitle}>
-              <Image source={require('../assets/via-farm-img/icons/loca.png')} />
+              <Image style={{width:moderateScale(14), height:moderateScale(18),resizeMode:'stretch'}} source={require("../assets/via-farm-img/icons/iconlocation.png")} />
               <Text allowFontScaling={false} style={{ fontSize: normalizeFont(12), color: 'grey' }}>{item.distance}</Text></View>
           ) : null}
 
@@ -719,7 +719,7 @@ const ViewAllFressPop = () => {
         {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#FFA500" />
-            <Text allowFontScaling={false} style={styles.loadingText}>Fetching fresh & popular items...</Text>
+            <Text allowFontScaling={false} style={styles.loadingText}>Fetching...</Text>
           </View>
         )}
 
@@ -1051,7 +1051,7 @@ const cardStyles = StyleSheet.create({
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginBottom: moderateScale(5),
+    marginTop: moderateScale(2),
   },
   productPrice: {
     fontSize: normalizeFont(12),

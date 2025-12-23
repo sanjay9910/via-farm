@@ -7,19 +7,19 @@ import { useRouter } from "expo-router";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    FlatList,
-    Image,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  FlatList,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import ProductModal from "../vendors/ProductEditModel";
 
@@ -228,7 +228,7 @@ const ProductCard = ({ item, onDelete, onStockUpdate, onEdit }) => {
               handleMenuPress();
             }}
             disabled={updatingStock}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            hitSlop={{ top:moderateScale(8), bottom:moderateScale(8), left:moderateScale(8), right:moderateScale(8) }}
           >
             <Feather name="more-vertical" size={20} color="#6b7280" />
           </TouchableOpacity>
@@ -265,7 +265,7 @@ const ProductCard = ({ item, onDelete, onStockUpdate, onEdit }) => {
               handleStockPress();
             }}
             disabled={updatingStock}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            hitSlop={{ top:moderateScale(6), bottom:moderateScale(6), left:moderateScale(6), right:moderateScale(6) }}
           >
             {updatingStock ? (
               <>
@@ -538,7 +538,7 @@ const ProductFilter = ({
           onPress={() => setIsFilterOpen(true)}
           activeOpacity={0.7}
         >
-          <Image source={require("../../assets/via-farm-img/icons/filterIcon.png")} style={{ width: 20, height: 20 }} />
+          <Image source={require("../../assets/via-farm-img/icons/filterIcon.png")} style={{ width:scale(18), height:scale(18)}} />
         </TouchableOpacity>
       </View>
 
@@ -828,7 +828,7 @@ const ProductList = ({ refreshbut }) => {
       {loading ? (
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
           <ActivityIndicator size="large" color="rgba(255,202,40,1)" />
-          <Text allowFontScaling={false} style={{ marginTop: moderateScale(12), color: "#666", fontSize: normalizeFont(12) }}>Loading products...</Text>
+          <Text allowFontScaling={false} style={{ marginTop: moderateScale(12), color: "#666", fontSize: normalizeFont(12) }}></Text>
         </View>
       ) : (
         <FlatList

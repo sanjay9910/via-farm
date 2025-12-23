@@ -861,7 +861,7 @@ const MyCart = () => {
               <Ionicons
                 name="checkmark-circle-outline"
                 size={scale(25)}
-                color="grey"
+                color="green"
               />
             </View>
           ) : (
@@ -1046,17 +1046,6 @@ const MyCart = () => {
                 <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10) }}>Delivery – Charges apply based on distance</Text>
                 <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10) }}>Pickup – Free pickup</Text>
               </View>
-
-              {/* <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: normalizeFont(9) }} allowFontScaling={false}>Delivery</Text>
-                <Text style={{ fontSize: normalizeFont(9) }} allowFontScaling={false}>50rs</Text>
-              </View>
-
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: normalizeFont(9) }} allowFontScaling={false}>Pickup</Text>
-                <Text style={{ fontSize: normalizeFont(9) }} allowFontScaling={false}>0rs</Text>
-              </View> */}
-
             </View>
           )}
 
@@ -1091,10 +1080,12 @@ const MyCart = () => {
           <Animated.View
             style={{
               backgroundColor: '#fff',
+              width: '100%',
               borderTopLeftRadius: moderateScale(20),
               borderTopRightRadius: moderateScale(20),
               padding: moderateScale(25),
               borderWidth: 2,
+              borderBottomWidth: 0,
               borderColor: 'rgba(255, 202, 40, 1)',
               maxHeight: '90%',
               transform: [{ translateY: pickupSlideAnim }],
@@ -1260,7 +1251,6 @@ const MyCart = () => {
                     activeOpacity={0.8}
                     style={{
                       flexDirection: 'row',
-                      justifyContent: 'space-between',
                       alignItems: 'center',
                       paddingVertical: moderateScale(12),
                       paddingHorizontal: moderateScale(10),
@@ -1271,22 +1261,20 @@ const MyCart = () => {
                       backgroundColor: paymentMethod === 'cash' ? '#FFF8E1' : '#fff',
                     }}
                   >
-                    {/* ✅ TEXT FIX */}
+                    {/* ✅ TEXT — FULL WIDTH, NEVER CUT */}
                     <Text
                       allowFontScaling={false}
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
                       style={{
-                        fontSize: normalizeFont(12),
+                        flex: 1, // 🔥 MOST IMPORTANT
+                        fontSize: normalizeFont(14),
                         color: '#333',
-                        flexShrink: 1,
-                        marginRight: moderateScale(8),
+                        paddingRight: moderateScale(10),
                       }}
                     >
                       Pay by Cash
                     </Text>
 
-                    {/* RADIO */}
+                    {/* RADIO — FIXED SIZE */}
                     <View
                       style={{
                         width: scale(22),
@@ -1296,7 +1284,6 @@ const MyCart = () => {
                         borderColor: paymentMethod === 'cash' ? '#FFA500' : '#ccc',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        flexShrink: 0,
                       }}
                     >
                       {paymentMethod === 'cash' && (
@@ -1311,7 +1298,6 @@ const MyCart = () => {
                       )}
                     </View>
                   </TouchableOpacity>
-
                   {/* Pay Online */}
                   {/* <TouchableOpacity
                     onPress={() => setPaymentMethod('online')}
@@ -1373,7 +1359,7 @@ const MyCart = () => {
                       numberOfLines={1}
                       ellipsizeMode="tail"
                       style={{
-                        fontSize: normalizeFont(12),
+                        fontSize: normalizeFont(14),
                         color: '#333',
                         flexShrink: 1,
                         marginRight: moderateScale(8),
@@ -1422,11 +1408,13 @@ const MyCart = () => {
                   />
                   <View style={styles.vendorDetails}>
                     <Text allowFontScaling={false} style={styles.vendorName}>
-                      {selectedVendorDetails?.name || "Vendor Name"}
+                      {(selectedVendorDetails?.name
+                        ? selectedVendorDetails.name.charAt(0).toUpperCase() + selectedVendorDetails.name.slice(1)
+                        : "Vendor Name")}
                     </Text>
-                    <Text allowFontScaling={false} style={styles.vendorPhone}>
+                    {/* <Text allowFontScaling={false} style={styles.vendorPhone}>
                       Phone: {selectedVendorDetails?.phoneNo || "N/A"}
-                    </Text>
+                    </Text> */}
                   </View>
                 </View>
               </View>
@@ -1703,7 +1691,7 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(16),
     borderRadius: moderateScale(7),
     borderWidth: 1,
-    borderColor: 'grey',
+    borderColor: 'green',
     overflow: 'hidden',
   },
   selectedVendorSection: {

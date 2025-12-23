@@ -179,15 +179,15 @@ const ProductCardLocal = ({
             Variety: {item?.variety ?? 'Unnamed product'}
           </Text>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap:moderateScale(6), marginTop: moderateScale(6) }}>
+          {/* <View style={{ flexDirection: 'row', alignItems: 'center', gap:moderateScale(6), marginTop: moderateScale(6) }}>
             <Image source={require('../assets/via-farm-img/icons/loca.png')} />
             <Text allowFontScaling={false} style={{ fontSize: normalizeFont(11), color: '#444' }}>{distance ?? '0.0 km'}</Text>
-          </View>
+          </View> */}
 
           <View style={cardStyles.priceContainer}>
             <Text allowFontScaling={false} style={cardStyles.productUnit}>₹{item?.price ?? '0'}</Text>
             <Text allowFontScaling={false} style={cardStyles.productUnit}>/{item?.unit ?? 'unit'}</Text>
-            {item?.weightPerPiece ? <Text style={cardStyles.productUnit}>{item.weightPerPiece}</Text> : null}
+            {item?.weightPerPiece ? <Text style={cardStyles.productUnit}>/{item.weightPerPiece}</Text> : null}
           </View>
 
           <View style={cardStyles.buttonContainer}>
@@ -948,9 +948,9 @@ const cardStyles = StyleSheet.create({
   ratingText: { color: '#fff', fontSize: normalizeFont(11),  fontWeight: '600' },
   cardContent: { paddingHorizontal: moderateScale(10), paddingVertical: moderateScale(10) },
   productTitle: { fontSize: normalizeFont(13), fontWeight: '600', color: '#2b2b2b' },
-  productVeriety: { color: 'rgba(66,66,66,0.7)', fontSize: normalizeFont(12) },
+  productVeriety: { color: 'rgba(66,66,66,0.7)', fontSize: normalizeFont(12),marginTop:moderateScale(5) },
   productSubtitle: { fontSize: normalizeFont(12), color: '#666', marginBottom: moderateScale(8), height: scale(20) },
-  priceContainer: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: moderateScale(5) },
+  priceContainer: { flexDirection: 'row', alignItems: 'flex-end', marginTop: moderateScale(5) },
   productPrice: { fontSize: normalizeFont(13), fontWeight: '800', color: '#666' },
   productUnit: { fontSize: normalizeFont(12), color: '#666', marginBottom: moderateScale(2) },
   buttonContainer: { marginTop: moderateScale(6), alignItems: 'stretch' },

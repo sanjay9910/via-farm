@@ -160,7 +160,7 @@ const ProductCard = ({
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: moderateScale(6) }}>
-            <Image source={require("../assets/via-farm-img/icons/loca.png")} />
+            <Image style={{width:moderateScale(14), height:moderateScale(18),resizeMode:'stretch'}} source={require("../assets/via-farm-img/icons/iconlocation.png")} />
             <Text allowFontScaling={false} style={{ fontSize: normalizeFont(11), color: "#444" }}>{distance ?? "0.0 km"}</Text>
           </View>
 
@@ -703,7 +703,7 @@ const ViewAllAroundIndia = () => {
 
           )}
           <TouchableOpacity onPress={openFilterPopup} style={{ paddingHorizontal: moderateScale(8) }}>
-            <Image style={{ width: 30, height: 30 }} source={require("../assets/via-farm-img/icons/filterIcon.png")} />
+            <Image style={{ width:scale(30), height: scale(30) }} source={require("../assets/via-farm-img/icons/filterIcon.png")} />
           </TouchableOpacity>
         </View>
       </View>
@@ -723,7 +723,7 @@ const ViewAllAroundIndia = () => {
         {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator />
-            <Text allowFontScaling={false} style={styles.loadingText}>Fetching products all around India...</Text>
+            <Text allowFontScaling={false} style={styles.loadingText}>Fetching...</Text>
           </View>
         )}
 
@@ -1042,7 +1042,7 @@ const cardStyles = StyleSheet.create({
   priceContainer: {
     flexDirection: 'row',
     marginBottom: moderateScale(3),
-    marginTop: moderateScale(3),
+    marginTop: moderateScale(6),
   },
   productPrice: {
     fontSize: normalizeFont(13),

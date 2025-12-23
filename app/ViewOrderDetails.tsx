@@ -351,7 +351,7 @@ const ViewOrderDetails = () => {
         </View>
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#4CAF50" />
-          <Text allowFontScaling={false} style={{ marginTop: moderateScale(12), color: '#666', fontSize: normalizeFont(12) }}>Loading order...</Text>
+          <Text allowFontScaling={false} style={{ marginTop: moderateScale(12), color: '#666', fontSize: normalizeFont(12) }}>Loading...</Text>
         </View>
       </SafeAreaView>
     );

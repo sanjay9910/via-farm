@@ -154,9 +154,7 @@ const ProductCard = React.memo(({
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: moderateScale(5) }}>
-            <Image
-              source={require("../assets/via-farm-img/icons/loca.png")}
-            />
+            <Image style={{width:moderateScale(14), height:moderateScale(18),resizeMode:'stretch'}} source={require("../assets/via-farm-img/icons/iconlocation.png")} />
             <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: '#444', paddingVertical: moderateScale(3) }}>
               {distance ?? "0.0 km"}
             </Text>
@@ -708,7 +706,7 @@ const ViewAllLocalBest = () => {
 
 
         <View style={{ paddingHorizontal: moderateScale(10), paddingTop: moderateScale(8) }}>
-          <Text allowFontScaling={false} style={{ fontSize: normalizeFont(15), marginLeft: moderateScale(-6) }}>Local Best Products</Text>
+          <Text allowFontScaling={false} style={{ fontSize: normalizeFont(15), marginLeft: moderateScale(-6) ,fontWeight: '500',}}>Local Best Products</Text>
         </View>
       </View>
     );
@@ -757,7 +755,7 @@ const ViewAllLocalBest = () => {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFA500" />
-          <Text allowFontScaling={false} style={styles.loadingText}>Fetching local best products...</Text>
+          <Text allowFontScaling={false} style={styles.loadingText}>Fetching...</Text>
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
@@ -1075,8 +1073,7 @@ const cardStyles = StyleSheet.create({
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-
-    marginBottom: moderateScale(5),
+    marginTop: moderateScale(5),
   },
   productPrice: {
     fontSize: normalizeFont(10),

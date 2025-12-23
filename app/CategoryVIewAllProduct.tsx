@@ -149,9 +149,7 @@ const ProductCard = ({
           </Text>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: moderateScale(6), paddingVertical: moderateScale(4) }}>
-            <Image
-              source={require("../assets/via-farm-img/icons/loca.png")}
-            />
+           <Image style={{width:moderateScale(14), height:moderateScale(18),resizeMode:'stretch'}} source={require("../assets/via-farm-img/icons/iconlocation.png")} />
             <Text  allowFontScaling={false} style={cardStyles.productVeriety}>
               {distance ?? "0.0 km"}
             </Text>
@@ -160,7 +158,7 @@ const ProductCard = ({
           <View style={cardStyles.priceContainer}>
             <Text  allowFontScaling={false} style={cardStyles.productUnit}>₹{item?.price ?? "0"}</Text>
             <Text  allowFontScaling={false} style={cardStyles.productUnit}>/{item?.unit ?? "unit"}</Text>
-            {item?.weightPerPiece ? <Text allowFontScaling={false} style={cardStyles.productUnit}>{item.weightPerPiece}</Text> : null}
+            {item?.weightPerPiece ? <Text allowFontScaling={false} style={cardStyles.productUnit}>/{item.weightPerPiece}</Text> : null}
           </View>
 
           <View style={cardStyles.buttonContainer}>
@@ -775,7 +773,7 @@ const CategoryViewAllProduct = () => {
       {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFA500" />
-          <Text  allowFontScaling={false} style={styles.loadingText}>Loading products...</Text>
+          <Text  allowFontScaling={false} style={styles.loadingText}>Loading...</Text>
         </View>
       )}
 
@@ -1081,12 +1079,12 @@ const cardStyles = StyleSheet.create({
 
   priceContainer: {
     flexDirection: 'row',
-    marginBottom: moderateScale(3),
-    marginTop: moderateScale(3),
+    // marginBottom: moderateScale(3),
+    marginTop: moderateScale(4),
   },
   productPrice: {
     fontSize: normalizeFont(13),
-    fontWeight: '800',
+    fontWeight: '500',
     color: '#666',
   },
   productUnit: {

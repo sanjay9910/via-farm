@@ -500,7 +500,7 @@ const AllRecently = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="rgba(255,202,40,1)" />
-        <Text allowFontScaling={false} style={styles.loadingText}>Loading products...</Text>
+        <Text allowFontScaling={false} style={styles.loadingText}></Text>
       </View>
     );
   }

@@ -240,7 +240,7 @@ const MyRecentListing = () => {
                 style={styles.itemImage}
                 resizeMode="stretch"
               />
-              <View style={{ position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: "rgba(141, 141, 141, 0.6)", bottom:moderateScale(5), left:moderateScale(5), borderRadius:moderateScale(10), paddingHorizontal:moderateScale(5) }}>
+              <View style={{ position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: "rgba(141, 141, 141, 0.6)", bottom: moderateScale(5), left: moderateScale(5), borderRadius: moderateScale(10), paddingHorizontal: moderateScale(5) }}>
                 <Image source={require("../../assets/via-farm-img/icons/satar.png")} />
                 <Text style={{ color: "#fff", fontSize: normalizeFont(11 + 2) }} allowFontScaling={false}>5.0</Text>
               </View>
@@ -331,7 +331,7 @@ const MyRecentListing = () => {
     <View style={styles.container}>
       <View style={styles.headerRowContainer}>
         <Text style={styles.headerTitle} allowFontScaling={false}>My Recent Listings</Text>
-        <TouchableOpacity onPress={viewAll} style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
+        <TouchableOpacity onPress={viewAll} style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: scale(5) }}>
           <Text style={styles.seeAll} allowFontScaling={false}>See All</Text>
           <Image source={require("../../assets/via-farm-img/icons/see.png")} />
         </TouchableOpacity>
@@ -421,21 +421,39 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   headerRowContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: scale(16),
-    marginBottom: moderateScale(12),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: moderateScale(12),
+    paddingVertical:moderateScale(10),
   },
   headerTitle: {
-    fontSize: normalizeFont(13 + 2),
-    fontWeight: "700",
-    color: "#333",
+    fontSize: normalizeFont(15),
+    fontWeight: '500',
+    color: '#333',
+    flexShrink: 1,
   },
+
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(5),
+    flexShrink: 0,
+  },
+
   seeAll: {
-    fontSize: normalizeFont(9 + 2),
-    color: "rgba(1, 151, 218, 1)",
+    fontSize: normalizeFont(12),
+    color: 'rgba(1, 151, 218, 1)',
+    fontWeight: '500',
+    flexShrink: 0,
   },
+
+  seeIcon: {
+    width: moderateScale(14),
+    height: moderateScale(14),
+    resizeMode: 'contain',
+  },
+
   flatListContent: {
     paddingHorizontal: scale(12),
   },

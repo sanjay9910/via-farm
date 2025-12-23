@@ -4,14 +4,14 @@ import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const API_BASE = "https://viafarm-1.onrender.com";
@@ -150,7 +150,7 @@ const AllCategory = () => {
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFA500" />
-          <Text allowFontScaling={false} style={styles.loadingText}>Loading all categories...</Text>
+          <Text allowFontScaling={false} style={styles.loadingText}>fetching.. categories...</Text>
         </View>
       </View>
     );

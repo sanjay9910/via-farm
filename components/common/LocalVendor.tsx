@@ -118,6 +118,7 @@ const FreshVendor = () => {
         <Text allowFontScaling={false} style={styles.vendorsTitle}>
           Vendors
         </Text>
+
         <TouchableOpacity
           style={styles.seeAllButton}
           onPress={AllVendor}
@@ -176,26 +177,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: moderateScale(12),
     paddingVertical: moderateScale(5),
-    // marginBottom: moderateScale(8),
   },
-  vendorsTitle:{
+
+  vendorsTitle: {
     fontSize: normalizeFont(15),
     fontWeight: '500',
     color: '#333',
-    flex: 1,
+    flexShrink: 0,
   },
+
   seeAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: moderateScale(6),
     paddingHorizontal: moderateScale(8),
     paddingVertical: moderateScale(4),
+    flexShrink: 0,
   },
+
   seeAllText: {
     color: 'rgba(1, 151, 218, 1)',
     fontSize: normalizeFont(12),
     fontWeight: '500',
   },
+
   seeAllIcon: {
     width: moderateScale(16),
     height: moderateScale(16),
@@ -204,7 +209,6 @@ const styles = StyleSheet.create({
   listContent: {
     paddingLeft: moderateScale(5),
     paddingRight: moderateScale(12),
-    // paddingVertical: moderateScale(4),
   },
   touchWrap: {
     marginRight: moderateScale(12),

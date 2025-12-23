@@ -210,9 +210,10 @@ const AllAroundIndia = () => {
         <Text allowFontScaling={false} style={styles.heading}>All Around India</Text>
         <TouchableOpacity style={styles.seeButton} onPress={() => navigation.navigate("ViewAllAroundIndia")}>
           <Text allowFontScaling={false} style={styles.link}>See All</Text>
-          <Image
+          <Image source={require("../../../assets/via-farm-img/icons/see.png")} />
+          {/* <Image
             source={require("../../../assets/via-farm-img/icons/see.png")}
-          />
+          /> */}
         </TouchableOpacity>
       </View>
 
@@ -242,7 +243,7 @@ const AllAroundIndia = () => {
 export default AllAroundIndia;
 
 const styles = StyleSheet.create({
-  heading: { fontSize: normalizeFont(13), marginLeft: moderateScale(20), fontWeight: "600" },
+  heading: { fontSize: normalizeFont(15), marginLeft: moderateScale(20), fontWeight: "500" },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: verticalScale(15), paddingRight: moderateScale(20) },
   link: { color: "rgba(1, 151, 218, 1)", fontWeight: "600", fontSize: normalizeFont(12) },
 
