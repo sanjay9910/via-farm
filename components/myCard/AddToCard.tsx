@@ -3,6 +3,7 @@ import Responsive from '@/app/Responsive';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import axios from 'axios';
 import { useNavigation } from 'expo-router';
 import { goBack } from 'expo-router/build/global-state/routing';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -89,6 +90,7 @@ const MyCart = () => {
   const [qtyModalVisible, setQtyModalVisible] = useState(false);
   const [editQuantity, setEditQuantity] = useState('1');
   const [editingItemId, setEditingItemId] = useState(null);
+  const [delivryCharge, setDelivryCharge] = useState("")
 
   // --- Fetch Token ---
   const getAuthToken = async () => {
@@ -511,6 +513,25 @@ const MyCart = () => {
     }
   };
 
+  useEffect(() => {
+    const getDeleveryCharges = async () => {
+      try {
+        const token = await AsyncStorage.getItem("userToken");
+        const res = await axios.get(`${BASE_URL}/api/buyer/cart/delivery-charge`, {
+          headers: {
+            Authorization: `Baerer ${token}`
+          }
+        })
+        setDelivryCharge(res.data)
+      } catch (error) {
+        console.log("Error", error)
+      }
+    }
+    getDeleveryCharges();
+  }, [])
+
+
+
   const handleDateChange = (event, date) => {
     if (event?.type === 'set' && date) {
       const formattedDate = date.toLocaleDateString('en-IN', {
@@ -566,6 +587,7 @@ const MyCart = () => {
   const baseSubtotal = serverHas ? Number(priceDetails.totalMRP ?? subtotal) : subtotal;
   const baseDelivery = serverHas ? Number(priceDetails.deliveryCharge ?? 0) : Number(priceDetails.deliveryCharge ?? 0);
   const serverTotal = serverHas ? Number(priceDetails.totalAmount) : Number(baseSubtotal - (Number(priceDetails.couponDiscount || 0)) + baseDelivery);
+
 
   const finalAmount = Math.max(0, Number((serverTotal - effectiveCouponDiscount).toFixed(2)));
 
@@ -1043,8 +1065,14 @@ const MyCart = () => {
               </View>
 
               <View style={{ marginVertical: normalizeFont(10) }}>
-                <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10) }}>Delivery – Charges apply based on distance</Text>
-                <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10) }}>Pickup – Free pickup</Text>
+                <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
+                  <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10) }}>Delivery – Charges apply based on distance.</Text>
+                  <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10),fontWeight:500 }}>₹{delivryCharge?.data?.deliveryCharge}</Text>
+                </View>
+                <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
+                  <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10) }}>Pickup – Free pickup</Text>
+                  <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10),fontWeight:500 }}>₹0</Text>
+                </View>
               </View>
             </View>
           )}
@@ -1691,7 +1719,7 @@ const styles = StyleSheet.create({
     marginBottom: moderateScale(16),
     borderRadius: moderateScale(7),
     borderWidth: 1,
-    borderColor: 'green',
+    borderColor: 'grey',
     overflow: 'hidden',
   },
   selectedVendorSection: {
