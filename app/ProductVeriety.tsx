@@ -133,16 +133,11 @@ const ProductCard = ({
               onToggleFavorite && onToggleFavorite(item);
             }}
           >
-            <Ionicons
-              name={isFavorite ? "heart" : "heart-outline"}
-              size={moderateScale(24)}
-              color={isFavorite ? "#ff4757" : "#fff"}
-              style={{
-                textShadowColor: "rgba(0,0,0,0.7)",
-                textShadowOffset: { width: 0, height: 2 },
-                textShadowRadius: 3,
-              }}
-            />
+            {isFavorite ? <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={scale(21)}
+              color={isFavorite ? '#ff4444' : '#fff'}
+            /> : <Image source={require("../assets/via-farm-img/icons/mainHeartIcon.png")} />}
           </TouchableOpacity>
 
           <View style={cardStyles.ratingContainer}>
@@ -163,7 +158,7 @@ const ProductCard = ({
           </Text>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(5), marginTop: moderateScale(4) }}>
-           <Image style={{width:moderateScale(14), height:moderateScale(18),resizeMode:'stretch'}} source={require("../assets/via-farm-img/icons/iconlocation.png")} />
+            <Image style={{ width: moderateScale(14), height: moderateScale(18), resizeMode: 'stretch' }} source={require("../assets/via-farm-img/icons/iconlocation.png")} />
             <Text allowFontScaling={false} style={{ fontSize: normalizeFont(11), color: '#444' }}>
               {distance ?? "0.0 km"}
             </Text>

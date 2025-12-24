@@ -122,16 +122,11 @@ const ProductCard = React.memo(({
               onToggleFavorite && onToggleFavorite(item);
             }}
           >
-            <Ionicons
-              name={isFavorite ? "heart" : "heart-outline"}
-              size={moderateScale(24)}
-              color={isFavorite ? "#ff4757" : "#fff"}
-              style={{
-                textShadowColor: "rgba(0,0,0,0.7)",
-                textShadowOffset: { width: 0, height: 2 },
-                textShadowRadius: 3,
-              }}
-            />
+            {isFavorite ? <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={scale(22)}
+              color={isFavorite ? '#ff4444' : '#fff'}
+            /> : <Image source={require("../assets/via-farm-img/icons/mainHeartIcon.png")} />}
           </TouchableOpacity>
 
           <View style={cardStyles.ratingContainer}>
@@ -154,7 +149,7 @@ const ProductCard = React.memo(({
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: moderateScale(5) }}>
-            <Image style={{width:moderateScale(14), height:moderateScale(18),resizeMode:'stretch'}} source={require("../assets/via-farm-img/icons/iconlocation.png")} />
+            <Image style={{ width: moderateScale(14), height: moderateScale(18), resizeMode: 'stretch' }} source={require("../assets/via-farm-img/icons/iconlocation.png")} />
             <Text allowFontScaling={false} style={{ fontSize: normalizeFont(10), color: '#444', paddingVertical: moderateScale(3) }}>
               {distance ?? "0.0 km"}
             </Text>
@@ -706,7 +701,7 @@ const ViewAllLocalBest = () => {
 
 
         <View style={{ paddingHorizontal: moderateScale(10), paddingTop: moderateScale(8) }}>
-          <Text allowFontScaling={false} style={{ fontSize: normalizeFont(15), marginLeft: moderateScale(-6) ,fontWeight: '500',}}>Local Best Products</Text>
+          <Text allowFontScaling={false} style={{ fontSize: normalizeFont(15), marginLeft: moderateScale(-6), fontWeight: '500', }}>Local Best Products</Text>
         </View>
       </View>
     );
@@ -1028,8 +1023,8 @@ const cardStyles = StyleSheet.create({
 
   favoriteButton: {
     position: 'absolute',
-    top: moderateScale(6),
-    right: moderateScale(6),
+    top: moderateScale(3),
+    right: moderateScale(3),
     borderRadius: moderateScale(16),
     width: scale(30),
     height: scale(30),

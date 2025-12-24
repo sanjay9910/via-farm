@@ -187,7 +187,7 @@ export default function HeaderDesign() {
     setFilteredSuggestions(sorted);
   };
 
-  // Search handler - FIXED with AUTH
+  // Search handler
   const handleSearchChange = async (text) => {
     setSearchText(text);
 
@@ -277,6 +277,29 @@ export default function HeaderDesign() {
       setFilteredSuggestions([]);
       setShowSuggestions(false);
     }
+  };
+
+  // Navigate to Search Page
+  const navigateToSearchPage = () => {
+    if (searchText.trim().length === 0) {
+      Alert.alert('Empty Search', 'Please enter something to search');
+      return;
+    }
+    
+    // Close suggestions if open
+    setShowSuggestions(false);
+    
+    // Navigate to SearchPage with all necessary data
+    navigation.navigate('SearchPage', {
+      searchQuery: searchText.trim(),
+      currentFilters: filters,
+      initialResults: suggestions
+    });
+  };
+
+  // Handle search submit (when pressing enter or search icon)
+  const handleSearchSubmit = () => {
+    navigateToSearchPage();
   };
 
   // Open filter popup
@@ -580,7 +603,11 @@ export default function HeaderDesign() {
 
           {/* Search Container */}
           <View style={styles.searchContainer}>
-            <Ionicons name="search" size={normalizeFont(22)} color="#999" style={styles.searchIcon} />
+            <TouchableOpacity onPress={handleSearchSubmit}
+              activeOpacity={0.7}>
+                     <Ionicons name="search" size={normalizeFont(22)} color="#999" style={styles.searchIcon} />
+            </TouchableOpacity>
+     
             <TextInput
               style={styles.searchInput}
               placeholder={placeholders[index]}
@@ -588,6 +615,7 @@ export default function HeaderDesign() {
               value={searchText}
               onChangeText={handleSearchChange}
               returnKeyType="search"
+              onSubmitEditing={handleSearchSubmit}
               allowFontScaling={false}
             />
             {searchText.length > 0 && (
@@ -600,6 +628,13 @@ export default function HeaderDesign() {
                 <Ionicons name="close-circle" size={normalizeFont(18)} color="#999" />
               </TouchableOpacity>
             )}
+            {/* <TouchableOpacity
+              style={styles.searchIconButton}
+              onPress={handleSearchSubmit}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="search" size={normalizeFont(20)} color="#FF9800" />
+            </TouchableOpacity> */}
             <TouchableOpacity
               style={styles.filterButton}
               onPress={openFilterPopup}
@@ -1043,8 +1078,6 @@ export default function HeaderDesign() {
   );
 }
 
-
-
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
@@ -1126,6 +1159,10 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(13),
     color: '#333',
     paddingVertical: 0,
+  },
+  searchIconButton: {
+    padding: moderateScale(6),
+    marginLeft: moderateScale(4),
   },
   filterButton: {
     padding: moderateScale(6),
@@ -1550,7 +1587,6 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(14),
   },
 });
-
 
 
 // HeaderDesign_responsive_fonts.jsx

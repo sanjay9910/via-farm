@@ -202,7 +202,6 @@ const AllRecently = () => {
   };
 
   const handleCategorySelect = (category) => {
-    // allow selecting "All" or any category
     setSelectedCategory(category || "All");
     setIsCategoryDropdownOpen(false);
   };

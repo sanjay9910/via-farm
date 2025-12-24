@@ -124,11 +124,14 @@ const ProductCard = ({
               onToggleFavorite && onToggleFavorite(item);
             }}
           >
-            <Ionicons
+            
+            { isFavorite ? <Ionicons
               name={isFavorite ? 'heart' : 'heart-outline'}
-              size={scale(23)}
+              size={scale(21)}
               color={isFavorite ? '#ff4444' : '#fff'}
-            />
+            /> : <Image source={require("../assets/via-farm-img/icons/mainHeartIcon.png")}/>}
+
+
           </TouchableOpacity>
 
           <View style={cardStyles.ratingContainer}>

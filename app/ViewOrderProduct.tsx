@@ -390,7 +390,8 @@ export default function ProductDetailScreen() {
         <Image source={{ uri: product.images?.[0] }} style={styles.heroImage} resizeMode='stretch' />
 
         <TouchableOpacity style={styles.favButton} onPress={toggleWishlist}>
-          <Ionicons name={inWishlist ? "heart" : "heart-outline"} size={26} color={inWishlist ? "red" : "white"} />
+          {inWishlist ? <Ionicons name={inWishlist ? "heart" : "heart-outline"} size={26} color={inWishlist ? "red" : "white"} /> : <Image source={require("../assets/via-farm-img/icons/mainHeartIcon.png")} />}
+          
         </TouchableOpacity>
 
         <View style={styles.infoCard}>

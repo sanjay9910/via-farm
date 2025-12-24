@@ -178,16 +178,11 @@ const ProductCard = ({
               activeOpacity={0.75}
               disabled={isProcessing}
             >
-              <Ionicons
-                name={isFavorite ? "heart" : "heart-outline"}
-                size={moderateScale(24)}
-                color={isFavorite ? "#ff4757" : "#fff"}
-                style={{
-                  textShadowColor: "rgba(0,0,0,0.7)", 
-                  textShadowOffset: { width: 0, height: 2 },
-                  textShadowRadius: 3,
-                }}
-              />
+              {isFavorite ? <Ionicons
+                name={isFavorite ? 'heart' : 'heart-outline'}
+                size={scale(21)}
+                color={isFavorite ? '#ff4444' : '#fff'}
+              /> : <Image source={require("../../assets/via-farm-img/icons/mainHeartIcon.png")} />}
             </TouchableOpacity>
           )}
 

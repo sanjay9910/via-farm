@@ -152,16 +152,11 @@ const ProductCardLocal = ({
               onToggleFavorite && onToggleFavorite(item);
             }}
           >
-               <Ionicons
-              name={isFavorite ? "heart" : "heart-outline"}
-              size={moderateScale(24)}
-              color={isFavorite ? "#ff4757" : "#fff"}
-              style={{
-                textShadowColor: "rgba(0,0,0,0.7)",
-                textShadowOffset: { width: 0, height: 2 },
-                textShadowRadius: 3,
-              }}
-            />
+            {isFavorite ? <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={scale(21)}
+              color={isFavorite ? '#ff4444' : '#fff'}
+            /> : <Image source={require("../assets/via-farm-img/icons/mainHeartIcon.png")} />}
           </TouchableOpacity>
 
           <View style={cardStyles.ratingContainer}>
@@ -178,11 +173,6 @@ const ProductCardLocal = ({
           <Text allowFontScaling={false} style={cardStyles.productVeriety} numberOfLines={1}>
             Variety: {item?.variety ?? 'Unnamed product'}
           </Text>
-
-          {/* <View style={{ flexDirection: 'row', alignItems: 'center', gap:moderateScale(6), marginTop: moderateScale(6) }}>
-            <Image source={require('../assets/via-farm-img/icons/loca.png')} />
-            <Text allowFontScaling={false} style={{ fontSize: normalizeFont(11), color: '#444' }}>{distance ?? '0.0 km'}</Text>
-          </View> */}
 
           <View style={cardStyles.priceContainer}>
             <Text allowFontScaling={false} style={cardStyles.productUnit}>₹{item?.price ?? '0'}</Text>
@@ -252,7 +242,7 @@ const ProductCardLocal = ({
                         </TouchableOpacity>
 
                         <TextInput
-                        allowFontScaling={false}
+                          allowFontScaling={false}
                           style={modalStyles.qtyInput}
                           keyboardType="number-pad"
                           value={String(editQuantity)}
@@ -300,7 +290,7 @@ const VendorsDetails = () => {
   const window = useWindowDimensions();
 
   // responsive card width for 2 columns
-  const horizontalPadding = moderateScale(10) * 2; 
+  const horizontalPadding = moderateScale(10) * 2;
   const columnGap = moderateScale(10);
   const cardWidth = Math.max(120, Math.floor((window.width - horizontalPadding - columnGap) / CARD_COLUMNS));
 
@@ -715,7 +705,7 @@ const VendorsDetails = () => {
         <View style={{ backgroundColor: '#fff', paddingVertical: moderateScale(10), paddingLeft: moderateScale(10) }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text allowFontScaling={false} style={styles.sectionHeader}>
-              Reviews <Text  allowFontScaling={false} style={{ fontSize: normalizeFont(12), fontWeight: '400' }}>({reviews.length} reviews)</Text>
+              Reviews <Text allowFontScaling={false} style={{ fontSize: normalizeFont(12), fontWeight: '400' }}>({reviews.length} reviews)</Text>
             </Text>
             <TouchableOpacity onPress={() => (navigation as any).navigate('SeeAllReview', { vendor: v, reviews })}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingRight: moderateScale(5) }}>
@@ -748,7 +738,7 @@ const VendorsDetails = () => {
             keyExtractor={(item: any, idx: number) => item?._id ? item._id.toString() : String(idx)}
             renderItem={({ item }) => <ReviewCard item={item} />}
             showsHorizontalScrollIndicator={false}
-            // contentContainerStyle={{ paddingHorizontal: moderateScale(10) }}
+          // contentContainerStyle={{ paddingHorizontal: moderateScale(10) }}
           />
         ) : (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -877,10 +867,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: moderateScale(20),
   },
-  header:{
-    flexDirection:'row',
+  header: {
+    flexDirection: 'row',
     // alignItems:'center',
-    justifyContent:'space-between',
+    justifyContent: 'space-between',
   },
   errorHeader: {
     fontSize: normalizeFont(1),
@@ -903,7 +893,7 @@ const styles = StyleSheet.create({
   cardContainer: { padding: moderateScale(12), backgroundColor: '#fff' },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   vendorName: { fontSize: normalizeFont(15), fontWeight: '700', color: '#222' },
-  ratingBox: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'grey',gap:3, borderRadius:moderateScale(10), padding:moderateScale(5) },
+  ratingBox: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'grey', gap: 3, borderRadius: moderateScale(10), padding: moderateScale(5) },
   ratingText: { fontWeight: '700' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: moderateScale(8) },
   location: { marginLeft: moderateScale(6), color: '#666', fontSize: moderateScale(11) },
@@ -921,7 +911,7 @@ const styles = StyleSheet.create({
   selectedDropdownItem: { backgroundColor: 'rgba(76,175,80,0.08)' },
   dropdownText: { color: 'rgba(66,66,66,0.9)', fontSize: normalizeFont(11) },
   selectedDropdownText: { color: '#4CAF50', fontWeight: '600' },
-  reviewCard: { padding: moderateScale(10), marginLeft:moderateScale(10), backgroundColor: 'rgba(255,253,246,1)', borderRadius: moderateScale(8), borderWidth: 1, borderColor: '#f0f0f0' },
+  reviewCard: { padding: moderateScale(10), marginLeft: moderateScale(10), backgroundColor: 'rgba(255,253,246,1)', borderRadius: moderateScale(8), borderWidth: 1, borderColor: '#f0f0f0' },
   avatar: { width: scale(42), height: scale(42), borderRadius: moderateScale(22) },
   name: { fontWeight: '600', fontSize: normalizeFont(12) },
   rating: { color: '#444', fontSize: 12 },
@@ -938,17 +928,17 @@ const styles = StyleSheet.create({
    Card styles
    --------------------------- */
 const cardStyles = StyleSheet.create({
-  container: {  marginTop: moderateScale(12), marginBottom: moderateScale(8) },
-  card: { backgroundColor: '#fff', borderRadius: 10, overflow: 'hidden', shadowColor: 'grey', shadowOpacity: 0.1, shadowRadius: 4, borderWidth:1, borderColor: 'grey', elevation: 7, shadowOffset: { width: 0, height: 3 } },
+  container: { marginTop: moderateScale(12), marginBottom: moderateScale(8) },
+  card: { backgroundColor: '#fff', borderRadius: 10, overflow: 'hidden', shadowColor: 'grey', shadowOpacity: 0.1, shadowRadius: 4, borderWidth: 1, borderColor: 'grey', elevation: 7, shadowOffset: { width: 0, height: 3 } },
   imageContainer: { width: '100%', height: scale(140), backgroundColor: '#f6f6f6' },
   imageHeight: scale(135),
   productImage: { width: '100%', height: '100%', borderTopLeftRadius: 5, borderTopRightRadius: 5 },
   favoriteButton: { position: 'absolute', top: moderateScale(2), right: moderateScale(2), borderRadius: moderateScale(16), width: scale(30), height: scale(30), justifyContent: 'center', alignItems: 'center' },
   ratingContainer: { position: 'absolute', bottom: moderateScale(10), backgroundColor: 'rgba(141,141,141,0.6)', flexDirection: 'row', alignItems: 'center', paddingHorizontal: moderateScale(8), paddingVertical: moderateScale(4), borderRadius: moderateScale(14) },
-  ratingText: { color: '#fff', fontSize: normalizeFont(11),  fontWeight: '600' },
+  ratingText: { color: '#fff', fontSize: normalizeFont(11), fontWeight: '600' },
   cardContent: { paddingHorizontal: moderateScale(10), paddingVertical: moderateScale(10) },
   productTitle: { fontSize: normalizeFont(13), fontWeight: '600', color: '#2b2b2b' },
-  productVeriety: { color: 'rgba(66,66,66,0.7)', fontSize: normalizeFont(12),marginTop:moderateScale(5) },
+  productVeriety: { color: 'rgba(66,66,66,0.7)', fontSize: normalizeFont(12), marginTop: moderateScale(5) },
   productSubtitle: { fontSize: normalizeFont(12), color: '#666', marginBottom: moderateScale(8), height: scale(20) },
   priceContainer: { flexDirection: 'row', alignItems: 'flex-end', marginTop: moderateScale(5) },
   productPrice: { fontSize: normalizeFont(13), fontWeight: '800', color: '#666' },
