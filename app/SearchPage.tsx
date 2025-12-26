@@ -50,7 +50,7 @@ const SearchPage = () => {
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState(initialResults || []);
   const [filteredProducts, setFilteredProducts] = useState(initialResults || []);
-  
+
   // Filter states
   const [filters, setFilters] = useState(currentFilters || {
     sortBy: 'relevance',
@@ -141,20 +141,20 @@ const SearchPage = () => {
 
   const fetchProducts = async (query) => {
     if (!query || query.trim().length === 0) return;
-    
+
     setLoading(true);
     try {
       const q = encodeURIComponent(query.trim());
       const token = await AsyncStorage.getItem('userToken');
-      
+
       const headers = {
         'Content-Type': 'application/json',
       };
-      
+
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      
+
       const response = await fetch(
         `${API_BASE_URL}/api/buyer/products/search?q=${q}`,
         {
@@ -168,7 +168,7 @@ const SearchPage = () => {
       }
 
       const data = await response.json();
-      
+
       let products = [];
 
       // Handle response format
@@ -183,7 +183,7 @@ const SearchPage = () => {
       // Remove duplicates by ID
       const uniqueProducts = [];
       const seen = new Set();
-      
+
       products.forEach((p) => {
         const id = p._id || p.id;
         if (id && !seen.has(id)) {
@@ -193,7 +193,7 @@ const SearchPage = () => {
       });
 
       setProducts(uniqueProducts);
-      
+
     } catch (error) {
       console.error('Search Error:', error);
       Alert.alert('Error', 'Failed to fetch products. Please try again.');
@@ -269,7 +269,7 @@ const SearchPage = () => {
     // Apply sort
     let sorted = [...filtered];
     const sortBy = filters.sortBy;
-    
+
     if (sortBy && sortBy !== 'relevance') {
       if (sortBy === 'Price - low to high') {
         sorted.sort((a, b) => (Number(a.price ?? a.mrp ?? 0) - Number(b.price ?? b.mrp ?? 0)));
@@ -305,7 +305,7 @@ const SearchPage = () => {
       }
 
       const productId = product._id || product.id;
-      
+
       const wishlistData = {
         productId: productId,
         name: product.name,
@@ -446,7 +446,6 @@ const SearchPage = () => {
       const newQuantity = currentItem.quantity + change;
 
       if (newQuantity < 1) {
-        // Remove from cart
         const prevCart = { ...cartItems };
         setCartItems(prev => {
           const next = { ...prev };
@@ -459,34 +458,33 @@ const SearchPage = () => {
         });
 
         if (!response.data?.success) {
-          setCartItems(prevCart); // Rollback on failure
+          setCartItems(prevCart); 
         }
       } else {
-        // Update quantity
         const prevCart = { ...cartItems };
-        setCartItems(prev => ({ 
-          ...prev, 
-          [productId]: { ...currentItem, quantity: newQuantity } 
+        setCartItems(prev => ({
+          ...prev,
+          [productId]: { ...currentItem, quantity: newQuantity }
         }));
 
         const response = await axios.put(
-          `${API_BASE_URL}/api/buyer/cart/${currentItem.cartItemId}/quantity`, 
-          { quantity: newQuantity }, 
+          `${API_BASE_URL}/api/buyer/cart/${currentItem.cartItemId}/quantity`,
+          { quantity: newQuantity },
           {
-            headers: { 
-              'Content-Type': 'application/json', 
-              Authorization: `Bearer ${token}` 
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
             },
           }
         );
 
         if (!response.data?.success) {
-          setCartItems(prevCart); // Rollback on failure
+          setCartItems(prevCart);
         }
       }
     } catch (error) {
       console.error('Error updating quantity:', error);
-      await fetchCart(); // Refresh cart state
+      await fetchCart();
     }
   };
 
@@ -507,7 +505,7 @@ const SearchPage = () => {
 
   const applyQuantityChange = async () => {
     if (!selectedProduct) return;
-    
+
     const parsed = parseInt(String(editQuantity).replace(/\D/g, ''), 10);
     const newQty = Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
     const productId = selectedProduct._id || selectedProduct.id;
@@ -529,7 +527,7 @@ const SearchPage = () => {
       // Update existing quantity
       await handleUpdateQuantity(selectedProduct, delta);
     }
-    
+
     closeQuantityModal();
   };
 
@@ -543,7 +541,6 @@ const SearchPage = () => {
 
       const productId = product._id || product.id;
 
-      // Optimistic update
       setCartItems(prev => ({
         ...prev,
         [productId]: { quantity: quantity, cartItemId: prev[productId]?.cartItemId || productId }
@@ -580,7 +577,6 @@ const SearchPage = () => {
           }
         }));
       } else {
-        // Rollback on failure
         setCartItems(prev => {
           const next = { ...prev };
           delete next[productId];
@@ -644,9 +640,9 @@ const SearchPage = () => {
   };
 
   const handleProductClick = (product) => {
-    navigation.navigate('ViewProduct', { 
+    navigation.navigate('ViewProduct', {
       productId: product._id || product.id,
-      product: product 
+      product: product
     });
   };
 
@@ -674,7 +670,7 @@ const SearchPage = () => {
             style={styles.productImage}
             resizeMode="cover"
           />
-          
+
           {/* Wishlist Button */}
           <TouchableOpacity
             style={styles.wishlistButton}
@@ -683,11 +679,11 @@ const SearchPage = () => {
               handleToggleWishlist(product);
             }}
           >
-            {isFavorite ? (
-              <Ionicons name="heart" size={scale(20)} color="#ff4444" />
-            ) : (
-              <Ionicons name="heart-outline" size={scale(20)} color="#fff" />
-            )}
+            {isFavorite ? <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={scale(22)}
+              color={isFavorite ? '#ff4444' : '#fff'}
+            /> : <Image source={require("../assets/via-farm-img/icons/mainHeartIcon.png")} />}
           </TouchableOpacity>
 
           {/* Rating Badge */}
@@ -705,16 +701,16 @@ const SearchPage = () => {
               {product.name}
             </Text>
           </View>
-          
+
           <Text allowFontScaling={false} style={styles.productVendor} numberOfLines={1}>
             by {vendorName}
           </Text>
 
           {/* Location */}
           <View style={styles.locationContainer}>
-            <Image 
-              source={require("../assets/via-farm-img/icons/iconlocation.png")} 
-              style={styles.locationIcon} 
+            <Image
+              source={require("../assets/via-farm-img/icons/iconlocation.png")}
+              style={styles.locationIcon}
             />
             <Text allowFontScaling={false} style={styles.locationText}>
               {distance}
@@ -725,7 +721,7 @@ const SearchPage = () => {
             <Text allowFontScaling={false} style={styles.productPrice}>
               ₹{product.price}
             </Text>
-            
+
             {!inCart ? (
               <TouchableOpacity
                 style={[
@@ -796,13 +792,13 @@ const SearchPage = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        
+
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
           <TextInput
@@ -821,11 +817,11 @@ const SearchPage = () => {
             </TouchableOpacity>
           )}
         </View>
-        
+
         <TouchableOpacity style={styles.filterIconButton} onPress={openFilterPopup}>
-          <Image 
-            source={require("../assets/via-farm-img/icons/filterIcon.png")} 
-            style={{ width: scale(24), height: scale(24) }} 
+          <Image
+            source={require("../assets/via-farm-img/icons/filterIcon.png")}
+            style={{ width: scale(24), height: scale(24) }}
           />
         </TouchableOpacity>
       </View>
@@ -867,22 +863,22 @@ const SearchPage = () => {
         transparent
         onRequestClose={closeQuantityModal}
       >
-        <TouchableOpacity 
-          style={styles.quantityModalBackdrop} 
-          activeOpacity={1} 
+        <TouchableOpacity
+          style={styles.quantityModalBackdrop}
+          activeOpacity={1}
           onPress={closeQuantityModal}
         >
           <View style={styles.quantityModalContent}>
             <Text allowFontScaling={false} style={styles.quantityModalTitle}>Edit Quantity</Text>
-            
+
             <View style={styles.quantityEditRow}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.quantityModalButton}
                 onPress={decrementEditQuantity}
               >
                 <Ionicons name="remove" size={scale(20)} color="#333" />
               </TouchableOpacity>
-              
+
               <TextInput
                 style={styles.quantityModalInput}
                 keyboardType="number-pad"
@@ -892,28 +888,28 @@ const SearchPage = () => {
                 textAlign="center"
                 allowFontScaling={false}
               />
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={styles.quantityModalButton}
                 onPress={incrementEditQuantity}
               >
                 <Ionicons name="add" size={scale(20)} color="#333" />
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.quantityModalActions}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.quantityModalActionButton, styles.cancelButton]}
                 onPress={closeQuantityModal}
               >
                 <Text allowFontScaling={false} style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={[styles.quantityModalActionButton, styles.applyButton]}
                 onPress={applyQuantityChange}
               >
-                <Text allowFontScaling={false} style={styles.applyButtonText}>Apply</Text>
+                <Text allowFontScaling={false} style={styles.applyButtonText}>add</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -943,9 +939,9 @@ const SearchPage = () => {
           >
             <View style={styles.filterHeader}>
               <View style={styles.filterTitleContainer}>
-                <Image 
-                  source={require("../assets/via-farm-img/icons/filterIcon.png")} 
-                  style={{ width: scale(15), height: scale(15) }} 
+                <Image
+                  source={require("../assets/via-farm-img/icons/filterIcon.png")}
+                  style={{ width: scale(15), height: scale(15) }}
                 />
                 <Text allowFontScaling={false} style={styles.filterTitle}>Filters</Text>
               </View>
@@ -1244,12 +1240,14 @@ const styles = StyleSheet.create({
   listContent: {
     paddingVertical: moderateScale(12),
   },
-  
+
   // Product Card Styles
   productCard: {
     width: '48%',
     backgroundColor: '#fff',
     borderRadius: moderateScale(12),
+    borderWidth: 1,
+    borderColor: 'grey',
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1269,9 +1267,9 @@ const styles = StyleSheet.create({
   },
   wishlistButton: {
     position: 'absolute',
-    top: moderateScale(8),
-    right: moderateScale(8),
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    top: moderateScale(3),
+    right: moderateScale(3),
+    // backgroundColor: 'rgba(0,0,0,0.3)',
     width: scale(30),
     height: scale(30),
     borderRadius: scale(15),
@@ -1380,7 +1378,7 @@ const styles = StyleSheet.create({
     color: 'rgba(76, 175, 80, 1)',
     fontWeight: '700',
   },
-  
+
   // Quantity Modal Styles
   quantityModalBackdrop: {
     flex: 1,
@@ -1459,7 +1457,7 @@ const styles = StyleSheet.create({
     fontSize: normalizeFont(14),
     fontWeight: '600',
   },
-  
+
   // Empty State
   emptyContainer: {
     flex: 1,
@@ -1483,15 +1481,16 @@ const styles = StyleSheet.create({
   },
   overlayTouchable: {
     flex: 1,
+
   },
   filterPopup: {
     position: 'absolute',
     right: 0,
-    top: 0,
     bottom: 0,
-    width: '75%',
+    width: '50%',
     backgroundColor: '#fff',
     elevation: 10,
+    height:'92%',
     shadowColor: '#000',
     shadowOffset: {
       width: -2,
@@ -1499,6 +1498,10 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: moderateScale(5),
+    borderColor: 'yellow',
+    borderLeftWidth: 2,
+    borderTopWidth: 2,
+    borderTopLeftRadius:moderateScale(20),
   },
   filterHeader: {
     flexDirection: 'row',

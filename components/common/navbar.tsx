@@ -197,11 +197,7 @@ export default function HeaderDesign() {
 
       try {
         const q = encodeURIComponent(text.trim());
-        
-        // Get token from AsyncStorage
         const token = await AsyncStorage.getItem('userToken');
-        
-        // Build headers
         const headers = {
           'Content-Type': 'application/json',
         };
@@ -281,15 +277,7 @@ export default function HeaderDesign() {
 
   // Navigate to Search Page
   const navigateToSearchPage = () => {
-    if (searchText.trim().length === 0) {
-      Alert.alert('Empty Search', 'Please enter something to search');
-      return;
-    }
-    
-    // Close suggestions if open
     setShowSuggestions(false);
-    
-    // Navigate to SearchPage with all necessary data
     navigation.navigate('SearchPage', {
       searchQuery: searchText.trim(),
       currentFilters: filters,
@@ -297,7 +285,6 @@ export default function HeaderDesign() {
     });
   };
 
-  // Handle search submit (when pressing enter or search icon)
   const handleSearchSubmit = () => {
     navigateToSearchPage();
   };
@@ -1391,7 +1378,7 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(10),
     backgroundColor: '#4CAF50',
     top: moderateScale(5),
-    borderWidth: 2,
+    borderWidth:moderateScale(2),
     borderColor: '#fff',
   },
 

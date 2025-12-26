@@ -47,14 +47,14 @@ const cardStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: moderateScale(20), marginBottom: verticalScale(12) },
   heading: { fontSize: normalizeFont(15), fontWeight: '600', color: '#333' },
-  seeButton: { flexDirection: 'row', alignItems: 'center', paddingVertical:moderateScale(6) ,gap:5},
-  seeIcon: { width: moderateScale(16), height: moderateScale(16), marginRight:moderateScale(4) },
+  seeButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: moderateScale(6), gap: 5 },
+  seeIcon: { width: moderateScale(16), height: moderateScale(16), marginRight: moderateScale(4) },
   link: { fontSize: normalizeFont(13), color: 'rgba(1, 151, 218, 1)', fontWeight: '600' },
   errorContainer: { marginVertical: verticalScale(20), paddingHorizontal: moderateScale(20), alignItems: 'center' },
   errorText: { fontSize: normalizeFont(10), color: '#e74c3c', textAlign: 'center', marginBottom: verticalScale(12) },
   buttonContainer: { flexDirection: 'row', gap: 10 },
-  retryButton: { backgroundColor: '#ff6b35', paddingHorizontal:moderateScale(16), paddingVertical:moderateScale(10), borderRadius:moderateScale(6) },
-  loginButton: { backgroundColor: '#3498db', paddingHorizontal:moderateScale(16), paddingVertical:moderateScale(10), borderRadius:moderateScale(6) },
+  retryButton: { backgroundColor: '#ff6b35', paddingHorizontal: moderateScale(16), paddingVertical: moderateScale(10), borderRadius: moderateScale(6) },
+  loginButton: { backgroundColor: '#3498db', paddingHorizontal: moderateScale(16), paddingVertical: moderateScale(10), borderRadius: moderateScale(6) },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: normalizeFont(10) },
   noDataContainer: { marginVertical: verticalScale(20), alignItems: 'center' },
   noDataText: { fontSize: normalizeFont(10), color: '#999' }
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
 
 // ---------- Custom Card Component ----------
 const ProductCard = ({ item, onPress }) => {
-  const variety = item?.variety ?? item?.name ?? 'Unnamed';
+  const variety = item?.name || 'Unnamed';
   const image = (item?.images && item.images.length > 0) ? item.images[0] : 'https://via.placeholder.com/150/FFA500/FFFFFF?text=No+Image';
 
   return (
@@ -139,18 +139,21 @@ const FressPopular = () => {
     navigation.navigate('login');
   };
 
-  // FIXED: Pass variety name to ProductVarieties page
   const openProductDetails = (product) => {
-    const varietyName = product?.variety || product?.name;
-    
-    if (!varietyName) {
-      console.warn("openProductDetails: missing variety/product name", product);
-      return;
+    try {
+      if (!product || !product._id) {
+        console.warn("openProductDetails: missing product or product ID", product);
+        return;
+      }
+
+      // Navigate to ViewProduct screen with product data
+      navigation.navigate('ViewProduct', {
+        productId: product._id,
+        product: product,
+      });
+    } catch (err) {
+      console.error("Navigation error:", err);
     }
-    navigation.navigate('ProductVeriety', { 
-      product, 
-      variety: varietyName 
-    });
   };
 
   // Loading state
@@ -184,7 +187,7 @@ const FressPopular = () => {
               source={require("../../../assets/via-farm-img/icons/see.png")}
               style={styles.seeIcon}
             />
-            <Text allowFontScaling={false} allowFontScaling={false} style={styles.link}>See All</Text>
+            <Text allowFontScaling={false} style={styles.link}>See All</Text>
           </TouchableOpacity>
         </View>
 
@@ -222,7 +225,7 @@ const FressPopular = () => {
           <Text allowFontScaling={false} style={styles.link}>See All</Text>
           <Image
             source={require("../../../assets/via-farm-img/icons/see.png")}
-        
+           
           />
         </TouchableOpacity>
       </View>
